@@ -25,7 +25,7 @@ function buildPassage() {
   // 600文字を十分に超えるまで文ペアを足す(足りなければ先頭から繰り返す)
   while (target.length < TARGET_KEYS + 60) {
     const s = shuffled[idx % shuffled.length]
-    addSeg({ type: 'en', text: s.en, en: s.en, ja: s.ja })
+    addSeg({ type: 'en', text: s.en, en: s.en, ja: s.ja, kana: s.kana })
     addSeg({ type: 'ja', text: toRomaji(s.kana), ja: s.ja, kana: s.kana, en: s.en })
     idx += 1
   }
@@ -201,10 +201,16 @@ function Ready({ onStart, records }) {
 
 function Reference({ seg }) {
   return (
-    <div className={`reference mode-${seg.type}`}>
-      <span className="ref-tag">{seg.type === 'en' ? '英文を入力' : '和文をローマ字入力'}</span>
-      <span className="ref-text">{seg.ja}</span>
-      {seg.type === 'ja' && <span className="ref-kana">{seg.kana}</span>}
+    <div className="reference">
+      <div className={`ref-row ${seg.type === 'en' ? 'active' : ''}`}>
+        <span className="ref-tag en">英語</span>
+        <span className="ref-text">{seg.en}</span>
+      </div>
+      <div className={`ref-row ${seg.type === 'ja' ? 'active' : ''}`}>
+        <span className="ref-tag ja">日本語</span>
+        <span className="ref-text">{seg.ja}</span>
+        <span className="ref-kana">{seg.kana}</span>
+      </div>
     </div>
   )
 }

@@ -96,28 +96,39 @@ h1 {
   transition: width 0.15s ease;
 }
 
-/* ---- 現在文の参照(学習ヒント) ---- */
+/* ---- 現在文の参照(上:英語 / 下:日本語 を常に表示) ---- */
 .reference {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.ref-row {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 10px;
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 14px;
-  min-height: 24px;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+.ref-row.active {
+  opacity: 1;
 }
 .ref-tag {
   font-size: 12px;
   font-weight: 700;
   color: #06283d;
-  background: var(--accent);
   border-radius: 999px;
   padding: 2px 10px;
   white-space: nowrap;
 }
-.reference.mode-ja .ref-tag {
+.ref-tag.en {
+  background: var(--accent);
+}
+.ref-tag.ja {
   background: var(--gold);
 }
 .ref-text {
