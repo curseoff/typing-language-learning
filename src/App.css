@@ -96,68 +96,75 @@ h1 {
   transition: width 0.15s ease;
 }
 
-.prompt {
-  text-align: center;
+/* ---- 現在文の参照(学習ヒント) ---- */
+.reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
   background: var(--panel);
-  border-radius: 16px;
-  padding: 28px 20px;
-  margin-bottom: 22px;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  min-height: 24px;
 }
-.prompt-mode {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 10px;
+.ref-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #06283d;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
 }
-.prompt.mode-ja .prompt-mode {
-  color: var(--gold);
+.reference.mode-ja .ref-tag {
+  background: var(--gold);
 }
-.prompt-show {
-  font-size: 44px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-.prompt-reading {
-  margin-top: 8px;
+.ref-text {
   font-size: 18px;
+  font-weight: 700;
+}
+.ref-kana {
+  font-size: 14px;
   color: var(--muted);
-  letter-spacing: 0.1em;
 }
 
-.word-display {
-  text-align: center;
+/* ---- パッセージ本文(全文表示) ---- */
+.passage {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 40px;
-  letter-spacing: 0.12em;
-  padding: 18px;
+  font-size: 22px;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+  padding: 20px;
   background: var(--panel-2);
   border-radius: 14px;
-  border: 2px solid transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
-.word-display.error {
-  border-color: var(--red);
-  animation: shake 0.18s;
-}
-.char {
+.ch {
   color: var(--muted);
-  padding: 0 1px;
 }
-.char.done {
+.ch.done {
   color: var(--green);
 }
-.char.current {
-  color: var(--text);
-  background: rgba(56, 189, 248, 0.25);
-  border-radius: 4px;
+.ch.cur {
+  color: #06283d;
+  background: var(--accent);
+  border-radius: 3px;
 }
-.char.current.err {
-  background: rgba(248, 113, 113, 0.35);
-  color: var(--red);
+.ch.cur.err {
+  background: var(--red);
+  color: #fff;
+  animation: shake 0.18s;
+}
+.ch.over {
+  opacity: 0.35;
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
 }
 
 .hint {
