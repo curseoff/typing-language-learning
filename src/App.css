@@ -1,0 +1,237 @@
+:root {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel-2: #273449;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --green: #4ade80;
+  --red: #f87171;
+  --gold: #fbbf24;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo,
+    system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+h1 {
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 0.05em;
+}
+
+.lead {
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.btn-primary {
+  display: block;
+  margin: 24px auto;
+  padding: 14px 48px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #06283d;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* ---- game ---- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stat {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--panel);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--green));
+  transition: width 0.15s ease;
+}
+
+.prompt {
+  text-align: center;
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 28px 20px;
+  margin-bottom: 22px;
+}
+.prompt-mode {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.prompt.mode-ja .prompt-mode {
+  color: var(--gold);
+}
+.prompt-show {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.word-display {
+  text-align: center;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 40px;
+  letter-spacing: 0.12em;
+  padding: 18px;
+  background: var(--panel-2);
+  border-radius: 14px;
+  border: 2px solid transparent;
+}
+.word-display.error {
+  border-color: var(--red);
+  animation: shake 0.18s;
+}
+.char {
+  color: var(--muted);
+  padding: 0 1px;
+}
+.char.done {
+  color: var(--green);
+}
+.char.current {
+  color: var(--text);
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 4px;
+}
+.char.current.err {
+  background: rgba(248, 113, 113, 0.35);
+  color: var(--red);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 18px;
+}
+
+/* ---- result ---- */
+.result {
+  text-align: center;
+}
+.result h2 {
+  margin-bottom: 8px;
+}
+.result-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.result-speed {
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+}
+.result-unit {
+  font-size: 20px;
+  color: var(--muted);
+}
+.result-sub {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ---- records ---- */
+.records {
+  margin-top: 36px;
+}
+.records h3 {
+  font-size: 15px;
+  color: var(--muted);
+  text-align: center;
+}
+.no-records {
+  text-align: center;
+  color: var(--muted);
+}
+.records table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.records th,
+.records td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+.records th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.records td.speed {
+  font-weight: 700;
+  color: var(--accent);
+}
+.records td.date {
+  color: var(--muted);
+  font-size: 12px;
+}
+.records tr.me td {
+  background: rgba(251, 191, 36, 0.12);
+}
+.records tbody tr:nth-child(1) td.speed {
+  color: var(--gold);
+}
