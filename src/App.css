@@ -175,6 +175,10 @@ h1 {
 .ch.over {
   opacity: 0.35;
 }
+/* セグメント間の区切り(打鍵不要の表示用スペース) */
+.gap {
+  padding: 0 0.3em;
+}
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

@@ -7,7 +7,7 @@ const MAX_RECORDS = 15
 const STORAGE_KEY = 'typing-records-v1'
 
 // 「英文(英語入力)」→「和文(ローマ字入力)」を交互に連結したパッセージを作る。
-// 各セグメントは末尾にスペース(区切り)を含み、それも打鍵対象。
+// セグメント間の区切りスペースは打鍵不要(表示上の間隔のみ)。
 // 和文は複数のローマ字入力を許容(variants)し、表示用に canonical(ヘボン式)を持つ。
 function buildPassage() {
   const shuffled = [...SENTENCES].sort(() => Math.random() - 0.5)
@@ -25,16 +25,16 @@ function buildPassage() {
       en: s.en,
       ja: s.ja,
       kana: s.kana,
-      variants: [s.en + ' '],
-      canonical: s.en + ' ',
+      variants: [s.en],
+      canonical: s.en,
     })
     add({
       type: 'ja',
       en: s.en,
       ja: s.ja,
       kana: s.kana,
-      variants: romajiVariants(s.kana).map((v) => v + ' '),
-      canonical: toRomaji(s.kana) + ' ',
+      variants: romajiVariants(s.kana),
+      canonical: toRomaji(s.kana),
     })
     idx += 1
   }
@@ -300,7 +300,12 @@ function Passage({ segments, segIndex, segInput, completed, hasError }) {
           )
         })
         global += text.length
-        return <span key={i}>{spans}</span>
+        return (
+          <span key={i}>
+            {i > 0 && <span className="gap"> </span>}
+            {spans}
+          </span>
+        )
       })}
     </div>
   )
