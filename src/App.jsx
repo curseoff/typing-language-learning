@@ -81,8 +81,12 @@ export default function App() {
   const [now, setNow] = useState(0)
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
+  const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
 
   const startTimeRef = useRef(null)
+  const segStartRef = useRef(null) // 現在の問題の開始時刻
+  const segMistakesRef = useRef(0) // 現在の問題のミス数
+  const segStatsRef = useRef([]) // 確定した問題ごとの記録
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -99,7 +103,11 @@ export default function App() {
     setMistakes(0)
     setHasError(false)
     setNow(0)
+    setSegStats([])
     startTimeRef.current = null
+    segStartRef.current = null
+    segMistakesRef.current = 0
+    segStatsRef.current = []
     setPhase('playing')
   }, [])
 
@@ -119,6 +127,7 @@ export default function App() {
     }
     setRecords(saveRecord(record))
     setLastResult(record)
+    setSegStats(segStatsRef.current)
     setPhase('result')
   }, [])
 
@@ -133,18 +142,43 @@ export default function App() {
       const candidate = segInput + e.key // 大文字小文字は区別(英文の大文字/ローマ字小文字)
 
       if (seg.variants.some((v) => v.startsWith(candidate))) {
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const t = performance.now()
+        if (startTimeRef.current === null) startTimeRef.current = t
+        if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
 
-        if (newKeys >= TARGET_KEYS) {
-          finishGame(newKeys, mistakes, performance.now())
+        const completesSeg = seg.variants.includes(candidate)
+        const reachedGoal = newKeys >= TARGET_KEYS
+
+        // 問題が終わった(完了 or 600到達で打ち切り)ら記録
+        if (completesSeg || reachedGoal) {
+          const segKeys = candidate.length
+          const ms = t - segStartRef.current
+          segStatsRef.current = [
+            ...segStatsRef.current,
+            {
+              no: segStatsRef.current.length + 1,
+              type: seg.type,
+              label: seg.type === 'en' ? seg.en : seg.ja,
+              keys: segKeys,
+              mistakes: segMistakesRef.current,
+              seconds: Math.round(ms / 100) / 10,
+              speed: ms > 0 ? Math.round(segKeys / (ms / 60000)) : 0,
+              partial: !completesSeg, // 完了前に600到達で打ち切り
+            },
+          ]
+          segStartRef.current = null
+          segMistakesRef.current = 0
+        }
+
+        if (reachedGoal) {
+          finishGame(newKeys, mistakes, t)
           return
         }
 
-        if (seg.variants.includes(candidate)) {
-          // セグメント確定 → 次へ
+        if (completesSeg) {
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
@@ -153,6 +187,7 @@ export default function App() {
         }
       } else {
         setMistakes((m) => m + 1)
+        segMistakesRef.current += 1
         setHasError(true)
       }
     },
@@ -214,7 +249,7 @@ export default function App() {
       )}
 
       {phase === 'result' && lastResult && (
-        <Result result={lastResult} records={records} onRetry={startGame} />
+        <Result result={lastResult} records={records} segStats={segStats} onRetry={startGame} />
       )}
     </div>
   )
@@ -320,7 +355,7 @@ function Stat({ label, value }) {
   )
 }
 
-function Result({ result, records, onRetry }) {
+function Result({ result, records, segStats, onRetry }) {
   return (
     <div className="result">
       <h2>記録</h2>
@@ -337,7 +372,44 @@ function Result({ result, records, onRetry }) {
       <button className="btn-primary" onClick={onRetry}>
         もう一度
       </button>
+      <SegStatsTable segStats={segStats} />
       <RecordsTable records={records} highlight={result.date} />
+    </div>
+  )
+}
+
+function SegStatsTable({ segStats }) {
+  if (!segStats || segStats.length === 0) return null
+  return (
+    <div className="seg-stats">
+      <h3>問題ごとの記録</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>種別</th>
+            <th>問題</th>
+            <th>速度</th>
+            <th>ミス</th>
+          </tr>
+        </thead>
+        <tbody>
+          {segStats.map((s) => (
+            <tr key={s.no} className={s.mistakes > 0 ? 'has-miss' : ''}>
+              <td>{s.no}</td>
+              <td>
+                <span className={`type-badge ${s.type}`}>{s.type === 'en' ? '英' : '和'}</span>
+              </td>
+              <td className="q-label">
+                {s.label}
+                {s.partial && <span className="partial-tag">途中</span>}
+              </td>
+              <td className="speed">{s.speed} 打/分</td>
+              <td className={s.mistakes > 0 ? 'miss' : ''}>{s.mistakes}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
