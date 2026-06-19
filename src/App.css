@@ -139,6 +139,10 @@ h1 {
   font-size: 14px;
   color: var(--muted);
 }
+/* 入力済み部分(英語/読みかな) */
+.rdone {
+  color: var(--green);
+}
 
 /* ---- パッセージ本文(全文表示) ---- */
 .passage {

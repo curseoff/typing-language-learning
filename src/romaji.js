@@ -95,6 +95,23 @@ export function romajiVariants(kana) {
   return [...new Set(expand(toHiragana(kana), 0))]
 }
 
+// ローマ字入力 input が、kana の先頭から何文字ぶんを打ち終えたかを返す。
+// 先頭 k 文字を綴り切るローマ字のいずれかが input の先頭にあれば、k 文字完了。
+export function kanaConsumed(kana, input) {
+  const hira = toHiragana(kana)
+  let best = 0
+  for (let k = 1; k <= hira.length; k++) {
+    const vs = new Set(expand(hira.slice(0, k), 0))
+    for (const v of vs) {
+      if (input.startsWith(v)) {
+        best = k
+        break
+      }
+    }
+  }
+  return best
+}
+
 // --- canonical(ヘボン式1通り) ---
 function unitAt(hira, i) {
   const two = hira.slice(i, i + 2)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SENTENCES } from './sentences.js'
-import { romajiVariants, toRomaji } from './romaji.js'
+import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
@@ -197,7 +197,7 @@ export default function App() {
             <div className="progress-fill" style={{ width: `${(typedKeys / TARGET_KEYS) * 100}%` }} />
           </div>
 
-          {currentSeg && <Reference seg={currentSeg} />}
+          {currentSeg && <Reference seg={currentSeg} segInput={segInput} />}
 
           <Passage
             segments={segments}
@@ -236,19 +236,38 @@ function Ready({ onStart, records }) {
   )
 }
 
-function Reference({ seg }) {
+function Reference({ seg, segInput }) {
+  // 英語: 入力中なら打った文字数まで、和文入力中なら全部打ち終えている
+  const enDone = seg.type === 'en' ? Math.min(segInput.length, seg.en.length) : seg.en.length
+  // 和文: 入力中なら読みかなを何文字打ち終えたか
+  const kanaDone = useMemo(
+    () => (seg.type === 'ja' ? kanaConsumed(seg.kana, segInput) : 0),
+    [seg, segInput],
+  )
   return (
     <div className="reference">
       <div className={`ref-row ${seg.type === 'en' ? 'active' : ''}`}>
         <span className="ref-tag en">英語</span>
-        <span className="ref-text">{seg.en}</span>
+        <ProgressText className="ref-text" text={seg.en} done={enDone} />
       </div>
       <div className={`ref-row ${seg.type === 'ja' ? 'active' : ''}`}>
         <span className="ref-tag ja">日本語</span>
         <span className="ref-text">{seg.ja}</span>
-        <span className="ref-kana">{seg.kana}</span>
+        <ProgressText className="ref-kana" text={seg.kana} done={kanaDone} />
       </div>
     </div>
+  )
+}
+
+function ProgressText({ text, done, className }) {
+  return (
+    <span className={className}>
+      {text.split('').map((ch, i) => (
+        <span key={i} className={i < done ? 'rdone' : ''}>
+          {ch}
+        </span>
+      ))}
+    </span>
   )
 }
 
