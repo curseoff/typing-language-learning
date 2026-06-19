@@ -1,35 +1,54 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SENTENCES } from './sentences.js'
-import { toRomaji } from './romaji.js'
+import { romajiVariants, toRomaji } from './romaji.js'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
 const STORAGE_KEY = 'typing-records-v1'
-const SEP = ' ' // 文と文の区切り(これも打つ)
 
 // 「英文(英語入力)」→「和文(ローマ字入力)」を交互に連結したパッセージを作る。
-// 全文を最初から表示するため、入力対象は固定文字列。
+// 各セグメントは末尾にスペース(区切り)を含み、それも打鍵対象。
+// 和文は複数のローマ字入力を許容(variants)し、表示用に canonical(ヘボン式)を持つ。
 function buildPassage() {
   const shuffled = [...SENTENCES].sort(() => Math.random() - 0.5)
   const segments = []
-  let target = ''
-
-  const addSeg = (seg) => {
-    if (target.length > 0) target += SEP // 区切りも打鍵対象
-    const start = target.length
-    target += seg.text
-    segments.push({ ...seg, start, end: target.length })
+  let approx = 0
+  const add = (seg) => {
+    segments.push(seg)
+    approx += seg.canonical.length
   }
-
   let idx = 0
-  // 600文字を十分に超えるまで文ペアを足す(足りなければ先頭から繰り返す)
-  while (target.length < TARGET_KEYS + 60) {
+  while (approx < TARGET_KEYS + 60) {
     const s = shuffled[idx % shuffled.length]
-    addSeg({ type: 'en', text: s.en, en: s.en, ja: s.ja, kana: s.kana })
-    addSeg({ type: 'ja', text: toRomaji(s.kana), ja: s.ja, kana: s.kana, en: s.en })
+    add({
+      type: 'en',
+      en: s.en,
+      ja: s.ja,
+      kana: s.kana,
+      variants: [s.en + ' '],
+      canonical: s.en + ' ',
+    })
+    add({
+      type: 'ja',
+      en: s.en,
+      ja: s.ja,
+      kana: s.kana,
+      variants: romajiVariants(s.kana).map((v) => v + ' '),
+      canonical: toRomaji(s.kana) + ' ',
+    })
     idx += 1
   }
-  return { target, segments }
+  return segments
+}
+
+// 入力中セグメントの表示ローマ字。canonical を優先しつつ、入力に合う最短に切り替える。
+function guideText(seg, input) {
+  if (seg.canonical.startsWith(input)) return seg.canonical
+  let best = null
+  for (const v of seg.variants) {
+    if (v.startsWith(input) && (best === null || v.length < best.length)) best = v
+  }
+  return best ?? seg.canonical
 }
 
 function loadRecords() {
@@ -52,8 +71,11 @@ function saveRecord(record) {
 
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result
-  const [passage, setPassage] = useState({ target: '', segments: [] })
-  const [pos, setPos] = useState(0) // 正しく打った文字数(=カーソル位置)
+  const [segments, setSegments] = useState([])
+  const [segIndex, setSegIndex] = useState(0)
+  const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
+  const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
+  const [typedKeys, setTypedKeys] = useState(0) // 正しく打った総文字数
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
   const [now, setNow] = useState(0)
@@ -61,7 +83,6 @@ export default function App() {
   const [lastResult, setLastResult] = useState(null)
 
   const startTimeRef = useRef(null)
-  const { target, segments } = passage
 
   useEffect(() => {
     if (phase !== 'playing') return
@@ -70,8 +91,11 @@ export default function App() {
   }, [phase])
 
   const startGame = useCallback(() => {
-    setPassage(buildPassage())
-    setPos(0)
+    setSegments(buildPassage())
+    setSegIndex(0)
+    setSegInput('')
+    setCompleted([])
+    setTypedKeys(0)
     setMistakes(0)
     setHasError(false)
     setNow(0)
@@ -104,24 +128,35 @@ export default function App() {
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
 
-      const expected = target[pos]
-      if (e.key === expected) {
+      const seg = segments[segIndex]
+      if (!seg) return
+      const candidate = segInput + e.key // 大文字小文字は区別(英文の大文字/ローマ字小文字)
+
+      if (seg.variants.some((v) => v.startsWith(candidate))) {
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
-        const newPos = pos + 1
-        if (newPos >= TARGET_KEYS) {
-          setPos(newPos)
-          finishGame(newPos, mistakes, performance.now())
+        const newKeys = typedKeys + 1
+        setTypedKeys(newKeys)
+
+        if (newKeys >= TARGET_KEYS) {
+          finishGame(newKeys, mistakes, performance.now())
           return
         }
-        setPos(newPos)
+
+        if (seg.variants.includes(candidate)) {
+          // セグメント確定 → 次へ
+          setCompleted((c) => [...c, candidate])
+          setSegIndex((i) => i + 1)
+          setSegInput('')
+        } else {
+          setSegInput(candidate)
+        }
       } else {
-        // 誤り: 正しいキーを打つまで進めない(打ったものは消さない)
         setMistakes((m) => m + 1)
         setHasError(true)
       }
     },
-    [phase, target, pos, mistakes, finishGame],
+    [phase, segments, segIndex, segInput, typedKeys, mistakes, finishGame],
   )
 
   useEffect(() => {
@@ -133,19 +168,15 @@ export default function App() {
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
     const minutes = (now - startTimeRef.current) / 60000
-    return minutes > 0 ? Math.round(pos / minutes) : 0
-  }, [now, pos, started])
+    return minutes > 0 ? Math.round(typedKeys / minutes) : 0
+  }, [now, typedKeys, started])
 
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
     return Math.round((now - startTimeRef.current) / 100) / 10
   }, [now, started])
 
-  // 現在カーソルがいるセグメント(学習用の参照表示に使う)
-  const currentSeg = useMemo(
-    () => segments.find((s) => pos < s.end) ?? segments[segments.length - 1],
-    [segments, pos],
-  )
+  const currentSeg = segments[segIndex]
 
   return (
     <div className="app">
@@ -156,22 +187,28 @@ export default function App() {
       {phase === 'playing' && (
         <div className="game">
           <div className="stats">
-            <Stat label="タイピング数" value={`${pos} / ${TARGET_KEYS}`} />
+            <Stat label="タイピング数" value={`${typedKeys} / ${TARGET_KEYS}`} />
             <Stat label="速度" value={`${liveSpeed} 打/分`} />
             <Stat label="ミス" value={mistakes} />
             <Stat label="時間" value={`${elapsedSec} 秒`} />
           </div>
 
           <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(pos / TARGET_KEYS) * 100}%` }} />
+            <div className="progress-fill" style={{ width: `${(typedKeys / TARGET_KEYS) * 100}%` }} />
           </div>
 
           {currentSeg && <Reference seg={currentSeg} />}
 
-          <Passage target={target} pos={pos} hasError={hasError} />
+          <Passage
+            segments={segments}
+            segIndex={segIndex}
+            segInput={segInput}
+            completed={completed}
+            hasError={hasError}
+          />
 
           <p className="hint">
-            英文はそのまま、和文はローマ字で。正しく打つまで次に進めません。
+            英文はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
           </p>
         </div>
       )}
@@ -188,7 +225,7 @@ function Ready({ onStart, records }) {
     <div className="ready">
       <p className="lead">
         英文と和文が交互につながった文章を、最初から最後まで打ちます。<br />
-        <strong>英文は英語スペル</strong>、<strong>和文はローマ字</strong>で入力。
+        <strong>英文は英語スペル</strong>、<strong>和文はローマ字</strong>（shi/si どちらでもOK）。
         {TARGET_KEYS}文字で終了し、記録が出ます。
       </p>
       <button className="btn-primary" onClick={onStart}>
@@ -215,20 +252,36 @@ function Reference({ seg }) {
   )
 }
 
-function Passage({ target, pos, hasError }) {
+function Passage({ segments, segIndex, segInput, completed, hasError }) {
+  let global = 0
   return (
     <div className="passage">
-      {target.split('').map((ch, i) => {
-        let cls = 'ch'
-        if (i < pos) cls += ' done'
-        else if (i === pos) cls += hasError ? ' cur err' : ' cur'
-        // 末尾を超えた分(600以降)は薄く
-        if (i >= TARGET_KEYS) cls += ' over'
-        return (
-          <span key={i} className={cls}>
-            {ch === ' ' ? ' ' : ch}
-          </span>
-        )
+      {segments.map((seg, i) => {
+        let text
+        let typedLen
+        if (i < segIndex) {
+          text = completed[i] ?? seg.canonical
+          typedLen = text.length
+        } else if (i === segIndex) {
+          text = guideText(seg, segInput)
+          typedLen = segInput.length
+        } else {
+          text = seg.canonical
+          typedLen = 0
+        }
+        const spans = text.split('').map((ch, j) => {
+          let cls = 'ch'
+          if (j < typedLen) cls += ' done'
+          else if (i === segIndex && j === typedLen) cls += hasError ? ' cur err' : ' cur'
+          if (global + j >= TARGET_KEYS) cls += ' over'
+          return (
+            <span key={j} className={cls}>
+              {ch}
+            </span>
+          )
+        })
+        global += text.length
+        return <span key={i}>{spans}</span>
       })}
     </div>
   )
