@@ -1,34 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORDS } from './words.js'
+import { romajiVariants, displayRomaji } from './romaji.js'
 
 const TARGET_KEYS = 600 // タイピング数(正しく打った文字数)がこの数に達したら終了
 const MAX_RECORDS = 15
 const STORAGE_KEY = 'typing-records-v1'
 
-// 単語ペアから出題シーケンスを作る。
-// 各単語につき「英語表示」→「和訳表示」の順で2問。入力対象は常に英単語。
+// 出題シーケンスを作る。各単語につき「英語表示(英語入力)」→「和訳表示(ローマ字入力)」。
 function buildPrompts() {
   const shuffled = [...WORDS].sort(() => Math.random() - 0.5)
   const prompts = []
-  for (const w of shuffled) {
-    prompts.push({ mode: 'en', show: w.en, target: w.en })
-    prompts.push({ mode: 'ja', show: w.ja, target: w.en })
+  const pushWord = (w) => {
+    prompts.push({ mode: 'en', show: w.en, variants: [w.en] })
+    prompts.push({ mode: 'ja', show: w.ja, reading: w.kana, variants: romajiVariants(w.kana) })
   }
-  // 600打に届くようループで足りなければ繰り返す
-  while (prompts.reduce((n, p) => n + p.target.length, 0) < TARGET_KEYS + 50) {
-    for (const w of shuffled) {
-      prompts.push({ mode: 'en', show: w.en, target: w.en })
-      prompts.push({ mode: 'ja', show: w.ja, target: w.en })
-    }
-  }
+  for (const w of shuffled) pushWord(w)
+  // 600打に足りなければ繰り返し追加
+  const total = () => prompts.reduce((n, p) => n + p.variants[0].length, 0)
+  while (total() < TARGET_KEYS + 80) for (const w of shuffled) pushWord(w)
   return prompts
 }
 
 function loadRecords() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const arr = JSON.parse(raw)
+    const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
     return Array.isArray(arr) ? arr : []
   } catch {
     return []
@@ -48,7 +43,7 @@ export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result
   const [prompts, setPrompts] = useState([])
   const [index, setIndex] = useState(0) // 現在の出題
-  const [pos, setPos] = useState(0) // 現在の単語内で正しく打った文字数
+  const [input, setInput] = useState('') // 現在の単語に対して打ったローマ字/英字
   const [typedKeys, setTypedKeys] = useState(0) // 正しく打った総文字数(=タイピング数)
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false) // 直近キーが誤りでブロック中
@@ -57,20 +52,19 @@ export default function App() {
   const [lastResult, setLastResult] = useState(null)
 
   const startTimeRef = useRef(null)
-
   const current = prompts[index]
 
-  // 経過時間の表示更新(1問目の最初の正しいキーで計測開始)
+  // 経過時間の表示更新
   useEffect(() => {
-    if (phase !== 'playing' || startTimeRef.current === null) return
+    if (phase !== 'playing') return
     const id = setInterval(() => setNow(performance.now()), 100)
     return () => clearInterval(id)
-  }, [phase, startTimeRef.current])
+  }, [phase])
 
   const startGame = useCallback(() => {
     setPrompts(buildPrompts())
     setIndex(0)
-    setPos(0)
+    setInput('')
     setTypedKeys(0)
     setMistakes(0)
     setHasError(false)
@@ -79,68 +73,62 @@ export default function App() {
     setPhase('playing')
   }, [])
 
-  const finishGame = useCallback(
-    (totalKeys, totalMistakes, endTime) => {
-      const elapsedMs = endTime - startTimeRef.current
-      const minutes = elapsedMs / 60000
-      const speed = minutes > 0 ? Math.round(totalKeys / minutes) : 0
-      const accuracy =
-        totalKeys + totalMistakes > 0
-          ? Math.round((totalKeys / (totalKeys + totalMistakes)) * 100)
-          : 100
-      const record = {
-        speed,
-        keys: totalKeys,
-        mistakes: totalMistakes,
-        accuracy,
-        seconds: Math.round(elapsedMs / 100) / 10,
-        date: new Date().toLocaleString('ja-JP'),
-      }
-      const top = saveRecord(record)
-      setRecords(top)
-      setLastResult(record)
-      setPhase('result')
-    },
-    [],
-  )
+  const finishGame = useCallback((totalKeys, totalMistakes, endTime) => {
+    const elapsedMs = endTime - startTimeRef.current
+    const minutes = elapsedMs / 60000
+    const speed = minutes > 0 ? Math.round(totalKeys / minutes) : 0
+    const denom = totalKeys + totalMistakes
+    const accuracy = denom > 0 ? Math.round((totalKeys / denom) * 100) : 100
+    const record = {
+      speed,
+      keys: totalKeys,
+      mistakes: totalMistakes,
+      accuracy,
+      seconds: Math.round(elapsedMs / 100) / 10,
+      date: new Date().toLocaleString('ja-JP'),
+    }
+    setRecords(saveRecord(record))
+    setLastResult(record)
+    setPhase('result')
+  }, [])
 
   const handleKey = useCallback(
     (e) => {
       if (phase !== 'playing' || !current) return
-      // 1文字キーのみ対象(Shift, Enter, 矢印などは無視)
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
 
-      const expected = current.target[pos]
-      if (e.key === expected) {
-        // 計測開始
+      const key = e.key.toLowerCase()
+      const candidate = input + key
+      const variants = current.variants
+
+      if (variants.some((v) => v.startsWith(candidate))) {
+        // 正しい入力
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
-
         setHasError(false)
-        const newTypedKeys = typedKeys + 1
-        const newPos = pos + 1
+        const newTyped = typedKeys + 1
 
-        if (newTypedKeys >= TARGET_KEYS) {
-          setTypedKeys(newTypedKeys)
-          finishGame(newTypedKeys, mistakes, performance.now())
+        if (newTyped >= TARGET_KEYS) {
+          setTypedKeys(newTyped)
+          finishGame(newTyped, mistakes, performance.now())
           return
         }
+        setTypedKeys(newTyped)
 
-        setTypedKeys(newTypedKeys)
-        if (newPos >= current.target.length) {
-          // 単語クリア→次の問題
+        if (variants.includes(candidate)) {
+          // 単語クリア → 次の問題
           setIndex((i) => i + 1)
-          setPos(0)
+          setInput('')
         } else {
-          setPos(newPos)
+          setInput(candidate)
         }
       } else {
-        // 誤り:正しいキーを打つまで進めない。打った文字は消さない(表示はそのまま)
+        // 誤り: 正しいキーを打つまで進めない。打ったものは消さない
         setMistakes((m) => m + 1)
         setHasError(true)
       }
     },
-    [phase, current, pos, typedKeys, mistakes, finishGame],
+    [phase, current, input, typedKeys, mistakes, finishGame],
   )
 
   useEffect(() => {
@@ -148,24 +136,23 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [handleKey])
 
+  const started = startTimeRef.current !== null
   const liveSpeed = useMemo(() => {
-    if (startTimeRef.current === null || now === 0) return 0
+    if (!started || now === 0) return 0
     const minutes = (now - startTimeRef.current) / 60000
     return minutes > 0 ? Math.round(typedKeys / minutes) : 0
-  }, [now, typedKeys])
+  }, [now, typedKeys, started])
 
   const elapsedSec = useMemo(() => {
-    if (startTimeRef.current === null || now === 0) return 0
+    if (!started || now === 0) return 0
     return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now])
+  }, [now, started])
 
   return (
     <div className="app">
       <h1>英単語タイピング</h1>
 
-      {phase === 'ready' && (
-        <Ready onStart={startGame} records={records} />
-      )}
+      {phase === 'ready' && <Ready onStart={startGame} records={records} />}
 
       {phase === 'playing' && current && (
         <div className="game">
@@ -185,14 +172,15 @@ export default function App() {
 
           <div className={`prompt mode-${current.mode}`}>
             <div className="prompt-mode">
-              {current.mode === 'en' ? '英単語' : '和訳 → 英語で入力'}
+              {current.mode === 'en' ? '英単語を入力' : '和訳 → ローマ字で入力'}
             </div>
             <div className="prompt-show">{current.show}</div>
+            {current.reading && <div className="prompt-reading">{current.reading}</div>}
           </div>
 
           <WordDisplay
-            target={current.target}
-            pos={pos}
+            text={displayRomaji(current.variants, input)}
+            pos={input.length}
             hasError={hasError}
           />
 
@@ -203,11 +191,7 @@ export default function App() {
       )}
 
       {phase === 'result' && lastResult && (
-        <Result
-          result={lastResult}
-          records={records}
-          onRetry={startGame}
-        />
+        <Result result={lastResult} records={records} onRetry={startGame} />
       )}
     </div>
   )
@@ -217,7 +201,8 @@ function Ready({ onStart, records }) {
   return (
     <div className="ready">
       <p className="lead">
-        英単語と和訳が交互に出ます。表示されている単語の<strong>英語スペル</strong>を入力してください。<br />
+        英単語と和訳が交互に出ます。<strong>英語表示は英語スペル</strong>、
+        <strong>和訳表示はローマ字</strong>で入力してください。<br />
         {TARGET_KEYS}打で終了し、記録が出ます。
       </p>
       <button className="btn-primary" onClick={onStart}>
@@ -228,10 +213,10 @@ function Ready({ onStart, records }) {
   )
 }
 
-function WordDisplay({ target, pos, hasError }) {
+function WordDisplay({ text, pos, hasError }) {
   return (
     <div className={`word-display ${hasError ? 'error' : ''}`}>
-      {target.split('').map((ch, i) => {
+      {text.split('').map((ch, i) => {
         let cls = 'char'
         if (i < pos) cls += ' done'
         else if (i === pos) cls += hasError ? ' current err' : ' current'
@@ -295,10 +280,7 @@ function RecordsTable({ records, highlight }) {
           </thead>
           <tbody>
             {records.map((r, i) => (
-              <tr
-                key={i}
-                className={highlight && r.date === highlight ? 'me' : ''}
-              >
+              <tr key={i} className={highlight && r.date === highlight ? 'me' : ''}>
                 <td>{i + 1}</td>
                 <td className="speed">{r.speed} 打/分</td>
                 <td>{r.accuracy}%</td>

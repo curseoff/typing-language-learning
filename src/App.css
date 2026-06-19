@@ -116,6 +116,12 @@ h1 {
   font-weight: 800;
   letter-spacing: 0.04em;
 }
+.prompt-reading {
+  margin-top: 8px;
+  font-size: 18px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+}
 
 .word-display {
   text-align: center;
