@@ -17,6 +17,10 @@ dist
 dist-ssr
 *.local
 
+# Electron build output
+release
+out
+
 # Vite / cache
 .vite
 
