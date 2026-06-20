@@ -100,9 +100,10 @@ function modeDesc(key) {
 }
 
 export default function App() {
-  const [phase, setPhase] = useState('ready') // ready | playing | result
+  const [phase, setPhase] = useState('ready') // ready | playing | result | story
   const [mode, setMode] = useState('both') // both | en | ja | en-tr | ja-tr
   const [rank, setRank] = useState(1) // 1-6
+  const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [segments, setSegments] = useState([])
   const [segIndex, setSegIndex] = useState(0)
   const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
@@ -314,7 +315,10 @@ export default function App() {
           <span className="dev-tag">DEV</span>
           <button onClick={() => setPhase('ready')}>トップ</button>
           <button onClick={previewResult}>結果(ダミー)</button>
-          <button onClick={() => setPhase('story')}>物語</button>
+          <button onClick={() => { setStoryStart(null); setPhase('story') }}>物語</button>
+          <button onClick={() => { setStoryStart({ stage: 'choice' }); setPhase('story') }}>
+            物語(選択肢)
+          </button>
         </div>
       )}
 
@@ -325,13 +329,22 @@ export default function App() {
           rank={rank}
           onRankChange={setRank}
           onStart={startGame}
-          onStartStory={() => setPhase('story')}
+          onStartStory={() => {
+            setStoryStart(null)
+            setPhase('story')
+          }}
           records={records}
         />
       )}
 
       {phase === 'story' && (
-        <StoryMode mode={mode} modeLabel={modeLabel(mode)} onExit={() => setPhase('ready')} />
+        <StoryMode
+          key={storyStart?.stage ?? 'start'}
+          mode={mode}
+          modeLabel={modeLabel(mode)}
+          start={storyStart}
+          onExit={() => setPhase('ready')}
+        />
       )}
 
       {phase === 'playing' && (

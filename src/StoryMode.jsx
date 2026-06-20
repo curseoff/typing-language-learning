@@ -54,10 +54,15 @@ function ActiveSegment({ seg, input, hasError }) {
   )
 }
 
-export default function StoryMode({ mode, modeLabel, onExit }) {
+export default function StoryMode({ mode, modeLabel, start, onExit }) {
   const nodes = STORY.nodes
-  const [nodeId, setNodeId] = useState(STORY.start)
-  const [stage, setStage] = useState('text') // text | choice | ending
+  // Devジャンプ: start.stage==='choice' なら最初の選択肢ノードから開始
+  const init =
+    start?.stage === 'choice'
+      ? { id: Object.keys(nodes).find((k) => nodes[k].choices) ?? STORY.start, stage: 'choice' }
+      : { id: STORY.start, stage: 'text' }
+  const [nodeId, setNodeId] = useState(init.id)
+  const [stage, setStage] = useState(init.stage) // text | choice | ending
   const [unitIndex, setUnitIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
