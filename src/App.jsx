@@ -103,6 +103,7 @@ export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result | story
   const [mode, setMode] = useState('both') // both | en | ja | en-tr | ja-tr
   const [rank, setRank] = useState(1) // 1-6
+  const [storySelected, setStorySelected] = useState(false) // 物語モードを選択中か
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [segments, setSegments] = useState([])
   const [segIndex, setSegIndex] = useState(0)
