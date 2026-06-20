@@ -232,7 +232,9 @@ export default function App() {
             <div className="progress-fill" style={{ width: `${(typedKeys / TARGET_KEYS) * 100}%` }} />
           </div>
 
-          {currentSeg && <Reference seg={currentSeg} segInput={segInput} />}
+          {currentSeg && (
+            <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} />
+          )}
 
           <Passage
             segments={segments}
@@ -271,24 +273,68 @@ function Ready({ onStart, records }) {
   )
 }
 
-function Reference({ seg, segInput }) {
-  // 英語: 入力中なら打った文字数まで、和文入力中なら全部打ち終えている
-  const enDone = seg.type === 'en' ? Math.min(segInput.length, seg.en.length) : seg.en.length
-  // 和文: 入力中なら読みかなを何文字打ち終えたか
+// 上部: 英語/日本語を横に流す(現在の文を中央へ、進むと左へ流れる)。
+function TopFlow({ segments, segIndex, segInput }) {
+  const enTrackRef = useRef(null)
+  const jaTrackRef = useRef(null)
+  const enCurRef = useRef(null)
+  const jaCurRef = useRef(null)
+
+  // 文ペア(en→ja の順なので 2 セグメントで 1 文)
+  const sentences = useMemo(() => {
+    const list = []
+    for (let i = 0; i < segments.length; i += 2) list.push(segments[i])
+    return list
+  }, [segments])
+
+  const cur = Math.floor(segIndex / 2) // 現在の文
+  const enActive = segIndex % 2 === 0 // 偶数=英文入力中 / 奇数=和文入力中
+  const seg = segments[segIndex]
+
+  const enDone = !seg ? 0 : enActive ? Math.min(segInput.length, seg.en.length) : seg.en.length
   const kanaDone = useMemo(
-    () => (seg.type === 'ja' ? kanaConsumed(seg.kana, segInput) : 0),
-    [seg, segInput],
+    () => (seg && !enActive ? kanaConsumed(seg.kana, segInput) : 0),
+    [seg, enActive, segInput],
   )
+
+  // 現在の文を各トラックの中央へスクロール(ページは動かさない)
+  useEffect(() => {
+    const center = (track, el) => {
+      if (!track || !el) return
+      const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2
+      track.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
+    }
+    center(enTrackRef.current, enCurRef.current)
+    center(jaTrackRef.current, jaCurRef.current)
+  }, [cur])
+
+  const itemClass = (k, typing) =>
+    `flow-item ${k === cur ? 'current' : k < cur ? 'past' : 'future'} ${
+      k === cur && typing ? 'typing' : ''
+    }`
+
   return (
-    <div className="reference">
-      <div className={`ref-row ${seg.type === 'en' ? 'active' : ''}`}>
+    <div className="flow">
+      <div className="flow-row">
         <span className="ref-tag en">英語</span>
-        <ProgressText className="ref-text" text={seg.en} done={enDone} />
+        <div className="flow-track" ref={enTrackRef}>
+          {sentences.map((s, k) => (
+            <span key={k} ref={k === cur ? enCurRef : null} className={itemClass(k, enActive)}>
+              {k === cur ? <ProgressText text={s.en} done={enDone} /> : s.en}
+            </span>
+          ))}
+        </div>
       </div>
-      <div className={`ref-row ${seg.type === 'ja' ? 'active' : ''}`}>
+      <div className="flow-row">
         <span className="ref-tag ja">日本語</span>
-        <span className="ref-text">{seg.ja}</span>
-        <ProgressText className="ref-kana" text={seg.kana} done={kanaDone} />
+        <div className="flow-track" ref={jaTrackRef}>
+          {sentences.map((s, k) => (
+            <span key={k} ref={k === cur ? jaCurRef : null} className={itemClass(k, !enActive)}>
+              <span className="flow-ja">{s.ja}</span>
+              {k === cur && <ProgressText className="flow-kana" text={s.kana} done={kanaDone} />}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -306,10 +352,11 @@ function ProgressText({ text, done, className }) {
   )
 }
 
+// 下部本文: 600文字を最初から全文表示(打った位置を色分け)。
 function Passage({ segments, segIndex, segInput, completed, hasError }) {
   let global = 0
   return (
-    <div className="passage">
+    <div className={`passage ${hasError ? 'error' : ''}`}>
       {segments.map((seg, i) => {
         let text
         let typedLen

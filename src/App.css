@@ -144,7 +144,61 @@ h1 {
   color: var(--green);
 }
 
-/* ---- パッセージ本文(全文表示) ---- */
+/* ---- 上部: 英語/日本語を横に流す(現在の文が中央、進むと左へ) ---- */
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.flow-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.flow-track {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  gap: 24px;
+  overflow-x: hidden;
+  white-space: nowrap;
+  padding: 2px 0;
+  /* 両端をフェードさせて流れている感じを出す */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.flow-item {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 15px;
+  transition: opacity 0.15s ease;
+}
+.flow-item.past,
+.flow-item.future {
+  opacity: 0.3;
+}
+.flow-item.current {
+  opacity: 0.7;
+  font-size: 18px;
+  font-weight: 700;
+}
+.flow-item.current.typing {
+  opacity: 1;
+}
+.flow-ja {
+  font-weight: 700;
+}
+.flow-kana {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* ---- 下部本文(600文字を最初から全文表示) ---- */
 .passage {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 22px;
@@ -170,14 +224,15 @@ h1 {
 .ch.cur.err {
   background: var(--red);
   color: #fff;
-  animation: shake 0.18s;
 }
 .ch.over {
   opacity: 0.35;
 }
-/* セグメント間の区切り(打鍵不要の表示用スペース) */
 .gap {
   padding: 0 0.3em;
+}
+.passage.error {
+  animation: shake 0.18s;
 }
 
 @keyframes shake {
