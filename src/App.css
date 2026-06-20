@@ -477,12 +477,21 @@ h1 {
 }
 .ending-actions {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 .ending-actions .btn-primary {
   margin: 0;
+}
+.ending-actions .story-exit {
+  padding: 13px 20px;
+  font-size: 15px;
+}
+/* エンディングのヒントは負マージンを打ち消して重なりを防ぐ */
+.story-ending .key-hint {
+  margin-top: 16px;
 }
 
 /* ---- 翻訳モード(英訳/和訳) ---- */
