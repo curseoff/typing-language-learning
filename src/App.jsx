@@ -41,6 +41,58 @@ function buildPassage() {
   return segments
 }
 
+// 漢字表記(ja)の各文字が、読み(kana)の何文字目までに対応するかを求める。
+// 返り値 kanaEndOf[i] = ja[i] が「打ち終わった」とみなせる累積かな数。
+// 例: かな入力が consumed 文字進んだとき、kanaEndOf[i] <= consumed の漢字までを緑にできる。
+function alignJaToKana(ja, kana) {
+  const toH = (c) => {
+    const code = c.charCodeAt(0)
+    return code >= 0x30a1 && code <= 0x30f6 ? String.fromCharCode(code - 0x60) : c
+  }
+  const isKana = (c) => {
+    const code = c.codePointAt(0)
+    return (code >= 0x3040 && code <= 0x30ff) || c === '。' || c === '、'
+  }
+  const jaChars = [...ja]
+  const hira = [...kana].map(toH).join('')
+
+  // かな連続 / 漢字(その他)連続でトークン分割
+  const tokens = []
+  for (const c of jaChars) {
+    const type = isKana(c) ? 'kana' : 'kanji'
+    const last = tokens[tokens.length - 1]
+    if (last && last.type === type) last.chars.push(c)
+    else tokens.push({ type, chars: [c] })
+  }
+
+  const kanaEndOf = []
+  let ki = 0
+  tokens.forEach((tok, ti) => {
+    if (tok.type === 'kana') {
+      for (let j = 0; j < tok.chars.length; j++) {
+        ki = Math.min(ki + 1, hira.length)
+        kanaEndOf.push(ki)
+      }
+    } else {
+      // 次のかなトークン先頭を読みの中から探し、その手前までを漢字塊が消費
+      const next = tokens[ti + 1]
+      let anchor = hira.length
+      if (next) {
+        const p = hira.indexOf(toH(next.chars[0]), ki)
+        if (p >= 0) anchor = p
+      }
+      const start = ki
+      const span = Math.max(anchor - start, 0)
+      const K = tok.chars.length
+      for (let j = 0; j < K; j++) {
+        kanaEndOf.push(start + Math.round(((j + 1) * span) / K))
+      }
+      ki = anchor
+    }
+  })
+  return kanaEndOf
+}
+
 // 入力中セグメントの表示ローマ字。canonical を優先しつつ、入力に合う最短に切り替える。
 function guideText(seg, input) {
   if (seg.canonical.startsWith(input)) return seg.canonical
@@ -292,10 +344,15 @@ function TopFlow({ segments, segIndex, segInput }) {
   const seg = segments[segIndex]
 
   const enDone = !seg ? 0 : enActive ? Math.min(segInput.length, seg.en.length) : seg.en.length
-  const kanaDone = useMemo(
-    () => (seg && !enActive ? kanaConsumed(seg.kana, segInput) : 0),
-    [seg, enActive, segInput],
-  )
+  // 漢字表記の入力途中。和文入力中はローマ字の進捗を漢字位置に変換して緑にする。
+  const jaDone = useMemo(() => {
+    if (!seg || enActive) return 0
+    const consumed = kanaConsumed(seg.kana, segInput)
+    const ends = alignJaToKana(seg.ja, seg.kana)
+    let count = 0
+    for (const e of ends) if (e <= consumed) count++
+    return count
+  }, [seg, enActive, segInput])
 
   // 現在の文を各トラックの中央へスクロール(ページは動かさない)
   useEffect(() => {
@@ -330,8 +387,11 @@ function TopFlow({ segments, segIndex, segInput }) {
         <div className="flow-track" ref={jaTrackRef}>
           {sentences.map((s, k) => (
             <span key={k} ref={k === cur ? jaCurRef : null} className={itemClass(k, !enActive)}>
-              <span className="flow-ja">{s.ja}</span>
-              {k === cur && <ProgressText className="flow-kana" text={s.kana} done={kanaDone} />}
+              {k === cur ? (
+                <ProgressText className="flow-ja" text={s.ja} done={jaDone} />
+              ) : (
+                <span className="flow-ja">{s.ja}</span>
+              )}
             </span>
           ))}
         </div>
