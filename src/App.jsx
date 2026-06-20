@@ -250,7 +250,7 @@ export default function App() {
     }
   }, [storySelected, startGame])
 
-  // Space=スタート/もう一度、Esc=トップへ戻る、↑↓=レベル/物語、←→=モード
+  // Enter=スタート/もう一度、Esc=トップへ戻る、↑↓=レベル/物語、←→=モード
   useEffect(() => {
     const onNav = (e) => {
       if (e.key === 'Escape') {
@@ -258,8 +258,8 @@ export default function App() {
           e.preventDefault()
           setPhase('ready')
         }
-      } else if (e.code === 'Space' || e.key === ' ') {
-        // タイピング中の Space は入力文字なので除外(ready/result のみ)
+      } else if (e.key === 'Enter') {
+        // Enter でスタート / もう一度（Space は英文入力の文字なので使わない）
         if (phase === 'ready') {
           e.preventDefault()
           start()
@@ -489,7 +489,7 @@ function Ready({ mode, onModeChange, rank, storySelected, onRankChange, onSelect
         スタート
       </button>
       <p className="key-hint">
-        <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード / <kbd>Space</kbd> スタート
+        <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード / <kbd>Enter</kbd> スタート
       </p>
 
       {!storySelected && (
@@ -646,7 +646,7 @@ function Result({ result, records, segStats, onRetry }) {
         もう一度
       </button>
       <p className="key-hint">
-        <kbd>Space</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
+        <kbd>Enter</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
       </p>
       <SegStatsTable segStats={segStats} />
       <RecordsTable

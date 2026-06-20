@@ -133,7 +133,7 @@ export default function StoryMode({ mode, modeLabel, start, onExit }) {
         return
       }
       if (stage === 'ending') {
-        if (e.code === 'Space' || e.key === ' ') {
+        if (e.key === 'Enter') {
           e.preventDefault()
           restart()
         }
@@ -247,7 +247,7 @@ export default function StoryMode({ mode, modeLabel, start, onExit }) {
             </button>
           </div>
           <p className="key-hint">
-            <kbd>Space</kbd> 最初から / <kbd>Esc</kbd> トップ
+            <kbd>Enter</kbd> 最初から / <kbd>Esc</kbd> トップ
           </p>
         </div>
       ) : (
