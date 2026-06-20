@@ -643,40 +643,60 @@ function TranslateView({ segments, segIndex, segInput, hasError }) {
   )
 }
 
-// 下部本文: 600文字を最初から全文表示(打った位置を色分け)。
+// 下部本文: 600文字を最初から全文表示。英文は英字、和文は漢字のまま表示し、
+// 打った位置を色分け(和文はローマ字入力の進捗を漢字位置に変換)。
 function Passage({ segments, segIndex, segInput, completed, hasError }) {
-  let global = 0
+  let g = 0 // 打鍵対象(romaji/英字)の通し文字数 → 600超過の判定に使う
   return (
     <div className={`passage ${hasError ? 'error' : ''}`}>
       {segments.map((seg, i) => {
-        let text
-        let typedLen
-        if (i < segIndex) {
-          text = completed[i] ?? seg.canonical
-          typedLen = text.length
-        } else if (i === segIndex) {
-          text = guideText(seg, segInput)
-          typedLen = segInput.length
+        const state = i < segIndex ? 'done' : i === segIndex ? 'current' : 'future'
+        const tgtLen =
+          state === 'done'
+            ? (completed[i] ?? seg.canonical).length
+            : state === 'current'
+              ? guideText(seg, segInput).length
+              : seg.canonical.length
+        const over = g >= TARGET_KEYS
+        g += tgtLen
+
+        // 表示文字列と「打ち終えた文字数」「カーソル位置」を決める
+        let display
+        let doneLen
+        if (seg.type === 'ja') {
+          display = seg.ja // 漢字のまま表示
+          if (state === 'done') doneLen = [...seg.ja].length
+          else if (state === 'current') {
+            const consumed = kanaConsumed(seg.kana, segInput)
+            const ends = alignJaToKana(seg.ja, seg.kana)
+            doneLen = ends.filter((e) => e <= consumed).length
+          } else doneLen = 0
         } else {
-          text = seg.canonical
-          typedLen = 0
+          display =
+            state === 'done'
+              ? completed[i] ?? seg.canonical
+              : state === 'current'
+                ? guideText(seg, segInput)
+                : seg.canonical
+          doneLen = state === 'done' ? display.length : state === 'current' ? segInput.length : 0
         }
-        const spans = text.split('').map((ch, j) => {
+
+        const chars = [...display].map((ch, j) => {
           let cls = 'ch'
-          if (j < typedLen) cls += ' done'
-          else if (i === segIndex && j === typedLen) cls += hasError ? ' cur err' : ' cur'
-          if (global + j >= TARGET_KEYS) cls += ' over'
+          if (j < doneLen) cls += ' done'
+          else if (state === 'current' && j === doneLen) cls += hasError ? ' cur err' : ' cur'
+          if (over) cls += ' over'
           return (
             <span key={j} className={cls}>
               {ch}
             </span>
           )
         })
-        global += text.length
+
         return (
           <span key={i}>
             {i > 0 && <span className="gap"> </span>}
-            {spans}
+            {chars}
           </span>
         )
       })}
