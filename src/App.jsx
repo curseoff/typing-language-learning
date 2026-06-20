@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SENTENCES, RANKS } from './sentences.js'
 import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
-import { consumedWords } from './typing.js'
+import {
+  alignJaToKana,
+  consumedWords,
+  enWords,
+  guideText,
+  jaPunct,
+  scramble,
+} from './typing.js'
 import StoryMode from './StoryMode.jsx'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
@@ -16,27 +23,6 @@ export const MODES = [
   { key: 'en-tr', label: '英語訳' },
   { key: 'ja-tr', label: '日本語訳' },
 ]
-
-// 英文を単語チップ用に分割。末尾の句読点(. ? !)は独立したチップにする。
-function enWords(en) {
-  const m = en.match(/^(.*?)\s*([.?!]+)\s*$/)
-  if (m) return [...m[1].split(/\s+/), m[2]]
-  return en.split(/\s+/)
-}
-
-// 和文末尾の句読点(。、！？)を取り出す(チップに加えるため)
-function jaPunct(ja) {
-  return (ja.match(/[。、！？]$/) || [])[0]
-}
-
-function scramble(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
 
 // モードに応じてパッセージ(セグメント列)を作る。
 // both: 英文→和文 を交互 / en: 英文のみ / ja: 和文のみ /
@@ -72,68 +58,6 @@ function buildPassage(mode, rank) {
     idx += 1
   }
   return segments
-}
-
-// 漢字表記(ja)の各文字が、読み(kana)の何文字目までに対応するかを求める。
-// 返り値 kanaEndOf[i] = ja[i] が「打ち終わった」とみなせる累積かな数。
-// 例: かな入力が consumed 文字進んだとき、kanaEndOf[i] <= consumed の漢字までを緑にできる。
-function alignJaToKana(ja, kana) {
-  const toH = (c) => {
-    const code = c.charCodeAt(0)
-    return code >= 0x30a1 && code <= 0x30f6 ? String.fromCharCode(code - 0x60) : c
-  }
-  const isKana = (c) => {
-    const code = c.codePointAt(0)
-    return (code >= 0x3040 && code <= 0x30ff) || c === '。' || c === '、'
-  }
-  const jaChars = [...ja]
-  const hira = [...kana].map(toH).join('')
-
-  // かな連続 / 漢字(その他)連続でトークン分割
-  const tokens = []
-  for (const c of jaChars) {
-    const type = isKana(c) ? 'kana' : 'kanji'
-    const last = tokens[tokens.length - 1]
-    if (last && last.type === type) last.chars.push(c)
-    else tokens.push({ type, chars: [c] })
-  }
-
-  const kanaEndOf = []
-  let ki = 0
-  tokens.forEach((tok, ti) => {
-    if (tok.type === 'kana') {
-      for (let j = 0; j < tok.chars.length; j++) {
-        ki = Math.min(ki + 1, hira.length)
-        kanaEndOf.push(ki)
-      }
-    } else {
-      // 次のかなトークン先頭を読みの中から探し、その手前までを漢字塊が消費
-      const next = tokens[ti + 1]
-      let anchor = hira.length
-      if (next) {
-        const p = hira.indexOf(toH(next.chars[0]), ki)
-        if (p >= 0) anchor = p
-      }
-      const start = ki
-      const span = Math.max(anchor - start, 0)
-      const K = tok.chars.length
-      for (let j = 0; j < K; j++) {
-        kanaEndOf.push(start + Math.round(((j + 1) * span) / K))
-      }
-      ki = anchor
-    }
-  })
-  return kanaEndOf
-}
-
-// 入力中セグメントの表示ローマ字。canonical を優先しつつ、入力に合う最短に切り替える。
-function guideText(seg, input) {
-  if (seg.canonical.startsWith(input)) return seg.canonical
-  let best = null
-  for (const v of seg.variants) {
-    if (v.startsWith(input) && (best === null || v.length < best.length)) best = v
-  }
-  return best ?? seg.canonical
 }
 
 // 記録は モード×ランク 別: キーは `${mode}__r${rank}`

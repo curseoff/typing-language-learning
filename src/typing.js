@@ -88,7 +88,12 @@ export function enWords(en) {
   return en.split(/\s+/)
 }
 
-function scramble(arr) {
+// 和文末尾の句読点(。、！？)を取り出す（チップに加えるため）
+export function jaPunct(ja) {
+  return (ja.match(/[。、！？]$/) || [])[0]
+}
+
+export function scramble(arr) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
