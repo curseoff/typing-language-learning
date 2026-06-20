@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { STORY } from './story.js'
 import {
   buildUnits,
@@ -57,6 +57,15 @@ function MaskedChars({ text, pos, hasError }) {
   })
 }
 
+function Stat({ label, value }) {
+  return (
+    <div className="stat">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+    </div>
+  )
+}
+
 // 現在打っているセグメントの表示
 function ActiveSegment({ seg, input, hasError }) {
   if (seg.translate) {
@@ -111,6 +120,11 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
   const [found, setFound] = useState(loadFound)
+  // 計測（物語を通しての累計）
+  const [typedKeys, setTypedKeys] = useState(0)
+  const [mistakes, setMistakes] = useState(0)
+  const [now, setNow] = useState(0)
+  const startTimeRef = useRef(null)
 
   const node = nodes[nodeId]
   const lang = typingLang(mode)
@@ -130,7 +144,29 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
     setNodeId(STORY.start)
     setStage('text')
     reset()
+    setTypedKeys(0)
+    setMistakes(0)
+    setNow(0)
+    startTimeRef.current = null
   }, [])
+
+  // 経過時間の更新（エンディング中は止める）
+  useEffect(() => {
+    if (stage === 'ending') return
+    const id = setInterval(() => setNow(performance.now()), 100)
+    return () => clearInterval(id)
+  }, [stage])
+
+  const started = startTimeRef.current !== null
+  const liveSpeed = useMemo(() => {
+    if (!started || now === 0) return 0
+    const min = (now - startTimeRef.current) / 60000
+    return min > 0 ? Math.round(typedKeys / min) : 0
+  }, [now, typedKeys, started])
+  const elapsedSec = useMemo(() => {
+    if (!started || now === 0) return 0
+    return Math.round((now - startTimeRef.current) / 100) / 10
+  }, [now, started])
 
   const enterEnding = useCallback((n) => {
     setStage('ending')
@@ -163,10 +199,13 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
       if (stage === 'text') {
         const seg = units[unitIndex]
         if (!segMatches(seg, candidate)) {
+          setMistakes((m) => m + 1)
           setHasError(true)
           return
         }
+        if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
+        setTypedKeys((k) => k + 1)
         if (seg.variants.includes(candidate)) {
           setInput('')
           if (unitIndex < units.length - 1) {
@@ -183,10 +222,13 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
       } else {
         // choice
         if (!choiceSegs.some((s) => segMatches(s, candidate))) {
+          setMistakes((m) => m + 1)
           setHasError(true)
           return
         }
+        if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
+        setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {
           setStage('text')
@@ -200,6 +242,15 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [stage, node, units, unitIndex, choiceSegs, input, onExit, restart, enterEnding])
+
+  // バー＝現在の行（または入力中の選択肢）の進捗
+  let barTarget = ''
+  if (stage === 'text') barTarget = guideText(units[unitIndex], input)
+  else if (stage === 'choice') {
+    const s = choiceSegs.find((cs) => segMatches(cs, input))
+    barTarget = s ? guideText(s, input) : ''
+  }
+  const barProgress = barTarget.length ? Math.min(1, input.length / barTarget.length) : 0
 
   return (
     <div className="story">
@@ -230,6 +281,16 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
         </div>
       ) : (
         <>
+          <div className="stats">
+            <Stat label="タイピング数" value={typedKeys} />
+            <Stat label="速度" value={`${liveSpeed} 打/分`} />
+            <Stat label="ミス" value={mistakes} />
+            <Stat label="時間" value={`${elapsedSec} 秒`} />
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${barProgress * 100}%` }} />
+          </div>
+
           {units.length > 1 && (
             <div className="story-progress">
               {unitIndex + 1} / {units.length}（{units[unitIndex].type === 'en' ? '英語' : '日本語'}）
