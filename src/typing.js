@@ -108,12 +108,17 @@ export function buildUnits(item, mode) {
       return [enSeg(item, false), jaSeg(item, false)]
     case 'en-tr': {
       const s = enSeg(item, true)
-      s.chips = scramble(enWords(item.en))
+      const words = enWords(item.en)
+      s.words = words
+      // chips は {text, i}(元の語順index)。表示はシャッフル。
+      s.chips = scramble(words.map((text, i) => ({ text, i })))
       return [s]
     }
     case 'ja-tr': {
       const s = jaSeg(item, true)
-      s.chips = scramble(item.jaWords ? [...item.jaWords] : [item.ja])
+      const words = item.jaWords ? [...item.jaWords] : [item.ja]
+      s.words = words
+      s.chips = scramble(words.map((text, i) => ({ text, i })))
       return [s]
     }
     case 'en':
@@ -134,4 +139,44 @@ export function choiceSeg(choice, mode) {
 
 export function segMatches(seg, input) {
   return seg.variants.some((v) => v.startsWith(input))
+}
+
+// 英文の各 enWords の終端位置(seg.en 内, 単一スペース想定)
+function enWordEnds(en) {
+  const m = en.match(/^(.*?)\s*([.?!]+)\s*$/)
+  const body = m ? m[1] : en
+  const words = body.split(/\s+/)
+  const ends = []
+  let cum = 0
+  for (const w of words) {
+    cum += w.length
+    ends.push(cum)
+    cum += 1 // スペース
+  }
+  if (m) ends.push(en.length) // 末尾句読点
+  return ends
+}
+
+// 入力 input が、語順の先頭から何単語ぶん打ち終えたか（チップ消費数）
+export function consumedWords(seg, input) {
+  if (!seg.words || seg.words.length === 0) return 0
+  if (seg.type === 'ja') {
+    const consumed = kanaConsumed(seg.kana, input)
+    const ends = alignJaToKana(seg.ja, seg.kana)
+    let cum = 0
+    let count = 0
+    for (const w of seg.words) {
+      cum += [...w].length
+      const kanaEnd = ends[cum - 1] ?? Infinity
+      if (kanaEnd <= consumed) count++
+      else break
+    }
+    return count
+  }
+  let count = 0
+  for (const e of enWordEnds(seg.en)) {
+    if (e <= input.length) count++
+    else break
+  }
+  return count
 }

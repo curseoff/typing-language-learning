@@ -3,6 +3,7 @@ import { STORY } from './story.js'
 import {
   buildUnits,
   choiceSeg,
+  consumedWords,
   guideText,
   kanjiDone,
   segMatches,
@@ -61,14 +62,15 @@ function ActiveSegment({ seg, input, hasError }) {
   if (seg.translate) {
     const source = seg.type === 'en' ? seg.ja : seg.en
     const target = guideText(seg, input)
+    const used = consumedWords(seg, input) // 打ち終えた単語数
     return (
       <>
         <p className="story-prompt">{source}</p>
         {seg.chips && (
           <div className="tr-chips">
-            {seg.chips.map((w, i) => (
-              <span key={i} className="chip">
-                {w}
+            {seg.chips.map((c) => (
+              <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
+                {c.text}
               </span>
             ))}
           </div>
