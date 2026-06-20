@@ -8,11 +8,11 @@ const STORAGE_KEY = 'typing-records-v3'
 const OLD_STORAGE_KEY = 'typing-records-v2'
 
 export const MODES = [
-  { key: 'both', label: '英文・和文 交互' },
-  { key: 'en', label: '英文だけ' },
-  { key: 'ja', label: '和文だけ' },
-  { key: 'en-tr', label: '英訳' },
-  { key: 'ja-tr', label: '和訳' },
+  { key: 'both', label: '英語・日本語' },
+  { key: 'en', label: '英語' },
+  { key: 'ja', label: '日本語' },
+  { key: 'en-tr', label: '英語訳' },
+  { key: 'ja-tr', label: '日本語訳' },
 ]
 
 // 英文を単語チップ用に分割。末尾の句読点(. ? !)は独立したチップにする。
