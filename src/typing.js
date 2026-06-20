@@ -122,6 +122,11 @@ export function buildUnits(item, mode) {
     case 'ja-tr': {
       const s = jaSeg(item, true)
       const words = item.jaWords ? [...item.jaWords] : [item.ja]
+      // jaWords が末尾句読点を含まない場合（マラソンのデータ）は補い、ja を再構成できるようにする
+      if (words.join('') !== item.ja) {
+        const p = jaPunct(item.ja)
+        if (p) words.push(p)
+      }
       s.words = words
       s.chips = scramble(words.map((text, i) => ({ text, i })))
       return [s]

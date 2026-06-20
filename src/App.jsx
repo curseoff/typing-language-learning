@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SENTENCES, RANKS } from './sentences.js'
-import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
-import {
-  alignJaToKana,
-  consumedWords,
-  enWords,
-  guideText,
-  jaPunct,
-  scramble,
-} from './typing.js'
+import { kanaConsumed } from './romaji.js'
+import { alignJaToKana, buildUnits, consumedWords, guideText } from './typing.js'
 import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 import StoryMode from './StoryMode.jsx'
 
@@ -25,10 +18,8 @@ export const MODES = [
   { key: 'ja-tr', label: '日本語訳' },
 ]
 
-// モードに応じてパッセージ(セグメント列)を作る。
-// both: 英文→和文 を交互 / en: 英文のみ / ja: 和文のみ /
-// en-tr(英訳): 和文を見て英語を入力 / ja-tr(和訳): 英文を見てローマ字を入力。
-// 翻訳モードは打つ文章を伏せ、単語チップ(chips)をヒントに出す。
+// モードに応じてパッセージ(セグメント列)を作る。各文は buildUnits でセグメント化し、
+// sentenceIndex を付与して連結（600文字を超えるまで）。
 function buildPassage(mode, rank) {
   const pool = SENTENCES.filter((s) => s.rank === rank)
   const base = pool.length > 0 ? pool : SENTENCES
@@ -37,23 +28,11 @@ function buildPassage(mode, rank) {
   let approx = 0
   let si = 0 // 文の通し番号
   let idx = 0
-  const pushSeg = (seg) => {
-    segments.push(seg)
-    approx += seg.canonical.length
-  }
   while (approx < TARGET_KEYS + 60) {
     const s = shuffled[idx % shuffled.length]
-    const base = { sentenceIndex: si, en: s.en, ja: s.ja, kana: s.kana }
-    if (mode === 'en-tr') {
-      const words = enWords(s.en)
-      pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en, translate: true, words, chips: scramble(words.map((text, i) => ({ text, i }))) })
-    } else if (mode === 'ja-tr') {
-      const p = jaPunct(s.ja)
-      const words = p ? [...s.jaWords, p] : [...s.jaWords]
-      pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana), translate: true, words, chips: scramble(words.map((text, i) => ({ text, i }))) })
-    } else {
-      if (mode !== 'ja') pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en })
-      if (mode !== 'en') pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana) })
+    for (const seg of buildUnits(s, mode)) {
+      segments.push({ ...seg, sentenceIndex: si })
+      approx += seg.canonical.length
     }
     si += 1
     idx += 1
