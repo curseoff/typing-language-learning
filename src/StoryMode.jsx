@@ -9,7 +9,7 @@ import {
   segMatches,
   typingLang,
 } from './typing.js'
-import { Chars, Chips, MaskedText, StatsRow, Typed } from './ui.jsx'
+import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 
 const FOUND_KEY = 'story-endings-v1'
 
@@ -50,38 +50,6 @@ function ActiveSegment({ seg, input, hasError }) {
   return (
     <div className="story-en">
       <Chars text={seg.en} done={input.length} cursor={input.length} hasError={hasError} />
-    </div>
-  )
-}
-
-// 英語/日本語の二段フロー（現在文=明るく＋進捗、先の文=薄く）。翻訳モード以外で表示。
-function StoryFlow({ items, enDone, jaDone, activeType }) {
-  const cls = (k, typing) =>
-    `flow-item ${k === 0 ? 'current' : 'future'} ${k === 0 && typing ? 'typing' : ''}`
-  return (
-    <div className="flow">
-      <div className="flow-row">
-        <span className="ref-tag en">英語</span>
-        <div className="flow-track">
-          {items.map((it, k) => (
-            <span key={k} className={cls(k, activeType === 'en')}>
-              {k === 0 ? <Typed text={it.en} done={enDone} /> : it.en}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="flow-row">
-        <span className="ref-tag ja">日本語</span>
-        <div className="flow-track">
-          {items.map((it, k) => (
-            <span key={k} className={cls(k, activeType === 'ja')}>
-              <span className="flow-ja">
-                {k === 0 ? <Typed text={it.ja} done={jaDone} /> : it.ja}
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
@@ -290,11 +258,12 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
           />
 
           {!isTranslate && (
-            <StoryFlow
+            <Flow
               items={flowItems}
+              cur={0}
               enDone={enDone}
               jaDone={jaDone}
-              activeType={stage === 'choice' ? null : activeType}
+              activeRow={stage === 'choice' ? null : activeType}
             />
           )}
 

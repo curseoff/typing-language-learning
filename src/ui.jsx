@@ -1,4 +1,5 @@
 // マラソン/物語モードで共有する表示部品（純粋なプレゼンテーション）。
+import { useEffect, useRef } from 'react'
 
 export function Stat({ label, value }) {
   return (
@@ -80,6 +81,80 @@ export function Chips({ chips, used }) {
           {c.text}
         </span>
       ))}
+    </div>
+  )
+}
+
+// 英語/日本語の二段フロー（1行ぶん）。scrollToCenter で現在文を中央へ寄せる。
+function FlowRow({ tag, tagClass, items, cur, active, scrollToCenter, render }) {
+  const trackRef = useRef(null)
+  const curRef = useRef(null)
+  useEffect(() => {
+    if (!scrollToCenter) return
+    const track = trackRef.current
+    const el = curRef.current
+    if (!track || !el) return
+    const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2
+    track.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
+  }, [cur, scrollToCenter])
+  return (
+    <div className="flow-row">
+      <span className={`ref-tag ${tagClass}`}>{tag}</span>
+      <div className="flow-track" ref={trackRef}>
+        {items.map((it, k) => (
+          <span
+            key={k}
+            ref={k === cur ? curRef : null}
+            className={`flow-item ${k === cur ? 'current' : k < cur ? 'past' : 'future'} ${
+              k === cur && active ? 'typing' : ''
+            }`}
+          >
+            {render(it, k === cur)}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// 英語/日本語の二段フロー（マラソン=中央スクロール / 物語=左寄せ）。
+// items=[{en,ja}], cur=現在index, enDone/jaDone=現在文の進捗, activeRow='en'|'ja'|null
+export function Flow({
+  items,
+  cur,
+  enDone,
+  jaDone,
+  activeRow,
+  showEn = true,
+  showJa = true,
+  scrollToCenter = false,
+}) {
+  return (
+    <div className="flow">
+      {showEn && (
+        <FlowRow
+          tag="英語"
+          tagClass="en"
+          items={items}
+          cur={cur}
+          active={activeRow === 'en'}
+          scrollToCenter={scrollToCenter}
+          render={(it, isCur) => (isCur ? <Typed text={it.en} done={enDone} /> : it.en)}
+        />
+      )}
+      {showJa && (
+        <FlowRow
+          tag="日本語"
+          tagClass="ja"
+          items={items}
+          cur={cur}
+          active={activeRow === 'ja'}
+          scrollToCenter={scrollToCenter}
+          render={(it, isCur) => (
+            <span className="flow-ja">{isCur ? <Typed text={it.ja} done={jaDone} /> : it.ja}</span>
+          )}
+        />
+      )}
     </div>
   )
 }

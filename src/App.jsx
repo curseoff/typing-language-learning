@@ -9,7 +9,7 @@ import {
   jaPunct,
   scramble,
 } from './typing.js'
-import { Chars, Chips, MaskedText, StatsRow, Typed } from './ui.jsx'
+import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 import StoryMode from './StoryMode.jsx'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
@@ -476,14 +476,9 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, 
   )
 }
 
-// 上部: 英語/日本語を横に流す(現在の文を中央へ、進むと左へ流れる)。
+// 上部: 英語/日本語を横に流す（現在の文を中央へ）。データを組み立てて共有 Flow に渡す。
 function TopFlow({ segments, segIndex, segInput }) {
-  const enTrackRef = useRef(null)
-  const jaTrackRef = useRef(null)
-  const enCurRef = useRef(null)
-  const jaCurRef = useRef(null)
-
-  // 文ごとに1件(sentenceIndex で集約)。表示する行はモードにより決まる。
+  // 文ごとに1件(sentenceIndex で集約)
   const sentences = useMemo(() => {
     const map = new Map()
     for (const s of segments) if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, s)
@@ -493,13 +488,13 @@ function TopFlow({ segments, segIndex, segInput }) {
   const hasJa = useMemo(() => segments.some((s) => s.type === 'ja'), [segments])
 
   const seg = segments[segIndex]
-  const cur = seg ? seg.sentenceIndex : 0 // 現在の文
-  const enActive = seg?.type === 'en' // 英文入力中
-  const jaActive = seg?.type === 'ja' // 和文入力中
+  const cur = seg ? seg.sentenceIndex : 0
+  const enActive = seg?.type === 'en'
+  const jaActive = seg?.type === 'ja'
 
-  // 英文の進捗。英文入力中は打った文字まで、和文入力中(=英文は既に完了)は全部。
+  // 英文の進捗（和文入力中は英文は完了済み）
   const enDone = !seg ? 0 : enActive ? Math.min(segInput.length, seg.en.length) : seg.en.length
-  // 漢字表記の入力途中。和文入力中はローマ字の進捗を漢字位置に変換して緑にする。
+  // 漢字の進捗（ローマ字の進捗を漢字位置に変換）
   const jaDone = useMemo(() => {
     if (!seg || !jaActive) return 0
     const consumed = kanaConsumed(seg.kana, segInput)
@@ -509,51 +504,17 @@ function TopFlow({ segments, segIndex, segInput }) {
     return count
   }, [seg, jaActive, segInput])
 
-  // 現在の文を各トラックの中央へスクロール(ページは動かさない)
-  useEffect(() => {
-    const center = (track, el) => {
-      if (!track || !el) return
-      const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2
-      track.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
-    }
-    center(enTrackRef.current, enCurRef.current)
-    center(jaTrackRef.current, jaCurRef.current)
-  }, [cur])
-
-  const itemClass = (k, typing) =>
-    `flow-item ${k === cur ? 'current' : k < cur ? 'past' : 'future'} ${
-      k === cur && typing ? 'typing' : ''
-    }`
-
   return (
-    <div className="flow">
-      {hasEn && (
-        <div className="flow-row">
-          <span className="ref-tag en">英語</span>
-          <div className="flow-track" ref={enTrackRef}>
-            {sentences.map((s, k) => (
-              <span key={k} ref={k === cur ? enCurRef : null} className={itemClass(k, enActive)}>
-                {k === cur ? <Typed text={s.en} done={enDone} /> : s.en}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-      {hasJa && (
-        <div className="flow-row">
-          <span className="ref-tag ja">日本語</span>
-          <div className="flow-track" ref={jaTrackRef}>
-            {sentences.map((s, k) => (
-              <span key={k} ref={k === cur ? jaCurRef : null} className={itemClass(k, jaActive)}>
-                <span className="flow-ja">
-                  {k === cur ? <Typed text={s.ja} done={jaDone} /> : s.ja}
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    <Flow
+      items={sentences}
+      cur={cur}
+      enDone={enDone}
+      jaDone={jaDone}
+      activeRow={enActive ? 'en' : jaActive ? 'ja' : null}
+      showEn={hasEn}
+      showJa={hasJa}
+      scrollToCenter
+    />
   )
 }
 
