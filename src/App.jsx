@@ -251,6 +251,26 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [handleKey])
 
+  // Space=スタート/もう一度、Esc=トップへ戻る
+  useEffect(() => {
+    const onNav = (e) => {
+      if (e.key === 'Escape') {
+        if (phase === 'playing' || phase === 'result') {
+          e.preventDefault()
+          setPhase('ready')
+        }
+      } else if (e.code === 'Space' || e.key === ' ') {
+        // タイピング中の Space は入力文字なので除外(ready/result のみ)
+        if (phase === 'ready' || phase === 'result') {
+          e.preventDefault()
+          startGame()
+        }
+      }
+    }
+    window.addEventListener('keydown', onNav)
+    return () => window.removeEventListener('keydown', onNav)
+  }, [phase, startGame])
+
   const started = startTimeRef.current !== null
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
@@ -298,6 +318,7 @@ export default function App() {
 
           <p className="hint">
             英文はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
+            <kbd>Esc</kbd> で中断してトップへ。
           </p>
         </div>
       )}
@@ -320,6 +341,9 @@ function Ready({ onStart, records }) {
       <button className="btn-primary" onClick={onStart}>
         スタート
       </button>
+      <p className="key-hint">
+        <kbd>Space</kbd> でスタート
+      </p>
       <RecordsTable records={records} />
     </div>
   )
@@ -479,6 +503,9 @@ function Result({ result, records, segStats, onRetry }) {
       <button className="btn-primary" onClick={onRetry}>
         もう一度
       </button>
+      <p className="key-hint">
+        <kbd>Space</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
+      </p>
       <SegStatsTable segStats={segStats} />
       <RecordsTable records={records} highlight={result.date} />
     </div>

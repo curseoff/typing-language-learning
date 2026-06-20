@@ -247,6 +247,23 @@ h1 {
   font-size: 13px;
   margin-top: 18px;
 }
+.key-hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: -8px;
+}
+kbd {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #475569;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin: 0 2px;
+}
 
 /* ---- result ---- */
 .result {
