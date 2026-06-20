@@ -1,37 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { SENTENCES, RANKS } from './content/sentences.js'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { RANKS } from './content/sentences.js'
 import { MODES } from './content/modes.js'
 import { kanaConsumed } from './domain/romaji/romaji.js'
 import { alignJaToKana, consumedWords, guideText } from './domain/typing/progress.js'
-import { buildUnits } from './domain/typing/units.js'
+import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { MAX_RECORDS, recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
+import { useMarathon } from './application/useMarathon.js'
 import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 import StoryMode from './StoryMode.jsx'
-
-const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
-
-// モードに応じてパッセージ(セグメント列)を作る。各文は buildUnits でセグメント化し、
-// sentenceIndex を付与して連結（600文字を超えるまで）。
-function buildPassage(mode, rank) {
-  const pool = SENTENCES.filter((s) => s.rank === rank)
-  const base = pool.length > 0 ? pool : SENTENCES
-  const shuffled = [...base].sort(() => Math.random() - 0.5)
-  const segments = []
-  let approx = 0
-  let si = 0 // 文の通し番号
-  let idx = 0
-  while (approx < TARGET_KEYS + 60) {
-    const s = shuffled[idx % shuffled.length]
-    for (const seg of buildUnits(s, mode)) {
-      segments.push({ ...seg, sentenceIndex: si })
-      approx += seg.canonical.length
-    }
-    si += 1
-    idx += 1
-  }
-  return segments
-}
 
 function modeLabel(key) {
   return MODES.find((m) => m.key === key)?.label ?? key
@@ -63,135 +40,34 @@ export default function App() {
   const [rank, setRank] = useState(1) // 1-6
   const [storySelected, setStorySelected] = useState(false) // 物語モードを選択中か
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
-  const [segments, setSegments] = useState([])
-  const [segIndex, setSegIndex] = useState(0)
-  const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
-  const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
-  const [typedKeys, setTypedKeys] = useState(0) // 正しく打った総文字数
-  const [mistakes, setMistakes] = useState(0)
-  const [hasError, setHasError] = useState(false)
-  const [now, setNow] = useState(0)
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
 
-  const startTimeRef = useRef(null)
-  const segStartRef = useRef(null) // 現在の問題の開始時刻
-  const segMistakesRef = useRef(0) // 現在の問題のミス数
-  const segStatsRef = useRef([]) // 確定した問題ごとの記録
-
-  useEffect(() => {
-    if (phase !== 'playing') return
-    const id = setInterval(() => setNow(performance.now()), 100)
-    return () => clearInterval(id)
-  }, [phase])
-
-  const startGame = useCallback(() => {
-    setSegments(buildPassage(mode, rank))
-    setSegIndex(0)
-    setSegInput('')
-    setCompleted([])
-    setTypedKeys(0)
-    setMistakes(0)
-    setHasError(false)
-    setNow(0)
-    setSegStats([])
-    startTimeRef.current = null
-    segStartRef.current = null
-    segMistakesRef.current = 0
-    segStatsRef.current = []
-    setPhase('playing')
-  }, [mode, rank])
-
-  const finishGame = useCallback((keys, totalMistakes, endTime) => {
-    const elapsedMs = endTime - startTimeRef.current
-    const minutes = elapsedMs / 60000
-    const speed = minutes > 0 ? Math.round(keys / minutes) : 0
-    const denom = keys + totalMistakes
-    const accuracy = denom > 0 ? Math.round((keys / denom) * 100) : 100
-    const record = {
-      mode,
-      rank,
-      speed,
-      keys,
-      mistakes: totalMistakes,
-      accuracy,
-      seconds: Math.round(elapsedMs / 100) / 10,
-      date: new Date().toLocaleString('ja-JP'),
-    }
+  // マラソンのゲームセッション
+  const onFinish = useCallback((record, stats) => {
     setRecords(saveRecord(record))
     setLastResult(record)
-    setSegStats(segStatsRef.current)
+    setSegStats(stats)
     setPhase('result')
-  }, [mode, rank])
+  }, [])
+  const {
+    start: startMarathon,
+    segments,
+    segIndex,
+    segInput,
+    completed,
+    hasError,
+    typedKeys,
+    mistakes,
+    liveSpeed,
+    elapsedSec,
+  } = useMarathon({ active: phase === 'playing', onFinish })
 
-  const handleKey = useCallback(
-    (e) => {
-      if (phase !== 'playing') return
-      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
-      e.preventDefault()
-
-      const seg = segments[segIndex]
-      if (!seg) return
-      const candidate = segInput + e.key // 大文字小文字は区別(英文の大文字/ローマ字小文字)
-
-      if (seg.variants.some((v) => v.startsWith(candidate))) {
-        const t = performance.now()
-        if (startTimeRef.current === null) startTimeRef.current = t
-        if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
-        setHasError(false)
-        const newKeys = typedKeys + 1
-        setTypedKeys(newKeys)
-
-        const completesSeg = seg.variants.includes(candidate)
-        const reachedGoal = newKeys >= TARGET_KEYS
-
-        // 問題が終わった(完了 or 600到達で打ち切り)ら記録
-        if (completesSeg || reachedGoal) {
-          const segKeys = candidate.length
-          const ms = t - segStartRef.current
-          segStatsRef.current = [
-            ...segStatsRef.current,
-            {
-              no: segStatsRef.current.length + 1,
-              type: seg.type,
-              label: seg.type === 'en' ? seg.en : seg.ja,
-              keys: segKeys,
-              mistakes: segMistakesRef.current,
-              seconds: Math.round(ms / 100) / 10,
-              speed: ms > 0 ? Math.round(segKeys / (ms / 60000)) : 0,
-              partial: !completesSeg, // 完了前に600到達で打ち切り
-            },
-          ]
-          segStartRef.current = null
-          segMistakesRef.current = 0
-        }
-
-        if (reachedGoal) {
-          finishGame(newKeys, mistakes, t)
-          return
-        }
-
-        if (completesSeg) {
-          setCompleted((c) => [...c, candidate])
-          setSegIndex((i) => i + 1)
-          setSegInput('')
-        } else {
-          setSegInput(candidate)
-        }
-      } else {
-        setMistakes((m) => m + 1)
-        segMistakesRef.current += 1
-        setHasError(true)
-      }
-    },
-    [phase, segments, segIndex, segInput, typedKeys, mistakes, finishGame],
-  )
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [handleKey])
+  const startGame = useCallback(() => {
+    startMarathon(mode, rank)
+    setPhase('playing')
+  }, [startMarathon, mode, rank])
 
   // レベル(ランク)or物語の選択 → 開始
   const selectRank = useCallback((r) => {
@@ -250,18 +126,6 @@ export default function App() {
     window.addEventListener('keydown', onNav)
     return () => window.removeEventListener('keydown', onNav)
   }, [phase, start, startGame, rank, storySelected])
-
-  const started = startTimeRef.current !== null
-  const liveSpeed = useMemo(() => {
-    if (!started || now === 0) return 0
-    const minutes = (now - startTimeRef.current) / 60000
-    return minutes > 0 ? Math.round(typedKeys / minutes) : 0
-  }, [now, typedKeys, started])
-
-  const elapsedSec = useMemo(() => {
-    if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
 
   const currentSeg = segments[segIndex]
 
