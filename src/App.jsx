@@ -285,6 +285,14 @@ export default function App() {
           e.preventDefault()
           startGame()
         }
+      } else if (phase === 'ready' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        // TOP画面で ←/→ でモード切り替え
+        e.preventDefault()
+        const dir = e.key === 'ArrowRight' ? 1 : -1
+        setMode((prev) => {
+          const i = MODES.findIndex((m) => m.key === prev)
+          return MODES[(i + dir + MODES.length) % MODES.length].key
+        })
       }
     }
     window.addEventListener('keydown', onNav)
@@ -377,7 +385,7 @@ function Ready({ mode, onModeChange, onStart, records }) {
         スタート
       </button>
       <p className="key-hint">
-        <kbd>Space</kbd> でスタート
+        <kbd>←</kbd> <kbd>→</kbd> でモード選択 / <kbd>Space</kbd> でスタート
       </p>
       <RecordsTable records={records[mode]} modeKey={mode} />
     </div>
