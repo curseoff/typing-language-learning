@@ -154,6 +154,27 @@ h1 {
 }
 
 /* ---- game ---- */
+.play-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.meta-badge {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+.meta-badge.rank {
+  color: #06283d;
+  background: var(--gold);
+}
+.meta-badge.mode {
+  color: #06283d;
+  background: var(--accent);
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

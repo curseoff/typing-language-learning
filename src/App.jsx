@@ -390,6 +390,11 @@ export default function App() {
 
       {phase === 'playing' && (
         <div className="game">
+          <div className="play-meta">
+            <span className="meta-badge rank">{rankLabel(rank)}</span>
+            <span className="meta-badge mode">{modeLabel(mode)}</span>
+          </div>
+
           <div className="stats">
             <Stat label="タイピング数" value={`${typedKeys} / ${TARGET_KEYS}`} />
             <Stat label="速度" value={`${liveSpeed} 打/分`} />
