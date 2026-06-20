@@ -8,7 +8,7 @@ import { MAX_RECORDS, recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
 import { useMarathon } from './application/useMarathon.js'
 import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
-import StoryMode from './StoryMode.jsx'
+import StoryView from './ui/story/StoryView.jsx'
 
 function modeLabel(key) {
   return MODES.find((m) => m.key === key)?.label ?? key
@@ -184,7 +184,7 @@ export default function App() {
       )}
 
       {phase === 'story' && (
-        <StoryMode
+        <StoryView
           key={storyStart?.stage ?? 'start'}
           mode={mode}
           modeLabel={modeLabel(mode)}
