@@ -424,7 +424,9 @@ export default function App() {
         />
       )}
 
-      {phase === 'story' && <StoryMode mode={mode} onExit={() => setPhase('ready')} />}
+      {phase === 'story' && (
+        <StoryMode mode={mode} modeLabel={modeLabel(mode)} onExit={() => setPhase('ready')} />
+      )}
 
       {phase === 'playing' && (
         <div className="game">

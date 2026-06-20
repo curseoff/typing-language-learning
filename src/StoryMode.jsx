@@ -103,7 +103,7 @@ function ActiveSegment({ seg, input, hasError }) {
   )
 }
 
-export default function StoryMode({ mode, onExit }) {
+export default function StoryMode({ mode, modeLabel, onExit }) {
   const nodes = STORY.nodes
   const [nodeId, setNodeId] = useState(STORY.start)
   const [stage, setStage] = useState('text') // text | choice | ending
@@ -203,14 +203,12 @@ export default function StoryMode({ mode, onExit }) {
 
   return (
     <div className="story">
-      <div className="story-head">
-        <button className="story-exit" onClick={onExit}>
-          ← トップ
-        </button>
-        <span className="story-title">{STORY.title}</span>
-        <span className="story-found">
-          発見エンド {found.length} / {STORY.endingCount}
-        </span>
+      <div className="play-meta">
+        <span className="meta-badge rank">{STORY.title}</span>
+        <span className="meta-badge mode">{modeLabel}</span>
+      </div>
+      <div className="story-found-line">
+        発見エンド {found.length} / {STORY.endingCount}
       </div>
 
       {stage === 'ending' ? (
