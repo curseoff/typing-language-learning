@@ -64,6 +64,15 @@ function ActiveSegment({ seg, input, hasError }) {
     return (
       <>
         <p className="story-prompt">{source}</p>
+        {seg.chips && (
+          <div className="tr-chips">
+            {seg.chips.map((w, i) => (
+              <span key={i} className="chip">
+                {w}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="story-en masked">
           <MaskedChars text={target} pos={input.length} hasError={hasError} />
         </div>

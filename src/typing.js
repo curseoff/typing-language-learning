@@ -81,18 +81,41 @@ function jaSeg(item, translate) {
   }
 }
 
+// 英文を単語チップ用に分割（末尾の句読点は独立チップ）
+export function enWords(en) {
+  const m = en.match(/^(.*?)\s*([.?!]+)\s*$/)
+  if (m) return [...m[1].split(/\s+/), m[2]]
+  return en.split(/\s+/)
+}
+
+function scramble(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 // モードに応じて、1つの文(item)を打つためのセグメント列を返す。
 // en=英語 / ja=日本語 / both=英→日 / en-tr=英訳(伏せ) / ja-tr=日本語訳(伏せ)
+// 翻訳モードでは chips(単語チップ)を付与する。
 export function buildUnits(item, mode) {
   switch (mode) {
     case 'ja':
       return [jaSeg(item, false)]
     case 'both':
       return [enSeg(item, false), jaSeg(item, false)]
-    case 'en-tr':
-      return [enSeg(item, true)]
-    case 'ja-tr':
-      return [jaSeg(item, true)]
+    case 'en-tr': {
+      const s = enSeg(item, true)
+      s.chips = scramble(enWords(item.en))
+      return [s]
+    }
+    case 'ja-tr': {
+      const s = jaSeg(item, true)
+      s.chips = scramble(item.jaWords ? [...item.jaWords] : [item.ja])
+      return [s]
+    }
     case 'en':
     default:
       return [enSeg(item, false)]
