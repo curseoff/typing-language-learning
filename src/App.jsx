@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { SENTENCES, RANKS } from './sentences.js'
-import { kanaConsumed } from './romaji.js'
-import { alignJaToKana, buildUnits, consumedWords, guideText } from './typing.js'
+import { SENTENCES, RANKS } from './content/sentences.js'
+import { MODES } from './content/modes.js'
+import { kanaConsumed } from './domain/romaji/romaji.js'
+import { alignJaToKana, consumedWords, guideText } from './domain/typing/progress.js'
+import { buildUnits } from './domain/typing/units.js'
 import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 import StoryMode from './StoryMode.jsx'
 
@@ -9,14 +11,6 @@ const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
 const STORAGE_KEY = 'typing-records-v3'
 const OLD_STORAGE_KEY = 'typing-records-v2'
-
-export const MODES = [
-  { key: 'both', label: '英語・日本語', group: '通常入力' },
-  { key: 'en', label: '英語', group: '通常入力' },
-  { key: 'ja', label: '日本語', group: '通常入力' },
-  { key: 'en-tr', label: '英語訳', group: '翻訳' },
-  { key: 'ja-tr', label: '日本語訳', group: '翻訳' },
-]
 
 // モードに応じてパッセージ(セグメント列)を作る。各文は buildUnits でセグメント化し、
 // sentenceIndex を付与して連結（600文字を超えるまで）。

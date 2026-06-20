@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { STORY } from './story.js'
-import {
-  buildUnits,
-  choiceSeg,
-  consumedWords,
-  guideText,
-  kanjiDone,
-  segMatches,
-  typingLang,
-} from './typing.js'
+import { STORY } from './content/story.js'
+import { buildUnits, choiceSeg, segMatches, typingLang } from './domain/typing/units.js'
+import { consumedWords, guideText, kanjiDone } from './domain/typing/progress.js'
 import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 
 const FOUND_KEY = 'story-endings-v1'
