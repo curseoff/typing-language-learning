@@ -116,3 +116,8 @@ export const SENTENCES = [
   { rank: 6, en: 'We agree with your plan.', ja: 'あなたの計画に賛成です。', kana: 'あなたのけいかくにさんせいです。', jaWords: ['あなた', 'の', '計画', 'に', '賛成', 'です'] },
   { rank: 6, en: 'Let us continue this next time.', ja: '続きは次回にしましょう。', kana: 'つづきはじかいにしましょう。', jaWords: ['続き', 'は', '次回', 'に', 'しましょう'] },
 ]
+
+export function rankLabel(rank) {
+  const r = RANKS.find((x) => x.rank === rank)
+  return r ? `R${r.rank} ${r.label}` : `R${rank}`
+}

@@ -4,7 +4,7 @@ import { STORY } from '../../content/story.js'
 import { lookahead } from '../../domain/story/navigation.js'
 import { segMatches } from '../../domain/typing/units.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
-import { Chars, Chips, Flow, MaskedText, StatsRow } from '../../ui.jsx'
+import { Chars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
 
 // 現在打っているセグメントの表示
 function ActiveSegment({ seg, input, hasError }) {
