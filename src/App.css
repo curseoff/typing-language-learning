@@ -153,6 +153,41 @@ h1 {
   transform: scale(0.97);
 }
 
+/* ---- 開発用パネル(本番ビルドには出ない) ---- */
+.dev-panel {
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+.dev-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: #06283d;
+  background: var(--gold);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.dev-panel button {
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.dev-panel button:hover {
+  border-color: var(--accent);
+}
+
 /* ---- game ---- */
 .play-meta {
   display: flex;

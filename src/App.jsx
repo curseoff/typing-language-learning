@@ -374,9 +374,43 @@ export default function App() {
 
   const currentSeg = segments[segIndex]
 
+  // 開発時だけ：結果画面をダミーデータで即プレビュー（本番ビルドには含まれない）
+  const previewResult = useCallback(() => {
+    const mock = {
+      mode,
+      rank,
+      speed: 480,
+      keys: TARGET_KEYS,
+      mistakes: 7,
+      accuracy: 98,
+      seconds: 75.0,
+      date: new Date().toLocaleString('ja-JP'),
+    }
+    setLastResult(mock)
+    setSegStats([
+      { no: 1, type: 'en', label: 'I go to school every day.', keys: 24, mistakes: 1, seconds: 4.2, speed: 340, partial: false },
+      { no: 2, type: 'ja', label: '私は毎日学校へ行きます。', keys: 30, mistakes: 2, seconds: 6.1, speed: 295, partial: false },
+      { no: 3, type: 'en', label: 'The weather is nice today.', keys: 26, mistakes: 0, seconds: 3.9, speed: 400, partial: true },
+    ])
+    setRecords((prev) => ({
+      ...prev,
+      [recKey(mode, rank)]: [{ ...mock, speed: 520, date: '過去の記録' }, mock],
+    }))
+    setPhase('result')
+  }, [mode, rank])
+
   return (
     <div className="app">
       <h1>英文・和文タイピング</h1>
+
+      {import.meta.env.DEV && (
+        <div className="dev-panel">
+          <span className="dev-tag">DEV</span>
+          <button onClick={() => setPhase('ready')}>トップ</button>
+          <button onClick={previewResult}>結果(ダミー)</button>
+          <button onClick={() => setPhase('story')}>物語</button>
+        </div>
+      )}
 
       {phase === 'ready' && (
         <Ready
