@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { SENTENCES } from './sentences.js'
+import { SENTENCES, RANKS } from './sentences.js'
 import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
-const STORAGE_KEY = 'typing-records-v2'
-const OLD_STORAGE_KEY = 'typing-records-v1'
+const STORAGE_KEY = 'typing-records-v3'
+const OLD_STORAGE_KEY = 'typing-records-v2'
 
 export const MODES = [
   { key: 'both', label: '英文・和文 交互' },
@@ -40,8 +40,10 @@ function scramble(arr) {
 // both: 英文→和文 を交互 / en: 英文のみ / ja: 和文のみ /
 // en-tr(英訳): 和文を見て英語を入力 / ja-tr(和訳): 英文を見てローマ字を入力。
 // 翻訳モードは打つ文章を伏せ、単語チップ(chips)をヒントに出す。
-function buildPassage(mode) {
-  const shuffled = [...SENTENCES].sort(() => Math.random() - 0.5)
+function buildPassage(mode, rank) {
+  const pool = SENTENCES.filter((s) => s.rank === rank)
+  const base = pool.length > 0 ? pool : SENTENCES
+  const shuffled = [...base].sort(() => Math.random() - 0.5)
   const segments = []
   let approx = 0
   let si = 0 // 文の通し番号
@@ -131,40 +133,48 @@ function guideText(seg, input) {
   return best ?? seg.canonical
 }
 
-function emptyRecords() {
-  return Object.fromEntries(MODES.map((m) => [m.key, []]))
+// 記録は モード×ランク 別: キーは `${mode}__r${rank}`
+function recKey(mode, rank) {
+  return `${mode}__r${rank}`
 }
 
-// モード別に記録を保持: { both:[...], en:[...], ja:[...] }
 function loadRecords() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const obj = JSON.parse(raw)
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-        return { ...emptyRecords(), ...obj }
-      }
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) return obj
     }
-    // 旧形式(配列)は「交互」モードへ移行
-    const old = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null')
-    if (Array.isArray(old)) return { ...emptyRecords(), both: old }
+    // v2(モード別) からの移行: ランク1へ
+    const v2 = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null')
+    if (v2 && typeof v2 === 'object' && !Array.isArray(v2)) {
+      const out = {}
+      for (const m of Object.keys(v2)) out[recKey(m, 1)] = v2[m]
+      return out
+    }
   } catch {
     // 破損時は空で開始
   }
-  return emptyRecords()
+  return {}
 }
 
 function saveRecord(record) {
   const all = loadRecords()
-  const list = [...(all[record.mode] || []), record]
+  const key = recKey(record.mode, record.rank)
+  const list = [...(all[key] || []), record]
   list.sort((a, b) => b.speed - a.speed) // 速い順
-  all[record.mode] = list.slice(0, MAX_RECORDS)
+  all[key] = list.slice(0, MAX_RECORDS)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
   return all
 }
 
 function modeLabel(key) {
   return MODES.find((m) => m.key === key)?.label ?? key
+}
+
+function rankLabel(rank) {
+  const r = RANKS.find((x) => x.rank === rank)
+  return r ? `R${r.rank} ${r.label}` : `R${rank}`
 }
 
 function modeDesc(key) {
@@ -184,7 +194,8 @@ function modeDesc(key) {
 
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result
-  const [mode, setMode] = useState('both') // both | en | ja
+  const [mode, setMode] = useState('both') // both | en | ja | en-tr | ja-tr
+  const [rank, setRank] = useState(1) // 1-6
   const [segments, setSegments] = useState([])
   const [segIndex, setSegIndex] = useState(0)
   const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
@@ -209,7 +220,7 @@ export default function App() {
   }, [phase])
 
   const startGame = useCallback(() => {
-    setSegments(buildPassage(mode))
+    setSegments(buildPassage(mode, rank))
     setSegIndex(0)
     setSegInput('')
     setCompleted([])
@@ -223,7 +234,7 @@ export default function App() {
     segMistakesRef.current = 0
     segStatsRef.current = []
     setPhase('playing')
-  }, [mode])
+  }, [mode, rank])
 
   const finishGame = useCallback((keys, totalMistakes, endTime) => {
     const elapsedMs = endTime - startTimeRef.current
@@ -233,6 +244,7 @@ export default function App() {
     const accuracy = denom > 0 ? Math.round((keys / denom) * 100) : 100
     const record = {
       mode,
+      rank,
       speed,
       keys,
       mistakes: totalMistakes,
@@ -244,7 +256,7 @@ export default function App() {
     setLastResult(record)
     setSegStats(segStatsRef.current)
     setPhase('result')
-  }, [mode])
+  }, [mode, rank])
 
   const handleKey = useCallback(
     (e) => {
@@ -336,6 +348,11 @@ export default function App() {
           const i = MODES.findIndex((m) => m.key === prev)
           return MODES[(i + dir + MODES.length) % MODES.length].key
         })
+      } else if (phase === 'ready' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        // TOP画面で ↑/↓ でランク切り替え
+        e.preventDefault()
+        const dir = e.key === 'ArrowDown' ? 1 : -1
+        setRank((prev) => Math.min(RANKS.length, Math.max(1, prev + dir)))
       }
     }
     window.addEventListener('keydown', onNav)
@@ -361,7 +378,14 @@ export default function App() {
       <h1>英文・和文タイピング</h1>
 
       {phase === 'ready' && (
-        <Ready mode={mode} onModeChange={setMode} onStart={startGame} records={records} />
+        <Ready
+          mode={mode}
+          onModeChange={setMode}
+          rank={rank}
+          onRankChange={setRank}
+          onStart={startGame}
+          records={records}
+        />
       )}
 
       {phase === 'playing' && (
@@ -415,15 +439,37 @@ export default function App() {
   )
 }
 
-function Ready({ mode, onModeChange, onStart, records }) {
+function Ready({ mode, onModeChange, rank, onRankChange, onStart, records }) {
+  const courses = [...new Set(RANKS.map((r) => r.course))]
   return (
     <div className="ready">
       <p className="lead">
-        表示された文章を最初から最後まで打ちます。
-        <strong>英文は英語スペル</strong>、<strong>和文はローマ字</strong>（shi/si どちらでもOK）。
+        日本人のための英語タイピング教材。レベル（日常会話→ビジネス会話）とモードを選んで開始。
         {TARGET_KEYS}文字で終了し、記録が出ます。
       </p>
 
+      <div className="section-label">レベル</div>
+      <div className="rank-select">
+        {courses.map((course) => (
+          <div className="rank-group" key={course}>
+            <div className="rank-course">{course}</div>
+            <div className="rank-btns">
+              {RANKS.filter((r) => r.course === course).map((r) => (
+                <button
+                  key={r.rank}
+                  className={`rank-btn ${rank === r.rank ? 'active' : ''}`}
+                  onClick={() => onRankChange(r.rank)}
+                >
+                  <span className="rank-no">R{r.rank}</span>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="section-label">モード</div>
       <div className="mode-select">
         {MODES.map((m) => (
           <button
@@ -441,9 +487,9 @@ function Ready({ mode, onModeChange, onStart, records }) {
         スタート
       </button>
       <p className="key-hint">
-        <kbd>←</kbd> <kbd>→</kbd> でモード選択 / <kbd>Space</kbd> でスタート
+        <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード / <kbd>Space</kbd> スタート
       </p>
-      <RecordsTable records={records[mode]} modeKey={mode} />
+      <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
     </div>
   )
 }
@@ -646,7 +692,9 @@ function Result({ result, records, segStats, onRetry }) {
   return (
     <div className="result">
       <h2>記録</h2>
-      <div className="result-mode">{modeLabel(result.mode)}</div>
+      <div className="result-mode">
+        {rankLabel(result.rank)} ／ {modeLabel(result.mode)}
+      </div>
       <div className="result-main">
         <div className="result-speed">{result.speed}</div>
         <div className="result-unit">打/分</div>
@@ -664,7 +712,12 @@ function Result({ result, records, segStats, onRetry }) {
         <kbd>Space</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
       </p>
       <SegStatsTable segStats={segStats} />
-      <RecordsTable records={records[result.mode]} modeKey={result.mode} highlight={result.date} />
+      <RecordsTable
+        records={records[recKey(result.mode, result.rank)]}
+        modeKey={result.mode}
+        rank={result.rank}
+        highlight={result.date}
+      />
     </div>
   )
 }
@@ -705,15 +758,17 @@ function SegStatsTable({ segStats }) {
   )
 }
 
-function RecordsTable({ records, modeKey, highlight }) {
+function RecordsTable({ records, modeKey, rank, highlight }) {
+  const list = records || []
   return (
     <div className="records">
       <h3>
         記録ランキング
+        {rank != null && <span className="records-mode">{rankLabel(rank)}</span>}
         {modeKey && <span className="records-mode">{modeLabel(modeKey)}</span>}
         <span className="records-sub">（速い順・最大{MAX_RECORDS}件）</span>
       </h3>
-      {records.length === 0 ? (
+      {list.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>
       ) : (
         <table>
@@ -727,7 +782,7 @@ function RecordsTable({ records, modeKey, highlight }) {
             </tr>
           </thead>
           <tbody>
-            {records.map((r, i) => (
+            {list.map((r, i) => (
               <tr key={i} className={highlight && r.date === highlight ? 'me' : ''}>
                 <td>{i + 1}</td>
                 <td className="speed">{r.speed} 打/分</td>
