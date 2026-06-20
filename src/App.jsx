@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SENTENCES, RANKS } from './sentences.js'
 import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
+import { consumedWords } from './typing.js'
 import StoryMode from './StoryMode.jsx'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
@@ -57,11 +58,12 @@ function buildPassage(mode, rank) {
     const s = shuffled[idx % shuffled.length]
     const base = { sentenceIndex: si, en: s.en, ja: s.ja, kana: s.kana }
     if (mode === 'en-tr') {
-      pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en, translate: true, chips: scramble(enWords(s.en)) })
+      const words = enWords(s.en)
+      pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en, translate: true, words, chips: scramble(words.map((text, i) => ({ text, i }))) })
     } else if (mode === 'ja-tr') {
       const p = jaPunct(s.ja)
-      const jaChips = p ? [...s.jaWords, p] : s.jaWords
-      pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana), translate: true, chips: scramble(jaChips) })
+      const words = p ? [...s.jaWords, p] : [...s.jaWords]
+      pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana), translate: true, words, chips: scramble(words.map((text, i) => ({ text, i }))) })
     } else {
       if (mode !== 'ja') pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en })
       if (mode !== 'en') pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana) })
@@ -655,6 +657,7 @@ function TranslateView({ segments, segIndex, segInput, hasError }) {
 
   const target = guideText(seg, segInput) // 打つべき文字列(伏せて表示)
   const pos = segInput.length
+  const used = consumedWords(seg, segInput) // 打ち終えた単語数
 
   return (
     <div className="translate">
@@ -663,9 +666,9 @@ function TranslateView({ segments, segIndex, segInput, hasError }) {
       {next && <div className="tr-next">次: {sourceOf(next)}</div>}
 
       <div className="tr-chips">
-        {seg.chips.map((w, i) => (
-          <span key={i} className="chip">
-            {w}
+        {seg.chips.map((c) => (
+          <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
+            {c.text}
           </span>
         ))}
       </div>
