@@ -11,11 +11,11 @@ const STORAGE_KEY = 'typing-records-v3'
 const OLD_STORAGE_KEY = 'typing-records-v2'
 
 export const MODES = [
-  { key: 'both', label: '英語・日本語' },
-  { key: 'en', label: '英語' },
-  { key: 'ja', label: '日本語' },
-  { key: 'en-tr', label: '英語訳' },
-  { key: 'ja-tr', label: '日本語訳' },
+  { key: 'both', label: '英語・日本語', group: '通常入力' },
+  { key: 'en', label: '英語', group: '通常入力' },
+  { key: 'ja', label: '日本語', group: '通常入力' },
+  { key: 'en-tr', label: '英語訳', group: '翻訳' },
+  { key: 'ja-tr', label: '日本語訳', group: '翻訳' },
 ]
 
 // モードに応じてパッセージ(セグメント列)を作る。各文は buildUnits でセグメント化し、
@@ -469,14 +469,21 @@ function Ready({ mode, onModeChange, rank, storySelected, onRankChange, onSelect
 
       <div className="section-label">モード</div>
       <div className="mode-select">
-        {MODES.map((m) => (
-          <button
-            key={m.key}
-            className={`mode-btn ${mode === m.key ? 'active' : ''}`}
-            onClick={() => onModeChange(m.key)}
-          >
-            {m.label}
-          </button>
+        {[...new Set(MODES.map((m) => m.group))].map((g) => (
+          <div className="mode-group" key={g}>
+            <div className="mode-course">{g}</div>
+            <div className="mode-btns">
+              {MODES.filter((m) => m.group === g).map((m) => (
+                <button
+                  key={m.key}
+                  className={`mode-btn ${mode === m.key ? 'active' : ''}`}
+                  onClick={() => onModeChange(m.key)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       <p className="mode-desc">

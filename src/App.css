@@ -108,8 +108,24 @@ h1 {
 .mode-select {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 20px;
   flex-wrap: wrap;
+}
+.mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mode-course {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.mode-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .mode-btn {
   font-size: 14px;
