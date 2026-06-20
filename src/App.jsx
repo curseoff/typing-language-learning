@@ -4,7 +4,8 @@ import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
-const STORAGE_KEY = 'typing-records-v1'
+const STORAGE_KEY = 'typing-records-v2'
+const OLD_STORAGE_KEY = 'typing-records-v1'
 
 export const MODES = [
   { key: 'both', label: '英文・和文 交互' },
@@ -102,22 +103,40 @@ function guideText(seg, input) {
   return best ?? seg.canonical
 }
 
+function emptyRecords() {
+  return { both: [], en: [], ja: [] }
+}
+
+// モード別に記録を保持: { both:[...], en:[...], ja:[...] }
 function loadRecords() {
   try {
-    const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-    return Array.isArray(arr) ? arr : []
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const obj = JSON.parse(raw)
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        return { ...emptyRecords(), ...obj }
+      }
+    }
+    // 旧形式(配列)は「交互」モードへ移行
+    const old = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null')
+    if (Array.isArray(old)) return { ...emptyRecords(), both: old }
   } catch {
-    return []
+    // 破損時は空で開始
   }
+  return emptyRecords()
 }
 
 function saveRecord(record) {
-  const records = loadRecords()
-  records.push(record)
-  records.sort((a, b) => b.speed - a.speed) // 速い順
-  const top = records.slice(0, MAX_RECORDS)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(top))
-  return top
+  const all = loadRecords()
+  const list = [...(all[record.mode] || []), record]
+  list.sort((a, b) => b.speed - a.speed) // 速い順
+  all[record.mode] = list.slice(0, MAX_RECORDS)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+  return all
+}
+
+function modeLabel(key) {
+  return MODES.find((m) => m.key === key)?.label ?? key
 }
 
 export default function App() {
@@ -170,6 +189,7 @@ export default function App() {
     const denom = keys + totalMistakes
     const accuracy = denom > 0 ? Math.round((keys / denom) * 100) : 100
     const record = {
+      mode,
       speed,
       keys,
       mistakes: totalMistakes,
@@ -181,7 +201,7 @@ export default function App() {
     setLastResult(record)
     setSegStats(segStatsRef.current)
     setPhase('result')
-  }, [])
+  }, [mode])
 
   const handleKey = useCallback(
     (e) => {
@@ -359,7 +379,7 @@ function Ready({ mode, onModeChange, onStart, records }) {
       <p className="key-hint">
         <kbd>Space</kbd> でスタート
       </p>
-      <RecordsTable records={records} />
+      <RecordsTable records={records[mode]} modeKey={mode} />
     </div>
   )
 }
@@ -513,6 +533,7 @@ function Result({ result, records, segStats, onRetry }) {
   return (
     <div className="result">
       <h2>記録</h2>
+      <div className="result-mode">{modeLabel(result.mode)}</div>
       <div className="result-main">
         <div className="result-speed">{result.speed}</div>
         <div className="result-unit">打/分</div>
@@ -530,7 +551,7 @@ function Result({ result, records, segStats, onRetry }) {
         <kbd>Space</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
       </p>
       <SegStatsTable segStats={segStats} />
-      <RecordsTable records={records} highlight={result.date} />
+      <RecordsTable records={records[result.mode]} modeKey={result.mode} highlight={result.date} />
     </div>
   )
 }
@@ -571,10 +592,14 @@ function SegStatsTable({ segStats }) {
   )
 }
 
-function RecordsTable({ records, highlight }) {
+function RecordsTable({ records, modeKey, highlight }) {
   return (
     <div className="records">
-      <h3>記録ランキング（速い順・最大{MAX_RECORDS}件）</h3>
+      <h3>
+        記録ランキング
+        {modeKey && <span className="records-mode">{modeLabel(modeKey)}</span>}
+        <span className="records-sub">（速い順・最大{MAX_RECORDS}件）</span>
+      </h3>
       {records.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>
       ) : (

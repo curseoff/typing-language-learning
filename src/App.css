@@ -299,6 +299,25 @@ kbd {
 .result h2 {
   margin-bottom: 8px;
 }
+.result-mode {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+  border-radius: 999px;
+  padding: 3px 14px;
+  margin-bottom: 8px;
+}
+.records-mode {
+  color: var(--accent);
+  margin-left: 6px;
+}
+.records-sub {
+  margin-left: 6px;
+  font-weight: 400;
+  opacity: 0.8;
+}
 .result-main {
   display: flex;
   align-items: baseline;
