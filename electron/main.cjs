@@ -1,6 +1,10 @@
 const { app, BrowserWindow, Menu } = require('electron')
 const path = require('node:path')
 
+// userData(記録の保存先)フォルダ名を productName に揃える。
+// 必ず app の ready より前・userData 参照より前に設定する。
+app.setName('EigoTyping')
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 960,
