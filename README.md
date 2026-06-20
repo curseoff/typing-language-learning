@@ -48,18 +48,20 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 
 ブラウザ（Chrome推奨）で開けば遊べます。
 
-## Electron（デスクトップアプリ）
+## Electron（任意・各自ビルド）
+
+デスクトップアプリ版が欲しい場合は、**各自でビルド**してください（配布物は提供していません。公式の配布はWeb版のみです）。
 
 ```bash
 npm run electron:dev   # ウィンドウで起動（ホットリロード付き、開発用）
 npm run dist:dir       # 動作確認用パッケージを release/ に生成（インストーラ無し）
-npm run dist           # 配布用インストーラを release/ に生成
+npm run dist           # インストーラを release/ に生成
 ```
 
 - `npm run dist` を実行したOSの形式で出力されます（macOS=`.dmg` / Windows=`.exe` / Linux=`.AppImage`）。
-- アプリは**未署名**です。macOSでは初回起動時に警告が出るため、`.app` を右クリック →「開く」で起動してください。
+- アプリは**未署名**です。macOSでは初回起動時に警告が出るため、`.app` を右クリック →「開く」で回避してください。
 - アイコンは未設定（Electron既定）。`build/icon.icns`(Mac) / `build/icon.ico`(Win) / `build/icon.png`(Linux) を置くと自動採用されます。
-- 記録の保存先（インストール版）：`~/Library/Application Support/EigoTyping/Local Storage/`（localStorage / 非公開）。
+- 記録の保存先（ビルド版）：`~/Library/Application Support/EigoTyping/Local Storage/`（localStorage / 非公開）。
 
 ## 遊び方
 
