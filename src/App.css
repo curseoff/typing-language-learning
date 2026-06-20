@@ -337,6 +337,24 @@ h1 {
 .flow-item.current.typing {
   opacity: 1;
 }
+
+/* 物語モード: 長文は折り返す（横ティッカーをやめる） */
+.flow.wrap .flow-row {
+  align-items: flex-start;
+}
+.flow.wrap .flow-track {
+  display: block;
+  overflow: visible;
+  white-space: normal;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.flow.wrap .flow-item {
+  white-space: normal;
+  margin-right: 0.6em;
+  line-height: 1.6;
+}
+
 .flow-ja {
   font-weight: 700;
 }

@@ -264,6 +264,7 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
               enDone={enDone}
               jaDone={jaDone}
               activeRow={stage === 'choice' ? null : activeType}
+              wrap
             />
           )}
 

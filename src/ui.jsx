@@ -128,9 +128,10 @@ export function Flow({
   showEn = true,
   showJa = true,
   scrollToCenter = false,
+  wrap = false,
 }) {
   return (
-    <div className="flow">
+    <div className={`flow ${wrap ? 'wrap' : ''}`}>
       {showEn && (
         <FlowRow
           tag="英語"
