@@ -9,6 +9,7 @@ import {
   segMatches,
   typingLang,
 } from './typing.js'
+import { Chars, Chips, MaskedText, StatsRow, Typed } from './ui.jsx'
 
 const FOUND_KEY = 'story-endings-v1'
 
@@ -21,51 +22,6 @@ function loadFound() {
   }
 }
 
-// 英字/かな1文字ずつの色分け
-function PlainChars({ text, done, cursor, hasError }) {
-  return [...text].map((ch, i) => {
-    let cls = 'ch'
-    if (i < done) cls += ' done'
-    else if (i === cursor) cls += hasError ? ' cur err' : ' cur'
-    return (
-      <span key={i} className={cls}>
-        {ch}
-      </span>
-    )
-  })
-}
-
-// 翻訳モードの伏せ字（打った分だけ現れる）
-function MaskedChars({ text, pos, hasError }) {
-  return [...text].map((ch, i) => {
-    const typed = i < pos
-    const isCursor = i === pos
-    let cls = 'mch'
-    let disp
-    if (typed) {
-      cls += ' typed'
-      disp = ch
-    } else {
-      cls += isCursor ? (hasError ? ' mcur err' : ' mcur') : ' hidden'
-      disp = ch === ' ' ? ' ' : '·'
-    }
-    return (
-      <span key={i} className={cls}>
-        {disp}
-      </span>
-    )
-  })
-}
-
-function Stat({ label, value }) {
-  return (
-    <div className="stat">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-    </div>
-  )
-}
-
 // 現在打っているセグメントの表示
 function ActiveSegment({ seg, input, hasError }) {
   if (seg.translate) {
@@ -75,17 +31,9 @@ function ActiveSegment({ seg, input, hasError }) {
     return (
       <>
         <p className="story-prompt">{source}</p>
-        {seg.chips && (
-          <div className="tr-chips">
-            {seg.chips.map((c) => (
-              <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
-                {c.text}
-              </span>
-            ))}
-          </div>
-        )}
+        {seg.chips && <Chips chips={seg.chips} used={used} />}
         <div className="story-en masked">
-          <MaskedChars text={target} pos={input.length} hasError={hasError} />
+          <MaskedText text={target} pos={input.length} hasError={hasError} />
         </div>
       </>
     )
@@ -94,25 +42,16 @@ function ActiveSegment({ seg, input, hasError }) {
     const done = kanjiDone(seg, input)
     return (
       <div className="story-en">
-        <PlainChars text={seg.ja} done={done} cursor={done} hasError={hasError} />
+        <Chars text={seg.ja} done={done} cursor={done} hasError={hasError} />
       </div>
     )
   }
   // en（そのまま）
   return (
     <div className="story-en">
-      <PlainChars text={seg.en} done={input.length} cursor={input.length} hasError={hasError} />
+      <Chars text={seg.en} done={input.length} cursor={input.length} hasError={hasError} />
     </div>
   )
-}
-
-// フロー内の現在文の進捗色付け
-function FlowText({ text, done }) {
-  return [...text].map((ch, i) => (
-    <span key={i} className={i < done ? 'rdone' : ''}>
-      {ch}
-    </span>
-  ))
 }
 
 // 英語/日本語の二段フロー（現在文=明るく＋進捗、先の文=薄く）。翻訳モード以外で表示。
@@ -126,7 +65,7 @@ function StoryFlow({ items, enDone, jaDone, activeType }) {
         <div className="flow-track">
           {items.map((it, k) => (
             <span key={k} className={cls(k, activeType === 'en')}>
-              {k === 0 ? <FlowText text={it.en} done={enDone} /> : it.en}
+              {k === 0 ? <Typed text={it.en} done={enDone} /> : it.en}
             </span>
           ))}
         </div>
@@ -137,7 +76,7 @@ function StoryFlow({ items, enDone, jaDone, activeType }) {
           {items.map((it, k) => (
             <span key={k} className={cls(k, activeType === 'ja')}>
               <span className="flow-ja">
-                {k === 0 ? <FlowText text={it.ja} done={jaDone} /> : it.ja}
+                {k === 0 ? <Typed text={it.ja} done={jaDone} /> : it.ja}
               </span>
             </span>
           ))}
@@ -340,15 +279,15 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
         </div>
       ) : (
         <>
-          <div className="stats">
-            <Stat label="タイピング数" value={typedKeys} />
-            <Stat label="速度" value={`${liveSpeed} 打/分`} />
-            <Stat label="ミス" value={mistakes} />
-            <Stat label="時間" value={`${elapsedSec} 秒`} />
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${barProgress * 100}%` }} />
-          </div>
+          <StatsRow
+            stats={[
+              { label: 'タイピング数', value: typedKeys },
+              { label: '速度', value: `${liveSpeed} 打/分` },
+              { label: 'ミス', value: mistakes },
+              { label: '時間', value: `${elapsedSec} 秒` },
+            ]}
+            progress={barProgress}
+          />
 
           {!isTranslate && (
             <StoryFlow
@@ -380,7 +319,7 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
                     <div className="choice-body">
                       <div className="choice-en">
                         {lang === 'en' ? (
-                          <PlainChars
+                          <Chars
                             text={c.en}
                             done={enDone}
                             cursor={matched ? input.length : -1}
@@ -392,7 +331,7 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
                       </div>
                       <div className="choice-ja">
                         {lang === 'ja' ? (
-                          <PlainChars text={c.ja} done={jaDone} cursor={jaDone} hasError={matched && hasError} />
+                          <Chars text={c.ja} done={jaDone} cursor={jaDone} hasError={matched && hasError} />
                         ) : (
                           c.ja
                         )}

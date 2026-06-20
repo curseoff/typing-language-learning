@@ -9,6 +9,7 @@ import {
   jaPunct,
   scramble,
 } from './typing.js'
+import { Chars, Chips, MaskedText, StatsRow, Typed } from './ui.jsx'
 import StoryMode from './StoryMode.jsx'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
@@ -361,16 +362,15 @@ export default function App() {
             <span className="meta-badge mode">{modeLabel(mode)}</span>
           </div>
 
-          <div className="stats">
-            <Stat label="タイピング数" value={`${typedKeys} / ${TARGET_KEYS}`} />
-            <Stat label="速度" value={`${liveSpeed} 打/分`} />
-            <Stat label="ミス" value={mistakes} />
-            <Stat label="時間" value={`${elapsedSec} 秒`} />
-          </div>
-
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(typedKeys / TARGET_KEYS) * 100}%` }} />
-          </div>
+          <StatsRow
+            stats={[
+              { label: 'タイピング数', value: `${typedKeys} / ${TARGET_KEYS}` },
+              { label: '速度', value: `${liveSpeed} 打/分` },
+              { label: 'ミス', value: mistakes },
+              { label: '時間', value: `${elapsedSec} 秒` },
+            ]}
+            progress={typedKeys / TARGET_KEYS}
+          />
 
           {currentSeg?.translate ? (
             <TranslateView
@@ -533,7 +533,7 @@ function TopFlow({ segments, segIndex, segInput }) {
           <div className="flow-track" ref={enTrackRef}>
             {sentences.map((s, k) => (
               <span key={k} ref={k === cur ? enCurRef : null} className={itemClass(k, enActive)}>
-                {k === cur ? <ProgressText text={s.en} done={enDone} /> : s.en}
+                {k === cur ? <Typed text={s.en} done={enDone} /> : s.en}
               </span>
             ))}
           </div>
@@ -545,29 +545,15 @@ function TopFlow({ segments, segIndex, segInput }) {
           <div className="flow-track" ref={jaTrackRef}>
             {sentences.map((s, k) => (
               <span key={k} ref={k === cur ? jaCurRef : null} className={itemClass(k, jaActive)}>
-                {k === cur ? (
-                  <ProgressText className="flow-ja" text={s.ja} done={jaDone} />
-                ) : (
-                  <span className="flow-ja">{s.ja}</span>
-                )}
+                <span className="flow-ja">
+                  {k === cur ? <Typed text={s.ja} done={jaDone} /> : s.ja}
+                </span>
               </span>
             ))}
           </div>
         </div>
       )}
     </div>
-  )
-}
-
-function ProgressText({ text, done, className }) {
-  return (
-    <span className={className}>
-      {text.split('').map((ch, i) => (
-        <span key={i} className={i < done ? 'rdone' : ''}>
-          {ch}
-        </span>
-      ))}
-    </span>
   )
 }
 
@@ -589,33 +575,10 @@ function TranslateView({ segments, segIndex, segInput, hasError }) {
       <div className="tr-source">{sourceOf(seg)}</div>
       {next && <div className="tr-next">次: {sourceOf(next)}</div>}
 
-      <div className="tr-chips">
-        {seg.chips.map((c) => (
-          <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
-            {c.text}
-          </span>
-        ))}
-      </div>
+      <Chips chips={seg.chips} used={used} />
 
       <div className={`tr-input ${hasError ? 'error' : ''}`}>
-        {target.split('').map((ch, i) => {
-          const typed = i < pos
-          const isCursor = i === pos
-          let cls = 'mch'
-          let disp
-          if (typed) {
-            cls += ' typed'
-            disp = ch
-          } else {
-            cls += isCursor ? (hasError ? ' mcur err' : ' mcur') : ' hidden'
-            disp = ch === ' ' ? ' ' : '·' // 未入力は伏せる
-          }
-          return (
-            <span key={i} className={cls}>
-              {disp}
-            </span>
-          )
-        })}
+        <MaskedText text={target} pos={pos} hasError={hasError} />
       </div>
     </div>
   )
@@ -659,34 +622,19 @@ function Passage({ segments, segIndex, segInput, completed, hasError }) {
           doneLen = state === 'done' ? display.length : state === 'current' ? segInput.length : 0
         }
 
-        const chars = [...display].map((ch, j) => {
-          let cls = 'ch'
-          if (j < doneLen) cls += ' done'
-          else if (state === 'current' && j === doneLen) cls += hasError ? ' cur err' : ' cur'
-          if (over) cls += ' over'
-          return (
-            <span key={j} className={cls}>
-              {ch}
-            </span>
-          )
-        })
-
         return (
           <span key={i}>
             {i > 0 && <span className="gap"> </span>}
-            {chars}
+            <Chars
+              text={display}
+              done={doneLen}
+              cursor={state === 'current' ? doneLen : -1}
+              hasError={hasError}
+              over={over}
+            />
           </span>
         )
       })}
-    </div>
-  )
-}
-
-function Stat({ label, value }) {
-  return (
-    <div className="stat">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
     </div>
   )
 }
