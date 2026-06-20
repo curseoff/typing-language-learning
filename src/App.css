@@ -99,6 +99,11 @@ h1 {
   font-weight: 800;
   opacity: 0.8;
 }
+.rank-btn.story.active {
+  color: #06283d;
+  background: var(--gold);
+  border-color: var(--gold);
+}
 
 .mode-select {
   display: flex;

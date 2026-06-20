@@ -234,7 +234,22 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKey)
   }, [handleKey])
 
-  // Space=スタート/もう一度、Esc=トップへ戻る
+  // レベル(ランク)or物語の選択 → 開始
+  const selectRank = useCallback((r) => {
+    setStorySelected(false)
+    setRank(r)
+  }, [])
+  const selectStory = useCallback(() => setStorySelected(true), [])
+  const start = useCallback(() => {
+    if (storySelected) {
+      setStoryStart(null)
+      setPhase('story')
+    } else {
+      startGame()
+    }
+  }, [storySelected, startGame])
+
+  // Space=スタート/もう一度、Esc=トップへ戻る、↑↓=レベル/物語、←→=モード
   useEffect(() => {
     const onNav = (e) => {
       if (e.key === 'Escape') {
@@ -244,7 +259,10 @@ export default function App() {
         }
       } else if (e.code === 'Space' || e.key === ' ') {
         // タイピング中の Space は入力文字なので除外(ready/result のみ)
-        if (phase === 'ready' || phase === 'result') {
+        if (phase === 'ready') {
+          e.preventDefault()
+          start()
+        } else if (phase === 'result') {
           e.preventDefault()
           startGame()
         }
@@ -257,15 +275,22 @@ export default function App() {
           return MODES[(i + dir + MODES.length) % MODES.length].key
         })
       } else if (phase === 'ready' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-        // TOP画面で ↑/↓ でランク切り替え
+        // TOP画面で ↑/↓ でレベル切り替え（R6の次は物語）
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
-        setRank((prev) => Math.min(RANKS.length, Math.max(1, prev + dir)))
+        const total = RANKS.length + 1 // ランク + 物語
+        const curIdx = storySelected ? RANKS.length : rank - 1
+        const nextIdx = Math.min(total - 1, Math.max(0, curIdx + dir))
+        if (nextIdx === RANKS.length) setStorySelected(true)
+        else {
+          setStorySelected(false)
+          setRank(nextIdx + 1)
+        }
       }
     }
     window.addEventListener('keydown', onNav)
     return () => window.removeEventListener('keydown', onNav)
-  }, [phase, startGame])
+  }, [phase, start, startGame, rank, storySelected])
 
   const started = startTimeRef.current !== null
   const liveSpeed = useMemo(() => {
@@ -327,12 +352,10 @@ export default function App() {
           mode={mode}
           onModeChange={setMode}
           rank={rank}
-          onRankChange={setRank}
-          onStart={startGame}
-          onStartStory={() => {
-            setStoryStart(null)
-            setPhase('story')
-          }}
+          storySelected={storySelected}
+          onRankChange={selectRank}
+          onSelectStory={selectStory}
+          onStart={start}
           records={records}
         />
       )}
@@ -402,13 +425,13 @@ export default function App() {
   )
 }
 
-function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, records }) {
+function Ready({ mode, onModeChange, rank, storySelected, onRankChange, onSelectStory, onStart, records }) {
   const courses = [...new Set(RANKS.map((r) => r.course))]
   return (
     <div className="ready">
       <p className="lead">
-        日本人のための英語タイピング教材。レベル（日常会話→ビジネス会話）とモードを選んで開始。
-        {TARGET_KEYS}文字で終了し、記録が出ます。
+        日本人のための英語タイピング教材。レベル（日常会話→ビジネス会話→物語）とモードを選んで開始。
+        マラソンは{TARGET_KEYS}文字で終了し、記録が出ます。
       </p>
 
       <div className="section-label">レベル</div>
@@ -420,7 +443,7 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, 
               {RANKS.filter((r) => r.course === course).map((r) => (
                 <button
                   key={r.rank}
-                  className={`rank-btn ${rank === r.rank ? 'active' : ''}`}
+                  className={`rank-btn ${!storySelected && rank === r.rank ? 'active' : ''}`}
                   onClick={() => onRankChange(r.rank)}
                 >
                   <span className="rank-no">R{r.rank}</span>
@@ -430,6 +453,17 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, 
             </div>
           </div>
         ))}
+        <div className="rank-group">
+          <div className="rank-course">物語</div>
+          <div className="rank-btns">
+            <button
+              className={`rank-btn story ${storySelected ? 'active' : ''}`}
+              onClick={onSelectStory}
+            >
+              📖 海外旅行アドベンチャー
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="section-label">モード</div>
@@ -444,7 +478,11 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, 
           </button>
         ))}
       </div>
-      <p className="mode-desc">{modeDesc(mode)}</p>
+      <p className="mode-desc">
+        {storySelected
+          ? `「${modeLabel(mode)}」で物語を進め、選択肢で分岐。複数のエンドあり。`
+          : modeDesc(mode)}
+      </p>
 
       <button className="btn-primary" onClick={onStart}>
         スタート
@@ -453,17 +491,9 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, 
         <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード / <kbd>Space</kbd> スタート
       </p>
 
-      <div className="story-entry">
-        <div className="section-label">物語モード</div>
-        <button className="btn-story" onClick={onStartStory}>
-          📖 海外旅行アドベンチャー
-        </button>
-        <p className="mode-desc">
-          上で選んだ「{modeLabel(mode)}」で物語を進め、選択肢で分岐。複数のエンドあり。
-        </p>
-      </div>
-
-      <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
+      {!storySelected && (
+        <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
+      )}
     </div>
   )
 }
