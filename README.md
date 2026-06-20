@@ -90,4 +90,4 @@ npm run dist           # 配布用インストーラを release/ に生成
 
 ## ライセンス
 
-未設定。利用条件を定める場合は `LICENSE` を追加してください。
+[MIT License](LICENSE) © 2026 Atsushi Yamaguchi
