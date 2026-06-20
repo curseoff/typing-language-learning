@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SENTENCES, RANKS } from './sentences.js'
 import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
+import StoryMode from './StoryMode.jsx'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
@@ -384,9 +385,12 @@ export default function App() {
           rank={rank}
           onRankChange={setRank}
           onStart={startGame}
+          onStartStory={() => setPhase('story')}
           records={records}
         />
       )}
+
+      {phase === 'story' && <StoryMode onExit={() => setPhase('ready')} />}
 
       {phase === 'playing' && (
         <div className="game">
@@ -444,7 +448,7 @@ export default function App() {
   )
 }
 
-function Ready({ mode, onModeChange, rank, onRankChange, onStart, records }) {
+function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, records }) {
   const courses = [...new Set(RANKS.map((r) => r.course))]
   return (
     <div className="ready">
@@ -494,6 +498,15 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, records }) {
       <p className="key-hint">
         <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード / <kbd>Space</kbd> スタート
       </p>
+
+      <div className="story-entry">
+        <div className="section-label">物語モード</div>
+        <button className="btn-story" onClick={onStartStory}>
+          📖 海外旅行アドベンチャー
+        </button>
+        <p className="mode-desc">英文を打って物語を進め、選択肢で分岐。複数のエンドあり。</p>
+      </div>
+
       <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
     </div>
   )

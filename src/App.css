@@ -312,6 +312,156 @@ h1 {
   color: var(--muted);
 }
 
+/* ---- 物語モード入口(スタート画面) ---- */
+.story-entry {
+  margin-top: 30px;
+  text-align: center;
+}
+.btn-story {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #475569;
+  border-bottom-width: 3px;
+  border-radius: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.btn-story:hover {
+  border-color: var(--gold);
+}
+
+/* ---- 物語モード本体 ---- */
+.story {
+  display: flex;
+  flex-direction: column;
+}
+.story-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.story-title {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.story-exit {
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.story-exit:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.story-found {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.story-ja {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+  margin: 0 0 10px;
+}
+.story-en {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 22px;
+  line-height: 1.8;
+  padding: 20px;
+  background: var(--panel-2);
+  border-radius: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.story-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+.story-choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--panel);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: opacity 0.15s ease;
+}
+.story-choice.dim {
+  opacity: 0.4;
+}
+.choice-key {
+  font-size: 13px;
+  font-weight: 800;
+  color: #06283d;
+  background: var(--gold);
+  border-radius: 6px;
+  padding: 2px 9px;
+  margin-top: 2px;
+}
+.choice-body {
+  flex: 1;
+}
+.choice-en {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 17px;
+  line-height: 1.6;
+}
+.choice-ja {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* 物語エンディング */
+.story-ending {
+  text-align: center;
+  padding: 10px 0;
+}
+.ending-badge {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 800;
+  color: #06283d;
+  background: var(--gold);
+  border-radius: 999px;
+  padding: 8px 22px;
+  margin-bottom: 18px;
+}
+.ending-text {
+  font-size: 18px;
+  line-height: 1.7;
+}
+.ending-ja {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.ending-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.ending-actions .btn-primary {
+  margin: 0;
+}
+
 /* ---- 翻訳モード(英訳/和訳) ---- */
 .translate {
   display: flex;
