@@ -1,8 +1,8 @@
-// 問題文データ(src/sentences.js)の整合性チェック。
+// 問題文データ(src/content/sentences.js)の整合性チェック。
 // 実行: npm run validate
 // エラーがあれば終了コード1で落ちる(警告は落とさない)。
-import { SENTENCES, RANKS } from '../src/sentences.js'
-import { toRomaji, kanaConsumed } from '../src/romaji.js'
+import { SENTENCES, RANKS } from '../src/content/sentences.js'
+import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
 const RANK_SET = new Set(RANKS.map((r) => r.rank))
 const ROMAJI_OK = /^[a-z'.,?!-]+$/ // 変換後ローマ字に許される文字
