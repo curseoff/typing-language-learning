@@ -66,6 +66,13 @@ h1 {
   background: var(--accent);
   border-color: var(--accent);
 }
+.mode-desc {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 18px;
+}
 
 .btn-primary {
   display: block;
@@ -223,6 +230,77 @@ h1 {
   font-size: 13px;
   font-weight: 400;
   color: var(--muted);
+}
+
+/* ---- 翻訳モード(英訳/和訳) ---- */
+.translate {
+  display: flex;
+  flex-direction: column;
+}
+.tr-task {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.tr-source {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.5;
+  margin: 8px 0 4px;
+}
+.tr-next {
+  font-size: 13px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+.tr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 20px;
+  padding: 16px;
+  background: var(--panel);
+  border-radius: 12px;
+}
+.chip {
+  font-size: 15px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #475569;
+  border-bottom-width: 3px;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+.tr-input {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 26px;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  padding: 20px;
+  min-height: 30px;
+  background: var(--panel-2);
+  border-radius: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.tr-input.error {
+  animation: shake 0.18s;
+}
+.mch.hidden {
+  color: #3b4a5f;
+}
+.mch.typed {
+  color: var(--green);
+}
+.mch.mcur {
+  color: #06283d;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.mch.mcur.err {
+  background: var(--red);
+  color: #fff;
 }
 
 /* ---- 下部本文(600文字を最初から全文表示) ---- */

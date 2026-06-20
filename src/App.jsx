@@ -11,11 +11,35 @@ export const MODES = [
   { key: 'both', label: '英文・和文 交互' },
   { key: 'en', label: '英文だけ' },
   { key: 'ja', label: '和文だけ' },
+  { key: 'en-tr', label: '英訳' },
+  { key: 'ja-tr', label: '和訳' },
 ]
 
+// 英文を単語チップ用に分割。末尾の句読点(. ? !)は独立したチップにする。
+function enWords(en) {
+  const m = en.match(/^(.*?)\s*([.?!]+)\s*$/)
+  if (m) return [...m[1].split(/\s+/), m[2]]
+  return en.split(/\s+/)
+}
+
+// 和文末尾の句読点(。、！？)を取り出す(チップに加えるため)
+function jaPunct(ja) {
+  return (ja.match(/[。、！？]$/) || [])[0]
+}
+
+function scramble(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
 // モードに応じてパッセージ(セグメント列)を作る。
-// both: 英文→和文 を交互 / en: 英文のみ / ja: 和文のみ。
-// 和文は複数のローマ字入力を許容(variants)し、表示用に canonical(ヘボン式)を持つ。
+// both: 英文→和文 を交互 / en: 英文のみ / ja: 和文のみ /
+// en-tr(英訳): 和文を見て英語を入力 / ja-tr(和訳): 英文を見てローマ字を入力。
+// 翻訳モードは打つ文章を伏せ、単語チップ(chips)をヒントに出す。
 function buildPassage(mode) {
   const shuffled = [...SENTENCES].sort(() => Math.random() - 0.5)
   const segments = []
@@ -29,11 +53,15 @@ function buildPassage(mode) {
   while (approx < TARGET_KEYS + 60) {
     const s = shuffled[idx % shuffled.length]
     const base = { sentenceIndex: si, en: s.en, ja: s.ja, kana: s.kana }
-    if (mode !== 'ja') {
-      pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en })
-    }
-    if (mode !== 'en') {
-      pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana) })
+    if (mode === 'en-tr') {
+      pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en, translate: true, chips: scramble(enWords(s.en)) })
+    } else if (mode === 'ja-tr') {
+      const p = jaPunct(s.ja)
+      const jaChips = p ? [...s.jaWords, p] : s.jaWords
+      pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana), translate: true, chips: scramble(jaChips) })
+    } else {
+      if (mode !== 'ja') pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en })
+      if (mode !== 'en') pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana) })
     }
     si += 1
     idx += 1
@@ -104,7 +132,7 @@ function guideText(seg, input) {
 }
 
 function emptyRecords() {
-  return { both: [], en: [], ja: [] }
+  return Object.fromEntries(MODES.map((m) => [m.key, []]))
 }
 
 // モード別に記録を保持: { both:[...], en:[...], ja:[...] }
@@ -137,6 +165,21 @@ function saveRecord(record) {
 
 function modeLabel(key) {
   return MODES.find((m) => m.key === key)?.label ?? key
+}
+
+function modeDesc(key) {
+  switch (key) {
+    case 'en':
+      return '英文だけを連続で入力します。'
+    case 'ja':
+      return '和文だけをローマ字で連続入力します。'
+    case 'en-tr':
+      return '和文を見て英語に翻訳。単語チップがヒント。入力は伏せられ、正しく打つと現れます。'
+    case 'ja-tr':
+      return '英文を見て日本語(ローマ字)に翻訳。単語チップがヒント。入力は伏せられ、正しく打つと現れます。'
+    default:
+      return '英文と和文を交互に入力します。'
+  }
 }
 
 export default function App() {
@@ -334,20 +377,32 @@ export default function App() {
             <div className="progress-fill" style={{ width: `${(typedKeys / TARGET_KEYS) * 100}%` }} />
           </div>
 
-          {currentSeg && (
-            <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} />
+          {currentSeg?.translate ? (
+            <TranslateView
+              segments={segments}
+              segIndex={segIndex}
+              segInput={segInput}
+              hasError={hasError}
+            />
+          ) : (
+            <>
+              {currentSeg && (
+                <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} />
+              )}
+              <Passage
+                segments={segments}
+                segIndex={segIndex}
+                segInput={segInput}
+                completed={completed}
+                hasError={hasError}
+              />
+            </>
           )}
 
-          <Passage
-            segments={segments}
-            segIndex={segIndex}
-            segInput={segInput}
-            completed={completed}
-            hasError={hasError}
-          />
-
           <p className="hint">
-            英文はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
+            {currentSeg?.translate
+              ? 'チップを参考に訳を入力。正しく打つと文字が現れます。'
+              : '英文はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。'}
             <kbd>Esc</kbd> で中断してトップへ。
           </p>
         </div>
@@ -380,6 +435,7 @@ function Ready({ mode, onModeChange, onStart, records }) {
           </button>
         ))}
       </div>
+      <p className="mode-desc">{modeDesc(mode)}</p>
 
       <button className="btn-primary" onClick={onStart}>
         スタート
@@ -484,6 +540,55 @@ function ProgressText({ text, done, className }) {
         </span>
       ))}
     </span>
+  )
+}
+
+// 翻訳モード(英訳/和訳)。上に原文、下に単語チップ、入力欄は伏せて打つと現れる。
+function TranslateView({ segments, segIndex, segInput, hasError }) {
+  const seg = segments[segIndex]
+  if (!seg) return null
+  const toEnglish = seg.type === 'en' // 英訳(和文→英語)
+  const sourceOf = (s) => (s.type === 'en' ? s.ja : s.en)
+  const next = segments[segIndex + 1]
+
+  const target = guideText(seg, segInput) // 打つべき文字列(伏せて表示)
+  const pos = segInput.length
+
+  return (
+    <div className="translate">
+      <div className="tr-task">{toEnglish ? '日本語を英語に訳す' : '英語を日本語に訳す'}</div>
+      <div className="tr-source">{sourceOf(seg)}</div>
+      {next && <div className="tr-next">次: {sourceOf(next)}</div>}
+
+      <div className="tr-chips">
+        {seg.chips.map((w, i) => (
+          <span key={i} className="chip">
+            {w}
+          </span>
+        ))}
+      </div>
+
+      <div className={`tr-input ${hasError ? 'error' : ''}`}>
+        {target.split('').map((ch, i) => {
+          const typed = i < pos
+          const isCursor = i === pos
+          let cls = 'mch'
+          let disp
+          if (typed) {
+            cls += ' typed'
+            disp = ch
+          } else {
+            cls += isCursor ? (hasError ? ' mcur err' : ' mcur') : ' hidden'
+            disp = ch === ' ' ? ' ' : '·' // 未入力は伏せる
+          }
+          return (
+            <span key={i} className={cls}>
+              {disp}
+            </span>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
