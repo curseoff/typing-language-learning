@@ -4,13 +4,12 @@ import { MODES } from './content/modes.js'
 import { kanaConsumed } from './domain/romaji/romaji.js'
 import { alignJaToKana, consumedWords, guideText } from './domain/typing/progress.js'
 import { buildUnits } from './domain/typing/units.js'
+import { MAX_RECORDS, recKey } from './domain/records/ranking.js'
+import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
 import { Chars, Chips, Flow, MaskedText, StatsRow } from './ui.jsx'
 import StoryMode from './StoryMode.jsx'
 
 const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
-const MAX_RECORDS = 15
-const STORAGE_KEY = 'typing-records-v3'
-const OLD_STORAGE_KEY = 'typing-records-v2'
 
 // モードに応じてパッセージ(セグメント列)を作る。各文は buildUnits でセグメント化し、
 // sentenceIndex を付与して連結（600文字を超えるまで）。
@@ -32,41 +31,6 @@ function buildPassage(mode, rank) {
     idx += 1
   }
   return segments
-}
-
-// 記録は モード×ランク 別: キーは `${mode}__r${rank}`
-function recKey(mode, rank) {
-  return `${mode}__r${rank}`
-}
-
-function loadRecords() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const obj = JSON.parse(raw)
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) return obj
-    }
-    // v2(モード別) からの移行: ランク1へ
-    const v2 = JSON.parse(localStorage.getItem(OLD_STORAGE_KEY) || 'null')
-    if (v2 && typeof v2 === 'object' && !Array.isArray(v2)) {
-      const out = {}
-      for (const m of Object.keys(v2)) out[recKey(m, 1)] = v2[m]
-      return out
-    }
-  } catch {
-    // 破損時は空で開始
-  }
-  return {}
-}
-
-function saveRecord(record) {
-  const all = loadRecords()
-  const key = recKey(record.mode, record.rank)
-  const list = [...(all[key] || []), record]
-  list.sort((a, b) => b.speed - a.speed) // 速い順
-  all[key] = list.slice(0, MAX_RECORDS)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-  return all
 }
 
 function modeLabel(key) {
