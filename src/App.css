@@ -376,6 +376,29 @@ h1 {
   line-height: 1.7;
   margin: 0 0 10px;
 }
+/* 翻訳モードの原文プロンプト */
+.story-prompt {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+/* 参照（薄め）／進行表示 */
+.story-ref {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 10px 0 0;
+}
+.story-progress {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.story-en.masked {
+  font-size: 22px;
+}
 .story-en {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 22px;

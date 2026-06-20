@@ -390,7 +390,7 @@ export default function App() {
         />
       )}
 
-      {phase === 'story' && <StoryMode onExit={() => setPhase('ready')} />}
+      {phase === 'story' && <StoryMode mode={mode} onExit={() => setPhase('ready')} />}
 
       {phase === 'playing' && (
         <div className="game">
@@ -504,7 +504,9 @@ function Ready({ mode, onModeChange, rank, onRankChange, onStart, onStartStory, 
         <button className="btn-story" onClick={onStartStory}>
           📖 海外旅行アドベンチャー
         </button>
-        <p className="mode-desc">英文を打って物語を進め、選択肢で分岐。複数のエンドあり。</p>
+        <p className="mode-desc">
+          上で選んだ「{modeLabel(mode)}」で物語を進め、選択肢で分岐。複数のエンドあり。
+        </p>
       </div>
 
       <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
