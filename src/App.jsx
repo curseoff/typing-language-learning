@@ -506,7 +506,7 @@ function Ready({ mode, onModeChange, rank, storySelected, onRankChange, onSelect
   )
 }
 
-// 上部: 英語/日本語を横に流す（現在の文を中央へ）。データを組み立てて共有 Flow に渡す。
+// 上部: 英語/日本語の二段フロー。データを組み立てて共有 Flow に渡す。
 function TopFlow({ segments, segIndex, segInput }) {
   // 文ごとに1件(sentenceIndex で集約)
   const sentences = useMemo(() => {

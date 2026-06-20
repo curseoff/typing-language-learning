@@ -1,5 +1,4 @@
 // マラソン/物語モードで共有する表示部品（純粋なプレゼンテーション）。
-import { useEffect, useRef } from 'react'
 
 export function Stat({ label, value }) {
   return (
@@ -85,26 +84,15 @@ export function Chips({ chips, used }) {
   )
 }
 
-// 英語/日本語の二段フロー（1行ぶん）。scrollToCenter で現在文を中央へ寄せる。
-function FlowRow({ tag, tagClass, items, cur, active, scrollToCenter, render }) {
-  const trackRef = useRef(null)
-  const curRef = useRef(null)
-  useEffect(() => {
-    if (!scrollToCenter) return
-    const track = trackRef.current
-    const el = curRef.current
-    if (!track || !el) return
-    const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2
-    track.scrollTo({ left: Math.max(0, left), behavior: 'smooth' })
-  }, [cur, scrollToCenter])
+// 英語/日本語の二段フロー（1行ぶん）。現在文を明るく＋進捗、先の文は薄く。
+function FlowRow({ tag, tagClass, items, cur, active, render }) {
   return (
     <div className="flow-row">
       <span className={`ref-tag ${tagClass}`}>{tag}</span>
-      <div className="flow-track" ref={trackRef}>
+      <div className="flow-track">
         {items.map((it, k) => (
           <span
             key={k}
-            ref={k === cur ? curRef : null}
             className={`flow-item ${k === cur ? 'current' : k < cur ? 'past' : 'future'} ${
               k === cur && active ? 'typing' : ''
             }`}
@@ -117,19 +105,9 @@ function FlowRow({ tag, tagClass, items, cur, active, scrollToCenter, render }) 
   )
 }
 
-// 英語/日本語の二段フロー（マラソン=中央スクロール / 物語=左寄せ）。
+// 英語/日本語の二段フロー（現在＋先読みを折り返し表示）。
 // items=[{en,ja}], cur=現在index, enDone/jaDone=現在文の進捗, activeRow='en'|'ja'|null
-export function Flow({
-  items,
-  cur,
-  enDone,
-  jaDone,
-  activeRow,
-  showEn = true,
-  showJa = true,
-  scrollToCenter = false,
-  wrap = false,
-}) {
+export function Flow({ items, cur, enDone, jaDone, activeRow, showEn = true, showJa = true, wrap = false }) {
   return (
     <div className={`flow ${wrap ? 'wrap' : ''}`}>
       {showEn && (
@@ -139,7 +117,6 @@ export function Flow({
           items={items}
           cur={cur}
           active={activeRow === 'en'}
-          scrollToCenter={scrollToCenter}
           render={(it, isCur) => (isCur ? <Typed text={it.en} done={enDone} /> : it.en)}
         />
       )}
@@ -150,7 +127,6 @@ export function Flow({
           items={items}
           cur={cur}
           active={activeRow === 'ja'}
-          scrollToCenter={scrollToCenter}
           render={(it, isCur) => (
             <span className="flow-ja">{isCur ? <Typed text={it.ja} done={jaDone} /> : it.ja}</span>
           )}
