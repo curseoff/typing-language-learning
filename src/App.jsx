@@ -6,36 +6,35 @@ const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 const MAX_RECORDS = 15
 const STORAGE_KEY = 'typing-records-v1'
 
-// 「英文(英語入力)」→「和文(ローマ字入力)」を交互に連結したパッセージを作る。
-// セグメント間の区切りスペースは打鍵不要(表示上の間隔のみ)。
+export const MODES = [
+  { key: 'both', label: '英文・和文 交互' },
+  { key: 'en', label: '英文だけ' },
+  { key: 'ja', label: '和文だけ' },
+]
+
+// モードに応じてパッセージ(セグメント列)を作る。
+// both: 英文→和文 を交互 / en: 英文のみ / ja: 和文のみ。
 // 和文は複数のローマ字入力を許容(variants)し、表示用に canonical(ヘボン式)を持つ。
-function buildPassage() {
+function buildPassage(mode) {
   const shuffled = [...SENTENCES].sort(() => Math.random() - 0.5)
   const segments = []
   let approx = 0
-  const add = (seg) => {
+  let si = 0 // 文の通し番号
+  let idx = 0
+  const pushSeg = (seg) => {
     segments.push(seg)
     approx += seg.canonical.length
   }
-  let idx = 0
   while (approx < TARGET_KEYS + 60) {
     const s = shuffled[idx % shuffled.length]
-    add({
-      type: 'en',
-      en: s.en,
-      ja: s.ja,
-      kana: s.kana,
-      variants: [s.en],
-      canonical: s.en,
-    })
-    add({
-      type: 'ja',
-      en: s.en,
-      ja: s.ja,
-      kana: s.kana,
-      variants: romajiVariants(s.kana),
-      canonical: toRomaji(s.kana),
-    })
+    const base = { sentenceIndex: si, en: s.en, ja: s.ja, kana: s.kana }
+    if (mode !== 'ja') {
+      pushSeg({ ...base, type: 'en', variants: [s.en], canonical: s.en })
+    }
+    if (mode !== 'en') {
+      pushSeg({ ...base, type: 'ja', variants: romajiVariants(s.kana), canonical: toRomaji(s.kana) })
+    }
+    si += 1
     idx += 1
   }
   return segments
@@ -123,6 +122,7 @@ function saveRecord(record) {
 
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result
+  const [mode, setMode] = useState('both') // both | en | ja
   const [segments, setSegments] = useState([])
   const [segIndex, setSegIndex] = useState(0)
   const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
@@ -147,7 +147,7 @@ export default function App() {
   }, [phase])
 
   const startGame = useCallback(() => {
-    setSegments(buildPassage())
+    setSegments(buildPassage(mode))
     setSegIndex(0)
     setSegInput('')
     setCompleted([])
@@ -161,7 +161,7 @@ export default function App() {
     segMistakesRef.current = 0
     segStatsRef.current = []
     setPhase('playing')
-  }, [])
+  }, [mode])
 
   const finishGame = useCallback((keys, totalMistakes, endTime) => {
     const elapsedMs = endTime - startTimeRef.current
@@ -289,7 +289,9 @@ export default function App() {
     <div className="app">
       <h1>英文・和文タイピング</h1>
 
-      {phase === 'ready' && <Ready onStart={startGame} records={records} />}
+      {phase === 'ready' && (
+        <Ready mode={mode} onModeChange={setMode} onStart={startGame} records={records} />
+      )}
 
       {phase === 'playing' && (
         <div className="game">
@@ -330,14 +332,27 @@ export default function App() {
   )
 }
 
-function Ready({ onStart, records }) {
+function Ready({ mode, onModeChange, onStart, records }) {
   return (
     <div className="ready">
       <p className="lead">
-        英文と和文が交互につながった文章を、最初から最後まで打ちます。<br />
+        表示された文章を最初から最後まで打ちます。
         <strong>英文は英語スペル</strong>、<strong>和文はローマ字</strong>（shi/si どちらでもOK）。
         {TARGET_KEYS}文字で終了し、記録が出ます。
       </p>
+
+      <div className="mode-select">
+        {MODES.map((m) => (
+          <button
+            key={m.key}
+            className={`mode-btn ${mode === m.key ? 'active' : ''}`}
+            onClick={() => onModeChange(m.key)}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
       <button className="btn-primary" onClick={onStart}>
         スタート
       </button>
@@ -356,27 +371,31 @@ function TopFlow({ segments, segIndex, segInput }) {
   const enCurRef = useRef(null)
   const jaCurRef = useRef(null)
 
-  // 文ペア(en→ja の順なので 2 セグメントで 1 文)
+  // 文ごとに1件(sentenceIndex で集約)。表示する行はモードにより決まる。
   const sentences = useMemo(() => {
-    const list = []
-    for (let i = 0; i < segments.length; i += 2) list.push(segments[i])
-    return list
+    const map = new Map()
+    for (const s of segments) if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, s)
+    return [...map.values()]
   }, [segments])
+  const hasEn = useMemo(() => segments.some((s) => s.type === 'en'), [segments])
+  const hasJa = useMemo(() => segments.some((s) => s.type === 'ja'), [segments])
 
-  const cur = Math.floor(segIndex / 2) // 現在の文
-  const enActive = segIndex % 2 === 0 // 偶数=英文入力中 / 奇数=和文入力中
   const seg = segments[segIndex]
+  const cur = seg ? seg.sentenceIndex : 0 // 現在の文
+  const enActive = seg?.type === 'en' // 英文入力中
+  const jaActive = seg?.type === 'ja' // 和文入力中
 
+  // 英文の進捗。英文入力中は打った文字まで、和文入力中(=英文は既に完了)は全部。
   const enDone = !seg ? 0 : enActive ? Math.min(segInput.length, seg.en.length) : seg.en.length
   // 漢字表記の入力途中。和文入力中はローマ字の進捗を漢字位置に変換して緑にする。
   const jaDone = useMemo(() => {
-    if (!seg || enActive) return 0
+    if (!seg || !jaActive) return 0
     const consumed = kanaConsumed(seg.kana, segInput)
     const ends = alignJaToKana(seg.ja, seg.kana)
     let count = 0
     for (const e of ends) if (e <= consumed) count++
     return count
-  }, [seg, enActive, segInput])
+  }, [seg, jaActive, segInput])
 
   // 現在の文を各トラックの中央へスクロール(ページは動かさない)
   useEffect(() => {
@@ -396,30 +415,34 @@ function TopFlow({ segments, segIndex, segInput }) {
 
   return (
     <div className="flow">
-      <div className="flow-row">
-        <span className="ref-tag en">英語</span>
-        <div className="flow-track" ref={enTrackRef}>
-          {sentences.map((s, k) => (
-            <span key={k} ref={k === cur ? enCurRef : null} className={itemClass(k, enActive)}>
-              {k === cur ? <ProgressText text={s.en} done={enDone} /> : s.en}
-            </span>
-          ))}
+      {hasEn && (
+        <div className="flow-row">
+          <span className="ref-tag en">英語</span>
+          <div className="flow-track" ref={enTrackRef}>
+            {sentences.map((s, k) => (
+              <span key={k} ref={k === cur ? enCurRef : null} className={itemClass(k, enActive)}>
+                {k === cur ? <ProgressText text={s.en} done={enDone} /> : s.en}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flow-row">
-        <span className="ref-tag ja">日本語</span>
-        <div className="flow-track" ref={jaTrackRef}>
-          {sentences.map((s, k) => (
-            <span key={k} ref={k === cur ? jaCurRef : null} className={itemClass(k, !enActive)}>
-              {k === cur ? (
-                <ProgressText className="flow-ja" text={s.ja} done={jaDone} />
-              ) : (
-                <span className="flow-ja">{s.ja}</span>
-              )}
-            </span>
-          ))}
+      )}
+      {hasJa && (
+        <div className="flow-row">
+          <span className="ref-tag ja">日本語</span>
+          <div className="flow-track" ref={jaTrackRef}>
+            {sentences.map((s, k) => (
+              <span key={k} ref={k === cur ? jaCurRef : null} className={itemClass(k, jaActive)}>
+                {k === cur ? (
+                  <ProgressText className="flow-ja" text={s.ja} done={jaDone} />
+                ) : (
+                  <span className="flow-ja">{s.ja}</span>
+                )}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
