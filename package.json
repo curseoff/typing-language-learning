@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "validate": "node scripts/validate-sentences.mjs",
     "electron": "electron .",
     "electron:dev": "concurrently -k \"npm run dev\" \"wait-on tcp:127.0.0.1:5173 && electron .\"",
     "dist": "vite build && electron-builder",
