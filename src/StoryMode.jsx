@@ -93,22 +93,57 @@ function ActiveSegment({ seg, input, hasError }) {
   if (seg.type === 'ja') {
     const done = kanjiDone(seg, input)
     return (
-      <>
-        <div className="story-en">
-          <PlainChars text={seg.ja} done={done} cursor={done} hasError={hasError} />
-        </div>
-        <p className="story-ref">{seg.en}</p>
-      </>
+      <div className="story-en">
+        <PlainChars text={seg.ja} done={done} cursor={done} hasError={hasError} />
+      </div>
     )
   }
   // en（そのまま）
   return (
-    <>
-      <div className="story-en">
-        <PlainChars text={seg.en} done={input.length} cursor={input.length} hasError={hasError} />
+    <div className="story-en">
+      <PlainChars text={seg.en} done={input.length} cursor={input.length} hasError={hasError} />
+    </div>
+  )
+}
+
+// フロー内の現在文の進捗色付け
+function FlowText({ text, done }) {
+  return [...text].map((ch, i) => (
+    <span key={i} className={i < done ? 'rdone' : ''}>
+      {ch}
+    </span>
+  ))
+}
+
+// 英語/日本語の二段フロー（現在文=明るく＋進捗、先の文=薄く）。翻訳モード以外で表示。
+function StoryFlow({ items, enDone, jaDone, activeType }) {
+  const cls = (k, typing) =>
+    `flow-item ${k === 0 ? 'current' : 'future'} ${k === 0 && typing ? 'typing' : ''}`
+  return (
+    <div className="flow">
+      <div className="flow-row">
+        <span className="ref-tag en">英語</span>
+        <div className="flow-track">
+          {items.map((it, k) => (
+            <span key={k} className={cls(k, activeType === 'en')}>
+              {k === 0 ? <FlowText text={it.en} done={enDone} /> : it.en}
+            </span>
+          ))}
+        </div>
       </div>
-      <p className="story-ref">{seg.ja}</p>
-    </>
+      <div className="flow-row">
+        <span className="ref-tag ja">日本語</span>
+        <div className="flow-track">
+          {items.map((it, k) => (
+            <span key={k} className={cls(k, activeType === 'ja')}>
+              <span className="flow-ja">
+                {k === 0 ? <FlowText text={it.ja} done={jaDone} /> : it.ja}
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -252,6 +287,30 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
   }
   const barProgress = barTarget.length ? Math.min(1, input.length / barTarget.length) : 0
 
+  // 英語/日本語フロー（翻訳モード以外で表示）
+  const isTranslate = mode === 'en-tr' || mode === 'ja-tr'
+  const activeType = units[unitIndex]?.type
+  let flowItems = [node]
+  {
+    let n = node
+    let guard = 0
+    while (n.next && guard < 4) {
+      n = nodes[n.next]
+      flowItems.push(n)
+      guard += 1
+    }
+  }
+  let enDone = 0
+  let jaDone = 0
+  if (stage === 'choice') {
+    enDone = node.en.length
+    jaDone = [...node.ja].length
+  } else {
+    if (activeType === 'en') enDone = Math.min(input.length, node.en.length)
+    else if (mode === 'both') enDone = node.en.length // 英語は入力済み、和文入力中
+    if (activeType === 'ja') jaDone = kanjiDone({ ja: node.ja, kana: node.kana }, input)
+  }
+
   return (
     <div className="story">
       <div className="play-meta">
@@ -290,6 +349,15 @@ export default function StoryMode({ mode, modeLabel, onExit }) {
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${barProgress * 100}%` }} />
           </div>
+
+          {!isTranslate && (
+            <StoryFlow
+              items={flowItems}
+              enDone={enDone}
+              jaDone={jaDone}
+              activeType={stage === 'choice' ? null : activeType}
+            />
+          )}
 
           {units.length > 1 && (
             <div className="story-progress">
