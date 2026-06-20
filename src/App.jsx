@@ -496,16 +496,18 @@ function TopFlow({ segments, segIndex, segInput }) {
     return count
   }, [seg, jaActive, segInput])
 
+  // 物語側に合わせ、現在の文＋先読み数件を折り返し表示
+  const items = sentences.slice(cur, cur + 5)
   return (
     <Flow
-      items={sentences}
-      cur={cur}
+      items={items}
+      cur={0}
       enDone={enDone}
       jaDone={jaDone}
       activeRow={enActive ? 'en' : jaActive ? 'ja' : null}
       showEn={hasEn}
       showJa={hasJa}
-      scrollToCenter
+      wrap
     />
   )
 }
