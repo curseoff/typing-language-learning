@@ -101,28 +101,35 @@ function QuizView({ level, theme, meta, onExit }) {
             stats={[
               { label: '問題', value: `${q.index} / ${q.total}` },
               { label: '正解', value: q.correct },
+              { label: 'ミス', value: q.mistakes },
               { label: '時間', value: `${q.elapsedSec} 秒` },
             ]}
             progress={q.index / q.total}
           />
           <div className="word-card">
-            <div className="word-dir">英単語の意味は？</div>
-            <p className="word-prompt">{q.question.word.en}</p>
+            <div className="word-dir">意味に合う英単語を入力</div>
+            <p className="word-prompt">{q.question.word.ja}</p>
+            <div className={`word-input ${q.hasError ? 'error' : ''}`}>
+              {q.input ? q.input : ' '}
+              {q.picked === null && <span className="caret">▍</span>}
+            </div>
           </div>
           <div className="quiz-options">
-            {q.question.options.map((opt, i) => {
+            {q.question.options.map((opt) => {
               let cls = 'quiz-option'
               if (q.picked !== null) {
-                if (i === q.question.correct) cls += ' correct'
-                else if (i === q.picked) cls += ' wrong'
+                if (opt === q.question.answer) cls += ' correct'
+                else if (opt === q.picked) cls += ' wrong'
+                else cls += ' dim'
+              } else if (q.input) {
+                cls += opt.startsWith(q.input) ? ' cand' : ' dim'
               }
               return (
                 <button
-                  key={i}
+                  key={opt}
                   className={cls}
-                  onClick={() => (q.picked === null ? q.answer(i) : q.advance())}
+                  onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}
                 >
-                  <span className="quiz-no">{i + 1}</span>
                   {opt}
                 </button>
               )
@@ -130,9 +137,7 @@ function QuizView({ level, theme, meta, onExit }) {
           </div>
           <p className="hint">
             {q.picked === null ? (
-              <>
-                正しい意味を <kbd>1</kbd>〜<kbd>4</kbd> で選択。
-              </>
+              <>意味に合う英単語を入力（クリックでも選択可）。</>
             ) : (
               <>
                 <kbd>Enter</kbd> / <kbd>Space</kbd> で次へ。

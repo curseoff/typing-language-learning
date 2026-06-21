@@ -19,12 +19,15 @@ export function levelWords(level) {
   return WORDS.filter((w) => w.level === level)
 }
 
-// 各語に4択を作る。pool=誤答候補, options=和訳の配列, correct=正解index
+// 各語に4択を作る。和訳(prompt)に対し、英単語の選択肢を出す。
+// options=英単語の配列, answer=正解の英単語。打って選ぶので前方一致が衝突しない語を誤答に選ぶ。
 export function makeQuiz(words, pool, optionCount = 4) {
   return words.map((w) => {
-    const others = pool.filter((p) => p.en !== w.en && p.ja !== w.ja)
+    const others = pool.filter(
+      (p) => p.en !== w.en && !p.en.startsWith(w.en) && !w.en.startsWith(p.en),
+    )
     const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, optionCount - 1)
     const opts = [w, ...distractors].sort(() => Math.random() - 0.5)
-    return { word: w, options: opts.map((o) => o.ja), correct: opts.findIndex((o) => o.en === w.en) }
+    return { word: w, options: opts.map((o) => o.en), answer: w.en }
   })
 }

@@ -587,13 +587,30 @@ h1 {
 .quiz-option:disabled {
   cursor: default;
 }
+.quiz-option.cand {
+  border-color: var(--accent);
+}
+.quiz-option.dim {
+  opacity: 0.4;
+}
 .quiz-option.correct {
   border-color: var(--green);
   background: rgba(74, 222, 128, 0.16);
+  opacity: 1;
 }
 .quiz-option.wrong {
   border-color: var(--red);
   background: rgba(248, 113, 113, 0.16);
+  opacity: 1;
+}
+.caret {
+  color: var(--accent);
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 .quiz-no {
   display: inline-flex;

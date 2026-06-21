@@ -1,4 +1,4 @@
-// 単語の4択クイズの状態機械。英単語を見て、4つの和訳から正解を選ぶ。30問で終了。
+// 単語の4択クイズの状態機械。和訳を見て、4つの英単語から正解を「打って」選ぶ。30問で終了。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
@@ -8,9 +8,11 @@ export function useWordQuiz({ level, theme, onExit }) {
     makeQuiz(buildWordSet(level, theme), levelWords(level)),
   )
   const [index, setIndex] = useState(0)
-  const [picked, setPicked] = useState(null) // 選んだ選択肢index（未回答は null）
+  const [input, setInput] = useState('')
+  const [hasError, setHasError] = useState(false)
+  const [picked, setPicked] = useState(null) // 確定した選択肢（英単語）or null
   const [correct, setCorrect] = useState(0)
-  const [wrong, setWrong] = useState(0)
+  const [mistakes, setMistakes] = useState(0) // タイプミス
   const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
@@ -22,9 +24,11 @@ export function useWordQuiz({ level, theme, onExit }) {
   const restart = useCallback(() => {
     setQuestions(makeQuiz(buildWordSet(level, theme), levelWords(level)))
     setIndex(0)
+    setInput('')
+    setHasError(false)
     setPicked(null)
     setCorrect(0)
-    setWrong(0)
+    setMistakes(0)
     setNow(0)
     setFinished(false)
     setResult(null)
@@ -44,7 +48,7 @@ export function useWordQuiz({ level, theme, onExit }) {
   }, [now, started])
 
   const finish = useCallback(
-    (correctCount, endTime) => {
+    (correctCount, totalMistakes, endTime) => {
       const seconds = Math.round((endTime - startTimeRef.current) / 100) / 10
       const total = questions.length
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
@@ -54,6 +58,7 @@ export function useWordQuiz({ level, theme, onExit }) {
         mode: 'quiz',
         correct: correctCount,
         words: total,
+        mistakes: totalMistakes,
         accuracy,
         seconds,
         date: new Date().toLocaleString('ja-JP'),
@@ -65,29 +70,36 @@ export function useWordQuiz({ level, theme, onExit }) {
     [level, theme, questions.length],
   )
 
-  const answer = useCallback(
-    (choice) => {
-      if (finished || picked !== null) return
+  const commit = useCallback(
+    (option) => {
       if (startTimeRef.current === null) startTimeRef.current = performance.now()
-      setPicked(choice)
-      if (choice === q.correct) setCorrect((c) => c + 1)
-      else setWrong((w) => w + 1)
+      setPicked(option)
+      if (option === q.answer) setCorrect((c) => c + 1)
     },
-    [finished, picked, q],
+    [q],
+  )
+
+  // クリックで選択
+  const pick = useCallback(
+    (option) => {
+      if (finished || picked !== null) return
+      setInput(option)
+      commit(option)
+    },
+    [finished, picked, commit],
   )
 
   const advance = useCallback(() => {
     if (picked === null) return
-    const wasCorrect = picked === q.correct
-    const newCorrect = correct // correct は answer 時に加算済み
     if (index >= questions.length - 1) {
-      finish(newCorrect, performance.now())
+      finish(correct, mistakes, performance.now())
     } else {
       setIndex((i) => i + 1)
+      setInput('')
       setPicked(null)
+      setHasError(false)
     }
-    void wasCorrect
-  }, [picked, q, correct, index, questions.length, finish])
+  }, [picked, index, questions.length, finish, correct, mistakes])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -103,34 +115,51 @@ export function useWordQuiz({ level, theme, onExit }) {
         }
         return
       }
-      if (picked === null) {
-        // 1-4 で回答
-        const n = Number(e.key)
-        if (n >= 1 && n <= (q?.options.length ?? 4)) {
+      if (picked !== null) {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          answer(n - 1)
+          advance()
         }
-      } else if (e.key === 'Enter' || e.key === ' ') {
+        return
+      }
+      if (e.key === 'Backspace') {
         e.preventDefault()
-        advance()
+        setInput((prev) => prev.slice(0, -1))
+        setHasError(false)
+        return
+      }
+      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
+      e.preventDefault()
+
+      const candidate = input + e.key
+      if (q.options.some((o) => o.startsWith(candidate))) {
+        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        setHasError(false)
+        setInput(candidate)
+        if (q.options.includes(candidate)) commit(candidate)
+      } else {
+        setMistakes((m) => m + 1)
+        setHasError(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, picked, q, answer, advance, restart, onExit])
+  }, [finished, picked, q, input, advance, restart, onExit, commit])
 
   return {
     question: q,
     index,
+    input,
+    hasError,
     picked,
     correct,
-    wrong,
+    mistakes,
     elapsedSec,
     finished,
     result,
     records,
     total: WORD_COUNT,
-    answer,
+    pick,
     advance,
     restart,
   }
