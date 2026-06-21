@@ -20,7 +20,7 @@ export function saveWordRecord(record) {
   const all = loadWordRecords()
   const key = wordRecKey(record.level, record.theme, record.mode)
   const list = [...(all[key] || []), record]
-  if (record.mode === 'quiz') {
+  if (record.mode.startsWith('quiz')) {
     list.sort((a, b) => b.correct - a.correct || a.seconds - b.seconds) // 正解多い→速い
   } else {
     list.sort((a, b) => b.speed - a.speed) // 速い順

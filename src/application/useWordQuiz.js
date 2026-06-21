@@ -1,16 +1,17 @@
-// 単語の4択クイズの状態機械。和訳を見て、4つの英単語から正解を「打って」選ぶ。30問で終了。
+// 単語の4択クイズの状態機械。選択肢を「打って」選ぶ。30問で終了。
+// dir='en'(英語訳: 和訳→英単語) / 'ja'(日本語訳: 英単語→和訳をローマ字)
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
-export function useWordQuiz({ level, theme, onExit }) {
+export function useWordQuiz({ level, theme, dir, mode, onExit }) {
   const [questions, setQuestions] = useState(() =>
-    makeQuiz(buildWordSet(level, theme), levelWords(level)),
+    makeQuiz(buildWordSet(level, theme), levelWords(level), dir),
   )
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
-  const [picked, setPicked] = useState(null) // 確定した選択肢（英単語）or null
+  const [picked, setPicked] = useState(null) // 確定した選択肢(option) or null
   const [correct, setCorrect] = useState(0)
   const [mistakes, setMistakes] = useState(0) // タイプミス
   const [now, setNow] = useState(0)
@@ -22,7 +23,7 @@ export function useWordQuiz({ level, theme, onExit }) {
   const q = questions[index]
 
   const restart = useCallback(() => {
-    setQuestions(makeQuiz(buildWordSet(level, theme), levelWords(level)))
+    setQuestions(makeQuiz(buildWordSet(level, theme), levelWords(level), dir))
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -33,7 +34,7 @@ export function useWordQuiz({ level, theme, onExit }) {
     setFinished(false)
     setResult(null)
     startTimeRef.current = null
-  }, [level, theme])
+  }, [level, theme, dir])
 
   useEffect(() => {
     if (finished) return
@@ -55,7 +56,7 @@ export function useWordQuiz({ level, theme, onExit }) {
       const record = {
         level,
         theme,
-        mode: 'quiz',
+        mode,
         correct: correctCount,
         words: total,
         mistakes: totalMistakes,
@@ -67,23 +68,22 @@ export function useWordQuiz({ level, theme, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, questions.length],
+    [level, theme, mode, questions.length],
   )
 
   const commit = useCallback(
     (option) => {
       if (startTimeRef.current === null) startTimeRef.current = performance.now()
       setPicked(option)
-      if (option === q.answer) setCorrect((c) => c + 1)
+      if (option.answer) setCorrect((c) => c + 1)
     },
-    [q],
+    [],
   )
 
   // クリックで選択
   const pick = useCallback(
     (option) => {
       if (finished || picked !== null) return
-      setInput(option)
       commit(option)
     },
     [finished, picked, commit],
@@ -132,11 +132,13 @@ export function useWordQuiz({ level, theme, onExit }) {
       e.preventDefault()
 
       const candidate = input + e.key
-      if (q.options.some((o) => o.startsWith(candidate))) {
+      const canType = q.options.some((o) => o.variants.some((v) => v.startsWith(candidate)))
+      if (canType) {
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
         setInput(candidate)
-        if (q.options.includes(candidate)) commit(candidate)
+        const hit = q.options.find((o) => o.variants.includes(candidate))
+        if (hit) commit(hit)
       } else {
         setMistakes((m) => m + 1)
         setHasError(true)

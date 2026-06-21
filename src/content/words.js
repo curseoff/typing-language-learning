@@ -9,12 +9,13 @@ export const WORD_LEVELS = [
 
 export const WORD_THEMES = ['日常', '旅行', 'ビジネス']
 
-// 単語モード（英語・日本語/英語/日本語=入力、4択=選択クイズ）
+// 単語モード（英語・日本語/英語/日本語=入力、英語訳/日本語訳=4択クイズ）
 export const WORD_MODES = [
   { key: 'both', label: '英語・日本語' },
   { key: 'en', label: '英語' },
   { key: 'ja', label: '日本語' },
-  { key: 'quiz', label: '4択' },
+  { key: 'quiz-en', label: '英語訳' },
+  { key: 'quiz-ja', label: '日本語訳' },
 ]
 
 export const WORDS = [

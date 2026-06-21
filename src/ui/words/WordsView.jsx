@@ -12,8 +12,15 @@ export default function WordsView({ level, theme, mode, levelLabel, modeLabel, o
       <span className="meta-badge mode">{modeLabel} / {theme}</span>
     </div>
   )
-  return mode === 'quiz' ? (
-    <QuizView level={level} theme={theme} meta={meta} onExit={onExit} />
+  return mode.startsWith('quiz') ? (
+    <QuizView
+      level={level}
+      theme={theme}
+      mode={mode}
+      dir={mode === 'quiz-ja' ? 'ja' : 'en'}
+      meta={meta}
+      onExit={onExit}
+    />
   ) : (
     <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
   )
@@ -78,9 +85,9 @@ function TypeView({ level, theme, mode, meta, onExit }) {
   )
 }
 
-// 4択クイズ
-function QuizView({ level, theme, meta, onExit }) {
-  const q = useWordQuiz({ level, theme, onExit })
+// 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
+function QuizView({ level, theme, mode, dir, meta, onExit }) {
+  const q = useWordQuiz({ level, theme, dir, mode, onExit })
 
   return (
     <div className="game">
@@ -91,7 +98,7 @@ function QuizView({ level, theme, meta, onExit }) {
           records={q.records}
           level={level}
           theme={theme}
-          mode="quiz"
+          mode={mode}
           onRetry={q.restart}
           onExit={onExit}
         />
@@ -107,37 +114,39 @@ function QuizView({ level, theme, meta, onExit }) {
             progress={q.index / q.total}
           />
           <div className="word-card">
-            <div className="word-dir">意味に合う英単語を入力</div>
-            <p className="word-prompt">{q.question.word.ja}</p>
+            <div className="word-dir">
+              {dir === 'ja' ? '英単語に合う和訳をローマ字で入力' : '意味に合う英単語を入力'}
+            </div>
+            <p className="word-prompt">{q.question.prompt}</p>
             <div className={`word-input ${q.hasError ? 'error' : ''}`}>
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}
             </div>
           </div>
           <div className="quiz-options">
-            {q.question.options.map((opt) => {
+            {q.question.options.map((opt, i) => {
               let cls = 'quiz-option'
               if (q.picked !== null) {
-                if (opt === q.question.answer) cls += ' correct'
+                if (opt.answer) cls += ' correct'
                 else if (opt === q.picked) cls += ' wrong'
                 else cls += ' dim'
               } else if (q.input) {
-                cls += opt.startsWith(q.input) ? ' cand' : ' dim'
+                cls += opt.variants.some((v) => v.startsWith(q.input)) ? ' cand' : ' dim'
               }
               return (
                 <button
-                  key={opt}
+                  key={i}
                   className={cls}
                   onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}
                 >
-                  {opt}
+                  {opt.display}
                 </button>
               )
             })}
           </div>
           <p className="hint">
             {q.picked === null ? (
-              <>意味に合う英単語を入力（クリックでも選択可）。</>
+              <>{dir === 'ja' ? '和訳をローマ字で入力' : '英単語を入力'}（クリックでも選択可）。</>
             ) : (
               <>
                 <kbd>Enter</kbd> / <kbd>Space</kbd> で次へ。
@@ -153,7 +162,7 @@ function QuizView({ level, theme, meta, onExit }) {
 
 function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
   const list = records[wordRecKey(level, theme, mode)] || []
-  const isQuiz = mode === 'quiz'
+  const isQuiz = mode.startsWith('quiz')
   return (
     <div className="result">
       <h2>記録</h2>
