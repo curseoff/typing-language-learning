@@ -1,4 +1,5 @@
 // 上部: 英語/日本語の二段フロー。データを組み立てて共有 Flow に渡す。
+// 入力モードに関わらず英語・日本語の両方を常に表示し、入力中の言語だけ進捗を色づける。
 import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '../../domain/typing/progress.js'
 import { Flow } from '../shared/index.js'
@@ -10,16 +11,25 @@ export default function TopFlow({ segments, segIndex, segInput }) {
     for (const s of segments) if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, s)
     return [...map.values()]
   }, [segments])
-  const hasEn = useMemo(() => segments.some((s) => s.type === 'en'), [segments])
-  const hasJa = useMemo(() => segments.some((s) => s.type === 'ja'), [segments])
+  // 英→日の両方を打つモード（both）か。単一言語モードでは非入力側は参考表示。
+  const isBoth = useMemo(
+    () => segments.some((s) => s.type === 'en') && segments.some((s) => s.type === 'ja'),
+    [segments],
+  )
 
   const seg = segments[segIndex]
   const cur = seg ? seg.sentenceIndex : 0
   const enActive = seg?.type === 'en'
   const jaActive = seg?.type === 'ja'
 
-  // 英文の進捗（和文入力中は英文は完了済み）
-  const enDone = !seg ? 0 : enActive ? Math.min(segInput.length, seg.en.length) : seg.en.length
+  // 英文の進捗：入力中は入力分、both で和文入力中は完了済み、単一言語モードの参考表示は0
+  const enDone = !seg
+    ? 0
+    : enActive
+      ? Math.min(segInput.length, seg.en.length)
+      : isBoth
+        ? seg.en.length
+        : 0
   // 漢字の進捗（ローマ字の進捗を漢字位置に変換）
   const jaDone = useMemo(() => {
     if (!seg || !jaActive) return 0
@@ -39,8 +49,8 @@ export default function TopFlow({ segments, segIndex, segInput }) {
       enDone={enDone}
       jaDone={jaDone}
       activeRow={enActive ? 'en' : jaActive ? 'ja' : null}
-      showEn={hasEn}
-      showJa={hasJa}
+      showEn
+      showJa
       wrap
     />
   )
