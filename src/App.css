@@ -560,6 +560,34 @@ h1 {
   letter-spacing: 0.06em;
 }
 
+/* 次の候補（先読み） */
+.word-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+.word-next-label {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+.word-next-item {
+  font-size: 14px;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.word-next-item:not(:last-child)::after {
+  content: '・';
+  margin-left: 8px;
+  opacity: 0.5;
+}
+
 /* 4択クイズ */
 .quiz-options {
   display: grid;

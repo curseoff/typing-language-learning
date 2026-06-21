@@ -26,6 +26,16 @@ export function useWords({ level, theme, mode, onExit }) {
   const wordsDone = Math.floor(segIndex / segsPerWord)
   const progress = segments.length ? segIndex / segments.length : 0
 
+  // 次に出る候補（出題側＝表示する語）を先読み表示
+  const upcoming = useMemo(
+    () =>
+      segments.slice(segIndex + 1, segIndex + 6).map((s) => ({
+        type: s.type,
+        text: s.type === 'en' ? s.ja : s.en,
+      })),
+    [segments, segIndex],
+  )
+
   const restart = useCallback(() => {
     setWords(buildWordSet(level, theme))
     setSegIndex(0)
@@ -132,6 +142,7 @@ export function useWords({ level, theme, mode, onExit }) {
     elapsedSec,
     wordsDone,
     progress,
+    upcoming,
     finished,
     result,
     records,

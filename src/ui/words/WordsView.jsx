@@ -73,6 +73,17 @@ function TypeView({ level, theme, mode, meta, onExit }) {
               )}
             </div>
           </div>
+
+          {w.upcoming.length > 0 && (
+            <div className="word-next">
+              <span className="word-next-label">次</span>
+              {w.upcoming.map((u, i) => (
+                <span key={i} className="word-next-item">
+                  {u.text}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="hint">
             {isEn
               ? '和訳を見て英単語を入力。'
