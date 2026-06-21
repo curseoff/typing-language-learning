@@ -44,7 +44,9 @@ export function alignJaToKana(ja, kana) {
       const next = tokens[ti + 1]
       let anchor = hira.length
       if (next) {
-        const p = hira.indexOf(toH(next.chars[0]), ki)
+        // 送り仮名の検索開始は ki+漢字数（各漢字は最低1かな消費）。
+        // これで読みに同じかなが複数あっても、漢字内の先頭かなへ誤マッチしない。
+        const p = hira.indexOf(toH(next.chars[0]), ki + tok.chars.length)
         if (p >= 0) anchor = p
       }
       const start = ki
