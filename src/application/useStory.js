@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { STORY } from '../content/story.js'
 import { buildUnits, choiceSeg, segMatches, typingLang } from '../domain/typing/units.js'
 import { firstChoiceNodeId } from '../domain/story/navigation.js'
-import { loadFound, saveFound } from '../infrastructure/storyRepository.js'
+import { score } from '../domain/marathon/scoring.js'
+import {
+  loadFound,
+  saveFound,
+  loadStoryRecords,
+  saveStoryRecord,
+} from '../infrastructure/storyRepository.js'
 
 export function useStory({ mode, start, onExit }) {
   const nodes = STORY.nodes
@@ -19,6 +25,8 @@ export function useStory({ mode, start, onExit }) {
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
   const [found, setFound] = useState(loadFound)
+  const [records, setRecords] = useState(loadStoryRecords) // 記録ランキング
+  const [result, setResult] = useState(null) // 今回のプレイ結果
   // 計測（物語を通しての累計）
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
@@ -46,6 +54,7 @@ export function useStory({ mode, start, onExit }) {
     setTypedKeys(0)
     setMistakes(0)
     setNow(0)
+    setResult(null)
     startTimeRef.current = null
   }, [])
 
@@ -67,7 +76,7 @@ export function useStory({ mode, start, onExit }) {
     return Math.round((now - startTimeRef.current) / 100) / 10
   }, [now, started])
 
-  const enterEnding = useCallback((n) => {
+  const enterEnding = useCallback((n, keys, totalMistakes, endTime) => {
     setStage('ending')
     setFound((prev) => {
       if (prev.includes(n.ending)) return prev
@@ -75,6 +84,21 @@ export function useStory({ mode, start, onExit }) {
       saveFound(upd)
       return upd
     })
+    // 今回の記録を作成・保存（速い順ランキング）
+    const elapsedMs = startTimeRef.current ? endTime - startTimeRef.current : 0
+    const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
+    const record = {
+      ending: n.ending,
+      endLabel: n.endLabel,
+      speed,
+      keys,
+      mistakes: totalMistakes,
+      accuracy,
+      seconds,
+      date: new Date().toLocaleString('ja-JP'),
+    }
+    setResult(record)
+    setRecords(saveStoryRecord(record))
   }, [])
 
   useEffect(() => {
@@ -111,7 +135,7 @@ export function useStory({ mode, start, onExit }) {
             setUnitIndex(unitIndex + 1)
           } else {
             setUnitIndex(0)
-            if (node.ending) enterEnding(node)
+            if (node.ending) enterEnding(node, typedKeys + 1, mistakes, performance.now())
             else if (node.choices) setStage('choice')
             else if (node.next) setNodeId(node.next)
           }
@@ -140,7 +164,7 @@ export function useStory({ mode, start, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [stage, node, units, unitIndex, choiceSegs, input, onExit, restart, enterEnding])
+  }, [stage, node, units, unitIndex, choiceSegs, input, typedKeys, mistakes, onExit, restart, enterEnding])
 
   return {
     nodes,
@@ -157,6 +181,8 @@ export function useStory({ mode, start, onExit }) {
     mistakes,
     liveSpeed,
     elapsedSec,
+    result,
+    records,
     restart,
   }
 }

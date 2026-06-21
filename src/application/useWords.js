@@ -131,7 +131,7 @@ export function useWords({ level, theme, mode, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, onExit, restart, finish])
 
   return {
     segments,

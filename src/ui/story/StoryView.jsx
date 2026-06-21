@@ -38,6 +38,43 @@ function ActiveSegment({ seg, input, hasError }) {
   )
 }
 
+// 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）
+function StoryRecords({ list, highlight }) {
+  if (!list || list.length === 0) return null
+  return (
+    <div className="records">
+      <h3>
+        記録ランキング
+        <span className="records-sub">（速い順・最大15件）</span>
+      </h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>速度</th>
+            <th>正確率</th>
+            <th>時間</th>
+            <th>エンド</th>
+            <th>日時</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((r, i) => (
+            <tr key={i} className={highlight && r.date === highlight ? 'me' : ''}>
+              <td>{i + 1}</td>
+              <td className="speed">{r.speed} 打/分</td>
+              <td>{r.accuracy}%</td>
+              <td>{r.seconds}秒</td>
+              <td>{r.endLabel}</td>
+              <td className="date">{r.date}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function StoryView({ mode, modeLabel, start, onExit }) {
   const {
     nodes,
@@ -54,6 +91,8 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
     mistakes,
     liveSpeed,
     elapsedSec,
+    result,
+    records,
     restart,
   } = useStory({ mode, start, onExit })
 
@@ -96,6 +135,15 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
           <div className="ending-badge">{node.endLabel}</div>
           <p className="ending-text">{node.en}</p>
           <p className="ending-ja">{node.ja}</p>
+          {result && (
+            <div className="result-sub">
+              <span>{result.speed} 打/分</span>
+              <span>{result.keys} 打</span>
+              <span>{result.seconds} 秒</span>
+              <span>ミス {result.mistakes}</span>
+              <span>正確率 {result.accuracy}%</span>
+            </div>
+          )}
           <div className="ending-actions">
             <button className="btn-primary" onClick={restart}>
               最初から
@@ -107,6 +155,7 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
           <p className="key-hint">
             <kbd>Enter</kbd> 最初から / <kbd>Esc</kbd> トップ
           </p>
+          <StoryRecords list={records} highlight={result?.date} />
         </div>
       ) : (
         <>

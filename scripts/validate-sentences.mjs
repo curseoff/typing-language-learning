@@ -2,6 +2,7 @@
 // 実行: npm run validate
 // エラーがあれば終了コード1で落ちる(警告は落とさない)。
 import { SENTENCES, RANKS } from '../src/content/sentences.js'
+import { WORDS, WORD_LEVELS, WORD_THEMES } from '../src/content/words.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
 const RANK_SET = new Set(RANKS.map((r) => r.rank))
@@ -66,6 +67,36 @@ SENTENCES.forEach((s, i) => {
   }
 })
 
+// ---- 単語データ(words.js)の検証 ----
+const EN_OK = /^[a-z]+$/
+const LEVEL_SET = new Set(WORD_LEVELS.map((l) => l.level))
+const THEME_SET = new Set(WORD_THEMES)
+const seenWordEn = new Map()
+
+WORDS.forEach((w, i) => {
+  const id = `単語#${i + 1} "${w?.en ?? '(en無し)'}"`
+  const err = (m) => errors.push(`${id}: ${m}`)
+  const warn = (m) => warnings.push(`${id}: ${m}`)
+
+  for (const f of ['en', 'ja', 'kana', 'level', 'theme']) {
+    if (w[f] === undefined || w[f] === null) err(`必須フィールド "${f}" がありません`)
+  }
+  if (!w.en || !w.ja || !w.kana) return
+
+  if (!EN_OK.test(w.en)) err(`en は英小文字のみにする → "${w.en}"`)
+  if (seenWordEn.has(w.en)) err(`en が重複（#${seenWordEn.get(w.en) + 1} と同じ）`) // 4択・照合が壊れる
+  else seenWordEn.set(w.en, i)
+  if (!LEVEL_SET.has(w.level)) err(`不正な level: ${w.level}`)
+  if (!THEME_SET.has(w.theme)) err(`不正な theme: ${w.theme}`)
+
+  const roma = toRomaji(w.kana)
+  if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${w.kana}）`)
+  if (roma.includes('-') || w.kana.includes('ー')) warn(`長音「ー」が含まれます: ${w.kana}`)
+  if (kanaConsumed(w.kana, roma) !== [...w.kana].length) {
+    warn(`canonical が読みを完全消費していません（${w.kana} → ${roma}）`)
+  }
+})
+
 // ランク別の件数と注意
 const dist = {}
 for (const s of SENTENCES) dist[s.rank] = (dist[s.rank] || 0) + 1
@@ -77,6 +108,16 @@ for (const r of RANKS) {
   console.log(`  R${r.rank} ${r.label}: ${n}${flag}`)
 }
 console.log(`  合計: ${SENTENCES.length}\n`)
+
+// 単語: 難易度×テーマの件数
+console.log('— 単語 難易度×テーマ —')
+for (const l of WORD_LEVELS) {
+  const row = WORD_THEMES.map(
+    (t) => `${t}:${WORDS.filter((w) => w.level === l.level && w.theme === t).length}`,
+  )
+  console.log(`  L${l.level} ${l.label}: ${row.join('  ')}`)
+}
+console.log(`  合計: ${WORDS.length}\n`)
 
 if (warnings.length) {
   console.log(`⚠ 警告 ${warnings.length}件`)
@@ -91,4 +132,4 @@ if (errors.length) {
   process.exit(1)
 }
 
-console.log(`✓ 検証OK（${SENTENCES.length}文・エラーなし）`)
+console.log(`✓ 検証OK（${SENTENCES.length}文・${WORDS.length}単語・エラーなし）`)
