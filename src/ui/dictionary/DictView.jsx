@@ -1,6 +1,7 @@
-// 英英辞典の画面。4択 / 英語入力 / 日本語入力 を振り分ける。
+// 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 を振り分ける。
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
+import { useDictPick } from '../../application/useDictPick.js'
 import { dictRecKey } from '../../infrastructure/dictRepository.js'
 import { kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, StatsRow } from '../shared/index.js'
@@ -12,10 +13,71 @@ export default function DictView({ level, theme, mode, levelLabel, modeLabel, on
       <span className="meta-badge mode">英英 / {modeLabel} / {theme}</span>
     </div>
   )
-  return mode === 'quiz' ? (
-    <QuizView level={level} theme={theme} meta={meta} onExit={onExit} />
-  ) : (
-    <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView level={level} theme={theme} meta={meta} onExit={onExit} />
+  if (mode === 'pick') return <PickView level={level} theme={theme} meta={meta} onExit={onExit} />
+  return <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
+}
+
+// 説明文4択：単語＋意味 → 合う定義を1-4で選び → その定義を入力
+function PickView({ level, theme, meta, onExit }) {
+  const p = useDictPick({ level, theme, onExit })
+  const q = p.question
+  const typing = p.stage === 'type'
+  const target = q.answerDef
+
+  return (
+    <div className="game">
+      {meta}
+      {p.finished ? (
+        <DictResult result={p.result} records={p.records} level={level} theme={theme} mode="pick" onRetry={p.restart} onExit={onExit} />
+      ) : (
+        <>
+          <StatsRow
+            stats={[
+              { label: '問題', value: `${p.index} / ${p.total}` },
+              { label: '正解', value: p.correct },
+              { label: 'ミス', value: p.mistakes },
+              { label: '時間', value: `${p.elapsedSec} 秒` },
+            ]}
+            progress={p.index / p.total}
+          />
+          <div className="word-card">
+            <div className="word-dir">{typing ? '選んだ説明を入力' : '単語に合う説明文を選択'}</div>
+            <p className="dict-head">{q.word}</p>
+            <p className="dict-ref">{q.ja}</p>
+            {typing && (
+              <div className="dict-type">
+                <Chars text={target} done={p.input.length} cursor={p.input.length} hasError={p.hasError} />
+              </div>
+            )}
+          </div>
+          <div className="pick-options">
+            {q.options.map((opt, i) => {
+              let cls = 'quiz-option pick-option'
+              if (typing) {
+                if (opt.answer) cls += ' correct'
+                else if (i === p.picked) cls += ' wrong'
+                else cls += ' dim'
+              }
+              return (
+                <button key={i} className={cls} onClick={() => !typing && p.select(i)} disabled={typing}>
+                  <span className="quiz-no">{i + 1}</span>
+                  {opt.text}
+                </button>
+              )
+            })}
+          </div>
+          <p className="hint">
+            {typing ? (
+              <>正解の説明文を入力。</>
+            ) : (
+              <>合う説明文を <kbd>1</kbd>〜<kbd>4</kbd> で選択（クリックも可）。</>
+            )}
+            <kbd>Esc</kbd> で中断。
+          </p>
+        </>
+      )}
+    </div>
   )
 }
 

@@ -46,3 +46,22 @@ export function makeDictQuiz(entries, distractorPool, count = DICT_QUIZ_COUNT, o
   }
   return items
 }
+
+// 説明文4択：単語(+和訳)に合う英語の定義を選ぶ → その定義を入力。
+// options=[{text=定義, answer}], answerDef=正解の定義
+export function makeDictPick(entries, distractorPool, count = DICT_TYPE_COUNT, optionCount = 4) {
+  const items = []
+  for (let i = 0; i < count; i++) {
+    const e = entries[i % entries.length]
+    const others = distractorPool.filter((p) => p.word !== e.word && p.def !== e.def)
+    const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, optionCount - 1)
+    const opts = [e, ...distractors].sort(() => Math.random() - 0.5)
+    items.push({
+      word: e.word,
+      ja: e.ja,
+      answerDef: e.def,
+      options: opts.map((o) => ({ text: o.def, answer: o.word === e.word })),
+    })
+  }
+  return items
+}

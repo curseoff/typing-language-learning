@@ -5,9 +5,12 @@ import { WORD_LEVELS, WORD_THEMES } from './words.js'
 
 export { WORD_LEVELS as DICT_LEVELS, WORD_THEMES as DICT_THEMES }
 
-// 英英辞典のモード（4択＝定義から単語を当てる、英語入力＝定義文を打つ、日本語入力＝和訳を打つ）
+// 英英辞典のモード
+// quiz＝定義を読んで単語を当てる4択 / pick＝単語に合う説明文を選んで入力
+// en＝定義文を打つ / ja＝和訳を打つ
 export const DICT_MODES = [
-  { key: 'quiz', label: '4択' },
+  { key: 'quiz', label: '単語4択' },
+  { key: 'pick', label: '説明4択' },
   { key: 'en', label: '英語入力' },
   { key: 'ja', label: '日本語入力' },
 ]

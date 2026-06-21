@@ -671,6 +671,19 @@ h1 {
   gap: 12px;
   margin-top: 14px;
 }
+
+/* 説明文4択（選択肢が長文なので縦並び） */
+.pick-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.pick-option {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .quiz-option {
   display: flex;
   align-items: center;

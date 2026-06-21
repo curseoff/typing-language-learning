@@ -20,8 +20,8 @@ const GAME_TYPES = [
 const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 const WORD_INPUT = WORD_MODES.filter((m) => !m.key.startsWith('quiz'))
 const WORD_QUIZ = WORD_MODES.filter((m) => m.key.startsWith('quiz'))
-const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz')
-const DICT_INPUT = DICT_MODES.filter((m) => m.key !== 'quiz')
+const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz' || m.key === 'pick')
+const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'en' || m.key === 'ja')
 const dictLevelLabel = (lv) => WORD_LEVELS.find((l) => l.level === lv)?.label ?? ''
 
 function ModeButtons({ modes, value, onChange }) {
@@ -280,6 +280,8 @@ export default function Ready({
 
 function dictModeDesc(key) {
   switch (key) {
+    case 'pick':
+      return '英単語＋意味を見て、4つの説明文から合うものを選び、その説明文を入力（12問）。'
     case 'en':
       return '見出し語の英語の定義を入力（和訳は参考表示）。'
     case 'ja':
