@@ -1,15 +1,21 @@
-// 英英辞典の4択。英語の定義を見て、4つの英単語から正解を「打って」選ぶ。回答後に和訳を開示。
+// 英英辞典の選択式（打って選ぶ）。
+// kind='quiz': 定義→英単語4択（回答後に和訳開示） / kind='pick': 単語+和訳→説明文4択
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DICT_QUIZ_COUNT,
+  DICT_TYPE_COUNT,
   buildDictSet,
   levelEntries,
   makeDictQuiz,
+  makeDictPick,
 } from '../domain/dictionary/dictset.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 
-export function useDictQuiz({ level, theme, onExit }) {
-  const build = () => makeDictQuiz(buildDictSet(level, theme, DICT_QUIZ_COUNT), levelEntries(level))
+export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
+  const build = () =>
+    kind === 'pick'
+      ? makeDictPick(buildDictSet(level, theme, DICT_TYPE_COUNT), levelEntries(level))
+      : makeDictQuiz(buildDictSet(level, theme, DICT_QUIZ_COUNT), levelEntries(level))
   const [questions, setQuestions] = useState(build)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
@@ -26,7 +32,7 @@ export function useDictQuiz({ level, theme, onExit }) {
   const q = questions[index]
 
   const restart = useCallback(() => {
-    setQuestions(makeDictQuiz(buildDictSet(level, theme, DICT_QUIZ_COUNT), levelEntries(level)))
+    setQuestions(build())
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -37,7 +43,8 @@ export function useDictQuiz({ level, theme, onExit }) {
     setFinished(false)
     setResult(null)
     startTimeRef.current = null
-  }, [level, theme])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level, theme, kind])
 
   useEffect(() => {
     if (finished) return
@@ -59,7 +66,7 @@ export function useDictQuiz({ level, theme, onExit }) {
       const record = {
         level,
         theme,
-        mode: 'quiz',
+        mode: kind,
         correct: correctCount,
         words: total,
         mistakes: totalMistakes,
@@ -71,7 +78,7 @@ export function useDictQuiz({ level, theme, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, questions.length],
+    [level, theme, kind, questions.length],
   )
 
   const commit = useCallback((option) => {
@@ -154,7 +161,7 @@ export function useDictQuiz({ level, theme, onExit }) {
     correct,
     mistakes,
     elapsedSec,
-    total: DICT_QUIZ_COUNT,
+    total: questions.length,
     finished,
     result,
     records,

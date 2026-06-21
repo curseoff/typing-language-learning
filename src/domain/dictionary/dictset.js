@@ -47,20 +47,23 @@ export function makeDictQuiz(entries, distractorPool, count = DICT_QUIZ_COUNT, o
   return items
 }
 
-// 説明文4択：単語(+和訳)に合う英語の定義を選ぶ → その定義を入力。
-// options=[{text=定義, answer}], answerDef=正解の定義
+// 説明文4択：単語(prompt)+和訳(ja)に合う英語の定義を「打って」選ぶ。
+// options=[{display=定義, variants=[定義], answer}]（4択クイズと同じ形）
 export function makeDictPick(entries, distractorPool, count = DICT_TYPE_COUNT, optionCount = 4) {
   const items = []
   for (let i = 0; i < count; i++) {
     const e = entries[i % entries.length]
-    const others = distractorPool.filter((p) => p.word !== e.word && p.def !== e.def)
+    const aDef = e.def
+    const others = distractorPool.filter(
+      (p) => p.word !== e.word && !p.def.startsWith(aDef) && !aDef.startsWith(p.def),
+    )
     const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, optionCount - 1)
     const opts = [e, ...distractors].sort(() => Math.random() - 0.5)
     items.push({
-      word: e.word,
+      prompt: e.word,
       ja: e.ja,
-      answerDef: e.def,
-      options: opts.map((o) => ({ text: o.def, answer: o.word === e.word })),
+      answerDisplay: e.def,
+      options: opts.map((o) => ({ display: o.def, variants: [o.def], answer: o.word === e.word })),
     })
   }
   return items

@@ -270,7 +270,7 @@ export default function Ready({
           <StartRow onStart={onStart} />
           <WordRecords
             list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
-            isQuiz={dictMode === 'quiz'}
+            isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
           />
         </>
       )}
@@ -281,7 +281,7 @@ export default function Ready({
 function dictModeDesc(key) {
   switch (key) {
     case 'pick':
-      return '英単語＋意味を見て、4つの説明文から合うものを選び、その説明文を入力（12問）。'
+      return '英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ（12問）。'
     case 'en':
       return '見出し語の英語の定義を入力（和訳は参考表示）。'
     case 'ja':

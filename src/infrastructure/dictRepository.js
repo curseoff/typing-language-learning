@@ -20,8 +20,8 @@ export function saveDictRecord(record) {
   const all = loadDictRecords()
   const key = dictRecKey(record.level, record.theme, record.mode)
   const list = [...(all[key] || []), record]
-  if (record.mode === 'quiz') {
-    list.sort((a, b) => b.correct - a.correct || a.seconds - b.seconds)
+  if (record.mode === 'quiz' || record.mode === 'pick') {
+    list.sort((a, b) => b.correct - a.correct || a.seconds - b.seconds) // 選択式＝正解多い→速い
   } else {
     list.sort((a, b) => b.speed - a.speed)
   }
