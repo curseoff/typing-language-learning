@@ -49,6 +49,56 @@ h1 {
   margin: 24px 0 10px;
 }
 
+/* 種類タブ（文章 / 物語 / 単語 / 英英辞典） */
+.type-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 20px 0 8px;
+}
+.type-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 10px;
+  background: var(--panel);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.type-tab:hover {
+  border-color: var(--panel-2);
+}
+.type-tab.active {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.type-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.type-label {
+  font-size: 16px;
+  font-weight: 800;
+}
+.type-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* 物語の選択中ヘッダ */
+.story-pick {
+  text-align: center;
+  font-weight: 700;
+  background: var(--panel-2);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 16px;
+}
+
 /* レベル選択 */
 .rank-select {
   display: flex;
@@ -589,12 +639,58 @@ h1 {
   opacity: 0.5;
 }
 
+/* 英英辞典カード */
+.dict-head {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+.dict-def {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.dict-type {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  margin: 6px 0;
+}
+.dict-ref {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 8px 0 0;
+}
+
 /* 4択クイズ */
 .quiz-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 14px;
+}
+
+/* 4択の選択肢で、打鍵済みプレフィックスを着色 */
+.opt-typed {
+  color: var(--green);
+}
+.opt-typed.err {
+  color: var(--red);
+}
+
+/* 説明文4択（選択肢が長文なので縦並び） */
+.pick-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.pick-option {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 .quiz-option {
   display: flex;
