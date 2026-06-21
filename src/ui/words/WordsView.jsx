@@ -2,8 +2,9 @@
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../infrastructure/wordsRepository.js'
-import { alignJaToKana, kanaConsumed } from '../../domain/typing/progress.js'
-import { Chars, StatsRow } from '../shared/index.js'
+import { StatsRow } from '../shared/index.js'
+import TopFlow from '../marathon/TopFlow.jsx'
+import Passage from '../marathon/Passage.jsx'
 
 export default function WordsView({ level, theme, mode, levelLabel, modeLabel, onExit }) {
   const meta = (
@@ -26,17 +27,9 @@ export default function WordsView({ level, theme, mode, levelLabel, modeLabel, o
   )
 }
 
-// 入力モード（英語/日本語/英語・日本語）
+// 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
 function TypeView({ level, theme, mode, meta, onExit }) {
   const w = useWords({ level, theme, mode, onExit })
-  const seg = w.seg
-  const isEn = seg.type === 'en'
-  // 日本語入力時の漢字進捗
-  let jaDone = 0
-  if (!isEn) {
-    const consumed = kanaConsumed(seg.kana, w.input)
-    jaDone = alignJaToKana(seg.ja, seg.kana).filter((e) => e <= consumed).length
-  }
 
   return (
     <div className="game">
@@ -62,33 +55,17 @@ function TypeView({ level, theme, mode, meta, onExit }) {
             ]}
             progress={w.progress}
           />
-          <div className="word-card">
-            <div className="word-dir">{isEn ? '日本語 → 英語' : '英語 → 日本語'}</div>
-            <p className="word-prompt">{isEn ? seg.ja : seg.en}</p>
-            <div className="word-input">
-              {isEn ? (
-                <Chars text={seg.en} done={w.input.length} cursor={w.input.length} hasError={w.hasError} />
-              ) : (
-                <Chars text={seg.ja} done={jaDone} cursor={jaDone} hasError={w.hasError} />
-              )}
-            </div>
-          </div>
-
-          {w.upcoming.length > 0 && (
-            <div className="word-next">
-              <span className="word-next-label">次</span>
-              {w.upcoming.map((u, i) => (
-                <span key={i} className="word-next-item">
-                  {u.text}
-                </span>
-              ))}
-            </div>
-          )}
+          <TopFlow segments={w.segments} segIndex={w.segIndex} segInput={w.segInput} />
+          <Passage
+            segments={w.segments}
+            segIndex={w.segIndex}
+            segInput={w.segInput}
+            completed={w.completed}
+            hasError={w.hasError}
+          />
           <p className="hint">
-            {isEn
-              ? '和訳を見て英単語を入力。'
-              : '英単語を見て和訳をローマ字で入力（漢字のまま進みます）。'}
-            正しく打つまで次に進めません。<kbd>Esc</kbd> で中断。
+            英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
+            <kbd>Esc</kbd> で中断してトップへ。
           </p>
         </>
       )}

@@ -6,6 +6,8 @@ import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
+const EMPTY_COMPLETED = {} // 単語は途中表示の差し替えをしない（canonicalで表示）
+
 export function useWords({ level, theme, mode, onExit }) {
   const [words, setWords] = useState(() => buildWordSet(level, theme))
   const [segIndex, setSegIndex] = useState(0)
@@ -19,22 +21,16 @@ export function useWords({ level, theme, mode, onExit }) {
   const [records, setRecords] = useState(() => loadWordRecords())
   const startTimeRef = useRef(null)
 
-  // 1語あたり: en/ja=1セグメント、both=英→日の2セグメント（日常会話と同じ）
-  const segments = useMemo(() => words.flatMap((w) => buildUnits(w, mode)), [words, mode])
+  // 1語あたり: en/ja=1セグメント、both=英→日の2セグメント（日常会話と同じ）。
+  // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
+  const segments = useMemo(
+    () => words.flatMap((w, wi) => buildUnits(w, mode).map((s) => ({ ...s, sentenceIndex: wi }))),
+    [words, mode],
+  )
   const segsPerWord = mode === 'both' ? 2 : 1
   const seg = segments[segIndex]
   const wordsDone = Math.floor(segIndex / segsPerWord)
   const progress = segments.length ? segIndex / segments.length : 0
-
-  // 次に出る候補（出題側＝表示する語）を先読み表示
-  const upcoming = useMemo(
-    () =>
-      segments.slice(segIndex + 1, segIndex + 6).map((s) => ({
-        type: s.type,
-        text: s.type === 'en' ? s.ja : s.en,
-      })),
-    [segments, segIndex],
-  )
 
   const restart = useCallback(() => {
     setWords(buildWordSet(level, theme))
@@ -133,8 +129,10 @@ export function useWords({ level, theme, mode, onExit }) {
   }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, onExit, restart, finish])
 
   return {
-    seg,
-    input,
+    segments,
+    segIndex,
+    segInput: input,
+    completed: EMPTY_COMPLETED,
     hasError,
     typedKeys,
     mistakes,
@@ -142,7 +140,6 @@ export function useWords({ level, theme, mode, onExit }) {
     elapsedSec,
     wordsDone,
     progress,
-    upcoming,
     finished,
     result,
     records,
