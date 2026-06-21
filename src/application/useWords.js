@@ -1,17 +1,17 @@
-// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。30語で終了。
-// both は日常会話と同じく、1語ごとに英語→その日本語を続けて入力する。
+// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。600文字で終了（マラソンと同じ）。
+// both は1語ごとに英語→その日本語を続けて入力する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { WORD_COUNT, buildWordSet } from '../domain/words/wordset.js'
+import { buildWordPassage } from '../domain/words/wordset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
+import { TARGET_KEYS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
-const EMPTY_COMPLETED = {} // 単語は途中表示の差し替えをしない（canonicalで表示）
-
 export function useWords({ level, theme, mode, onExit }) {
-  const [words, setWords] = useState(() => buildWordSet(level, theme))
+  const [words, setWords] = useState(() => buildWordPassage(level, theme, mode))
   const [segIndex, setSegIndex] = useState(0)
   const [input, setInput] = useState('')
+  const [completed, setCompleted] = useState([])
   const [hasError, setHasError] = useState(false)
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
@@ -21,21 +21,19 @@ export function useWords({ level, theme, mode, onExit }) {
   const [records, setRecords] = useState(() => loadWordRecords())
   const startTimeRef = useRef(null)
 
-  // 1語あたり: en/ja=1セグメント、both=英→日の2セグメント（日常会話と同じ）。
   // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
   const segments = useMemo(
     () => words.flatMap((w, wi) => buildUnits(w, mode).map((s) => ({ ...s, sentenceIndex: wi }))),
     [words, mode],
   )
-  const segsPerWord = mode === 'both' ? 2 : 1
   const seg = segments[segIndex]
-  const wordsDone = Math.floor(segIndex / segsPerWord)
-  const progress = segments.length ? segIndex / segments.length : 0
+  const progress = Math.min(1, typedKeys / TARGET_KEYS)
 
   const restart = useCallback(() => {
-    setWords(buildWordSet(level, theme))
+    setWords(buildWordPassage(level, theme, mode))
     setSegIndex(0)
     setInput('')
+    setCompleted([])
     setHasError(false)
     setTypedKeys(0)
     setMistakes(0)
@@ -43,7 +41,7 @@ export function useWords({ level, theme, mode, onExit }) {
     setFinished(false)
     setResult(null)
     startTimeRef.current = null
-  }, [level, theme])
+  }, [level, theme, mode])
 
   useEffect(() => {
     if (finished) return
@@ -72,7 +70,6 @@ export function useWords({ level, theme, mode, onExit }) {
         mode,
         speed,
         keys,
-        words: words.length,
         mistakes: totalMistakes,
         accuracy,
         seconds,
@@ -82,7 +79,7 @@ export function useWords({ level, theme, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, words.length],
+    [level, theme, mode],
   )
 
   useEffect(() => {
@@ -101,21 +98,24 @@ export function useWords({ level, theme, mode, onExit }) {
       }
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
+      if (!seg) return
 
       const candidate = input + e.key
       if (segMatches(seg, candidate)) {
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const t = performance.now()
+        if (startTimeRef.current === null) startTimeRef.current = t
         setHasError(false)
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
+
+        if (newKeys >= TARGET_KEYS) {
+          finish(newKeys, mistakes, t)
+          return
+        }
         if (seg.variants.includes(candidate)) {
-          // セグメント完了
-          if (segIndex >= segments.length - 1) {
-            finish(newKeys, mistakes, performance.now())
-          } else {
-            setSegIndex((i) => i + 1)
-            setInput('')
-          }
+          setCompleted((c) => [...c, candidate])
+          setSegIndex((i) => i + 1)
+          setInput('')
         } else {
           setInput(candidate)
         }
@@ -126,24 +126,23 @@ export function useWords({ level, theme, mode, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, segIndex, input, typedKeys, mistakes, onExit, restart, finish])
 
   return {
     segments,
     segIndex,
     segInput: input,
-    completed: EMPTY_COMPLETED,
+    completed,
     hasError,
     typedKeys,
     mistakes,
     liveSpeed,
     elapsedSec,
-    wordsDone,
     progress,
+    target: TARGET_KEYS,
     finished,
     result,
     records,
-    total: WORD_COUNT,
     restart,
   }
 }

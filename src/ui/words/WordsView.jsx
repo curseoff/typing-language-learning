@@ -48,7 +48,7 @@ function TypeView({ level, theme, mode, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: '語数', value: `${w.wordsDone} / ${w.total}` },
+              { label: 'タイピング数', value: `${w.typedKeys} / ${w.target}` },
               { label: '速度', value: `${w.liveSpeed} 打/分` },
               { label: 'ミス', value: w.mistakes },
               { label: '時間', value: `${w.elapsedSec} 秒` },
@@ -174,7 +174,6 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <div className="result-unit">打/分</div>
           </div>
           <div className="result-sub">
-            <span>{result.words} 語</span>
             <span>{result.keys} 打</span>
             <span>{result.seconds} 秒</span>
             <span>ミス {result.mistakes}</span>

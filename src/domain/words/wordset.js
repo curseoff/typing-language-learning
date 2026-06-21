@@ -1,17 +1,40 @@
-// 単語問題の出題セット生成（レベル×テーマで絞り込み・シャッフル・N語）。
+// 単語問題の出題セット生成（レベル×テーマで絞り込み・シャッフル）。
 import { WORDS } from '../../content/words.js'
 import { romajiVariants, toRomaji } from '../romaji/romaji.js'
+import { buildUnits } from '../typing/units.js'
+import { TARGET_KEYS } from '../marathon/passage.js'
 
-export const WORD_COUNT = 30 // 1ゲームの語数
+export const WORD_COUNT = 30 // 4択クイズの問題数
 
-// theme は 'すべて' または WORD_THEMES のいずれか
-export function buildWordSet(level, theme, count = WORD_COUNT) {
+function levelThemePool(level, theme) {
   let pool = WORDS.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
   if (pool.length === 0) pool = WORDS.filter((w) => w.level === level)
   if (pool.length === 0) pool = WORDS
+  return pool
+}
+
+// 4択クイズ用：count語（既定30）
+export function buildWordSet(level, theme, count = WORD_COUNT) {
+  const pool = levelThemePool(level, theme)
   const shuffled = [...pool].sort(() => Math.random() - 0.5)
   const out = []
   for (let i = 0; i < count; i++) out.push(shuffled[i % shuffled.length])
+  return out
+}
+
+// 入力モード用：打鍵数が TARGET_KEYS(600) を超えるまで語を並べる（足りなければ循環）。
+export function buildWordPassage(level, theme, mode) {
+  const pool = levelThemePool(level, theme)
+  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  const out = []
+  let chars = 0
+  let i = 0
+  while (chars < TARGET_KEYS && i < 4000) {
+    const w = shuffled[i % shuffled.length]
+    out.push(w)
+    chars += buildUnits(w, mode).reduce((s, seg) => s + seg.canonical.length, 0)
+    i++
+  }
   return out
 }
 

@@ -31,7 +31,7 @@ export default function Ready({
     <div className="ready">
       <p className="lead">
         日本人のための英語タイピング教材。レベル（会話・物語・単語）とモードを選んで開始。
-        マラソンは{TARGET_KEYS}文字、単語は30語で終了し、記録が出ます。
+        マラソンと単語入力は{TARGET_KEYS}文字、単語4択は30問で終了し、記録が出ます。
       </p>
 
       <div className="section-label">レベル</div>
@@ -120,7 +120,7 @@ export default function Ready({
               ? '和訳を見て、4つの英単語から正解を入力（英語訳・4択）。30問で終了。'
               : wordMode === 'quiz-ja'
                 ? '英単語を見て、4つの和訳から正解をローマ字入力（日本語訳・4択）。30問で終了。'
-                : '単語を入力。30語で終了します。'}
+                : '単語を入力。600文字で終了します。'}
           </p>
         </>
       ) : (
