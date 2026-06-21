@@ -1,7 +1,7 @@
 // スタート画面（レベル・モード/テーマ選択）。
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { RANKS } from '../../content/sentences.js'
-import { WORD_LEVELS, WORD_THEMES } from '../../content/words.js'
+import { WORD_LEVELS, WORD_MODES, WORD_THEMES } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.js'
 import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import RecordsTable from '../result/RecordsTable.jsx'
@@ -17,8 +17,10 @@ export default function Ready({
   onSelectStory,
   wordLevel,
   wordTheme,
+  wordMode,
   onSelectWord,
   onThemeChange,
+  onWordModeChange,
   onStart,
   records,
 }) {
@@ -81,6 +83,22 @@ export default function Ready({
 
       {isWord ? (
         <>
+          <div className="section-label">モード</div>
+          <div className="mode-select">
+            <div className="mode-group">
+              <div className="mode-btns">
+                {WORD_MODES.map((m) => (
+                  <button
+                    key={m.key}
+                    className={`mode-btn ${wordMode === m.key ? 'active' : ''}`}
+                    onClick={() => onWordModeChange(m.key)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="section-label">テーマ</div>
           <div className="mode-select">
             <div className="mode-group">
@@ -97,7 +115,11 @@ export default function Ready({
               </div>
             </div>
           </div>
-          <p className="mode-desc">和訳を見て英単語を入力。30語で終了します。</p>
+          <p className="mode-desc">
+            {wordMode === 'quiz'
+              ? '英単語の意味を4択から選択。30問で終了します。'
+              : '単語を入力。30語で終了します。'}
+          </p>
         </>
       ) : (
         <>
@@ -132,7 +154,7 @@ export default function Ready({
         スタート
       </button>
       <p className="key-hint">
-        <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> {isWord ? 'テーマ' : 'モード'} /{' '}
+        <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード{isWord ? '（テーマはクリック）' : ''} /{' '}
         <kbd>Enter</kbd> スタート
       </p>
 

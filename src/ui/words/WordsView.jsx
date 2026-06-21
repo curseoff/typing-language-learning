@@ -1,20 +1,49 @@
-// 単語問題の画面（プレイ＋結果）。状態は useWords から受け取る。
+// 単語問題の画面。入力モード（英語/日本語/英語・日本語）と4択クイズを振り分ける。
 import { useWords } from '../../application/useWords.js'
+import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../infrastructure/wordsRepository.js'
+import { alignJaToKana, kanaConsumed } from '../../domain/typing/progress.js'
 import { Chars, StatsRow } from '../shared/index.js'
 
-export default function WordsView({ level, theme, levelLabel, onExit }) {
-  const w = useWords({ level, theme, onExit })
+export default function WordsView({ level, theme, mode, levelLabel, modeLabel, onExit }) {
+  const meta = (
+    <div className="play-meta">
+      <span className="meta-badge rank">{levelLabel}</span>
+      <span className="meta-badge mode">{modeLabel} / {theme}</span>
+    </div>
+  )
+  return mode === 'quiz' ? (
+    <QuizView level={level} theme={theme} meta={meta} onExit={onExit} />
+  ) : (
+    <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
+  )
+}
+
+// 入力モード（英語/日本語/英語・日本語）
+function TypeView({ level, theme, mode, meta, onExit }) {
+  const w = useWords({ level, theme, mode, onExit })
+  const seg = w.seg
+  const isEn = seg.type === 'en'
+  // 日本語入力時の漢字進捗
+  let jaDone = 0
+  if (!isEn) {
+    const consumed = kanaConsumed(seg.kana, w.input)
+    jaDone = alignJaToKana(seg.ja, seg.kana).filter((e) => e <= consumed).length
+  }
 
   return (
     <div className="game">
-      <div className="play-meta">
-        <span className="meta-badge rank">{levelLabel}</span>
-        <span className="meta-badge mode">{theme}</span>
-      </div>
-
+      {meta}
       {w.finished ? (
-        <WordResult result={w.result} records={w.records} level={level} theme={theme} onRetry={w.restart} onExit={onExit} />
+        <WordResult
+          result={w.result}
+          records={w.records}
+          level={level}
+          theme={theme}
+          mode={mode}
+          onRetry={w.restart}
+          onExit={onExit}
+        />
       ) : (
         <>
           <StatsRow
@@ -26,21 +55,22 @@ export default function WordsView({ level, theme, levelLabel, onExit }) {
             ]}
             progress={w.index / w.total}
           />
-
           <div className="word-card">
-            <p className="word-prompt">{w.words[w.index].ja}</p>
+            <div className="word-dir">{isEn ? '日本語 → 英語' : '英語 → 日本語'}</div>
+            <p className="word-prompt">{isEn ? seg.ja : seg.en}</p>
             <div className="word-input">
-              <Chars
-                text={w.words[w.index].en}
-                done={w.input.length}
-                cursor={w.input.length}
-                hasError={w.hasError}
-              />
+              {isEn ? (
+                <Chars text={seg.en} done={w.input.length} cursor={w.input.length} hasError={w.hasError} />
+              ) : (
+                <Chars text={seg.ja} done={jaDone} cursor={jaDone} hasError={w.hasError} />
+              )}
             </div>
           </div>
-
           <p className="hint">
-            和訳を見て英単語を入力。正しく打つまで次に進めません。<kbd>Esc</kbd> で中断してトップへ。
+            {isEn
+              ? '和訳を見て英単語を入力。'
+              : '英単語を見て和訳をローマ字で入力（漢字のまま進みます）。'}
+            正しく打つまで次に進めません。<kbd>Esc</kbd> で中断。
           </p>
         </>
       )}
@@ -48,22 +78,108 @@ export default function WordsView({ level, theme, levelLabel, onExit }) {
   )
 }
 
-function WordResult({ result, records, level, theme, onRetry, onExit }) {
-  const list = records[wordRecKey(level, theme)] || []
+// 4択クイズ
+function QuizView({ level, theme, meta, onExit }) {
+  const q = useWordQuiz({ level, theme, onExit })
+
+  return (
+    <div className="game">
+      {meta}
+      {q.finished ? (
+        <WordResult
+          result={q.result}
+          records={q.records}
+          level={level}
+          theme={theme}
+          mode="quiz"
+          onRetry={q.restart}
+          onExit={onExit}
+        />
+      ) : (
+        <>
+          <StatsRow
+            stats={[
+              { label: '問題', value: `${q.index} / ${q.total}` },
+              { label: '正解', value: q.correct },
+              { label: '時間', value: `${q.elapsedSec} 秒` },
+            ]}
+            progress={q.index / q.total}
+          />
+          <div className="word-card">
+            <div className="word-dir">英単語の意味は？</div>
+            <p className="word-prompt">{q.question.word.en}</p>
+          </div>
+          <div className="quiz-options">
+            {q.question.options.map((opt, i) => {
+              let cls = 'quiz-option'
+              if (q.picked !== null) {
+                if (i === q.question.correct) cls += ' correct'
+                else if (i === q.picked) cls += ' wrong'
+              }
+              return (
+                <button
+                  key={i}
+                  className={cls}
+                  onClick={() => (q.picked === null ? q.answer(i) : q.advance())}
+                >
+                  <span className="quiz-no">{i + 1}</span>
+                  {opt}
+                </button>
+              )
+            })}
+          </div>
+          <p className="hint">
+            {q.picked === null ? (
+              <>
+                正しい意味を <kbd>1</kbd>〜<kbd>4</kbd> で選択。
+              </>
+            ) : (
+              <>
+                <kbd>Enter</kbd> / <kbd>Space</kbd> で次へ。
+              </>
+            )}
+            <kbd>Esc</kbd> で中断。
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
+  const list = records[wordRecKey(level, theme, mode)] || []
+  const isQuiz = mode === 'quiz'
   return (
     <div className="result">
       <h2>記録</h2>
-      <div className="result-main">
-        <div className="result-speed">{result.speed}</div>
-        <div className="result-unit">打/分</div>
-      </div>
-      <div className="result-sub">
-        <span>{result.words} 語</span>
-        <span>{result.keys} 打</span>
-        <span>{result.seconds} 秒</span>
-        <span>ミス {result.mistakes}</span>
-        <span>正確率 {result.accuracy}%</span>
-      </div>
+      {isQuiz ? (
+        <>
+          <div className="result-main">
+            <div className="result-speed">
+              {result.correct}/{result.words}
+            </div>
+            <div className="result-unit">正解</div>
+          </div>
+          <div className="result-sub">
+            <span>正確率 {result.accuracy}%</span>
+            <span>{result.seconds} 秒</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="result-main">
+            <div className="result-speed">{result.speed}</div>
+            <div className="result-unit">打/分</div>
+          </div>
+          <div className="result-sub">
+            <span>{result.words} 語</span>
+            <span>{result.keys} 打</span>
+            <span>{result.seconds} 秒</span>
+            <span>ミス {result.mistakes}</span>
+            <span>正確率 {result.accuracy}%</span>
+          </div>
+        </>
+      )}
       <div className="ending-actions">
         <button className="btn-primary" onClick={onRetry}>
           もう一度
@@ -77,7 +193,7 @@ function WordResult({ result, records, level, theme, onRetry, onExit }) {
       </p>
 
       <div className="records">
-        <h3>記録ランキング（速い順・最大15件）</h3>
+        <h3>記録ランキング（最大15件）</h3>
         {list.length === 0 ? (
           <p className="no-records">まだ記録がありません。</p>
         ) : (
@@ -85,7 +201,7 @@ function WordResult({ result, records, level, theme, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>速度</th>
+                <th>{isQuiz ? '正解' : '速度'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -95,7 +211,7 @@ function WordResult({ result, records, level, theme, onRetry, onExit }) {
               {list.map((r, i) => (
                 <tr key={i} className={r.date === result.date ? 'me' : ''}>
                   <td>{i + 1}</td>
-                  <td className="speed">{r.speed} 打/分</td>
+                  <td className="speed">{isQuiz ? `${r.correct}/${r.words}` : `${r.speed} 打/分`}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

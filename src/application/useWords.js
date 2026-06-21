@@ -1,10 +1,14 @@
-// 単語問題の状態機械（和訳→英単語、N語で終了）。WordsView 内で呼ぶ前提。
+// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。30語で終了。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet } from '../domain/words/wordset.js'
+import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
-import { loadWordRecords, saveWordRecord, wordRecKey } from '../infrastructure/wordsRepository.js'
+import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
-export function useWords({ level, theme, onExit }) {
+// both は英語→日本語を1語ごとに交互。en/ja は固定。
+const segTypeFor = (i, mode) => (mode === 'both' ? (i % 2 === 0 ? 'en' : 'ja') : mode)
+
+export function useWords({ level, theme, mode, onExit }) {
   const [words, setWords] = useState(() => buildWordSet(level, theme))
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
@@ -16,6 +20,11 @@ export function useWords({ level, theme, onExit }) {
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
   const startTimeRef = useRef(null)
+
+  const seg = useMemo(
+    () => buildUnits(words[index], segTypeFor(index, mode))[0],
+    [words, index, mode],
+  )
 
   const restart = useCallback(() => {
     setWords(buildWordSet(level, theme))
@@ -30,7 +39,6 @@ export function useWords({ level, theme, onExit }) {
     startTimeRef.current = null
   }, [level, theme])
 
-  // 経過時間（終了後は止める）
   useEffect(() => {
     if (finished) return
     const id = setInterval(() => setNow(performance.now()), 100)
@@ -55,6 +63,7 @@ export function useWords({ level, theme, onExit }) {
       const record = {
         level,
         theme,
+        mode,
         speed,
         keys,
         words: words.length,
@@ -67,7 +76,7 @@ export function useWords({ level, theme, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, words.length],
+    [level, theme, mode, words.length],
   )
 
   useEffect(() => {
@@ -87,15 +96,14 @@ export function useWords({ level, theme, onExit }) {
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
 
-      const target = words[index].en
       const candidate = input + e.key
-      if (target.startsWith(candidate)) {
+      if (segMatches(seg, candidate)) {
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
-        if (candidate === target) {
-          // 単語完了
+        if (seg.variants.includes(candidate)) {
+          // 1語完了
           if (index >= words.length - 1) {
             finish(newKeys, mistakes, performance.now())
           } else {
@@ -112,11 +120,12 @@ export function useWords({ level, theme, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, words, index, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, index, input, typedKeys, mistakes, words.length, onExit, restart, finish])
 
   return {
     words,
     index,
+    seg,
     input,
     hasError,
     typedKeys,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { RANKS } from './content/sentences.js'
 import { MODES, modeLabel } from './content/modes.js'
-import { WORD_LEVELS, WORD_THEMES } from './content/words.js'
+import { WORD_LEVELS, WORD_MODES } from './content/words.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
@@ -12,7 +12,8 @@ import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 
-const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
+const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
+const wordModeLabel = (key) => WORD_MODES.find((m) => m.key === key)?.label ?? key
 
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result | story
@@ -22,6 +23,7 @@ export default function App() {
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [wordLevel, setWordLevel] = useState(null) // 単語モードのレベル(1-4)or null
   const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
+  const [wordMode, setWordMode] = useState('en') // both | en | ja | quiz
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -98,9 +100,9 @@ export default function App() {
         e.preventDefault()
         const dir = e.key === 'ArrowRight' ? 1 : -1
         if (wordLevel != null) {
-          setWordTheme((prev) => {
-            const i = THEME_OPTIONS.indexOf(prev)
-            return THEME_OPTIONS[(i + dir + THEME_OPTIONS.length) % THEME_OPTIONS.length]
+          setWordMode((prev) => {
+            const i = WORD_MODE_KEYS.indexOf(prev)
+            return WORD_MODE_KEYS[(i + dir + WORD_MODE_KEYS.length) % WORD_MODE_KEYS.length]
           })
         } else {
           setMode((prev) => {
@@ -184,8 +186,10 @@ export default function App() {
           onSelectStory={selectStory}
           wordLevel={wordLevel}
           wordTheme={wordTheme}
+          wordMode={wordMode}
           onSelectWord={selectWord}
           onThemeChange={setWordTheme}
+          onWordModeChange={setWordMode}
           onStart={start}
           records={records}
         />
@@ -193,10 +197,12 @@ export default function App() {
 
       {phase === 'words' && wordLevel != null && (
         <WordsView
-          key={`${wordLevel}-${wordTheme}`}
+          key={`${wordLevel}-${wordTheme}-${wordMode}`}
           level={wordLevel}
           theme={wordTheme}
+          mode={wordMode}
           levelLabel={`W${wordLevel} ${WORD_LEVELS.find((l) => l.level === wordLevel)?.label ?? ''}`}
+          modeLabel={wordModeLabel(wordMode)}
           onExit={() => setPhase('ready')}
         />
       )}
