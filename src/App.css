@@ -531,8 +531,9 @@ h1 {
   padding: 13px 20px;
   font-size: 15px;
 }
-/* エンディングのヒントは負マージンを打ち消して重なりを防ぐ */
-.story-ending .key-hint {
+/* ボタン行(.ending-actions)直後のヒントは負マージンを打ち消して重なりを防ぐ */
+.story-ending .key-hint,
+.ending-actions + .key-hint {
   margin-top: 16px;
 }
 
