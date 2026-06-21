@@ -672,6 +672,14 @@ h1 {
   margin-top: 14px;
 }
 
+/* 4択の選択肢で、打鍵済みプレフィックスを着色 */
+.opt-typed {
+  color: var(--green);
+}
+.opt-typed.err {
+  color: var(--red);
+}
+
 /* 説明文4択（選択肢が長文なので縦並び） */
 .pick-options {
   display: flex;
