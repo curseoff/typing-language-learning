@@ -113,6 +113,11 @@ export function useWords({ level, theme, mode, onExit }) {
           return
         }
         if (seg.variants.includes(candidate)) {
+          // 単語を打ち尽くした場合は終了（600未満でも詰まないように）
+          if (segIndex + 1 >= segments.length) {
+            finish(newKeys, mistakes, t)
+            return
+          }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setInput('')

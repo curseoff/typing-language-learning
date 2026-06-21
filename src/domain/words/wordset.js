@@ -22,17 +22,21 @@ export function buildWordSet(level, theme, count = WORD_COUNT) {
   return out
 }
 
-// 入力モード用：打鍵数が TARGET_KEYS(600) を超えるまで語を並べる（足りなければ循環）。
+// 1セグメントを打つのに最低限必要なキー数（最短の綴り）
+const minKeys = (seg) => Math.min(...seg.variants.map((v) => v.length))
+
+// 入力モード用：最短の綴りで打っても TARGET_KEYS(600) を超えるよう語を並べる（足りなければ循環）。
+// canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても600前に打ち尽くさない。
 export function buildWordPassage(level, theme, mode) {
   const pool = levelThemePool(level, theme)
   const shuffled = [...pool].sort(() => Math.random() - 0.5)
   const out = []
   let chars = 0
   let i = 0
-  while (chars < TARGET_KEYS && i < 4000) {
+  while (chars < TARGET_KEYS + 30 && i < 4000) {
     const w = shuffled[i % shuffled.length]
     out.push(w)
-    chars += buildUnits(w, mode).reduce((s, seg) => s + seg.canonical.length, 0)
+    chars += buildUnits(w, mode).reduce((s, seg) => s + minKeys(seg), 0)
     i++
   }
   return out
