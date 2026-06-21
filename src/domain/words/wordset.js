@@ -69,6 +69,7 @@ export function makeQuiz(words, pool, dir, optionCount = 4) {
       options: opts.map((o) => ({
         display: optDisplay(o, dir),
         variants: optVariants(o, dir),
+        kana: dir === 'ja' ? o.kana : undefined, // 漢字選択肢の進捗色付け用
         answer: o.en === w.en,
       })),
     }

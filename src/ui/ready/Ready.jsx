@@ -2,20 +2,27 @@
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { RANKS } from '../../content/sentences.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES } from '../../content/words.js'
+import { DICT_MODES } from '../../content/dictionary.js'
 import { STORY } from '../../content/story.js'
 import { recKey } from '../../domain/records/ranking.js'
+import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
 import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepository.js'
 import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
+import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 
 const GAME_TYPES = [
   { key: 'marathon', icon: '📝', label: '文章', sub: '会話文を打つ' },
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
   { key: 'words', icon: '🔤', label: '単語', sub: '語彙を覚える' },
+  { key: 'dict', icon: '📚', label: '英英辞典', sub: '英語で意味を学ぶ' },
 ]
 const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 const WORD_INPUT = WORD_MODES.filter((m) => !m.key.startsWith('quiz'))
 const WORD_QUIZ = WORD_MODES.filter((m) => m.key.startsWith('quiz'))
+const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz' || m.key === 'pick')
+const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'en' || m.key === 'ja')
+const dictLevelLabel = (lv) => WORD_LEVELS.find((l) => l.level === lv)?.label ?? ''
 
 function ModeButtons({ modes, value, onChange }) {
   return (
@@ -50,6 +57,12 @@ export default function Ready({
   onWordLevelChange,
   onThemeChange,
   onWordModeChange,
+  dictLevel,
+  dictTheme,
+  dictMode,
+  onDictLevelChange,
+  onDictThemeChange,
+  onDictModeChange,
   onStart,
   records,
 }) {
@@ -202,8 +215,80 @@ export default function Ready({
           />
         </>
       )}
+
+      {/* ── 英英辞典 ── */}
+      {gameType === 'dict' && (
+        <>
+          <SectionLabel>レベル</SectionLabel>
+          <div className="rank-select">
+            <div className="rank-group">
+              <div className="rank-btns">
+                {DICT_AVAILABLE_LEVELS.map((lv) => (
+                  <button
+                    key={lv}
+                    className={`rank-btn ${dictLevel === lv ? 'active' : ''}`}
+                    onClick={() => onDictLevelChange(lv)}
+                  >
+                    <span className="rank-no">L{lv}</span>
+                    {dictLevelLabel(lv)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <SectionLabel>テーマ</SectionLabel>
+          <div className="mode-select">
+            <div className="mode-group">
+              <div className="mode-btns">
+                {THEME_OPTIONS.map((t) => (
+                  <button
+                    key={t}
+                    className={`mode-btn ${dictTheme === t ? 'active' : ''}`}
+                    onClick={() => onDictThemeChange(t)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <SectionLabel>モード</SectionLabel>
+          <div className="mode-select">
+            <div className="mode-group">
+              <div className="mode-course">4択</div>
+              <ModeButtons modes={DICT_QUIZ} value={dictMode} onChange={onDictModeChange} />
+            </div>
+            <div className="mode-group">
+              <div className="mode-course">入力</div>
+              <ModeButtons modes={DICT_INPUT} value={dictMode} onChange={onDictModeChange} />
+            </div>
+          </div>
+          <p className="mode-desc">{dictModeDesc(dictMode)}</p>
+
+          <StartRow onStart={onStart} />
+          <WordRecords
+            list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
+            isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
+          />
+        </>
+      )}
     </div>
   )
+}
+
+function dictModeDesc(key) {
+  switch (key) {
+    case 'pick':
+      return '英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ（12問）。'
+    case 'en':
+      return '見出し語の英語の定義を入力（和訳は参考表示）。'
+    case 'ja':
+      return '見出し語の和訳をローマ字で入力（英語の定義は参考）。'
+    default:
+      return '英語の定義を読んで、4つの英単語から正解を入力（4択・20問）。回答後に和訳を表示。'
+  }
 }
 
 function StartRow({ onStart }) {
