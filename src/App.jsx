@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { RANKS } from './content/sentences.js'
 import { MODES, modeLabel } from './content/modes.js'
+import { WORD_LEVELS, WORD_THEMES } from './content/words.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
@@ -9,6 +10,9 @@ import Ready from './ui/ready/Ready.jsx'
 import MarathonView from './ui/marathon/MarathonView.jsx'
 import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
+import WordsView from './ui/words/WordsView.jsx'
+
+const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result | story
@@ -16,6 +20,8 @@ export default function App() {
   const [rank, setRank] = useState(1) // 1-6
   const [storySelected, setStorySelected] = useState(false) // 物語モードを選択中か
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
+  const [wordLevel, setWordLevel] = useState(null) // 単語モードのレベル(1-4)or null
+  const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -45,20 +51,30 @@ export default function App() {
     setPhase('playing')
   }, [startMarathon, mode, rank])
 
-  // レベル(ランク)or物語の選択 → 開始
+  // レベル(ランク)/物語/単語の選択 → 開始
   const selectRank = useCallback((r) => {
     setStorySelected(false)
+    setWordLevel(null)
     setRank(r)
   }, [])
-  const selectStory = useCallback(() => setStorySelected(true), [])
+  const selectStory = useCallback(() => {
+    setWordLevel(null)
+    setStorySelected(true)
+  }, [])
+  const selectWord = useCallback((lv) => {
+    setStorySelected(false)
+    setWordLevel(lv)
+  }, [])
   const start = useCallback(() => {
-    if (storySelected) {
+    if (wordLevel != null) {
+      setPhase('words')
+    } else if (storySelected) {
       setStoryStart(null)
       setPhase('story')
     } else {
       startGame()
     }
-  }, [storySelected, startGame])
+  }, [wordLevel, storySelected, startGame])
 
   // Enter=スタート/もう一度、Esc=トップへ戻る、↑↓=レベル/物語、←→=モード
   useEffect(() => {
@@ -78,30 +94,44 @@ export default function App() {
           startGame()
         }
       } else if (phase === 'ready' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        // TOP画面で ←/→ でモード切り替え
+        // ←/→：単語モード中はテーマ、それ以外はモード切り替え
         e.preventDefault()
         const dir = e.key === 'ArrowRight' ? 1 : -1
-        setMode((prev) => {
-          const i = MODES.findIndex((m) => m.key === prev)
-          return MODES[(i + dir + MODES.length) % MODES.length].key
-        })
+        if (wordLevel != null) {
+          setWordTheme((prev) => {
+            const i = THEME_OPTIONS.indexOf(prev)
+            return THEME_OPTIONS[(i + dir + THEME_OPTIONS.length) % THEME_OPTIONS.length]
+          })
+        } else {
+          setMode((prev) => {
+            const i = MODES.findIndex((m) => m.key === prev)
+            return MODES[(i + dir + MODES.length) % MODES.length].key
+          })
+        }
       } else if (phase === 'ready' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-        // TOP画面で ↑/↓ でレベル切り替え（R6の次は物語）
+        // ↑/↓ でレベル切り替え（R1..R6 → 物語 → 単語W1..W4）
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
-        const total = RANKS.length + 1 // ランク + 物語
-        const curIdx = storySelected ? RANKS.length : rank - 1
+        const total = RANKS.length + 1 + WORD_LEVELS.length
+        const curIdx =
+          wordLevel != null ? RANKS.length + 1 + (wordLevel - 1) : storySelected ? RANKS.length : rank - 1
         const nextIdx = Math.min(total - 1, Math.max(0, curIdx + dir))
-        if (nextIdx === RANKS.length) setStorySelected(true)
-        else {
+        if (nextIdx < RANKS.length) {
           setStorySelected(false)
+          setWordLevel(null)
           setRank(nextIdx + 1)
+        } else if (nextIdx === RANKS.length) {
+          setWordLevel(null)
+          setStorySelected(true)
+        } else {
+          setStorySelected(false)
+          setWordLevel(nextIdx - RANKS.length) // RANKS.length+1 → 1
         }
       }
     }
     window.addEventListener('keydown', onNav)
     return () => window.removeEventListener('keydown', onNav)
-  }, [phase, start, startGame, rank, storySelected])
+  }, [phase, start, startGame, rank, storySelected, wordLevel])
 
   // 開発時だけ：結果画面をダミーデータで即プレビュー（本番ビルドには含まれない）
   const previewResult = useCallback(() => {
@@ -152,8 +182,22 @@ export default function App() {
           storySelected={storySelected}
           onRankChange={selectRank}
           onSelectStory={selectStory}
+          wordLevel={wordLevel}
+          wordTheme={wordTheme}
+          onSelectWord={selectWord}
+          onThemeChange={setWordTheme}
           onStart={start}
           records={records}
+        />
+      )}
+
+      {phase === 'words' && wordLevel != null && (
+        <WordsView
+          key={`${wordLevel}-${wordTheme}`}
+          level={wordLevel}
+          theme={wordTheme}
+          levelLabel={`W${wordLevel} ${WORD_LEVELS.find((l) => l.level === wordLevel)?.label ?? ''}`}
+          onExit={() => setPhase('ready')}
         />
       )}
 

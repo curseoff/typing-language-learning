@@ -536,6 +536,25 @@ h1 {
   margin-top: 16px;
 }
 
+/* ---- 単語モード ---- */
+.word-card {
+  text-align: center;
+  background: var(--panel-2);
+  border-radius: 16px;
+  padding: 36px 20px;
+  margin-top: 6px;
+}
+.word-prompt {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 18px;
+}
+.word-input {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 40px;
+  letter-spacing: 0.06em;
+}
+
 /* ---- 翻訳モード(英訳/和訳) ---- */
 .translate {
   display: flex;
