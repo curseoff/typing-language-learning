@@ -531,9 +531,126 @@ h1 {
   padding: 13px 20px;
   font-size: 15px;
 }
-/* エンディングのヒントは負マージンを打ち消して重なりを防ぐ */
-.story-ending .key-hint {
+/* ボタン行(.ending-actions)直後のヒントは負マージンを打ち消して重なりを防ぐ */
+.story-ending .key-hint,
+.ending-actions + .key-hint {
   margin-top: 16px;
+}
+
+/* ---- 単語モード ---- */
+.word-card {
+  text-align: center;
+  background: var(--panel-2);
+  border-radius: 16px;
+  padding: 36px 20px;
+  margin-top: 6px;
+}
+.word-dir {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.word-prompt {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 0 0 18px;
+}
+.word-input {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 40px;
+  letter-spacing: 0.06em;
+}
+
+/* 次の候補（先読み） */
+.word-next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+.word-next-label {
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+.word-next-item {
+  font-size: 14px;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.word-next-item:not(:last-child)::after {
+  content: '・';
+  margin-left: 8px;
+  opacity: 0.5;
+}
+
+/* 4択クイズ */
+.quiz-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+.quiz-option:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.quiz-option:disabled {
+  cursor: default;
+}
+.quiz-option.cand {
+  border-color: var(--accent);
+}
+.quiz-option.dim {
+  opacity: 0.4;
+}
+.quiz-option.correct {
+  border-color: var(--green);
+  background: rgba(74, 222, 128, 0.16);
+  opacity: 1;
+}
+.quiz-option.wrong {
+  border-color: var(--red);
+  background: rgba(248, 113, 113, 0.16);
+  opacity: 1;
+}
+.caret {
+  color: var(--accent);
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.quiz-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 13px;
+  flex-shrink: 0;
 }
 
 /* ---- 翻訳モード(英訳/和訳) ---- */
