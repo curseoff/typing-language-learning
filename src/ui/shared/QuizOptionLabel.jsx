@@ -5,18 +5,19 @@ import { kanjiDone } from '../../domain/typing/progress.js'
 
 export default function QuizOptionLabel({ opt, input, picked, hasError }) {
   const typing = picked === null && input && opt.variants.some((v) => v.startsWith(input))
-  if (!typing) return opt.display
+  if (!typing) return <span>{opt.display}</span>
 
   let done = 0
   if (opt.display === opt.variants[0]) done = input.length // 表示＝入力対象（英語）
   else if (opt.kana) done = kanjiDone({ ja: opt.display, kana: opt.kana }, input) // 漢字←ローマ字
-  else return opt.display
+  else return <span>{opt.display}</span>
 
   const chars = [...opt.display]
+  // 親が flex+gap でも隙間が入らないよう、ラベル全体を1つの span で包む
   return (
-    <>
+    <span>
       <span className={`opt-typed ${hasError ? 'err' : ''}`}>{chars.slice(0, done).join('')}</span>
       {chars.slice(done).join('')}
-    </>
+    </span>
   )
 }
