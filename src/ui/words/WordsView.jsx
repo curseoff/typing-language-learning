@@ -55,12 +55,12 @@ function TypeView({ level, theme, mode, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: '語数', value: `${w.index} / ${w.total}` },
+              { label: '語数', value: `${w.wordsDone} / ${w.total}` },
               { label: '速度', value: `${w.liveSpeed} 打/分` },
               { label: 'ミス', value: w.mistakes },
               { label: '時間', value: `${w.elapsedSec} 秒` },
             ]}
-            progress={w.index / w.total}
+            progress={w.progress}
           />
           <div className="word-card">
             <div className="word-dir">{isEn ? '日本語 → 英語' : '英語 → 日本語'}</div>

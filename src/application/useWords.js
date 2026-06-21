@@ -1,16 +1,14 @@
 // 単語の入力モード（英語/日本語/英語・日本語）の状態機械。30語で終了。
+// both は日常会話と同じく、1語ごとに英語→その日本語を続けて入力する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet } from '../domain/words/wordset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
-// both は英語→日本語を1語ごとに交互。en/ja は固定。
-const segTypeFor = (i, mode) => (mode === 'both' ? (i % 2 === 0 ? 'en' : 'ja') : mode)
-
 export function useWords({ level, theme, mode, onExit }) {
   const [words, setWords] = useState(() => buildWordSet(level, theme))
-  const [index, setIndex] = useState(0)
+  const [segIndex, setSegIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
   const [typedKeys, setTypedKeys] = useState(0)
@@ -21,14 +19,16 @@ export function useWords({ level, theme, mode, onExit }) {
   const [records, setRecords] = useState(() => loadWordRecords())
   const startTimeRef = useRef(null)
 
-  const seg = useMemo(
-    () => buildUnits(words[index], segTypeFor(index, mode))[0],
-    [words, index, mode],
-  )
+  // 1語あたり: en/ja=1セグメント、both=英→日の2セグメント（日常会話と同じ）
+  const segments = useMemo(() => words.flatMap((w) => buildUnits(w, mode)), [words, mode])
+  const segsPerWord = mode === 'both' ? 2 : 1
+  const seg = segments[segIndex]
+  const wordsDone = Math.floor(segIndex / segsPerWord)
+  const progress = segments.length ? segIndex / segments.length : 0
 
   const restart = useCallback(() => {
     setWords(buildWordSet(level, theme))
-    setIndex(0)
+    setSegIndex(0)
     setInput('')
     setHasError(false)
     setTypedKeys(0)
@@ -103,11 +103,11 @@ export function useWords({ level, theme, mode, onExit }) {
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
         if (seg.variants.includes(candidate)) {
-          // 1語完了
-          if (index >= words.length - 1) {
+          // セグメント完了
+          if (segIndex >= segments.length - 1) {
             finish(newKeys, mistakes, performance.now())
           } else {
-            setIndex((i) => i + 1)
+            setSegIndex((i) => i + 1)
             setInput('')
           }
         } else {
@@ -120,11 +120,9 @@ export function useWords({ level, theme, mode, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, index, input, typedKeys, mistakes, words.length, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, onExit, restart, finish])
 
   return {
-    words,
-    index,
     seg,
     input,
     hasError,
@@ -132,6 +130,8 @@ export function useWords({ level, theme, mode, onExit }) {
     mistakes,
     liveSpeed,
     elapsedSec,
+    wordsDone,
+    progress,
     finished,
     result,
     records,
