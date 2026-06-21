@@ -8,7 +8,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "validate": "node scripts/validate-sentences.mjs",
+    "check": "npm run lint && npm run test && npm run validate && npm run build",
     "electron": "electron .",
     "electron:dev": "concurrently -k \"npm run dev\" \"wait-on tcp:127.0.0.1:5173 && electron .\"",
     "dist": "vite build && electron-builder",
@@ -19,11 +23,17 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@vitejs/plugin-react": "^4.3.1",
     "concurrently": "^9.1.0",
     "electron": "^32.2.0",
     "electron-builder": "^25.1.8",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^15.15.0",
     "vite": "^5.4.2",
+    "vitest": "^2.1.9",
     "wait-on": "^8.0.1"
   },
   "build": {
