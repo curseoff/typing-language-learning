@@ -49,11 +49,11 @@ h1 {
   margin: 24px 0 10px;
 }
 
-/* 種類タブ（文章 / 物語 / 単語） */
+/* 種類タブ（文章 / 物語 / 単語 / 英英辞典） */
 .type-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
   margin: 20px 0 8px;
 }
 .type-tab {
@@ -637,6 +637,31 @@ h1 {
   content: '・';
   margin-left: 8px;
   opacity: 0.5;
+}
+
+/* 英英辞典カード */
+.dict-head {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+.dict-def {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.dict-type {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  margin: 6px 0;
+}
+.dict-ref {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 8px 0 0;
 }
 
 /* 4択クイズ */

@@ -3,6 +3,7 @@
 // エラーがあれば終了コード1で落ちる(警告は落とさない)。
 import { SENTENCES, RANKS } from '../src/content/sentences.js'
 import { WORDS, WORD_LEVELS, WORD_THEMES } from '../src/content/words.js'
+import { DICT } from '../src/content/dictionary.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
 const RANK_SET = new Set(RANKS.map((r) => r.rank))
@@ -97,6 +98,35 @@ WORDS.forEach((w, i) => {
   }
 })
 
+// ---- 英英辞典(dictionary.js)の検証 ----
+const DEF_OK = /^[a-z ]+$/ // 定義は英小文字と空白のみ（句読点なし）
+const seenDictWord = new Map()
+
+DICT.forEach((d, i) => {
+  const id = `英英#${i + 1} "${d?.word ?? '(word無し)'}"`
+  const err = (m) => errors.push(`${id}: ${m}`)
+  const warn = (m) => warnings.push(`${id}: ${m}`)
+
+  for (const f of ['word', 'def', 'ja', 'kana', 'level', 'theme']) {
+    if (d[f] === undefined || d[f] === null) err(`必須フィールド "${f}" がありません`)
+  }
+  if (!d.word || !d.def || !d.ja || !d.kana) return
+
+  if (!EN_OK.test(d.word)) err(`word は英小文字のみ → "${d.word}"`)
+  if (!DEF_OK.test(d.def)) err(`def は英小文字と空白のみ → "${d.def}"`)
+  if (seenDictWord.has(d.word)) err(`word が重複（#${seenDictWord.get(d.word) + 1} と同じ）`)
+  else seenDictWord.set(d.word, i)
+  if (!LEVEL_SET.has(d.level)) err(`不正な level: ${d.level}`)
+  if (!THEME_SET.has(d.theme)) err(`不正な theme: ${d.theme}`)
+
+  const roma = toRomaji(d.kana)
+  if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${d.kana}）`)
+  if (roma.includes('-') || d.kana.includes('ー')) warn(`長音「ー」が含まれます: ${d.kana}`)
+  if (kanaConsumed(d.kana, roma) !== [...d.kana].length) {
+    warn(`canonical が読みを完全消費していません（${d.kana} → ${roma}）`)
+  }
+})
+
 // ランク別の件数と注意
 const dist = {}
 for (const s of SENTENCES) dist[s.rank] = (dist[s.rank] || 0) + 1
@@ -119,6 +149,8 @@ for (const l of WORD_LEVELS) {
 }
 console.log(`  合計: ${WORDS.length}\n`)
 
+console.log(`— 英英辞典 —  合計: ${DICT.length}\n`)
+
 if (warnings.length) {
   console.log(`⚠ 警告 ${warnings.length}件`)
   for (const w of warnings) console.log('  - ' + w)
@@ -132,4 +164,4 @@ if (errors.length) {
   process.exit(1)
 }
 
-console.log(`✓ 検証OK（${SENTENCES.length}文・${WORDS.length}単語・エラーなし）`)
+console.log(`✓ 検証OK（${SENTENCES.length}文・${WORDS.length}単語・${DICT.length}英英・エラーなし）`)

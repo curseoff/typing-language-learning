@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { RANKS } from './content/sentences.js'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES } from './content/words.js'
+import { DICT_MODES } from './content/dictionary.js'
+import { DICT_AVAILABLE_LEVELS } from './domain/dictionary/dictset.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
@@ -11,11 +13,14 @@ import MarathonView from './ui/marathon/MarathonView.jsx'
 import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
+import DictView from './ui/dictionary/DictView.jsx'
 
-const TYPE_KEYS = ['marathon', 'story', 'words']
+const TYPE_KEYS = ['marathon', 'story', 'words', 'dict']
 const MODE_KEYS = MODES.map((m) => m.key)
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
+const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
 const wordModeLabel = (key) => WORD_MODES.find((m) => m.key === key)?.label ?? key
+const dictModeLabel = (key) => DICT_MODES.find((m) => m.key === key)?.label ?? key
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 const cycle = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr.length]
 
@@ -28,6 +33,9 @@ export default function App() {
   const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
   const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
   const [wordMode, setWordMode] = useState('en') // both | en | ja | quiz-en | quiz-ja
+  const [dictLevel, setDictLevel] = useState(DICT_AVAILABLE_LEVELS[0] ?? 1) // 英英のレベル
+  const [dictTheme, setDictTheme] = useState('すべて') // 英英のテーマ
+  const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -60,6 +68,8 @@ export default function App() {
   const start = useCallback(() => {
     if (gameType === 'words') {
       setPhase('words')
+    } else if (gameType === 'dict') {
+      setPhase('dict')
     } else if (gameType === 'story') {
       setStoryStart(null)
       setPhase('story')
@@ -99,13 +109,16 @@ export default function App() {
         e.preventDefault()
         const dir = e.key === 'ArrowRight' ? 1 : -1
         if (gameType === 'words') setWordMode((p) => cycle(WORD_MODE_KEYS, p, dir))
+        else if (gameType === 'dict') setDictMode((p) => cycle(DICT_MODE_KEYS, p, dir))
         else setMode((p) => cycle(MODE_KEYS, p, dir))
       } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        // レベル切り替え（文章=R1..6、単語=W1..4、物語=なし）
+        // レベル切り替え（文章=R1..6、単語=W1..4、英英=利用可能レベル、物語=なし）
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
         if (gameType === 'marathon') setRank((r) => clamp(r + dir, 1, RANKS.length))
         else if (gameType === 'words') setWordLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
+        else if (gameType === 'dict')
+          setDictLevel((l) => cycle(DICT_AVAILABLE_LEVELS, l, dir))
       }
     }
     window.addEventListener('keydown', onNav)
@@ -167,6 +180,12 @@ export default function App() {
           onWordLevelChange={setWordLevel}
           onThemeChange={setWordTheme}
           onWordModeChange={setWordMode}
+          dictLevel={dictLevel}
+          dictTheme={dictTheme}
+          dictMode={dictMode}
+          onDictLevelChange={setDictLevel}
+          onDictThemeChange={setDictTheme}
+          onDictModeChange={setDictMode}
           onStart={start}
           records={records}
         />
@@ -180,6 +199,18 @@ export default function App() {
           mode={wordMode}
           levelLabel={`W${wordLevel} ${WORD_LEVELS.find((l) => l.level === wordLevel)?.label ?? ''}`}
           modeLabel={wordModeLabel(wordMode)}
+          onExit={() => setPhase('ready')}
+        />
+      )}
+
+      {phase === 'dict' && (
+        <DictView
+          key={`${dictLevel}-${dictTheme}-${dictMode}`}
+          level={dictLevel}
+          theme={dictTheme}
+          mode={dictMode}
+          levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
+          modeLabel={dictModeLabel(dictMode)}
           onExit={() => setPhase('ready')}
         />
       )}
