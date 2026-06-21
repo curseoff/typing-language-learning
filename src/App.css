@@ -49,6 +49,56 @@ h1 {
   margin: 24px 0 10px;
 }
 
+/* 種類タブ（文章 / 物語 / 単語） */
+.type-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+.type-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 10px;
+  background: var(--panel);
+  border: 2px solid transparent;
+  border-radius: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.type-tab:hover {
+  border-color: var(--panel-2);
+}
+.type-tab.active {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.type-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.type-label {
+  font-size: 16px;
+  font-weight: 800;
+}
+.type-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* 物語の選択中ヘッダ */
+.story-pick {
+  text-align: center;
+  font-weight: 700;
+  background: var(--panel-2);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 16px;
+}
+
 /* レベル選択 */
 .rank-select {
   display: flex;
