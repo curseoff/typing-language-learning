@@ -3,7 +3,7 @@ import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../infrastructure/dictRepository.js'
 import { kanjiDone } from '../../domain/typing/progress.js'
-import { Chars, StatsRow } from '../shared/index.js'
+import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 
 export default function DictView({ level, theme, mode, levelLabel, modeLabel, onExit }) {
   const meta = (
@@ -16,6 +16,7 @@ export default function DictView({ level, theme, mode, levelLabel, modeLabel, on
   if (mode === 'pick') return <PickView level={level} theme={theme} meta={meta} onExit={onExit} />
   return <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
 }
+
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
 function PickView({ level, theme, meta, onExit }) {
@@ -58,7 +59,7 @@ function PickView({ level, theme, meta, onExit }) {
               }
               return (
                 <button key={i} className={cls} onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}>
-                  {opt.display}
+                  <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
                 </button>
               )
             })}
@@ -172,7 +173,7 @@ function QuizView({ level, theme, meta, onExit }) {
               }
               return (
                 <button key={i} className={cls} onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}>
-                  {opt.display}
+                  <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
                 </button>
               )
             })}

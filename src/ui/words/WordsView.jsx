@@ -2,7 +2,7 @@
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../infrastructure/wordsRepository.js'
-import { StatsRow } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel } from '../shared/index.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import Passage from '../marathon/Passage.jsx'
 
@@ -127,7 +127,7 @@ function QuizView({ level, theme, mode, dir, meta, onExit }) {
                   className={cls}
                   onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}
                 >
-                  {opt.display}
+                  <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
                 </button>
               )
             })}
