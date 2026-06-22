@@ -156,6 +156,9 @@ export default function Ready({
             ))}
           </div>
           <p className="mode-desc">「{modeLabel(mode)}」で物語を進め、選択肢で分岐します。</p>
+          <p className="pool-count">
+            この物語の収録: {Object.keys(STORY.nodes).length} 場面 / {STORY.endingCount} エンド
+          </p>
 
           <StartRow onStart={onStart} />
           <StoryRecords list={loadStoryRecords()} />
