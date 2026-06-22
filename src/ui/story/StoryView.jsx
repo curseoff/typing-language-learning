@@ -4,7 +4,7 @@ import { STORY } from '../../content/story.js'
 import { lookahead } from '../../domain/story/navigation.js'
 import { segMatches } from '../../domain/typing/units.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
-import { Chars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
+import { Chars, RubyChars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
 
 // 現在打っているセグメントの表示
 function ActiveSegment({ seg, input, hasError }) {
@@ -26,7 +26,7 @@ function ActiveSegment({ seg, input, hasError }) {
     const done = kanjiDone(seg, input)
     return (
       <div className="story-en">
-        <Chars text={seg.ja} done={done} cursor={done} hasError={hasError} />
+        <RubyChars ja={seg.ja} kana={seg.kana} done={done} cursor={done} hasError={hasError} />
       </div>
     )
   }

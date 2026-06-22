@@ -2,7 +2,7 @@
 // 打った位置を色分け(和文はローマ字入力の進捗を漢字位置に変換)。
 import { alignJaToKana, guideText, kanaConsumed } from '../../domain/typing/progress.js'
 import { TARGET_KEYS } from '../../domain/marathon/passage.js'
-import { Chars } from '../shared/index.js'
+import { Chars, RubyChars } from '../shared/index.js'
 
 export default function Passage({ segments, segIndex, segInput, completed, hasError }) {
   let g = 0 // 打鍵対象(romaji/英字)の通し文字数 → 600超過の判定に使う
@@ -43,13 +43,24 @@ export default function Passage({ segments, segIndex, segInput, completed, hasEr
         return (
           <span key={i}>
             {i > 0 && <span className="gap"> </span>}
-            <Chars
-              text={display}
-              done={doneLen}
-              cursor={state === 'current' ? doneLen : -1}
-              hasError={hasError}
-              over={over}
-            />
+            {seg.type === 'ja' ? (
+              <RubyChars
+                ja={seg.ja}
+                kana={seg.kana}
+                done={doneLen}
+                cursor={state === 'current' ? doneLen : -1}
+                hasError={hasError}
+                over={over}
+              />
+            ) : (
+              <Chars
+                text={display}
+                done={doneLen}
+                cursor={state === 'current' ? doneLen : -1}
+                hasError={hasError}
+                over={over}
+              />
+            )}
           </span>
         )
       })}
