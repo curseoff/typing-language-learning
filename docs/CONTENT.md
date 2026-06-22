@@ -76,6 +76,31 @@
 - `TOUCH_LEVELS`：練習レベル＝打鍵対象のキー集合（ホーム／上段／下段／数字／すべて）
 - 出題数は `domain/touch/drill.js` の `TOUCH_COUNT`（既定 40）。記録は保存しません
 
+## 単語の一括追加（add-words）
+
+単語を大量に足すときは、**読みの自動生成＋重複/読みの事前チェック**を行うツールを使うと速く・安全です。
+
+```bash
+# 検査のみ（words.js は変更しない）
+npm run add-words candidates.tsv
+# OK の語を words.js 末尾に追記
+npm run add-words candidates.tsv -- --write
+```
+
+入力（TSV、1行1語・ヘッダ不要。`#` 始まりはコメント）:
+
+```
+en<TAB>ja<TAB>freq<TAB>theme(任意)<TAB>kana(任意)
+```
+
+- **kana を空にすると `ja` から自動生成**（kuroshiro＝kuromoji辞書）。生成は**要レビュー**（固有名詞・難読語は誤ることがある）。
+- `level` は `freq` から `bandOf()` で自動設定。`theme` は `日常/旅行/ビジネス` か空。
+- チェック内容：**en の重複（既存＋入力内）／英小文字のみ／freq 正整数／読みのローマ字変換・完全消費／長音「ー」警告**。
+- NG があれば終了コード1。`--write` 後は `npm run check` を実行。
+- `.json`（`[{en,ja,freq,theme?,kana?}]`）も入力可。
+
+> これにより「validate 落ち→修正」の往復や読みの手入力ミスを事前に潰せます。
+
 ## 検証
 
 ```bash
