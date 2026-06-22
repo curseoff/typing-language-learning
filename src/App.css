@@ -40,6 +40,15 @@ h1 {
   line-height: 1.8;
 }
 
+/* バージョン表記（TOP下部に小さく） */
+.version {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.6;
+  margin-top: 40px;
+}
+
 .section-label {
   text-align: center;
   font-size: 12px;

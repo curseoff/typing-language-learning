@@ -264,6 +264,8 @@ export default function App() {
       {phase === 'result' && lastResult && (
         <Result result={lastResult} records={records} segStats={segStats} onRetry={startGame} />
       )}
+
+      {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
     </div>
   )
 }
