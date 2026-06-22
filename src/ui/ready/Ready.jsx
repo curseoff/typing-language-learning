@@ -67,6 +67,7 @@ export default function Ready({
   onDictLevelChange,
   onDictThemeChange,
   onDictModeChange,
+  onBrowse,
   onStart,
   records,
 }) {
@@ -77,6 +78,9 @@ export default function Ready({
       <p className="lead">
         日本人のための英語タイピング教材。種類・レベル・モードを選んでスタート。
       </p>
+      <button className="browse-link" onClick={onBrowse}>
+        📋 収録一覧を見る
+      </button>
 
       {/* 種類タブ */}
       <div className="type-tabs">

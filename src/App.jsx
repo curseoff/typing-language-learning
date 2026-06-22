@@ -14,6 +14,7 @@ import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
+import BrowseView from './ui/browse/BrowseView.jsx'
 
 const TYPE_KEYS = ['marathon', 'story', 'words', 'dict']
 const MODE_KEYS = MODES.map((m) => m.key)
@@ -186,10 +187,13 @@ export default function App() {
           onDictLevelChange={setDictLevel}
           onDictThemeChange={setDictTheme}
           onDictModeChange={setDictMode}
+          onBrowse={() => setPhase('browse')}
           onStart={start}
           records={records}
         />
       )}
+
+      {phase === 'browse' && <BrowseView onExit={() => setPhase('ready')} />}
 
       {phase === 'words' && (
         <WordsView
