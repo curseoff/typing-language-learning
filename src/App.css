@@ -89,6 +89,14 @@ h1 {
   color: var(--muted);
 }
 
+/* 選択中の条件の収録数 */
+.pool-count {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin: -4px 0 0;
+}
+
 /* 物語の選択中ヘッダ */
 .story-pick {
   text-align: center;
