@@ -4,6 +4,7 @@ import { DICT_TYPE_COUNT, buildDictSet } from '../domain/dictionary/dictset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 
 export function useDict({ level, theme, mode, onExit }) {
   const [entries, setEntries] = useState(() => buildDictSet(level, theme, DICT_TYPE_COUNT))
@@ -17,6 +18,7 @@ export function useDict({ level, theme, mode, onExit }) {
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
   const startTimeRef = useRef(null)
+  const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
 
   const entry = entries[index]
   // 定義(en=def)/和訳(ja) を buildUnits 用に渡してセグメント化
@@ -26,6 +28,7 @@ export function useDict({ level, theme, mode, onExit }) {
   )
 
   const restart = useCallback(() => {
+    flushTracker(trackerRef.current)
     setEntries(buildDictSet(level, theme, DICT_TYPE_COUNT))
     setIndex(0)
     setInput('')
@@ -99,10 +102,12 @@ export function useDict({ level, theme, mode, onExit }) {
       if (segMatches(seg, candidate)) {
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
+        trackKey(trackerRef.current, 'd:' + entry.word) // 見出し語ごとの累積記録
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
         if (seg.variants.includes(candidate)) {
           if (index >= entries.length - 1) {
+            flushTracker(trackerRef.current)
             finish(newKeys, mistakes, performance.now())
           } else {
             setIndex((i) => i + 1)
@@ -113,12 +118,13 @@ export function useDict({ level, theme, mode, onExit }) {
         }
       } else {
         setMistakes((m) => m + 1)
+        trackMiss(trackerRef.current)
         setHasError(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, index, entries.length, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, entry, index, entries.length, input, typedKeys, mistakes, onExit, restart, finish])
 
   return {
     entry,

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TARGET_KEYS, buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 
 export function useMarathon({ active, onFinish }) {
   const [segments, setSegments] = useState([])
@@ -19,6 +20,7 @@ export function useMarathon({ active, onFinish }) {
   const segMistakesRef = useRef(0) // 現在の問題のミス数
   const segStatsRef = useRef([]) // 確定した問題ごとの記録
   const ctxRef = useRef({ mode: 'both', rank: 1 }) // 開始時の mode/rank
+  const trackerRef = useRef(newTracker()) // 問題ごとの累積記録（文単位）
 
   // 経過時間の更新
   useEffect(() => {
@@ -41,6 +43,7 @@ export function useMarathon({ active, onFinish }) {
     segStartRef.current = null
     segMistakesRef.current = 0
     segStatsRef.current = []
+    trackerRef.current = newTracker()
   }, [])
 
   const finish = useCallback(
@@ -77,6 +80,7 @@ export function useMarathon({ active, onFinish }) {
         if (startTimeRef.current === null) startTimeRef.current = t
         if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
+        trackKey(trackerRef.current, 's:' + seg.en) // 文ごとの累積記録（en/jaは同じ文に集約）
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
 
@@ -105,6 +109,7 @@ export function useMarathon({ active, onFinish }) {
         }
 
         if (reachedGoal) {
+          flushTracker(trackerRef.current)
           finish(newKeys, mistakes, t)
           return
         }
@@ -119,6 +124,7 @@ export function useMarathon({ active, onFinish }) {
       } else {
         setMistakes((m) => m + 1)
         segMistakesRef.current += 1
+        trackMiss(trackerRef.current)
         setHasError(true)
       }
     },

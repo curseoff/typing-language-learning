@@ -144,6 +144,11 @@ h1 {
   color: var(--muted);
   font-size: 14px;
 }
+.bi-stat {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 2px;
+}
 
 /* 選択中の条件の収録数 */
 .pool-count {

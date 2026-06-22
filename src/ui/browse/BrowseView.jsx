@@ -5,6 +5,7 @@ import { RANKS, SENTENCES } from '../../content/sentences.js'
 import { WORDS, WORD_LEVELS, WORD_THEMES } from '../../content/words.js'
 import { DICT } from '../../content/dictionary.js'
 import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
+import { loadItemStats } from '../../infrastructure/itemStatsRepository.js'
 
 const TYPES = [
   { key: 'marathon', label: '文章' },
@@ -37,6 +38,11 @@ export default function BrowseView({ onExit }) {
   else items = DICT.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
 
   const levels = type === 'dict' ? DICT_AVAILABLE_LEVELS : WORD_LEVELS.map((l) => l.level)
+
+  // 問題ごとの累積記録（練習回数・平均ミス・打/秒）
+  const stats = loadItemStats()
+  const idOf = (it) =>
+    type === 'dict' ? `d:${it.word}` : type === 'marathon' ? `s:${it.en}` : `w:${it.en}`
 
   return (
     <div className="browse">
@@ -101,22 +107,35 @@ export default function BrowseView({ onExit }) {
       <p className="pool-count">{items.length} 件</p>
 
       <ol className="browse-list">
-        {items.map((it, i) => (
-          <li key={i} className="browse-item">
-            {type === 'dict' ? (
-              <>
-                <span className="bi-en">{it.word}</span>
-                <span className="bi-def">{it.def}</span>
-                <span className="bi-ja">{it.ja}</span>
-              </>
-            ) : (
-              <>
-                <span className="bi-en">{it.en}</span>
-                <span className="bi-ja">{it.ja}</span>
-              </>
-            )}
-          </li>
-        ))}
+        {items.map((it, i) => {
+          const s = stats[idOf(it)]
+          return (
+            <li key={i} className="browse-item">
+              {type === 'dict' ? (
+                <>
+                  <span className="bi-en">{it.word}</span>
+                  <span className="bi-def">{it.def}</span>
+                  <span className="bi-ja">{it.ja}</span>
+                </>
+              ) : (
+                <>
+                  <span className="bi-en">{it.en}</span>
+                  <span className="bi-ja">{it.ja}</span>
+                </>
+              )}
+              <span className="bi-stat">
+                {s ? (
+                  <>
+                    練習 {s.count}回 ・ 平均ミス {(s.mistakes / s.count).toFixed(1)} ・{' '}
+                    {(s.ms > 0 ? s.keys / (s.ms / 1000) : 0).toFixed(1)} 打/秒
+                  </>
+                ) : (
+                  '未練習'
+                )}
+              </span>
+            </li>
+          )
+        })}
       </ol>
     </div>
   )
