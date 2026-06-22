@@ -1,19 +1,22 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
+import { useState } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { RANKS, SENTENCES } from '../../content/sentences.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
 import { DICT, DICT_MODES } from '../../content/dictionary.js'
 import { STORY } from '../../content/story.js'
-
-// 選んだ条件（レベル×テーマ）の収録数
-const countBy = (list, level, theme) =>
-  list.filter((x) => x.level === level && (theme === 'すべて' || x.theme === theme)).length
 import { recKey } from '../../domain/records/ranking.js'
 import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
 import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepository.js'
 import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
+import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 import RecordsTable from '../result/RecordsTable.jsx'
+import ItemList from './ItemList.jsx'
+
+// 選んだ条件（レベル×テーマ）の収録数
+const countBy = (list, level, theme) =>
+  list.filter((x) => x.level === level && (theme === 'すべて' || x.theme === theme)).length
 
 const GAME_TYPES = [
   { key: 'marathon', icon: '📝', label: '文章', sub: '会話文を打つ' },
@@ -48,6 +51,26 @@ function SectionLabel({ children }) {
   return <div className="section-label">{children}</div>
 }
 
+// 下部の「記録ランキング / 収録一覧」切り替え
+function BottomTabs({ value, onChange }) {
+  return (
+    <div className="bottom-tabs">
+      {[
+        ['records', '記録ランキング'],
+        ['list', '収録一覧'],
+      ].map(([k, label]) => (
+        <button
+          key={k}
+          className={`bottom-tab ${value === k ? 'active' : ''}`}
+          onClick={() => onChange(k)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function Ready({
   gameType,
   onTypeChange,
@@ -71,6 +94,7 @@ export default function Ready({
   records,
 }) {
   const courses = [...new Set(RANKS.map((r) => r.course))]
+  const [bottomTab, setBottomTab] = useState('records') // records | list
 
   return (
     <div className="ready">
@@ -134,7 +158,12 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {SENTENCES.filter((s) => s.rank === rank).length} 文</p>
 
           <StartRow onStart={onStart} />
-          <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
+          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          {bottomTab === 'list' ? (
+            <ItemList items={SENTENCES.filter((s) => s.rank === rank)} type="marathon" mode={mode} />
+          ) : (
+            <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
+          )}
         </>
       )}
 
@@ -161,7 +190,12 @@ export default function Ready({
           </p>
 
           <StartRow onStart={onStart} />
-          <StoryRecords list={loadStoryRecords()} />
+          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          {bottomTab === 'list' ? (
+            <StoryScenes mode={mode} />
+          ) : (
+            <StoryRecords list={loadStoryRecords()} />
+          )}
         </>
       )}
 
@@ -218,10 +252,21 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {countBy(WORDS, wordLevel, wordTheme)} 語</p>
 
           <StartRow onStart={onStart} />
-          <WordRecords
-            list={loadWordRecords()[wordRecKey(wordLevel, wordTheme, wordMode)]}
-            isQuiz={wordMode.startsWith('quiz')}
-          />
+          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          {bottomTab === 'list' ? (
+            <ItemList
+              items={WORDS.filter(
+                (w) => w.level === wordLevel && (wordTheme === 'すべて' || w.theme === wordTheme),
+              )}
+              type="words"
+              mode={wordMode}
+            />
+          ) : (
+            <WordRecords
+              list={loadWordRecords()[wordRecKey(wordLevel, wordTheme, wordMode)]}
+              isQuiz={wordMode.startsWith('quiz')}
+            />
+          )}
         </>
       )}
 
@@ -278,10 +323,21 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {countBy(DICT, dictLevel, dictTheme)} 語</p>
 
           <StartRow onStart={onStart} />
-          <WordRecords
-            list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
-            isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
-          />
+          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          {bottomTab === 'list' ? (
+            <ItemList
+              items={DICT.filter(
+                (d) => d.level === dictLevel && (dictTheme === 'すべて' || d.theme === dictTheme),
+              )}
+              type="dict"
+              mode={dictMode}
+            />
+          ) : (
+            <WordRecords
+              list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
+              isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
+            />
+          )}
         </>
       )}
     </div>
@@ -369,6 +425,34 @@ function WordRecords({ list, isQuiz }) {
 }
 
 // 物語の記録（速度・エンド）
+// 物語の場面一覧（入力した本文）。未プレイの場面は ？？？ で伏せる。
+function StoryScenes({ mode }) {
+  const stats = loadItemStats()
+  return (
+    <ol className="browse-list">
+      {Object.entries(STORY.nodes).map(([id, n]) => {
+        const s = stats[itemId('story', mode, id)]
+        return (
+          <li key={id} className="browse-item">
+            {s ? (
+              <>
+                <span className="bi-en">{n.en}</span>
+                <span className="bi-ja">{n.ja}</span>
+                <span className="bi-stat">
+                  練習 {s.count}回 ・ 平均ミス {(s.mistakes / s.count).toFixed(1)} ・{' '}
+                  {(s.ms > 0 ? s.keys / (s.ms / 1000) : 0).toFixed(1)} 打/秒
+                </span>
+              </>
+            ) : (
+              <span className="bi-en">？？？</span>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 function StoryRecords({ list }) {
   const rows = list || []
   return (

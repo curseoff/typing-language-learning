@@ -89,6 +89,67 @@ h1 {
   color: var(--muted);
 }
 
+/* 下部トグル（記録ランキング / 収録一覧） */
+.bottom-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 28px 0 4px;
+}
+.bottom-tab {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.bottom-tab.active {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: var(--accent);
+}
+
+/* 収録一覧 */
+.browse-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 48px;
+}
+.browse-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--panel-2);
+}
+.bi-en {
+  font-weight: 700;
+}
+.bi-def {
+  color: var(--muted);
+  font-size: 14px;
+}
+.bi-ja {
+  color: var(--muted);
+  font-size: 14px;
+}
+.browse-note {
+  list-style: none;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+.bi-stat {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
 /* 選択中の条件の収録数 */
 .pool-count {
   text-align: center;

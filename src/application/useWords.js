@@ -6,6 +6,8 @@ import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { TARGET_KEYS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useWords({ level, theme, mode, onExit }) {
   const [words, setWords] = useState(() => buildWordPassage(level, theme, mode))
@@ -20,6 +22,7 @@ export function useWords({ level, theme, mode, onExit }) {
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
   const startTimeRef = useRef(null)
+  const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
 
   // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
   const segments = useMemo(
@@ -30,6 +33,7 @@ export function useWords({ level, theme, mode, onExit }) {
   const progress = Math.min(1, typedKeys / TARGET_KEYS)
 
   const restart = useCallback(() => {
+    flushTracker(trackerRef.current)
     setWords(buildWordPassage(level, theme, mode))
     setSegIndex(0)
     setInput('')
@@ -105,16 +109,19 @@ export function useWords({ level, theme, mode, onExit }) {
         const t = performance.now()
         if (startTimeRef.current === null) startTimeRef.current = t
         setHasError(false)
+        trackKey(trackerRef.current, itemId('w', mode, seg.en)) // 単語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
 
         if (newKeys >= TARGET_KEYS) {
+          flushTracker(trackerRef.current)
           finish(newKeys, mistakes, t)
           return
         }
         if (seg.variants.includes(candidate)) {
           // 単語を打ち尽くした場合は終了（600未満でも詰まないように）
           if (segIndex + 1 >= segments.length) {
+            flushTracker(trackerRef.current)
             finish(newKeys, mistakes, t)
             return
           }
@@ -126,12 +133,13 @@ export function useWords({ level, theme, mode, onExit }) {
         }
       } else {
         setMistakes((m) => m + 1)
+        trackMiss(trackerRef.current)
         setHasError(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, mode, onExit, restart, finish])
 
   return {
     segments,
