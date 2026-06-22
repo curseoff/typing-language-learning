@@ -2,7 +2,7 @@
 // 実行: npm run validate
 // エラーがあれば終了コード1で落ちる(警告は落とさない)。
 import { SENTENCES, RANKS } from '../src/content/sentences.js'
-import { WORDS, WORD_LEVELS, WORD_THEMES } from '../src/content/words.js'
+import { WORDS, WORD_LEVELS, WORD_THEMES, bandOf } from '../src/content/words.js'
 import { DICT } from '../src/content/dictionary.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
@@ -79,7 +79,7 @@ WORDS.forEach((w, i) => {
   const err = (m) => errors.push(`${id}: ${m}`)
   const warn = (m) => warnings.push(`${id}: ${m}`)
 
-  for (const f of ['en', 'ja', 'kana', 'level', 'theme']) {
+  for (const f of ['en', 'ja', 'kana', 'level']) {
     if (w[f] === undefined || w[f] === null) err(`必須フィールド "${f}" がありません`)
   }
   if (!w.en || !w.ja || !w.kana) return
@@ -88,7 +88,12 @@ WORDS.forEach((w, i) => {
   if (seenWordEn.has(w.en)) err(`en が重複（#${seenWordEn.get(w.en) + 1} と同じ）`) // 4択・照合が壊れる
   else seenWordEn.set(w.en, i)
   if (!LEVEL_SET.has(w.level)) err(`不正な level: ${w.level}`)
-  if (!THEME_SET.has(w.theme)) err(`不正な theme: ${w.theme}`)
+  if (w.theme !== undefined && !THEME_SET.has(w.theme)) err(`不正な theme: ${w.theme}`) // theme は任意
+  // freq は任意。あれば正の整数で、level が頻度帯(bandOf)と一致すること
+  if (w.freq !== undefined) {
+    if (!Number.isInteger(w.freq) || w.freq <= 0) err(`freq は正の整数にする → ${w.freq}`)
+    else if (bandOf(w.freq) !== w.level) err(`level が頻度帯と不一致（freq ${w.freq} → L${bandOf(w.freq)}、実際 L${w.level}）`)
+  }
 
   const roma = toRomaji(w.kana)
   if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${w.kana}）`)

@@ -12,10 +12,15 @@ const idOf = (type, mode, it) =>
 export default function ItemList({ items, type, mode }) {
   const stats = loadItemStats()
   const isQuiz = mode === 'quiz' || mode === 'pick' || mode.startsWith('quiz')
+  // 単語は頻度順（freqが無い語は後ろ）
+  const rows =
+    type === 'words'
+      ? [...items].sort((a, b) => (a.freq ?? Infinity) - (b.freq ?? Infinity))
+      : items
   return (
     <ol className="browse-list">
       {isQuiz && <li className="browse-note">※4択モードは問題ごとの記録対象外です</li>}
-      {items.map((it, i) => {
+      {rows.map((it, i) => {
         const s = stats[idOf(type, mode, it)]
         return (
           <li key={i} className="browse-item">
