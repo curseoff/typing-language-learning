@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TARGET_KEYS, buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useMarathon({ active, onFinish }) {
   const [segments, setSegments] = useState([])
@@ -80,7 +81,7 @@ export function useMarathon({ active, onFinish }) {
         if (startTimeRef.current === null) startTimeRef.current = t
         if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
-        trackKey(trackerRef.current, 's:' + seg.en) // 文ごとの累積記録（en/jaは同じ文に集約）
+        trackKey(trackerRef.current, itemId('s', ctxRef.current.mode, seg.en)) // 文ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
 

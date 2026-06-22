@@ -5,6 +5,7 @@ import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useDict({ level, theme, mode, onExit }) {
   const [entries, setEntries] = useState(() => buildDictSet(level, theme, DICT_TYPE_COUNT))
@@ -102,7 +103,7 @@ export function useDict({ level, theme, mode, onExit }) {
       if (segMatches(seg, candidate)) {
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
-        trackKey(trackerRef.current, 'd:' + entry.word) // 見出し語ごとの累積記録
+        trackKey(trackerRef.current, itemId('d', mode, entry.word)) // 見出し語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
         if (seg.variants.includes(candidate)) {
@@ -124,7 +125,7 @@ export function useDict({ level, theme, mode, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, entry, index, entries.length, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, entry, index, entries.length, input, typedKeys, mistakes, mode, onExit, restart, finish])
 
   return {
     entry,

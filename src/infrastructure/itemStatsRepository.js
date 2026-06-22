@@ -1,6 +1,9 @@
 // 問題ごとの累積記録（localStorage）。id ごとに count/keys/mistakes/ms を積算する。
-// id 例: 's:I go to school every day.' / 'w:reserve' / 'd:hotel'
+// id はモード別に分ける。type='s'|'w'|'d', key=文/単語/見出し語
+// 例: 's:both:I go to school every day.' / 'w:en:reserve' / 'd:ja:hotel'
 const STORAGE_KEY = 'item-stats-v1'
+
+export const itemId = (type, mode, key) => `${type}:${mode}:${key}`
 
 export function loadItemStats() {
   try {

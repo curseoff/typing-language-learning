@@ -159,7 +159,7 @@ export default function Ready({
           <StartRow onStart={onStart} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
-            <ItemList items={SENTENCES.filter((s) => s.rank === rank)} type="marathon" />
+            <ItemList items={SENTENCES.filter((s) => s.rank === rank)} type="marathon" mode={mode} />
           ) : (
             <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
           )}
@@ -253,6 +253,7 @@ export default function Ready({
                 (w) => w.level === wordLevel && (wordTheme === 'すべて' || w.theme === wordTheme),
               )}
               type="words"
+              mode={wordMode}
             />
           ) : (
             <WordRecords
@@ -323,6 +324,7 @@ export default function Ready({
                 (d) => d.level === dictLevel && (dictTheme === 'すべて' || d.theme === dictTheme),
               )}
               type="dict"
+              mode={dictMode}
             />
           ) : (
             <WordRecords

@@ -7,6 +7,7 @@ import { TARGET_KEYS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useWords({ level, theme, mode, onExit }) {
   const [words, setWords] = useState(() => buildWordPassage(level, theme, mode))
@@ -108,7 +109,7 @@ export function useWords({ level, theme, mode, onExit }) {
         const t = performance.now()
         if (startTimeRef.current === null) startTimeRef.current = t
         setHasError(false)
-        trackKey(trackerRef.current, 'w:' + seg.en) // 単語ごとの累積記録
+        trackKey(trackerRef.current, itemId('w', mode, seg.en)) // 単語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
 
@@ -138,7 +139,7 @@ export function useWords({ level, theme, mode, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, mode, onExit, restart, finish])
 
   return {
     segments,

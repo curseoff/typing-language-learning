@@ -1,15 +1,22 @@
-// 収録一覧（現在の選択条件の問題を、問題ごとの記録つきで表示）。
-import { loadItemStats } from '../../infrastructure/itemStatsRepository.js'
+// 収録一覧（現在の選択条件＝種類×レベル×テーマ×モードの問題を、問題ごとの記録つきで表示）。
+import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 
-const idOf = (type, it) =>
-  type === 'dict' ? `d:${it.word}` : type === 'marathon' ? `s:${it.en}` : `w:${it.en}`
+// 記録は入力モードのみ（4択は対象外）。type と mode から id を作る。
+const idOf = (type, mode, it) =>
+  type === 'dict'
+    ? itemId('d', mode, it.word)
+    : type === 'marathon'
+      ? itemId('s', mode, it.en)
+      : itemId('w', mode, it.en)
 
-export default function ItemList({ items, type }) {
+export default function ItemList({ items, type, mode }) {
   const stats = loadItemStats()
+  const isQuiz = mode === 'quiz' || mode === 'pick' || mode.startsWith('quiz')
   return (
     <ol className="browse-list">
+      {isQuiz && <li className="browse-note">※4択モードは問題ごとの記録対象外です</li>}
       {items.map((it, i) => {
-        const s = stats[idOf(type, it)]
+        const s = stats[idOf(type, mode, it)]
         return (
           <li key={i} className="browse-item">
             {type === 'dict' ? (

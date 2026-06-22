@@ -137,6 +137,13 @@ h1 {
   color: var(--muted);
   font-size: 14px;
 }
+.browse-note {
+  list-style: none;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 0;
+}
 .bi-stat {
   font-size: 12px;
   color: var(--accent);
