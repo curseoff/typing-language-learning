@@ -59,6 +59,44 @@ export function alignJaToKana(ja, kana) {
   return kanaEndOf
 }
 
+// ルビ表示用：ja を「漢字の連なり」と「かな等」に分割し、漢字runには読み(ruby)を付ける。
+// 返り値 [{ chars:[...], from:先頭のja文字index, ruby:読み|null }]
+export function rubyParts(ja, kana) {
+  const ends = alignJaToKana(ja, kana)
+  const kanaArr = [...kana]
+  const jaChars = [...ja]
+  const isKanaCh = (c) => {
+    const code = c.codePointAt(0)
+    return (code >= 0x3040 && code <= 0x30ff) || '。、？！'.includes(c)
+  }
+  const parts = []
+  let i = 0
+  while (i < jaChars.length) {
+    if (!isKanaCh(jaChars[i])) {
+      const start = i
+      while (i < jaChars.length && !isKanaCh(jaChars[i])) i++
+      const startKana = start === 0 ? 0 : ends[start - 1]
+      const endKana = ends[i - 1]
+      parts.push({
+        chars: jaChars.slice(start, i),
+        from: start,
+        ruby: kanaArr.slice(startKana, endKana).join(''),
+      })
+    } else {
+      parts.push({ chars: [jaChars[i]], from: i, ruby: null })
+      i++
+    }
+  }
+  // 送り仮名が漢字の読み内にも現れる等でスライスが読み全体を覆えない場合は、
+  // 語全体に1つのルビを当てる（読みは常に正しくなる）。
+  const covered = parts.reduce((n, p) => n + (p.ruby ? [...p.ruby].length : p.chars.length), 0)
+  const hasKanji = parts.some((p) => p.ruby !== null)
+  if (hasKanji && covered !== kanaArr.length) {
+    return [{ chars: jaChars, from: 0, ruby: kana }]
+  }
+  return parts
+}
+
 // 漢字の「打ち終えた文字数」
 export function kanjiDone(seg, input) {
   const consumed = kanaConsumed(seg.kana, input)
