@@ -3,6 +3,7 @@ import { RANKS } from './content/sentences.js'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES } from './content/words.js'
 import { DICT_MODES } from './content/dictionary.js'
+import { TOUCH_LEVELS } from './content/keyboard.js'
 import { DICT_AVAILABLE_LEVELS } from './domain/dictionary/dictset.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
@@ -14,13 +15,16 @@ import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
+import TouchView from './ui/touch/TouchView.jsx'
 
-const TYPE_KEYS = ['marathon', 'story', 'words', 'dict']
+const TYPE_KEYS = ['marathon', 'story', 'words', 'dict', 'touch']
 const MODE_KEYS = MODES.map((m) => m.key)
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
 const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
+const TOUCH_LEVEL_KEYS = TOUCH_LEVELS.map((l) => l.key)
 const wordModeLabel = (key) => WORD_MODES.find((m) => m.key === key)?.label ?? key
 const dictModeLabel = (key) => DICT_MODES.find((m) => m.key === key)?.label ?? key
+const touchLevelLabel = (key) => TOUCH_LEVELS.find((l) => l.key === key)?.label ?? key
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 const cycle = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr.length]
 
@@ -36,6 +40,7 @@ export default function App() {
   const [dictLevel, setDictLevel] = useState(DICT_AVAILABLE_LEVELS[0] ?? 1) // 英英のレベル
   const [dictTheme, setDictTheme] = useState('すべて') // 英英のテーマ
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
+  const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -70,6 +75,8 @@ export default function App() {
       setPhase('words')
     } else if (gameType === 'dict') {
       setPhase('dict')
+    } else if (gameType === 'touch') {
+      setPhase('touch')
     } else if (gameType === 'story') {
       setStoryStart(null)
       setPhase('story')
@@ -110,15 +117,17 @@ export default function App() {
         const dir = e.key === 'ArrowRight' ? 1 : -1
         if (gameType === 'words') setWordMode((p) => cycle(WORD_MODE_KEYS, p, dir))
         else if (gameType === 'dict') setDictMode((p) => cycle(DICT_MODE_KEYS, p, dir))
-        else setMode((p) => cycle(MODE_KEYS, p, dir))
+        else if (gameType === 'touch') {
+          /* タッチタイピングはモードなし */
+        } else setMode((p) => cycle(MODE_KEYS, p, dir))
       } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        // レベル切り替え（文章=R1..6、単語=W1..4、英英=利用可能レベル、物語=なし）
+        // レベル切り替え（文章=R1..6、単語=W1..4、英英=利用可能レベル、タッチ、物語=なし）
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
         if (gameType === 'marathon') setRank((r) => clamp(r + dir, 1, RANKS.length))
         else if (gameType === 'words') setWordLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
-        else if (gameType === 'dict')
-          setDictLevel((l) => cycle(DICT_AVAILABLE_LEVELS, l, dir))
+        else if (gameType === 'dict') setDictLevel((l) => cycle(DICT_AVAILABLE_LEVELS, l, dir))
+        else if (gameType === 'touch') setTouchLevel((l) => cycle(TOUCH_LEVEL_KEYS, l, dir))
       }
     }
     window.addEventListener('keydown', onNav)
@@ -186,8 +195,19 @@ export default function App() {
           onDictLevelChange={setDictLevel}
           onDictThemeChange={setDictTheme}
           onDictModeChange={setDictMode}
+          touchLevel={touchLevel}
+          onTouchLevelChange={setTouchLevel}
           onStart={start}
           records={records}
+        />
+      )}
+
+      {phase === 'touch' && (
+        <TouchView
+          key={touchLevel}
+          level={touchLevel}
+          levelLabel={touchLevelLabel(touchLevel)}
+          onExit={() => setPhase('ready')}
         />
       )}
 
@@ -244,6 +264,8 @@ export default function App() {
       {phase === 'result' && lastResult && (
         <Result result={lastResult} records={records} segStats={segStats} onRetry={startGame} />
       )}
+
+      {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
     </div>
   )
 }

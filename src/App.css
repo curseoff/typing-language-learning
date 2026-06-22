@@ -40,6 +40,15 @@ h1 {
   line-height: 1.8;
 }
 
+/* バージョン表記（TOP下部に小さく） */
+.version {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.6;
+  margin-top: 40px;
+}
+
 .section-label {
   text-align: center;
   font-size: 12px;
@@ -49,11 +58,11 @@ h1 {
   margin: 24px 0 10px;
 }
 
-/* 種類タブ（文章 / 物語 / 単語 / 英英辞典） */
+/* 種類タブ（文章 / 物語 / 単語 / 英英辞典 / タッチ） */
 .type-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
   margin: 20px 0 8px;
 }
 .type-tab {
@@ -61,7 +70,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 16px 10px;
+  padding: 14px 8px;
   background: var(--panel);
   border: 2px solid transparent;
   border-radius: 14px;
@@ -81,12 +90,134 @@ h1 {
   line-height: 1;
 }
 .type-label {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
+  text-align: center;
 }
 .type-sub {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
+  text-align: center;
+}
+
+/* ---- タッチタイピング ---- */
+.touch-bar {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.touch-prompt {
+  text-align: center;
+  font-size: 18px;
+  margin-top: 12px;
+}
+.touch-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  font-size: 30px;
+  font-weight: 800;
+  color: #0b1220;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+.touch-key.err {
+  outline: 3px solid var(--red);
+}
+.touch-finger {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.touch-queue {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.touch-next {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+}
+.touch-next:first-child {
+  color: var(--text);
+  border: 1px solid var(--accent);
+}
+
+/* キーボード表示 */
+.kb {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  margin: 18px 0;
+}
+.kb-row {
+  display: flex;
+  gap: 6px;
+}
+.kb-key {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #0b1220;
+  background: #cbd5e1;
+}
+.kb-key.home {
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.4);
+}
+.kb-key.target {
+  outline: 3px solid var(--text);
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+}
+.kb-key.target.err {
+  outline-color: var(--red);
+}
+/* 指ごとの色 */
+.fg-lp {
+  background: #fda4af;
+}
+.fg-lr {
+  background: #fdba74;
+}
+.fg-lm {
+  background: #fde047;
+}
+.fg-li {
+  background: #86efac;
+}
+.fg-ri {
+  background: #67e8f9;
+}
+.fg-rm {
+  background: #93c5fd;
+}
+.fg-rr {
+  background: #c4b5fd;
+}
+.fg-rp {
+  background: #f0abfc;
 }
 
 /* 下部トグル（記録ランキング / 収録一覧） */
