@@ -1,6 +1,6 @@
 // 単語問題の出題セット生成（レベル×テーマで絞り込み・シャッフル）。
 import { WORDS } from '../../content/words.js'
-import { romajiVariants, toRomaji } from '../romaji/romaji.js'
+import { romajiVariants } from '../romaji/romaji.js'
 import { buildUnits } from '../typing/units.js'
 import { TARGET_KEYS } from '../marathon/passage.js'
 
@@ -50,19 +50,26 @@ export function levelWords(level) {
 // dir='en'(英語訳: 和訳→英単語をタイプ) / 'ja'(日本語訳: 英単語→和訳をローマ字タイプ)
 const optDisplay = (w, dir) => (dir === 'ja' ? w.ja : w.en) // 選択肢の表示
 const optVariants = (w, dir) => (dir === 'ja' ? romajiVariants(w.kana) : [w.en]) // 打鍵で受理する綴り
-const optCanon = (w, dir) => (dir === 'ja' ? toRomaji(w.kana) : w.en) // 衝突判定用の代表綴り
 
-// 各語に4択を作る。打って選ぶので、前方一致が衝突しない語を誤答に選ぶ。
+// 2語の打鍵綴りが前方一致で衝突するか（どれかの variant 同士が一方の接頭辞）。
+const variantsCollide = (va, vb) =>
+  va.some((a) => vb.some((b) => a.startsWith(b) || b.startsWith(a)))
+
+// 各語に4択を作る。打って選ぶので、正解・誤答すべての選択肢が
+// 互いに前方一致で衝突しないよう、variant 単位で誤答を選ぶ。
 export function makeQuiz(words, pool, dir, optionCount = 4) {
   return words.map((w) => {
-    const aCanon = optCanon(w, dir)
-    const others = pool.filter((p) => {
-      if (p.en === w.en) return false
-      const c = optCanon(p, dir)
-      return !c.startsWith(aCanon) && !aCanon.startsWith(c)
-    })
-    const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, optionCount - 1)
-    const opts = [w, ...distractors].sort(() => Math.random() - 0.5)
+    const chosen = [w]
+    const chosenVars = [optVariants(w, dir)]
+    const candidates = [...pool].filter((p) => p.en !== w.en).sort(() => Math.random() - 0.5)
+    for (const p of candidates) {
+      if (chosen.length >= optionCount) break
+      const vars = optVariants(p, dir)
+      if (chosenVars.some((cv) => variantsCollide(cv, vars))) continue
+      chosen.push(p)
+      chosenVars.push(vars)
+    }
+    const opts = [...chosen].sort(() => Math.random() - 0.5)
     return {
       prompt: dir === 'ja' ? w.en : w.ja, // 出題（表示する側）
       answerDisplay: optDisplay(w, dir),
