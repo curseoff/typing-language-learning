@@ -8,8 +8,9 @@ import { STORY } from '../../content/story.js'
 import { recKey } from '../../domain/records/ranking.js'
 import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
 import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepository.js'
-import { loadStoryRecords, loadFound } from '../../infrastructure/storyRepository.js'
+import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
+import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
 
@@ -190,7 +191,11 @@ export default function Ready({
 
           <StartRow onStart={onStart} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
-          {bottomTab === 'list' ? <StoryEndings /> : <StoryRecords list={loadStoryRecords()} />}
+          {bottomTab === 'list' ? (
+            <StoryScenes mode={mode} />
+          ) : (
+            <StoryRecords list={loadStoryRecords()} />
+          )}
         </>
       )}
 
@@ -420,21 +425,27 @@ function WordRecords({ list, isQuiz }) {
 }
 
 // 物語の記録（速度・エンド）
-// 物語のエンド一覧（発見状況）。未発見は伏せる。
-function StoryEndings() {
-  const found = loadFound()
-  const endings = Object.values(STORY.nodes).filter((n) => n.ending)
+// 物語の場面一覧（入力した本文）。未プレイの場面は ？？？ で伏せる。
+function StoryScenes({ mode }) {
+  const stats = loadItemStats()
   return (
     <ol className="browse-list">
-      <li className="browse-note">
-        エンド {found.length} / {STORY.endingCount} 発見
-      </li>
-      {endings.map((n, i) => {
-        const got = found.includes(n.ending)
+      {Object.entries(STORY.nodes).map(([id, n]) => {
+        const s = stats[itemId('story', mode, id)]
         return (
-          <li key={i} className="browse-item">
-            <span className="bi-en">{got ? n.endLabel : '？？？'}</span>
-            <span className="bi-stat">{got ? '発見済み' : '未発見'}</span>
+          <li key={id} className="browse-item">
+            {s ? (
+              <>
+                <span className="bi-en">{n.en}</span>
+                <span className="bi-ja">{n.ja}</span>
+                <span className="bi-stat">
+                  練習 {s.count}回 ・ 平均ミス {(s.mistakes / s.count).toFixed(1)} ・{' '}
+                  {(s.ms > 0 ? s.keys / (s.ms / 1000) : 0).toFixed(1)} 打/秒
+                </span>
+              </>
+            ) : (
+              <span className="bi-en">？？？</span>
+            )}
           </li>
         )
       })}

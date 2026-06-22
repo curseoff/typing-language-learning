@@ -11,6 +11,8 @@ import {
   loadStoryRecords,
   saveStoryRecord,
 } from '../infrastructure/storyRepository.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useStory({ mode, start, onExit }) {
   const nodes = STORY.nodes
@@ -32,6 +34,7 @@ export function useStory({ mode, start, onExit }) {
   const [mistakes, setMistakes] = useState(0)
   const [now, setNow] = useState(0)
   const startTimeRef = useRef(null)
+  const trackerRef = useRef(newTracker()) // 場面ごとの累積記録（ノード単位×モード別）
 
   const node = nodes[nodeId]
   const lang = typingLang(mode)
@@ -48,6 +51,7 @@ export function useStory({ mode, start, onExit }) {
   }
 
   const restart = useCallback(() => {
+    flushTracker(trackerRef.current)
     setNodeId(STORY.start)
     setStage('text')
     reset()
@@ -77,6 +81,7 @@ export function useStory({ mode, start, onExit }) {
   }, [now, started])
 
   const enterEnding = useCallback((n, keys, totalMistakes, endTime) => {
+    flushTracker(trackerRef.current) // エンド到達時に現在の場面を確定
     setStage('ending')
     setFound((prev) => {
       if (prev.includes(n.ending)) return prev
@@ -105,6 +110,7 @@ export function useStory({ mode, start, onExit }) {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
+        flushTracker(trackerRef.current)
         onExit()
         return
       }
@@ -123,11 +129,13 @@ export function useStory({ mode, start, onExit }) {
         const seg = units[unitIndex]
         if (!segMatches(seg, candidate)) {
           setMistakes((m) => m + 1)
+          trackMiss(trackerRef.current)
           setHasError(true)
           return
         }
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
+        trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 場面ごと×モード別
         setTypedKeys((k) => k + 1)
         if (seg.variants.includes(candidate)) {
           setInput('')
@@ -146,11 +154,13 @@ export function useStory({ mode, start, onExit }) {
         // choice
         if (!choiceSegs.some((s) => segMatches(s, candidate))) {
           setMistakes((m) => m + 1)
+          trackMiss(trackerRef.current)
           setHasError(true)
           return
         }
         if (startTimeRef.current === null) startTimeRef.current = performance.now()
         setHasError(false)
+        trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 選択肢も現在の場面に集約
         setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {
@@ -164,7 +174,7 @@ export function useStory({ mode, start, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [stage, node, units, unitIndex, choiceSegs, input, typedKeys, mistakes, onExit, restart, enterEnding])
+  }, [stage, node, nodeId, mode, units, unitIndex, choiceSegs, input, typedKeys, mistakes, onExit, restart, enterEnding])
 
   return {
     nodes,
