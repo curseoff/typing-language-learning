@@ -89,37 +89,30 @@ h1 {
   color: var(--muted);
 }
 
-/* 収録一覧へのリンク */
-.browse-link {
-  display: block;
-  margin: 8px auto 0;
+/* 下部トグル（記録ランキング / 収録一覧） */
+.bottom-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 28px 0 4px;
+}
+.bottom-tab {
   padding: 6px 16px;
   font-size: 13px;
-  color: var(--accent);
-  background: none;
-  border: 1px solid var(--panel-2);
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
 }
-.browse-link:hover {
+.bottom-tab.active {
+  color: var(--text);
+  background: var(--panel-2);
   border-color: var(--accent);
 }
 
 /* 収録一覧 */
-.browse-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 4px 0 12px;
-}
-.browse-head h2 {
-  margin: 0;
-}
-.browse-filter {
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: 8px 0;
-}
 .browse-list {
   list-style: none;
   padding: 0;
