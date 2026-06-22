@@ -1,9 +1,13 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
-import { RANKS } from '../../content/sentences.js'
-import { WORD_LEVELS, WORD_MODES, WORD_THEMES } from '../../content/words.js'
-import { DICT_MODES } from '../../content/dictionary.js'
+import { RANKS, SENTENCES } from '../../content/sentences.js'
+import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
+import { DICT, DICT_MODES } from '../../content/dictionary.js'
 import { STORY } from '../../content/story.js'
+
+// 選んだ条件（レベル×テーマ）の収録数
+const countBy = (list, level, theme) =>
+  list.filter((x) => x.level === level && (theme === 'すべて' || x.theme === theme)).length
 import { recKey } from '../../domain/records/ranking.js'
 import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
 import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepository.js'
@@ -127,6 +131,7 @@ export default function Ready({
             ))}
           </div>
           <p className="mode-desc">{modeDesc(mode)} 600文字で終了します。</p>
+          <p className="pool-count">この条件の収録: {SENTENCES.filter((s) => s.rank === rank).length} 文</p>
 
           <StartRow onStart={onStart} />
           <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
@@ -151,6 +156,9 @@ export default function Ready({
             ))}
           </div>
           <p className="mode-desc">「{modeLabel(mode)}」で物語を進め、選択肢で分岐します。</p>
+          <p className="pool-count">
+            この物語の収録: {Object.keys(STORY.nodes).length} 場面 / {STORY.endingCount} エンド
+          </p>
 
           <StartRow onStart={onStart} />
           <StoryRecords list={loadStoryRecords()} />
@@ -207,6 +215,7 @@ export default function Ready({
             </div>
           </div>
           <p className="mode-desc">{wordModeDesc(wordMode)}</p>
+          <p className="pool-count">この条件の収録: {countBy(WORDS, wordLevel, wordTheme)} 語</p>
 
           <StartRow onStart={onStart} />
           <WordRecords
@@ -266,6 +275,7 @@ export default function Ready({
             </div>
           </div>
           <p className="mode-desc">{dictModeDesc(dictMode)}</p>
+          <p className="pool-count">この条件の収録: {countBy(DICT, dictLevel, dictTheme)} 語</p>
 
           <StartRow onStart={onStart} />
           <WordRecords
