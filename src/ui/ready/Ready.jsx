@@ -4,6 +4,7 @@ import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { RANKS, SENTENCES } from '../../content/sentences.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
 import { DICT, DICT_MODES } from '../../content/dictionary.js'
+import { TOUCH_LEVELS } from '../../content/keyboard.js'
 import { STORY } from '../../content/story.js'
 import { recKey } from '../../domain/records/ranking.js'
 import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
@@ -23,6 +24,7 @@ const GAME_TYPES = [
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
   { key: 'words', icon: '🔤', label: '単語', sub: '語彙を覚える' },
   { key: 'dict', icon: '📚', label: '英英辞典', sub: '英語で意味を学ぶ' },
+  { key: 'touch', icon: '⌨️', label: 'タッチタイピング', sub: 'ブラインドタッチ' },
 ]
 const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 const WORD_INPUT = WORD_MODES.filter((m) => !m.key.startsWith('quiz'))
@@ -90,6 +92,8 @@ export default function Ready({
   onDictLevelChange,
   onDictThemeChange,
   onDictModeChange,
+  touchLevel,
+  onTouchLevelChange,
   onStart,
   records,
 }) {
@@ -338,6 +342,33 @@ export default function Ready({
               isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
             />
           )}
+        </>
+      )}
+
+      {/* ── タッチタイピング ── */}
+      {gameType === 'touch' && (
+        <>
+          <SectionLabel>レベル</SectionLabel>
+          <div className="rank-select">
+            <div className="rank-group">
+              <div className="rank-btns">
+                {TOUCH_LEVELS.map((l) => (
+                  <button
+                    key={l.key}
+                    className={`rank-btn ${touchLevel === l.key ? 'active' : ''}`}
+                    onClick={() => onTouchLevelChange(l.key)}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className="mode-desc">
+            画面のキーボードを見ながら、指の位置を覚えてブラインドタッチを練習。40打で終了。
+          </p>
+
+          <StartRow onStart={onStart} />
         </>
       )}
     </div>
