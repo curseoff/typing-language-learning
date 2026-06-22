@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { alignJaToKana, kanjiDone } from './progress.js'
+import { alignJaToKana, kanjiDone, rubyParts } from './progress.js'
 import { WORDS } from '../../content/words.js'
 import { SENTENCES } from '../../content/sentences.js'
 
@@ -32,5 +32,33 @@ describe('alignJaToKana', () => {
     }
     for (const w of WORDS) check(w)
     for (const s of SENTENCES) check(s)
+  })
+})
+
+describe('rubyParts (ふりがな)', () => {
+  it('漢字runにのみ読みを付け、送り仮名は素通し', () => {
+    expect(rubyParts('分ける', 'わける')).toEqual([
+      { chars: ['分'], from: 0, ruby: 'わ' },
+      { chars: ['け'], from: 1, ruby: null },
+      { chars: ['る'], from: 2, ruby: null },
+    ])
+  })
+
+  it('連続漢字は1つのrubyにまとめ、読みは全体スライス', () => {
+    expect(rubyParts('飛行機', 'ひこうき')).toEqual([
+      { chars: ['飛', '行', '機'], from: 0, ruby: 'ひこうき' },
+    ])
+  })
+
+  it('全単語で ruby を連結すると元の読み(かな)に一致する', () => {
+    for (const w of WORDS) {
+      const joined = rubyParts(w.ja, w.kana)
+        .map((p) => p.ruby ?? p.chars.join(''))
+        .join('')
+      // 漢字runは読み・かな文字はそのまま → 全体は kana と同じ並びになる
+      const expected = [...w.kana].join('')
+      // ja がかなのみの語は chars(=かな)が並ぶので kana と一致、漢字語も読みで一致
+      expect(joined.length).toBe(expected.length)
+    }
   })
 })

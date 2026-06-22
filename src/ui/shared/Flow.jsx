@@ -1,5 +1,5 @@
 // 英語/日本語の二段フロー（現在＋先読みを折り返し表示）。
-import { Typed } from './Text.jsx'
+import { Typed, RubyTyped, RubyText } from './Text.jsx'
 
 // 1行ぶん。現在文を明るく＋進捗、先の文は薄く。
 function FlowRow({ tag, tagClass, items, cur, active, render }) {
@@ -44,7 +44,19 @@ export function Flow({ items, cur, enDone, jaDone, activeRow, showEn = true, sho
           cur={cur}
           active={activeRow === 'ja'}
           render={(it, isCur) => (
-            <span className="flow-ja">{isCur ? <Typed text={it.ja} done={jaDone} /> : it.ja}</span>
+            <span className="flow-ja">
+              {it.kana ? (
+                isCur ? (
+                  <RubyTyped ja={it.ja} kana={it.kana} done={jaDone} />
+                ) : (
+                  <RubyText ja={it.ja} kana={it.kana} />
+                )
+              ) : isCur ? (
+                <Typed text={it.ja} done={jaDone} />
+              ) : (
+                it.ja
+              )}
+            </span>
           )}
         />
       )}
