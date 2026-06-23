@@ -128,6 +128,31 @@ en<TAB>ja<TAB>freq<TAB>theme(任意)<TAB>kana(任意)
 - 離席中に大量コミットが要るときは AI 署名コミット（1Password非依存）を使う。手順は [DEVELOPMENT.md](DEVELOPMENT.md) を参照。
 - **英英の大量追加も同じ流れ**。ただし見出し語は「英英は単語のサブセット」ルールに従い**既存単語から選ぶ**。必要なら `add-words` の英英版を用意する。
 
+### 単語例文のパイプライン（スクリプト化済み）
+
+`wordSentences.js` の追加は、手作業を3スクリプトに集約してある（毎回のワンライナー不要）。
+
+```bash
+# 1) 未使用の頻出語を選定しチャンク分割（既定 1000語 / 12チャンク / /tmp/sentgen）
+npm run gen-sentences -- --count 1000 --chunks 12
+#    → 各 chunk-NN.json をサブエージェントに読ませ out-NN.json を生成させる
+#       要素: { word, level, en, ja, kana, jaWords }（カタカナ外来語を避け「ー」を出さない）
+
+# 2) マージ＋構造検証（OK/NG/再生成元を /tmp/sentgen に出力）
+npm run merge-sentences
+#    NG が出たら redo.json をエージェントに作り直させ out-redo.json を置いて再度 merge
+
+# 3) 読み点検の候補抽出（kuroshiro）→ rev-*.json
+npm run check-readings
+#    → 各 rev-N.json を点検エージェントへ → revfix-N.json（真の誤りだけ）
+
+# 4) 読み修正を適用し wordSentences.js へ追記
+npm run merge-sentences -- --write
+npm run check
+```
+
+検証は構造（`word ∈ words.en` / 例文で使用 / level一致 / `jaWords`連結=ja / kana整合 / 文末記号 / 「ー」）を機械チェック。読みの妥当性だけ点検エージェントが判断する。
+
 ## 検証
 
 ```bash
