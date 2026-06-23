@@ -62,13 +62,15 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 AI（Claude）が打つコミットは、人間のコミットと**署名・名義を分離**する。離席で 1Password がロックしても失敗しないよう、**1Password非依存のローカル署名鍵**を使う。
 
 ```bash
-GIT_COMMITTER_NAME="Atsushi Yamaguchi (AI)" GIT_COMMITTER_EMAIL="libertyrh@gmail.com" \
+# <氏名>=本人名 / <検証済みメール>=GitHubで検証済みの本人メール / <author用メール>=その +ai 別名（例 name+ai@…）
+GIT_COMMITTER_NAME="<氏名> (AI)" GIT_COMMITTER_EMAIL="<検証済みメール>" \
 git -c gpg.ssh.program=ssh-keygen -c user.signingkey=~/.ssh/ai-signing.pub \
-  commit --author="Atsushi Yamaguchi (AI) <libertyrh+ai@gmail.com>" -m "..."
+  commit --author="<氏名> (AI) <author用メール>" -m "..."
 ```
 
-- **author = `Atsushi Yamaguchi (AI) <libertyrh+ai@gmail.com>`**（AI が書いた）、**committer = `Atsushi Yamaguchi (AI) <libertyrh@gmail.com>`**（名前は `(AI)`、メールは検証済み）。
+- **author = `<氏名> (AI) <author用メール(+ai別名)>`**（AI が書いた）、**committer = `<氏名> (AI) <検証済みメール>`**（名前は `(AI)`、メールは検証済み）。
 - **committer のメールが検証済み**であることが GitHub の **Verified** の要件。author 側は `+ai` 別名でよい。
+- 実値（本人の氏名・メール）はローカルの git 設定／コミットメタデータにのみ置き、ドキュメントには直書きしない。
 - 署名鍵 `~/.ssh/ai-signing` はパスフレーズなし。公開鍵は GitHub に **Signing key** として登録済み（Authentication key だと Verified にならない）。
 - グローバル/リポジトリの git 設定は変更しない（上書きは `-c` でその場限り）。人間（本人）の `git commit` は従来どおり本人名義・1Password 署名。
 - 失敗時（`1Password: failed to fill whole buffer` 等）は、本人コミットなら 1Password のロック解除を待つ。
