@@ -32,6 +32,20 @@
 - `ja`: 漢字かな表示。`kana`: 読み（文末記号も含める）
 - `jaWords`: 翻訳モードの単語チップ用。連結すると `ja`（句読点を除く）になるよう分割
 
+## 単語の例文（`content/wordSentences.js`）
+
+「単語 ↔ 文章＝その単語を使った例文」を**単語ドリブン**に集めたデータ（`WORD_SENTENCES`）。`sentences.js`（場面別の会話文）とは別物で、各文が1単語の使用例。
+
+```js
+{ level: 1, word: 'school', en: 'I go to school every day.', ja: '私は毎日学校へ行きます。', kana: 'わたしはまいにちがっこうへいきます。', jaWords: ['私','は','毎日','学校','へ','行き','ます'] }
+```
+
+- `word`: 対象語（`words.js` の `en`）。`en` でその語が実際に使われていること。
+- `level`: 対象語のレベルに一致。`en`/`ja`/`kana`/`jaWords` の規則は文章と同じ。
+- validate が `word ∈ words.en`／例文で使用／level一致／`jaWords`連結=ja／kana整合 を検査。
+- **生成手順**：頻出順で語を選び並列生成（各 JSON 直書き）→ 構造検証 → 読み点検（kuroshiro候補抽出＋点検エージェント確定）。
+- ※ 現状は**データのみ**。出題UI（語レベル別で引く導線）への接続は別途。
+
 ## 単語（`content/words.js`）
 
 ```js
