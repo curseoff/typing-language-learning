@@ -13,6 +13,22 @@ const TRAILING_PUNCT = /[。、？！]$/
 // 英文末尾 → 期待する和文末尾
 const PUNCT_MAP = { '.': '。', '?': '？', '!': '！' }
 
+// 文章は単語の例文：word ∈ words.en、かつ例文でその語が実際に使われていること
+const wordEnSet = new Set(WORDS.map((w) => w.en))
+const wordBases = (t) => {
+  const f = [t]
+  if (t.endsWith('ies')) f.push(t.slice(0, -3) + 'y')
+  if (t.endsWith('es')) f.push(t.slice(0, -2))
+  if (t.endsWith('s')) f.push(t.slice(0, -1))
+  if (t.endsWith('ed')) f.push(t.slice(0, -2), t.slice(0, -1))
+  if (t.endsWith('ing')) f.push(t.slice(0, -3), t.slice(0, -3) + 'e')
+  return f
+}
+const sentenceUsesWord = (en, word) => {
+  const toks = en.toLowerCase().match(/[a-z]+/g) || []
+  return toks.some((t) => t === word || wordBases(t).includes(word))
+}
+
 const errors = []
 const warnings = []
 const seenEn = new Map()
@@ -25,13 +41,19 @@ SENTENCES.forEach((s, i) => {
   const warn = (m) => warnings.push(`${id}: ${m}`)
 
   // 必須フィールド
-  for (const f of ['rank', 'en', 'ja', 'kana', 'jaWords']) {
+  for (const f of ['rank', 'word', 'en', 'ja', 'kana', 'jaWords']) {
     if (s[f] === undefined || s[f] === null) err(`必須フィールド "${f}" がありません`)
   }
   if (!s.en || !s.ja || !s.kana || !Array.isArray(s.jaWords)) return // 続行不能
 
   // rank
   if (!RANK_SET.has(s.rank)) err(`不正な rank: ${s.rank}（有効: ${[...RANK_SET].join(',')}）`)
+
+  // 文章は単語の例文：word は単語に存在し、例文で実際に使われていること
+  if (s.word !== undefined) {
+    if (!wordEnSet.has(s.word)) err(`word が単語(words.js)に存在しません → "${s.word}"`)
+    else if (!sentenceUsesWord(s.en, s.word)) err(`例文に単語 "${s.word}" が使われていません`)
+  }
 
   // 重複 en
   if (seenEn.has(s.en)) warn(`英文が重複（#${seenEn.get(s.en) + 1} と同じ）`)
