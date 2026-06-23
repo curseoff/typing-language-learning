@@ -1,6 +1,5 @@
 // マラソンのプレイ画面（バッジ・ステータス・本文・ヒントを合成）。
 import { modeLabel } from '../../content/modes.js'
-import { rankLabel } from '../../content/sentences.js'
 import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { StatsRow } from '../shared/index.js'
 import Passage from './Passage.jsx'
@@ -9,7 +8,6 @@ import TranslateView from './TranslateView.jsx'
 
 export default function MarathonView({
   mode,
-  rank,
   rankText,
   segments,
   segIndex,
@@ -25,7 +23,7 @@ export default function MarathonView({
   return (
     <div className="game">
       <div className="play-meta">
-        <span className="meta-badge rank">{rankText ?? rankLabel(rank)}</span>
+        <span className="meta-badge rank">{rankText}</span>
         <span className="meta-badge mode">{modeLabel(mode)}</span>
       </div>
 

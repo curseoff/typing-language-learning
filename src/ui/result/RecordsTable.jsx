@@ -1,17 +1,14 @@
 // 記録ランキングテーブル（モード×レベル別）。
 import { modeLabel } from '../../content/modes.js'
-import { rankLabel } from '../../content/sentences.js'
 import { MAX_RECORDS } from '../../domain/records/ranking.js'
 
-export default function RecordsTable({ records, modeKey, rank, rankText, highlight }) {
+export default function RecordsTable({ records, modeKey, rankText, highlight }) {
   const list = records || []
   return (
     <div className="records">
       <h3>
         記録ランキング
-        {(rankText || rank != null) && (
-          <span className="records-mode">{rankText ?? rankLabel(rank)}</span>
-        )}
+        {rankText && <span className="records-mode">{rankText}</span>}
         {modeKey && <span className="records-mode">{modeLabel(modeKey)}</span>}
         <span className="records-sub">（速い順・最大{MAX_RECORDS}件）</span>
       </h3>

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RANKS } from './content/sentences.js'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES } from './content/words.js'
 import { DICT_MODES } from './content/dictionary.js'
@@ -17,7 +16,7 @@ import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 
-const TYPE_KEYS = ['marathon', 'story', 'words', 'wsent', 'dict', 'touch']
+const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
 const MODE_KEYS = MODES.map((m) => m.key)
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
 const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
@@ -30,9 +29,8 @@ const cycle = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr
 
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result | story | words
-  const [gameType, setGameType] = useState('marathon') // marathon | story | words
+  const [gameType, setGameType] = useState('wsent') // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
-  const [rank, setRank] = useState(1) // 1-6
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
@@ -67,10 +65,9 @@ export default function App() {
   } = useMarathon({ active: phase === 'playing', onFinish })
 
   const startGame = useCallback(() => {
-    if (gameType === 'wsent') startMarathon(mode, wsentLevel, 'wsent')
-    else startMarathon(mode, rank)
+    startMarathon(mode, wsentLevel, 'wsent')
     setPhase('playing')
-  }, [startMarathon, mode, rank, wsentLevel, gameType])
+  }, [startMarathon, mode, wsentLevel])
 
   const start = useCallback(() => {
     if (gameType === 'words') {
@@ -126,8 +123,7 @@ export default function App() {
         // レベル切り替え（文章=R1..6、単語=W1..4、英英=利用可能レベル、タッチ、物語=なし）
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
-        if (gameType === 'marathon') setRank((r) => clamp(r + dir, 1, RANKS.length))
-        else if (gameType === 'wsent') setWsentLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
+        if (gameType === 'wsent') setWsentLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
         else if (gameType === 'words') setWordLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
         else if (gameType === 'dict') setDictLevel((l) => cycle(DICT_AVAILABLE_LEVELS, l, dir))
         else if (gameType === 'touch') setTouchLevel((l) => cycle(TOUCH_LEVEL_KEYS, l, dir))
@@ -141,7 +137,8 @@ export default function App() {
   const previewResult = useCallback(() => {
     const mock = {
       mode,
-      rank,
+      rank: wsentLevel,
+      source: 'wsent',
       speed: 480,
       keys: TARGET_KEYS,
       mistakes: 7,
@@ -151,16 +148,16 @@ export default function App() {
     }
     setLastResult(mock)
     setSegStats([
-      { no: 1, type: 'en', label: 'I go to school every day.', keys: 24, mistakes: 1, seconds: 4.2, speed: 340, partial: false },
-      { no: 2, type: 'ja', label: '私は毎日学校へ行きます。', keys: 30, mistakes: 2, seconds: 6.1, speed: 295, partial: false },
-      { no: 3, type: 'en', label: 'The weather is nice today.', keys: 26, mistakes: 0, seconds: 3.9, speed: 400, partial: true },
+      { no: 1, type: 'en', label: 'I drink water every morning.', keys: 24, mistakes: 1, seconds: 4.2, speed: 340, partial: false },
+      { no: 2, type: 'ja', label: '私は毎朝水を飲みます。', keys: 30, mistakes: 2, seconds: 6.1, speed: 295, partial: false },
+      { no: 3, type: 'en', label: 'This food is very good.', keys: 26, mistakes: 0, seconds: 3.9, speed: 400, partial: true },
     ])
     setRecords((prev) => ({
       ...prev,
-      [recKey(mode, rank)]: [{ ...mock, speed: 520, date: '過去の記録' }, mock],
+      [recKey(mode, wsentLevel, 'wsent')]: [{ ...mock, speed: 520, date: '過去の記録' }, mock],
     }))
     setPhase('result')
-  }, [mode, rank])
+  }, [mode, wsentLevel])
 
   return (
     <div className="app">
@@ -184,8 +181,6 @@ export default function App() {
           onTypeChange={setGameType}
           mode={mode}
           onModeChange={setMode}
-          rank={rank}
-          onRankChange={setRank}
           wsentLevel={wsentLevel}
           onWsentLevelChange={setWsentLevel}
           wordLevel={wordLevel}
@@ -253,8 +248,7 @@ export default function App() {
       {phase === 'playing' && (
         <MarathonView
           mode={mode}
-          rank={gameType === 'wsent' ? wsentLevel : rank}
-          rankText={gameType === 'wsent' ? `単語例文 L${wsentLevel}` : undefined}
+          rankText={`単語例文 L${wsentLevel}`}
           segments={segments}
           segIndex={segIndex}
           segInput={segInput}

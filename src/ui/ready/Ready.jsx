@@ -1,7 +1,6 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
 import { useState } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
-import { RANKS, SENTENCES } from '../../content/sentences.js'
 import { WORD_SENTENCES } from '../../content/wordSentences.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
 import { DICT, DICT_MODES } from '../../content/dictionary.js'
@@ -21,7 +20,6 @@ const countBy = (list, level, theme) =>
   list.filter((x) => x.level === level && (theme === 'すべて' || x.theme === theme)).length
 
 const GAME_TYPES = [
-  { key: 'marathon', icon: '📝', label: '文章', sub: '会話文を打つ' },
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
   { key: 'words', icon: '🔤', label: '単語', sub: '語彙を覚える' },
   { key: 'wsent', icon: '✍️', label: '単語例文', sub: '単語を文で使う' },
@@ -80,8 +78,6 @@ export default function Ready({
   onTypeChange,
   mode,
   onModeChange,
-  rank,
-  onRankChange,
   wsentLevel,
   onWsentLevelChange,
   wordLevel,
@@ -101,7 +97,6 @@ export default function Ready({
   onStart,
   records,
 }) {
-  const courses = [...new Set(RANKS.map((r) => r.course))]
   const [bottomTab, setBottomTab] = useState('records') // records | list
 
   return (
@@ -124,56 +119,6 @@ export default function Ready({
           </button>
         ))}
       </div>
-
-      {/* ── 文章（マラソン） ── */}
-      {gameType === 'marathon' && (
-        <>
-          <SectionLabel>レベル</SectionLabel>
-          <div className="rank-select">
-            {courses.map((course) => (
-              <div className="rank-group" key={course}>
-                <div className="rank-course">{course}</div>
-                <div className="rank-btns">
-                  {RANKS.filter((r) => r.course === course).map((r) => (
-                    <button
-                      key={r.rank}
-                      className={`rank-btn ${rank === r.rank ? 'active' : ''}`}
-                      onClick={() => onRankChange(r.rank)}
-                    >
-                      <span className="rank-no">R{r.rank}</span>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <SectionLabel>モード</SectionLabel>
-          <div className="mode-select">
-            {[...new Set(MODES.map((m) => m.group))].map((g) => (
-              <div className="mode-group" key={g}>
-                <div className="mode-course">{g}</div>
-                <ModeButtons
-                  modes={MODES.filter((m) => m.group === g)}
-                  value={mode}
-                  onChange={onModeChange}
-                />
-              </div>
-            ))}
-          </div>
-          <p className="mode-desc">{modeDesc(mode)} 600文字で終了します。</p>
-          <p className="pool-count">この条件の収録: {SENTENCES.filter((s) => s.rank === rank).length} 文</p>
-
-          <StartRow onStart={onStart} />
-          <BottomTabs value={bottomTab} onChange={setBottomTab} />
-          {bottomTab === 'list' ? (
-            <ItemList items={SENTENCES.filter((s) => s.rank === rank)} type="marathon" mode={mode} />
-          ) : (
-            <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
-          )}
-        </>
-      )}
 
       {/* ── 単語例文（レベル別） ── */}
       {gameType === 'wsent' && (

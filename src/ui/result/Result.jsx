@@ -1,12 +1,11 @@
 // 結果画面。
 import { modeLabel } from '../../content/modes.js'
-import { rankLabel } from '../../content/sentences.js'
 import { recKey } from '../../domain/records/ranking.js'
 import RecordsTable from './RecordsTable.jsx'
 import SegStatsTable from './SegStatsTable.jsx'
 
 export default function Result({ result, records, segStats, onRetry }) {
-  const rankText = result.source === 'wsent' ? `単語例文 L${result.rank}` : rankLabel(result.rank)
+  const rankText = `単語例文 L${result.rank}`
   return (
     <div className="result">
       <h2>記録</h2>
@@ -33,7 +32,6 @@ export default function Result({ result, records, segStats, onRetry }) {
       <RecordsTable
         records={records[recKey(result.mode, result.rank, result.source)]}
         modeKey={result.mode}
-        rank={result.rank}
         rankText={rankText}
         highlight={result.date}
       />
