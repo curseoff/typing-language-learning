@@ -10,6 +10,7 @@ import TranslateView from './TranslateView.jsx'
 export default function MarathonView({
   mode,
   rank,
+  rankText,
   segments,
   segIndex,
   segInput,
@@ -24,7 +25,7 @@ export default function MarathonView({
   return (
     <div className="game">
       <div className="play-meta">
-        <span className="meta-badge rank">{rankLabel(rank)}</span>
+        <span className="meta-badge rank">{rankText ?? rankLabel(rank)}</span>
         <span className="meta-badge mode">{modeLabel(mode)}</span>
       </div>
 

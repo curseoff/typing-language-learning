@@ -2,6 +2,7 @@
 // 実行: npm run validate
 // エラーがあれば終了コード1で落ちる(警告は落とさない)。
 import { SENTENCES, RANKS } from '../src/content/sentences.js'
+import { WORD_SENTENCES } from '../src/content/wordSentences.js'
 import { WORDS, WORD_LEVELS, WORD_THEMES, bandOf } from '../src/content/words.js'
 import { DICT } from '../src/content/dictionary.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
@@ -165,6 +166,39 @@ DICT.forEach((d, i) => {
   }
 })
 
+// ---- 単語の例文(wordSentences.js)の検証 ----
+// 各文は単語の使用例：word ∈ words.en、例文で実際に使用、level は単語と一致。
+const seenWS = new Map()
+WORD_SENTENCES.forEach((s, i) => {
+  const id = `例文#${i + 1} "${s?.word ?? '(word無し)'}"`
+  const err = (m) => errors.push(`${id}: ${m}`)
+  const warn = (m) => warnings.push(`${id}: ${m}`)
+
+  for (const f of ['level', 'word', 'en', 'ja', 'kana', 'jaWords']) {
+    if (s[f] === undefined || s[f] === null) err(`必須フィールド "${f}" がありません`)
+  }
+  if (!s.en || !s.ja || !s.kana || !Array.isArray(s.jaWords) || !s.word) return
+
+  const w = wordByEn.get(s.word)
+  if (!w) err(`word が単語(words.js)に存在しません → "${s.word}"`)
+  else {
+    if (!sentenceUsesWord(s.en, s.word)) err(`例文に単語 "${s.word}" が使われていません`)
+    if (w.level !== s.level) err(`level が単語と不一致（単語=L${w.level} / 例文=L${s.level}）`)
+  }
+  if (seenWS.has(s.word)) err(`word が重複（#${seenWS.get(s.word) + 1} と同じ）`)
+  else seenWS.set(s.word, i)
+
+  const roma = toRomaji(s.kana)
+  if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${s.kana}）`)
+  if (roma.includes('-') || s.kana.includes('ー')) warn(`長音「ー」が含まれます: ${s.kana}`)
+  if (kanaConsumed(s.kana, roma) !== [...s.kana].length)
+    warn(`kana が読みを完全消費していません（${s.kana} → ${roma}）`)
+
+  const joined = s.jaWords.join('')
+  const jaBody = s.ja.replace(TRAILING_PUNCT, '')
+  if (joined !== jaBody) err(`jaWords の連結が ja と不一致\n    連結: "${joined}"\n    期待: "${jaBody}"`)
+})
+
 // ランク別の件数と注意
 const dist = {}
 for (const s of SENTENCES) dist[s.rank] = (dist[s.rank] || 0) + 1
@@ -189,6 +223,8 @@ console.log(`  合計: ${WORDS.length}\n`)
 
 console.log(`— 英英辞典 —  合計: ${DICT.length}\n`)
 
+console.log(`— 単語の例文 —  合計: ${WORD_SENTENCES.length}\n`)
+
 if (warnings.length) {
   console.log(`⚠ 警告 ${warnings.length}件`)
   for (const w of warnings) console.log('  - ' + w)
@@ -202,4 +238,4 @@ if (errors.length) {
   process.exit(1)
 }
 
-console.log(`✓ 検証OK（${SENTENCES.length}文・${WORDS.length}単語・${DICT.length}英英・エラーなし）`)
+console.log(`✓ 検証OK（${SENTENCES.length}文・${WORDS.length}単語・${DICT.length}英英・${WORD_SENTENCES.length}例文・エラーなし）`)
