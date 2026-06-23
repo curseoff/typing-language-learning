@@ -30,9 +30,9 @@ export function useMarathon({ active, onFinish }) {
     return () => clearInterval(id)
   }, [active])
 
-  const start = useCallback((mode, rank) => {
-    ctxRef.current = { mode, rank }
-    setSegments(buildPassage(mode, rank))
+  const start = useCallback((mode, rank, source = 'sentence') => {
+    ctxRef.current = { mode, rank, source }
+    setSegments(buildPassage(mode, rank, source))
     setSegIndex(0)
     setSegInput('')
     setCompleted([])
@@ -51,10 +51,11 @@ export function useMarathon({ active, onFinish }) {
     (keys, totalMistakes, endTime) => {
       const elapsedMs = endTime - startTimeRef.current
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
-      const { mode, rank } = ctxRef.current
+      const { mode, rank, source } = ctxRef.current
       const record = {
         mode,
         rank,
+        source,
         speed,
         keys,
         mistakes: totalMistakes,
