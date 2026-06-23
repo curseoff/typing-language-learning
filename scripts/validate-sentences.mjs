@@ -106,6 +106,7 @@ WORDS.forEach((w, i) => {
 // ---- 英英辞典(dictionary.js)の検証 ----
 const DEF_OK = /^[a-z ]+$/ // 定義は英小文字と空白のみ（句読点なし）
 const seenDictWord = new Map()
+const wordByEn = new Map(WORDS.map((w) => [w.en, w])) // 英英は単語のサブセット（word ∈ words.en）
 
 DICT.forEach((d, i) => {
   const id = `英英#${i + 1} "${d?.word ?? '(word無し)'}"`
@@ -123,6 +124,16 @@ DICT.forEach((d, i) => {
   else seenDictWord.set(d.word, i)
   if (!LEVEL_SET.has(d.level)) err(`不正な level: ${d.level}`)
   if (!THEME_SET.has(d.theme)) err(`不正な theme: ${d.theme}`)
+
+  // 英英 ⊆ 単語：word は単語に存在し、level/theme も一致させる
+  const w = wordByEn.get(d.word)
+  if (!w) err(`word が単語(words.js)に存在しません（英英は単語のサブセット）`)
+  else {
+    if (w.level !== d.level) err(`level が単語と不一致（単語=L${w.level} / 英英=L${d.level}）`)
+    // theme は単語側で任意。単語が theme を持つ場合だけ一致を要求する
+    if (w.theme !== undefined && w.theme !== d.theme)
+      err(`theme が単語と不一致（単語=${w.theme} / 英英=${d.theme}）`)
+  }
 
   const roma = toRomaji(d.kana)
   if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${d.kana}）`)
