@@ -12,7 +12,8 @@
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
 - 何かを「完了」と言う前に必ず **`npm run check`**（lint→test→validate→build）を通す。
-- リリースは develop→master のPR。マージ後は **develop と master を揃え**、**マージ済みのローカル feature ブランチを削除**する。
+- **リリースPR（→master）の head は `develop` 直接ではなく `release/*` ブランチにする**（`release/* ← develop` を作って `release/* → master` でPR）。リポジトリは**マージ時 auto-delete** が有効で、develop を head にすると develop ごと削除されるため。release ブランチなら develop が残る。
+- マージ後は **develop と master を揃え**、**マージ済みのローカル feature/release ブランチを削除**する。万一 develop が消えていたら **master と同一内容で develop を再作成**して push する。
 
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
