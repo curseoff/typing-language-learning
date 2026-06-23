@@ -1,7 +1,7 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
 import { useState } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
-import { RANKS, SENTENCES } from '../../content/sentences.js'
+import { WORD_SENTENCES } from '../../content/wordSentences.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
 import { DICT, DICT_MODES } from '../../content/dictionary.js'
 import { TOUCH_LEVELS } from '../../content/keyboard.js'
@@ -20,9 +20,9 @@ const countBy = (list, level, theme) =>
   list.filter((x) => x.level === level && (theme === 'すべて' || x.theme === theme)).length
 
 const GAME_TYPES = [
-  { key: 'marathon', icon: '📝', label: '文章', sub: '会話文を打つ' },
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
   { key: 'words', icon: '🔤', label: '単語', sub: '語彙を覚える' },
+  { key: 'wsent', icon: '✍️', label: '単語例文', sub: '単語を文で使う' },
   { key: 'dict', icon: '📚', label: '英英辞典', sub: '英語で意味を学ぶ' },
   { key: 'touch', icon: '⌨️', label: 'タッチタイピング', sub: 'ブラインドタッチ' },
 ]
@@ -78,8 +78,8 @@ export default function Ready({
   onTypeChange,
   mode,
   onModeChange,
-  rank,
-  onRankChange,
+  wsentLevel,
+  onWsentLevelChange,
   wordLevel,
   wordTheme,
   wordMode,
@@ -97,7 +97,6 @@ export default function Ready({
   onStart,
   records,
 }) {
-  const courses = [...new Set(RANKS.map((r) => r.course))]
   const [bottomTab, setBottomTab] = useState('records') // records | list
 
   return (
@@ -121,28 +120,26 @@ export default function Ready({
         ))}
       </div>
 
-      {/* ── 文章（マラソン） ── */}
-      {gameType === 'marathon' && (
+      {/* ── 単語例文（レベル別） ── */}
+      {gameType === 'wsent' && (
         <>
           <SectionLabel>レベル</SectionLabel>
           <div className="rank-select">
-            {courses.map((course) => (
-              <div className="rank-group" key={course}>
-                <div className="rank-course">{course}</div>
-                <div className="rank-btns">
-                  {RANKS.filter((r) => r.course === course).map((r) => (
-                    <button
-                      key={r.rank}
-                      className={`rank-btn ${rank === r.rank ? 'active' : ''}`}
-                      onClick={() => onRankChange(r.rank)}
-                    >
-                      <span className="rank-no">R{r.rank}</span>
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="rank-group">
+              <div className="rank-course">語レベル</div>
+              <div className="rank-btns">
+                {WORD_LEVELS.map((l) => (
+                  <button
+                    key={l.level}
+                    className={`rank-btn ${wsentLevel === l.level ? 'active' : ''}`}
+                    onClick={() => onWsentLevelChange(l.level)}
+                  >
+                    <span className="rank-no">L{l.level}</span>
+                    {l.label}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
 
           <SectionLabel>モード</SectionLabel>
@@ -158,15 +155,25 @@ export default function Ready({
               </div>
             ))}
           </div>
-          <p className="mode-desc">{modeDesc(mode)} 600文字で終了します。</p>
-          <p className="pool-count">この条件の収録: {SENTENCES.filter((s) => s.rank === rank).length} 文</p>
+          <p className="mode-desc">{modeDesc(mode)} 単語を使った例文を打ちます。600文字で終了します。</p>
+          <p className="pool-count">
+            この条件の収録: {WORD_SENTENCES.filter((s) => s.level === wsentLevel).length} 文
+          </p>
 
           <StartRow onStart={onStart} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
-            <ItemList items={SENTENCES.filter((s) => s.rank === rank)} type="marathon" mode={mode} />
+            <ItemList
+              items={WORD_SENTENCES.filter((s) => s.level === wsentLevel)}
+              type="marathon"
+              mode={mode}
+            />
           ) : (
-            <RecordsTable records={records[recKey(mode, rank)]} modeKey={mode} rank={rank} />
+            <RecordsTable
+              records={records[recKey(mode, wsentLevel, 'wsent')]}
+              modeKey={mode}
+              rankText={`単語例文 L${wsentLevel}`}
+            />
           )}
         </>
       )}

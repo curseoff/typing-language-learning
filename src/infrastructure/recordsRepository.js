@@ -28,7 +28,7 @@ export function loadRecords() {
 // 記録を保存し、更新後の全記録を返す
 export function saveRecord(record) {
   const all = loadRecords()
-  const key = recKey(record.mode, record.rank)
+  const key = recKey(record.mode, record.rank, record.source)
   all[key] = rankInsert(all[key], record)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
   return all

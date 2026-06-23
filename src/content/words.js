@@ -19384,4 +19384,8 @@ export const WORDS = [
   { en: 'implode', ja: '内側へ崩れる', kana: 'うちがわへくずれる', freq: 20890, level: 4 },
   { en: 'parlay', ja: '活かし増やす', kana: 'いかしふやす', freq: 15650, level: 4 },
 
+  // ==== add-words で追加 ====
+  { en: 'reluctant', ja: '気が進まない', kana: 'きがすすまない', freq: 3200, level: 4, theme: '日常' },
+  { en: 'picturesque', ja: '絵のように美しい', kana: 'えのようにうつくしい', freq: 3300, level: 4, theme: '旅行' },
+
 ]

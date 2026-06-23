@@ -4,7 +4,8 @@
 
 ## 応答・進め方
 - **日本語で応答**する。
-- 破壊的・外部公開（push/PR/Issue/デプロイ等）は、まとめて委任されていなければ確認してから行う。
+- **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
+- **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
 
 ## Git / PR ワークフロー
@@ -12,18 +13,20 @@
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
 - 何かを「完了」と言う前に必ず **`npm run check`**（lint→test→validate→build）を通す。
-- リリースは develop→master のPR。マージ後は **develop と master を揃え**、**マージ済みのローカル feature ブランチを削除**する。
+- **リリースPRの head は `release/*` ブランチ**にする（develop 直接にしない＝マージ時 auto-delete で develop が消えるため）。マージ後は develop と master を揃え、不要ローカルブランチを削除。詳細は docs/DEVELOPMENT.md。
 
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
-- 通常はコミット案（実行可能なコマンド）を提示。複数ステップをまとめて委任された時は自分でコミットしてよい。
-- コミットが `1Password: failed to fill whole buffer` 等で失敗したら、1Password のロック解除を待つ（または許可があれば `--no-gpg-sign`）。
+- **修正したら毎回コミットまで自分で行う**（コミット案の提示で止めない）。push/PR は上記のとおり指示があるときだけ。
+- **AI（私）のコミットは専用の署名コマンドで打つ**（author/committer=AI名義・**ローカル鍵署名で1Password非依存**・Verified付き）。離席で 1Password がロックしても失敗しない。コマンドと理由は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
 
 ## コンテンツ規約（src/content）
 - 単語/英英/文章を足したら **`npm run validate`**（または `npm run check`）で必ず検証。
 - 単語：`en` は一意、`level = bandOf(freq)`、`theme` は任意（`日常/旅行/ビジネス`）。
-- **読みの落とし穴を避ける**：長音「ー」、`づ`/`ぢ`、特殊拗音（ティ/ファ/チェ 等）。英英 `def` は英小文字＋空白のみ。
-- **大量追加は `npm run add-words <候補.tsv>`**（読み自動生成＋重複/読みの事前チェック）。`-- --write` で words.js に追記。詳細は docs/CONTENT.md。
+- **コンテンツは単語を軸に結ぶ**：英英＝その単語の意味を英語で説明、文章＝その単語を使った例文。詳細は docs/CONTENT.md。
+- **英英は単語のサブセット**：`word` は必ず単語（words.js）に在る語にし、`level`/`theme` も単語に合わせる（validate強制）。新規英英は既存単語から作る。`def` は英小文字＋空白のみ。
+- **読みの落とし穴を避ける**：長音「ー」、`づ`/`ぢ`、特殊拗音（ティ/ファ/チェ 等）。
+- **大量追加は `npm run add-words <候補.tsv>`**（読み自動生成＋重複/読みの事前チェック、`-- --write` で追記）。**数千語規模は役割別サブエージェント並列**（生成→add-words→点検）。手順は docs/CONTENT.md。
 
 ## アーキテクチャ（詳細は docs/ARCHITECTURE.md）
 - **`.js` = ドメイン/データ、`.jsx` = UI**。依存は内向き（`ui → application → domain`、`application → infrastructure`）。

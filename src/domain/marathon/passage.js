@@ -1,14 +1,14 @@
 // マラソンの出題（パッセージ）生成。
 import { buildUnits } from '../typing/units.js'
-import { SENTENCES } from '../../content/sentences.js'
+import { WORD_SENTENCES } from '../../content/wordSentences.js'
 
 export const TARGET_KEYS = 600 // この文字数を打ち切ったら終了
 
-// モード・ランクに応じてセグメント列を作る。各文は buildUnits でセグメント化し、
-// sentenceIndex を付与して連結（600文字を超えるまで）。
+// 単語例文（WORD_SENTENCES）からレベル別にセグメント列を作る。各文は buildUnits で
+// セグメント化し、sentenceIndex を付与して連結（600文字を超えるまで）。rank=対象語レベル。
 export function buildPassage(mode, rank) {
-  const pool = SENTENCES.filter((s) => s.rank === rank)
-  const base = pool.length > 0 ? pool : SENTENCES
+  const pool = WORD_SENTENCES.filter((s) => s.level === rank)
+  const base = pool.length > 0 ? pool : WORD_SENTENCES
   const shuffled = [...base].sort(() => Math.random() - 0.5)
   const segments = []
   let approx = 0
