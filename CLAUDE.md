@@ -18,7 +18,15 @@
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
 - 通常はコミット案（実行可能なコマンド）を提示。複数ステップをまとめて委任された時は自分でコミットしてよい。
-- コミットが `1Password: failed to fill whole buffer` 等で失敗したら、1Password のロック解除を待つ（または許可があれば `--no-gpg-sign`）。
+- **AI（私）が打つコミットは必ず次の形**にする：author・committer とも **AI 名義**／**ローカル署名鍵（1Password非依存）**。離席で 1Password がロックしても失敗せず、AI 製と分かり Verified も付く。
+  ```bash
+  GIT_COMMITTER_NAME="Atsushi Yamaguchi (AI)" GIT_COMMITTER_EMAIL="libertyrh@gmail.com" \
+  git -c gpg.ssh.program=ssh-keygen -c user.signingkey=~/.ssh/ai-signing.pub \
+    commit --author="Atsushi Yamaguchi (AI) <libertyrh+ai@gmail.com>" -m "..."
+  ```
+  - **committer のメールは検証済みの `libertyrh@gmail.com`**（名前は `(AI)`）。GitHub の Verified は committer メールが検証済みであることを要件にするため。author のメールは `libertyrh+ai@gmail.com`。
+  - 人間（本人）の `git commit` は従来どおり（本人名義・1Password 署名）。グローバル/リポジトリ設定は変更しない（上書きは `-c` でその場限り）。
+  - 署名鍵 `~/.ssh/ai-signing` はパスフレーズなし。公開鍵は GitHub に signing key 登録済み。
 
 ## コンテンツ規約（src/content）
 - 単語/英英/文章を足したら **`npm run validate`**（または `npm run check`）で必ず検証。
