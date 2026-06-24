@@ -32,7 +32,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -41,7 +41,7 @@
     "concurrently": "^10.0.3",
     "electron": "^42.5.0",
     "electron-builder": "^26.15.3",
-    "eslint": "^9.39.4",
+    "eslint": "^10.5.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
