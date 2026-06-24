@@ -9,6 +9,22 @@ describe('alignJaToKana', () => {
     expect(alignJaToKana('見込みの', 'みこみの')).toEqual([1, 2, 3, 4])
   })
 
+  it('カタカナ長音ー＋漢字の送り仮名が正しく対応する（チーム/私たち の回帰）', () => {
+    // 旧バグ: 私(わたし)の送り仮名「たち」が読み「わ『た』し」の た に誤マッチし全体がズレ、
+    //         「ー」が変な読みに対応して反応しなくなっていた。
+    const ja = '私たちのチームは'
+    const kana = 'わたしたちのちいむは'
+    const ends = alignJaToKana(ja, kana)
+    const jc = [...ja]
+    const kc = [...kana]
+    const seg = (i) => kc.slice(i === 0 ? 0 : ends[i - 1], ends[i]).join('')
+    expect(jc[0]).toBe('私')
+    expect(seg(0)).toBe('わたし') // 私 → わたし
+    expect(jc[5]).toBe('ー')
+    expect(seg(5)).toBe('い') // ー → い（チーム＝ちいむ）
+    expect(seg(6)).toBe('む') // ム → む
+  })
+
   it('入力ゼロなら、先頭が漢字の語の漢字doneは0', () => {
     const seg = { ja: '見込みの', kana: 'みこみの' }
     expect(kanjiDone(seg, '')).toBe(0)

@@ -44,10 +44,25 @@ export function alignJaToKana(ja, kana) {
       const next = tokens[ti + 1]
       let anchor = hira.length
       if (next) {
-        // 送り仮名の検索開始は ki+漢字数（各漢字は最低1かな消費）。
-        // これで読みに同じかなが複数あっても、漢字内の先頭かなへ誤マッチしない。
-        const p = hira.indexOf(toH(next.chars[0]), ki + tok.chars.length)
-        if (p >= 0) anchor = p
+        // 送り仮名の位置決め：次のかなトークンの読み（カタカナ→ひらがな、長音ーは任意1字）を
+        // 「できるだけ長い並び」で探す。先頭1字だけだと、漢字自身の読みに含まれる同じかな
+        // （例: 私=わた「し」 の「た」）へ誤マッチして全体がズレるため。検索開始は ki+漢字数
+        // （各漢字は最低1かな消費）。長音ー（チーム→ちいむ 等）は読みの母音1字に対応する。
+        const minStart = ki + tok.chars.length
+        const pat = next.chars.map(toH)
+        const matchAt = (i, len) => {
+          for (let j = 0; j < len; j++) {
+            if (pat[j] !== 'ー' && pat[j] !== hira[i + j]) return false
+          }
+          return true
+        }
+        let found = -1
+        for (let len = pat.length; len >= 1 && found < 0; len--) {
+          for (let i = minStart; i + len <= hira.length && found < 0; i++) {
+            if (matchAt(i, len)) found = i
+          }
+        }
+        if (found >= 0) anchor = found
       }
       const start = ki
       const span = Math.max(anchor - start, 0)
