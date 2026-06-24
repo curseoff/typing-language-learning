@@ -36,11 +36,17 @@ const bases = (t) => {
   if (t.endsWith('s')) f.push(t.slice(0, -1))
   if (t.endsWith('ed')) f.push(t.slice(0, -2), t.slice(0, -1))
   if (t.endsWith('ing')) f.push(t.slice(0, -3), t.slice(0, -3) + 'e')
+  // 子音重ね（tipped→tip, running→run）: 末尾2文字が同じ子音なら1つ落とす
+  const dbl = t.match(/^([a-z]+?)([bcdfghjklmnpqrstvwxz])\2(?:ed|ing)$/)
+  if (dbl) f.push(dbl[1] + dbl[2])
   return f
 }
 const uses = (en, w) => {
-  const tk = (en || '').toLowerCase().match(/[a-z]+/g) || []
-  return tk.some((t) => t === w || bases(t).includes(w))
+  const lc = (en || '').toLowerCase()
+  const tk = lc.match(/[a-z]+/g) || []
+  if (tk.some((t) => t === w || bases(t).includes(w))) return true
+  // 融合語（deliverup=「deliver up」）: 単語境界を除いた連結でも照合する
+  return lc.replace(/[^a-z]+/g, '').includes(w)
 }
 function validate(s) {
   const e = []
