@@ -21,7 +21,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
-  const startTimeRef = useRef(null)
+  const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
 
   // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
@@ -44,7 +44,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
     setNow(0)
     setFinished(false)
     setResult(null)
-    startTimeRef.current = null
+    setStartTime(null)
   }, [allWords, level, theme, mode])
 
   useEffect(() => {
@@ -53,20 +53,20 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
     return () => clearInterval(id)
   }, [finished])
 
-  const started = startTimeRef.current !== null
+  const started = startTime !== null
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
-    const min = (now - startTimeRef.current) / 60000
+    const min = (now - startTime) / 60000
     return min > 0 ? Math.round(typedKeys / min) : 0
-  }, [now, typedKeys, started])
+  }, [now, typedKeys, started, startTime])
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
+    return Math.round((now - startTime) / 100) / 10
+  }, [now, started, startTime])
 
   const finish = useCallback(
-    (keys, totalMistakes, endTime) => {
-      const elapsedMs = endTime - startTimeRef.current
+    (keys, totalMistakes, endTime, startedAt) => {
+      const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
         level,
@@ -107,7 +107,8 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
       const candidate = input + e.key
       if (segMatches(seg, candidate)) {
         const t = performance.now()
-        if (startTimeRef.current === null) startTimeRef.current = t
+        const startedAt = startTime ?? t // この打鍵で開始した場合も正しい開始時刻を使う
+        setStartTime((p) => p ?? t)
         setHasError(false)
         trackKey(trackerRef.current, itemId('w', mode, seg.en)) // 単語ごと×モード別
         const newKeys = typedKeys + 1
@@ -115,14 +116,14 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
 
         if (newKeys >= TARGET_KEYS) {
           flushTracker(trackerRef.current)
-          finish(newKeys, mistakes, t)
+          finish(newKeys, mistakes, t, startedAt)
           return
         }
         if (seg.variants.includes(candidate)) {
           // 単語を打ち尽くした場合は終了（600未満でも詰まないように）
           if (segIndex + 1 >= segments.length) {
             flushTracker(trackerRef.current)
-            finish(newKeys, mistakes, t)
+            finish(newKeys, mistakes, t, startedAt)
             return
           }
           setCompleted((c) => [...c, candidate])
@@ -139,7 +140,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, mode, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, mode, startTime, onExit, restart, finish])
 
   return {
     segments,

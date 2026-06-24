@@ -1,6 +1,6 @@
 // 英英辞典の選択式（打って選ぶ）。
 // kind='quiz': 定義→英単語4択（回答後に和訳開示） / kind='pick': 単語+和訳→説明文4択
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   DICT_QUIZ_COUNT,
   DICT_TYPE_COUNT,
@@ -27,7 +27,7 @@ export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
-  const startTimeRef = useRef(null)
+  const [startTime, setStartTime] = useState(null)
 
   const q = questions[index]
 
@@ -42,7 +42,7 @@ export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
     setNow(0)
     setFinished(false)
     setResult(null)
-    startTimeRef.current = null
+    setStartTime(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level, theme, kind])
 
@@ -52,15 +52,15 @@ export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
     return () => clearInterval(id)
   }, [finished])
 
-  const started = startTimeRef.current !== null
+  const started = startTime !== null
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
+    return Math.round((now - startTime) / 100) / 10
+  }, [now, started, startTime])
 
   const finish = useCallback(
     (correctCount, totalMistakes, endTime) => {
-      const seconds = Math.round((endTime - startTimeRef.current) / 100) / 10
+      const seconds = Math.round((endTime - startTime) / 100) / 10
       const total = questions.length
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
       const record = {
@@ -78,11 +78,12 @@ export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, kind, questions.length],
+    [level, theme, kind, questions.length, startTime],
   )
 
   const commit = useCallback((option) => {
-    if (startTimeRef.current === null) startTimeRef.current = performance.now()
+    const _t = performance.now()
+    setStartTime((p) => p ?? _t)
     setPicked(option)
     if (option.answer) setCorrect((c) => c + 1)
   }, [])
@@ -138,7 +139,8 @@ export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
       e.preventDefault()
       const candidate = input + e.key
       if (q.options.some((o) => o.variants.some((v) => v.startsWith(candidate)))) {
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const _t = performance.now()
+        setStartTime((p) => p ?? _t)
         setHasError(false)
         setInput(candidate)
         const hit = q.options.find((o) => o.variants.includes(candidate))
