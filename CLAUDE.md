@@ -14,6 +14,7 @@
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
 - 何かを「完了」と言う前に必ず **`npm run check`**（lint→test→validate→build）を通す。
 - **リリースPRの head は `release/*` ブランチ**にする（develop 直接にしない＝マージ時 auto-delete で develop が消えるため）。マージ後は develop と master を揃え、不要ローカルブランチを削除。詳細は docs/DEVELOPMENT.md。
+- **リリース時は `package.json` の `version` を上げ**（TOP表示に出る）、master 反映後に **GitHub Release を作成**（タグ `vX.Y.Z`＝マージコミット、要約ノート）。`env -u GITHUB_TOKEN gh release create vX.Y.Z --target <フルSHA> --latest --title ... --notes ...`（`--target` はフルSHA必須）。
 
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
