@@ -1,7 +1,7 @@
 // 教材データ(単語・英英・単語例文)の整合性チェック。
 // 実行: npm run validate
 // エラーがあれば終了コード1で落ちる(警告は落とさない)。
-import { WORD_SENTENCES } from '../src/content/wordSentences.js'
+import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
 import { WORDS, WORD_LEVELS, WORD_THEMES, bandOf } from '../src/content/words.js'
 import { DICT } from '../src/content/dictionary.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'

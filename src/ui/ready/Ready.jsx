@@ -1,7 +1,7 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
-import { WORD_SENTENCES } from '../../content/wordSentences.js'
+import { WSENT_COUNTS, loadWsentLevel } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
 import { DICT, DICT_MODES } from '../../content/dictionary.js'
 import { TOUCH_LEVELS } from '../../content/keyboard.js'
@@ -51,6 +51,21 @@ function ModeButtons({ modes, value, onChange }) {
 
 function SectionLabel({ children }) {
   return <div className="section-label">{children}</div>
+}
+
+// 単語例文の収録一覧。レベルの例文を遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
+function WsentList({ level, mode }) {
+  const [items, setItems] = useState(null)
+  useEffect(() => {
+    let alive = true
+    setItems(null)
+    loadWsentLevel(level).then((arr) => alive && setItems(arr))
+    return () => {
+      alive = false
+    }
+  }, [level])
+  if (!items) return <p className="pool-count">読み込み中…</p>
+  return <ItemList items={items} type="marathon" mode={mode} />
 }
 
 // 下部の「記録ランキング / 収録一覧」切り替え
@@ -156,18 +171,12 @@ export default function Ready({
             ))}
           </div>
           <p className="mode-desc">{modeDesc(mode)} 単語を使った例文を打ちます。600文字で終了します。</p>
-          <p className="pool-count">
-            この条件の収録: {WORD_SENTENCES.filter((s) => s.level === wsentLevel).length} 文
-          </p>
+          <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]} 文</p>
 
           <StartRow onStart={onStart} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
-            <ItemList
-              items={WORD_SENTENCES.filter((s) => s.level === wsentLevel)}
-              type="marathon"
-              mode={mode}
-            />
+            <WsentList level={wsentLevel} mode={mode} />
           ) : (
             <RecordsTable
               records={records[recKey(mode, wsentLevel, 'wsent')]}

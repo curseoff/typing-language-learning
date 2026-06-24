@@ -1,7 +1,8 @@
 // App のスモークテスト：各モードが「白画面」にならず、開始してプレイ画面が描画されることを自動確認。
 // 手作業で全タブをクリックして回る動作確認を肩代わりする。
+// ※ 単語例文(wsent)はレベル別の例文を遅延 import してから開始するため、waitFor で非同期に待つ。
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import App from '../App.jsx'
 
 const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
@@ -26,28 +27,31 @@ describe('App スモーク', () => {
     for (const t of TABS) expect(within(tabs).getByText(t)).toBeInTheDocument()
   })
 
-  it.each(TABS)('「%s」を選んで開始してもクラッシュせずプレイ画面になる', (label) => {
+  it.each(TABS)('「%s」を選んで開始してもクラッシュせずプレイ画面になる', async (label) => {
     const { container } = render(<App />)
     clickTab(container, label)
     start()
-    // Ready が外れ、プレイ画面（.game か .story-*）が出ている＝白画面でない
-    expect(container.querySelector('.ready')).toBeNull()
-    expect(container.querySelector('.game, .story-prompt, .story-en')).not.toBeNull()
+    // Ready が外れ、プレイ画面（.game か .story-*）が出ている＝白画面でない（wsentは非同期）
+    await waitFor(() => {
+      expect(container.querySelector('.ready')).toBeNull()
+      expect(container.querySelector('.game, .story-prompt, .story-en')).not.toBeNull()
+    })
   })
 
-  it('単語例文を開始すると例文の打鍵画面（「単語例文 L1」バッジ）が出る', () => {
+  const badgeText = (container) => container.querySelector('.meta-badge.rank')?.textContent
+
+  it('単語例文を開始すると例文の打鍵画面（「単語例文 L1」バッジ）が出る', async () => {
     const { container } = render(<App />)
     clickTab(container, '単語例文')
     start()
-    expect(screen.getByText(/単語例文 L1/)).toBeInTheDocument()
+    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L1/))
   })
 
-  it('レベル選択（↑↓相当のボタン）でプールが切り替わる：単語例文 L2 を選べる', () => {
+  it('レベル選択で別レベルを選べる：単語例文 L2', async () => {
     const { container } = render(<App />)
     clickTab(container, '単語例文')
-    // 語レベル L2 のボタンをクリック
     fireEvent.click(within(container).getByText('L2', { exact: false }))
     start()
-    expect(screen.getByText(/単語例文 L2/)).toBeInTheDocument()
+    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/))
   })
 })

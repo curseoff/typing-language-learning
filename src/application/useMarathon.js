@@ -30,9 +30,9 @@ export function useMarathon({ active, onFinish }) {
     return () => clearInterval(id)
   }, [active])
 
-  const start = useCallback((mode, rank, source = 'sentence') => {
+  const start = useCallback((mode, rank, source, pool) => {
     ctxRef.current = { mode, rank, source }
-    setSegments(buildPassage(mode, rank, source))
+    setSegments(buildPassage(mode, pool))
     setSegIndex(0)
     setSegInput('')
     setCompleted([])

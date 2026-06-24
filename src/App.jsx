@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES } from './content/words.js'
+import { loadWsentLevel } from './content/wordSentences/index.js'
 import { DICT_MODES } from './content/dictionary.js'
 import { TOUCH_LEVELS } from './content/keyboard.js'
 import { DICT_AVAILABLE_LEVELS } from './domain/dictionary/dictset.js'
@@ -71,8 +72,10 @@ export default function App() {
     elapsedSec,
   } = useMarathon({ active: phase === 'playing', onFinish })
 
-  const startGame = useCallback(() => {
-    startMarathon(mode, wsentLevel, 'wsent')
+  const startGame = useCallback(async () => {
+    // 対象レベルの例文だけ遅延読み込みしてから開始（初回バンドルに全例文を含めない）
+    const pool = await loadWsentLevel(wsentLevel)
+    startMarathon(mode, wsentLevel, 'wsent', pool)
     setPhase('playing')
   }, [startMarathon, mode, wsentLevel])
 

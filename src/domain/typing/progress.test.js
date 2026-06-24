@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { alignJaToKana, kanjiDone, rubyParts } from './progress.js'
 import { WORDS } from '../../content/words.js'
-import { WORD_SENTENCES } from '../../content/wordSentences.js'
+import { WORD_SENTENCES } from '../../content/wordSentences/all.js'
 
 describe('alignJaToKana', () => {
   it('送り仮名が読み先頭の同一かなへ誤マッチしない（見込みの・回帰）', () => {

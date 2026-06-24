@@ -1,6 +1,6 @@
 // 単語例文のマージ・構造検証。out-*.json（あれば out-redo.json を優先）を検証し、
 // OK/NG を仕分けて ok.json / bad.json / redo.json を書く。--write で読み修正(revfix-*.json)を
-// 適用し、WORD_SENTENCES（src/content/wordSentences.js）へ追記・再生成する。
+// 適用し、WORD_SENTENCES（src/content/wordSentences/L1..L4.js）へ追記・再生成する。
 //
 // 使い方:
 //   node scripts/merge-sentences.mjs               # 検証のみ → ok.json / bad.json / redo.json
@@ -13,7 +13,7 @@
 
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { WORDS } from '../src/content/words.js'
-import { WORD_SENTENCES } from '../src/content/wordSentences.js'
+import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
 const arg = (name, def) => {
@@ -131,14 +131,26 @@ if (write) {
   const merged = [...WORD_SENTENCES, ...ok]
   const uniq = new Map(merged.map((s) => [s.word, s]))
   const list = [...uniq.values()].sort((a, b) => a.level - b.level || a.word.localeCompare(b.word))
-  const header =
-    '// 単語の例文（単語ドリブン）。各文は1つの単語(word ∈ words.js の en)の使用例。\n' +
-    '// level=対象語のレベル。en/ja/kana/jaWords は jaWords 連結=ja の句読点除き。\n' +
-    '// 注意: kana はひらがなのみ・長音「ー」を含めない。検証は scripts/validate-sentences.mjs。\n' +
-    '// ※ 出題は種類タブ「単語例文(wsent)」で語レベル別に。生成は scripts/gen-sentences.mjs。\n\n'
-  const path = new URL('../src/content/wordSentences.js', import.meta.url)
-  writeFileSync(path, header + 'export const WORD_SENTENCES = [\n' + list.map(line).join('\n') + '\n]\n')
-  console.log(`\n✓ wordSentences.js に追記。合計 ${list.length}件。続けて: npm run check`)
+  // レベル別ファイル（遅延読み込み用）を再生成し、index の件数も更新する
+  const dirUrl = (p) => new URL(`../src/content/wordSentences/${p}`, import.meta.url)
+  const counts = {}
+  for (const lv of [1, 2, 3, 4]) {
+    const arr = list.filter((s) => s.level === lv)
+    counts[lv] = arr.length
+    writeFileSync(
+      dirUrl(`L${lv}.js`),
+      `// 単語例文 L${lv}（自動分割。生成は scripts/gen-sentences→merge-sentences）。\nexport default [\n${arr.map(line).join('\n')}\n]\n`,
+    )
+  }
+  writeFileSync(
+    dirUrl('index.js'),
+    '// 単語例文の遅延読み込み。初回バンドルに全例文を含めないよう、レベル別に分割し動的importする。\n' +
+      '// アプリ側はこの index 経由でアクセス（静的に全件 import しないこと）。Node ツールは ./all.js を使う。\n' +
+      `export const WSENT_COUNTS = ${JSON.stringify(counts)}\n` +
+      "const loaders = { 1: () => import('./L1.js'), 2: () => import('./L2.js'), 3: () => import('./L3.js'), 4: () => import('./L4.js') }\n" +
+      'export const loadWsentLevel = (level) => loaders[level]().then((m) => m.default)\n',
+  )
+  console.log(`\n✓ wordSentences/L1..L4.js を更新。合計 ${list.length}件。続けて: npm run check`)
 }
 
 process.exit(bad.length && !write ? 0 : 0)

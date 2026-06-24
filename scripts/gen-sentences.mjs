@@ -10,7 +10,7 @@
 
 import { mkdirSync, writeFileSync, readdirSync, rmSync } from 'node:fs'
 import { WORDS } from '../src/content/words.js'
-import { WORD_SENTENCES } from '../src/content/wordSentences.js'
+import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
 
 const arg = (name, def) => {
   const i = process.argv.indexOf(`--${name}`)
