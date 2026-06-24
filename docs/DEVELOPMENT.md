@@ -22,6 +22,7 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run preview` | ビルド成果物のプレビュー |
 | `npm run lint` | ESLint（未定義参照・Hooks依存ミス等を検出） |
 | `npm run test` | Vitest（ドメインの回帰テスト＋UIスモーク） |
+| `npm run coverage` | カバレッジ計測（`coverage/` にHTML）＋閾値ゲート |
 | `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
 | **`npm run check`** | **lint → test → validate → build を一括実行** |
 | `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 2048KB） |
@@ -38,6 +39,9 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
   - ドメイン層（`romaji` / `typing` / `marathon` / `words` / `dictionary` / `records`）の回帰テスト（node 環境）
   - **UIスモーク**（`src/ui/App.smoke.test.jsx`, jsdom 環境）：各モードを開始してプレイ画面が描画されるか（白画面/モード破壊の自動検出）。`vite.config.js` の `environmentMatchGlobs` で `src/ui/**` だけ jsdom。
   - 過去の不具合（漢字↔読みアライメント、600文字で詰む 等）をテストで固定
+- **カバレッジ**（`npm run coverage`, v8）
+  - `coverage/` にHTMLレポート。`vite.config.js` の `test.coverage.thresholds` で退行ゲート（現状 statements/lines≈54% / branches≈76% / functions≈64%）。
+  - 入力エンジン（`domain/romaji` ≈100% / `domain/typing/units` のバリアント生成・翻訳モード）は重点的にテスト。UIフックは未カバーが多く今後の伸びしろ。
 - **スクリーンショット一覧**（`scripts/screenshots.mjs`）
   - `npm run screenshots` で build → preview → 各タブ（`?tab=` ディープリンク）をヘッドレスChromeで撮影 → `/tmp/app-shots/contact.png` に一覧化。クリックして回る目視確認を1枚に。
   - Chrome のパスは `CHROME=...` で上書き可。既存 dist を使うなら `-- --no-build`。
