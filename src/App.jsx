@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
-import { WORD_LEVELS, WORD_MODES } from './content/words.js'
+import { WORD_LEVELS, WORD_MODES, loadWords } from './content/words.js'
 import { loadWsentLevel } from './content/wordSentences/index.js'
 import { DICT_MODES } from './content/dictionary.js'
 import { TOUCH_LEVELS } from './content/keyboard.js'
@@ -44,6 +44,7 @@ export default function App() {
   const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
   const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
   const [wordMode, setWordMode] = useState('en') // both | en | ja | quiz-en | quiz-ja
+  const [wordsData, setWordsData] = useState(null) // 単語データ（遅延読み込み）
   const [dictLevel, setDictLevel] = useState(DICT_AVAILABLE_LEVELS[0] ?? 1) // 英英のレベル
   const [dictTheme, setDictTheme] = useState('すべて') // 英英のテーマ
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
@@ -81,7 +82,11 @@ export default function App() {
 
   const start = useCallback(() => {
     if (gameType === 'words') {
-      setPhase('words')
+      // 単語データ（約1.6MB）を遅延読み込みしてから単語モードへ
+      loadWords().then((w) => {
+        setWordsData(w)
+        setPhase('words')
+      })
     } else if (gameType === 'dict') {
       setPhase('dict')
     } else if (gameType === 'touch') {
@@ -224,6 +229,7 @@ export default function App() {
       {phase === 'words' && (
         <WordsView
           key={`${wordLevel}-${wordTheme}-${wordMode}`}
+          words={wordsData}
           level={wordLevel}
           theme={wordTheme}
           mode={wordMode}

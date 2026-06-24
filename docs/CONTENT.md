@@ -41,6 +41,7 @@
 - `en`: 英小文字の1語（重複不可）
 - `ja`/`kana`: 和訳とその読み
 - `level`: 1〜4（`WORD_LEVELS`：基礎/初級/中級/上級）
+- データは大きい(約1.6MB)ので `wordsData.js` に分離し**遅延 import**（アプリは `loadWords()`／`WORD_COUNTS`、Nodeは `wordsAll.js`）
 - `theme`: `日常` / `旅行` / `ビジネス`（`WORD_THEMES`）
 
 ## 英英辞典（`content/dictionary.js`）

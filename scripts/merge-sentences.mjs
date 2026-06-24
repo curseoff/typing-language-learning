@@ -12,7 +12,7 @@
 //   → merge-sentences → check-readings → (agentで revfix-NN.json) → merge-sentences --write
 
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
-import { WORDS } from '../src/content/words.js'
+import { WORDS } from '../src/content/wordsAll.js'
 import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 

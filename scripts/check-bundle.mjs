@@ -2,7 +2,7 @@
 // 全コンテンツを静的 import に戻す等で初回バンドルが肥大化したらCIで落とす。
 import { readdirSync, statSync } from 'node:fs'
 
-const BUDGET_KB = Number(process.env.BUNDLE_BUDGET_KB || 2048) // 初回エントリの上限
+const BUDGET_KB = Number(process.env.BUNDLE_BUDGET_KB || 512) // 初回エントリの上限（現状~240KB）
 const dir = 'dist/assets'
 
 let entry

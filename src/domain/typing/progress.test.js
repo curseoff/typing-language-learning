@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { alignJaToKana, kanjiDone, rubyParts } from './progress.js'
-import { WORDS } from '../../content/words.js'
+import { WORDS } from '../../content/wordsAll.js'
 import { WORD_SENTENCES } from '../../content/wordSentences/all.js'
 
 describe('alignJaToKana', () => {

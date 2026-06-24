@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel } from '../../content/wordSentences/index.js'
-import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORDS } from '../../content/words.js'
+import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { DICT, DICT_MODES } from '../../content/dictionary.js'
 import { TOUCH_LEVELS } from '../../content/keyboard.js'
 import { STORY } from '../../content/story.js'
@@ -66,6 +66,21 @@ function WsentList({ level, mode }) {
   }, [level])
   if (!items) return <p className="pool-count">読み込み中…</p>
   return <ItemList items={items} type="marathon" mode={mode} />
+}
+
+// 単語の収録一覧。単語データを遅延読み込みしてレベル×テーマで絞る。
+function WordsList({ level, theme, mode }) {
+  const [words, setWords] = useState(null)
+  useEffect(() => {
+    let alive = true
+    loadWords().then((arr) => alive && setWords(arr))
+    return () => {
+      alive = false
+    }
+  }, [])
+  if (!words) return <p className="pool-count">読み込み中…</p>
+  const items = words.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
+  return <ItemList items={items} type="words" mode={mode} />
 }
 
 // 下部の「記録ランキング / 収録一覧」切り替え
@@ -269,18 +284,14 @@ export default function Ready({
             </div>
           </div>
           <p className="mode-desc">{wordModeDesc(wordMode)}</p>
-          <p className="pool-count">この条件の収録: {countBy(WORDS, wordLevel, wordTheme)} 語</p>
+          <p className="pool-count">
+            この条件の収録: {WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0} 語
+          </p>
 
           <StartRow onStart={onStart} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
-            <ItemList
-              items={WORDS.filter(
-                (w) => w.level === wordLevel && (wordTheme === 'すべて' || w.theme === wordTheme),
-              )}
-              type="words"
-              mode={wordMode}
-            />
+            <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
           ) : (
             <WordRecords
               list={loadWordRecords()[wordRecKey(wordLevel, wordTheme, wordMode)]}

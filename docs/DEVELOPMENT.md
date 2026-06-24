@@ -55,8 +55,10 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 
 ## バンドルサイズ
 
-- 大きいコンテンツ（単語例文 約6MB）は **遅延 import**（`src/content/wordSentences/`）で初回バンドルから外す。初回エントリは約1.6MB。
-- `npm run check-bundle` がエントリJSのサイズ予算（`BUNDLE_BUDGET_KB`、既定2048）を超えたら失敗 → 静的 import への先祖返りを防ぐ。
+- 大きいコンテンツは **遅延 import** で初回バンドルから外す：**単語例文**（`src/content/wordSentences/` レベル別）と**単語データ**（`src/content/wordsData.js`）。アプリは `loadWsentLevel()` / `loadWords()`＋件数表（`WSENT_COUNTS` / `WORD_COUNTS`）を使う。
+- 効果：初回エントリ **6.9MB → 約240KB**（選んだレベル/モードの時だけ各チャンクを取得）。
+- `npm run check-bundle` がエントリJSのサイズ予算（`BUNDLE_BUDGET_KB`、既定512）を超えたら失敗 → 静的 import への先祖返りを防ぐ。
+- Node ツール（validate/生成）は全件版（`wordsAll.js` / `wordSentences/all.js`）を使う。
 
 ## CI（GitHub Actions）
 
