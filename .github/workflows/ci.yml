@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm # arm64 ランナー（ローカルの check:ci と同アーキで一致・Rosetta非依存）
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4

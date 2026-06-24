@@ -32,7 +32,7 @@ describe('alignJaToKana', () => {
     }
     for (const w of WORDS) check(w)
     for (const s of WORD_SENTENCES) check(s)
-  })
+  }, 30000) // 約3.8万件の走査。CIが遅いと既定5秒を超えるため延長
 })
 
 describe('rubyParts (ふりがな)', () => {
