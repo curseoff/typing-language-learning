@@ -74,9 +74,14 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 ## CI（GitHub Actions）
 
 - ランナーは **arm64（`ubuntu-24.04-arm`）** に統一（ローカル `check:ci` と同アーキ）。
-- `.github/workflows/ci.yml` … `develop` / `master` への push・PR で `npm run check`＋`npm run audit`＋`npm run coverage` を自動実行
-- `.github/workflows/deploy.yml` … `master` への push で本番（GitHub Pages）へ自動デプロイ
-- `.github/dependabot.yml` … npm / github-actions の更新を週次でPR化
+- `.github/workflows/ci.yml` … `develop` / `master` への push・PR で lint / validate / build / check-bundle / coverage / audit を実行。
+- `.github/workflows/deploy.yml` … `master` への push で本番（GitHub Pages）へ自動デプロイ。
+- `.github/dependabot.yml` … npm / github-actions の更新を週次でPR化。
+- **CIの時短**：
+  - `paths-ignore`（`**/*.md`・`docs/**` 等）で**ドキュメントだけの変更ではCI/デプロイを動かさない**。
+  - `concurrency` で**同一ブランチの古い実行を自動キャンセル**。
+  - テストは **coverage の1回だけ**（旧 `check` の test と二重実行だったのを解消）。
+  - `node_modules` を lock ハッシュで**キャッシュし、変化が無ければ `npm ci` を省く**。
 
 ## 公開（GitHub Pages）
 
