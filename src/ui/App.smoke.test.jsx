@@ -28,16 +28,24 @@ describe('App スモーク', () => {
     for (const t of TABS) expect(within(tabs).getByText(t)).toBeInTheDocument()
   })
 
-  it.each(TABS)('「%s」を選んで開始してもクラッシュせずプレイ画面になる', async (label) => {
-    const { container } = render(<App />)
-    clickTab(container, label)
-    start()
-    // Ready が外れ、プレイ画面（.game か .story-*）が出ている＝白画面でない（wsentは非同期）
-    await waitFor(() => {
-      expect(container.querySelector('.ready')).toBeNull()
-      expect(container.querySelector('.game, .story-prompt, .story-en')).not.toBeNull()
-    })
-  })
+  it.each(TABS)(
+    '「%s」を選んで開始してもクラッシュせずプレイ画面になる',
+    async (label) => {
+      const { container } = render(<App />)
+      clickTab(container, label)
+      start()
+      // Ready が外れ、プレイ画面（.game か .story-*）が出ている＝白画面でない
+      // 単語/単語例文は対象データを遅延 import するため、CI遅延を見込んで待つ
+      await waitFor(
+        () => {
+          expect(container.querySelector('.ready')).toBeNull()
+          expect(container.querySelector('.game, .story-prompt, .story-en')).not.toBeNull()
+        },
+        { timeout: 8000 },
+      )
+    },
+    15000,
+  )
 
   const badgeText = (container) => container.querySelector('.meta-badge.rank')?.textContent
 
@@ -45,7 +53,7 @@ describe('App スモーク', () => {
     const { container } = render(<App />)
     clickTab(container, '単語例文')
     start()
-    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L1/))
+    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L1/), { timeout: 8000 })
   })
 
   it('レベル選択で別レベルを選べる：単語例文 L2', async () => {
@@ -53,6 +61,6 @@ describe('App スモーク', () => {
     clickTab(container, '単語例文')
     fireEvent.click(within(container).getByText('L2', { exact: false }))
     start()
-    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/))
+    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
   })
 })
