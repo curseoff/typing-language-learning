@@ -17,5 +17,14 @@ export default defineConfig({
     environmentMatchGlobs: [['src/ui/**', 'jsdom']],
     setupFiles: ['./src/test/setup.js'],
     globals: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'html'],
+      // コード（ロジック）のみ対象。データ/エントリ/テストは除外。
+      include: ['src/**/*.{js,jsx}'],
+      exclude: ['src/**/*.test.{js,jsx}', 'src/content/**', 'src/test/**', 'src/main.jsx'],
+      // 退行防止のゲート（現状値の少し下。下回ると coverage が失敗）
+      thresholds: { statements: 52, branches: 72, functions: 60, lines: 52 },
+    },
   },
 })

@@ -13,10 +13,14 @@
 - **単語 ↔ 英英辞典**：英英は「**その単語の意味をやさしい英語で説明**」したもの。`def` は見出し語（=単語）の意味の説明であること。構造的には **英英 ⊆ 単語**（`word ∈ words.en`、level/theme は単語に合わせる。validate が強制）。
 - **単語 ↔ 文章**：文章は「**その単語を使った例文**」。各文は対象の単語を `word` で指し、**例文の `en` でその語が実際に使われている**こと（`word ∈ words.en`、語形変化は緩く許容。validate が強制）。
 
-## 文章＝単語の例文（`content/wordSentences.js`）
+## 文章＝単語の例文（`content/wordSentences/`）
 
-文章は「**その単語を使った例文**」として `WORD_SENTENCES` に集約（単語ドリブン）。各文が1単語の使用例。
+文章は「**その単語を使った例文**」（単語ドリブン）。各文が1単語の使用例。
 ※ かつての場面別会話文 `sentences.js` は廃止し、この単語例文に統合した。
+
+- **遅延読み込み**：全例文（約6MB）を初回バンドルに含めないため、**レベル別に分割**（`wordSentences/L1.js`〜`L4.js`）。
+  - アプリ側は `wordSentences/index.js` の `loadWsentLevel(level)`（動的 import）＋ `WSENT_COUNTS`（件数のみ）を使う。**静的に全件 import しない**こと（初回バンドルが肥大化する。`npm run check-bundle` が予算超過で落とす）。
+  - Node ツール（validate / 生成）は `wordSentences/all.js`（全件連結）を使う。
 
 ```js
 { level: 1, word: 'school', en: 'I go to school every day.', ja: '私は毎日学校へ行きます。', kana: 'わたしはまいにちがっこうへいきます。', jaWords: ['私','は','毎日','学校','へ','行き','ます'] }
@@ -37,6 +41,7 @@
 - `en`: 英小文字の1語（重複不可）
 - `ja`/`kana`: 和訳とその読み
 - `level`: 1〜4（`WORD_LEVELS`：基礎/初級/中級/上級）
+- データは大きい(約1.6MB)ので `wordsData.js` に分離し**遅延 import**（アプリは `loadWords()`／`WORD_COUNTS`、Nodeは `wordsAll.js`）
 - `theme`: `日常` / `旅行` / `ビジネス`（`WORD_THEMES`）
 
 ## 英英辞典（`content/dictionary.js`）
@@ -146,7 +151,7 @@ npm run merge-sentences
 npm run check-readings
 #    → 各 rev-N.json を点検エージェントへ → revfix-N.json（真の誤りだけ）
 
-# 4) 読み修正を適用し wordSentences.js へ追記
+# 4) 読み修正を適用し wordSentences/L1..L4.js へ追記
 npm run merge-sentences -- --write
 npm run check
 ```

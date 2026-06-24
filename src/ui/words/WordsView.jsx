@@ -6,7 +6,7 @@ import { StatsRow, QuizOptionLabel } from '../shared/index.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import Passage from '../marathon/Passage.jsx'
 
-export default function WordsView({ level, theme, mode, levelLabel, modeLabel, onExit }) {
+export default function WordsView({ words, level, theme, mode, levelLabel, modeLabel, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
@@ -15,6 +15,7 @@ export default function WordsView({ level, theme, mode, levelLabel, modeLabel, o
   )
   return mode.startsWith('quiz') ? (
     <QuizView
+      words={words}
       level={level}
       theme={theme}
       mode={mode}
@@ -23,13 +24,13 @@ export default function WordsView({ level, theme, mode, levelLabel, modeLabel, o
       onExit={onExit}
     />
   ) : (
-    <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
+    <TypeView words={words} level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
   )
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
-function TypeView({ level, theme, mode, meta, onExit }) {
-  const w = useWords({ level, theme, mode, onExit })
+function TypeView({ words, level, theme, mode, meta, onExit }) {
+  const w = useWords({ allWords: words, level, theme, mode, onExit })
 
   return (
     <div className="game">
@@ -74,8 +75,8 @@ function TypeView({ level, theme, mode, meta, onExit }) {
 }
 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
-function QuizView({ level, theme, mode, dir, meta, onExit }) {
-  const q = useWordQuiz({ level, theme, dir, mode, onExit })
+function QuizView({ words, level, theme, mode, dir, meta, onExit }) {
+  const q = useWordQuiz({ words, level, theme, dir, mode, onExit })
 
   return (
     <div className="game">

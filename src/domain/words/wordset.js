@@ -1,21 +1,21 @@
 // 単語問題の出題セット生成（レベル×テーマで絞り込み・シャッフル）。
-import { WORDS } from '../../content/words.js'
+// 単語データ(words)は遅延読み込みのため呼び出し側から渡す（純関数）。
 import { romajiVariants } from '../romaji/romaji.js'
 import { buildUnits } from '../typing/units.js'
 import { TARGET_KEYS } from '../marathon/passage.js'
 
 export const WORD_COUNT = 30 // 4択クイズの問題数
 
-function levelThemePool(level, theme) {
-  let pool = WORDS.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
-  if (pool.length === 0) pool = WORDS.filter((w) => w.level === level)
-  if (pool.length === 0) pool = WORDS
+function levelThemePool(words, level, theme) {
+  let pool = words.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
+  if (pool.length === 0) pool = words.filter((w) => w.level === level)
+  if (pool.length === 0) pool = words
   return pool
 }
 
 // 4択クイズ用：count語（既定30）
-export function buildWordSet(level, theme, count = WORD_COUNT) {
-  const pool = levelThemePool(level, theme)
+export function buildWordSet(words, level, theme, count = WORD_COUNT) {
+  const pool = levelThemePool(words, level, theme)
   const shuffled = [...pool].sort(() => Math.random() - 0.5)
   const out = []
   for (let i = 0; i < count; i++) out.push(shuffled[i % shuffled.length])
@@ -27,8 +27,8 @@ const minKeys = (seg) => Math.min(...seg.variants.map((v) => v.length))
 
 // 入力モード用：最短の綴りで打っても TARGET_KEYS(600) を超えるよう語を並べる（足りなければ循環）。
 // canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても600前に打ち尽くさない。
-export function buildWordPassage(level, theme, mode) {
-  const pool = levelThemePool(level, theme)
+export function buildWordPassage(words, level, theme, mode) {
+  const pool = levelThemePool(words, level, theme)
   const shuffled = [...pool].sort(() => Math.random() - 0.5)
   const out = []
   let chars = 0
@@ -43,8 +43,8 @@ export function buildWordPassage(level, theme, mode) {
 }
 
 // 同レベルの全語（4択の誤答候補に使う）
-export function levelWords(level) {
-  return WORDS.filter((w) => w.level === level)
+export function levelWords(words, level) {
+  return words.filter((w) => w.level === level)
 }
 
 // dir='en'(英語訳: 和訳→英単語をタイプ) / 'ja'(日本語訳: 英単語→和訳をローマ字タイプ)

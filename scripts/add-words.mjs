@@ -17,7 +17,8 @@
 //   - theme: 日常/旅行/ビジネス か空
 
 import { readFileSync, writeFileSync } from 'node:fs'
-import { WORDS, WORD_THEMES, bandOf } from '../src/content/words.js'
+import { WORD_THEMES, bandOf } from '../src/content/words.js'
+import { WORDS } from '../src/content/wordsAll.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
 const EN_OK = /^[a-z]+$/

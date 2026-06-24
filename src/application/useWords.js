@@ -9,8 +9,8 @@ import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsReposito
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
-export function useWords({ level, theme, mode, onExit }) {
-  const [words, setWords] = useState(() => buildWordPassage(level, theme, mode))
+export function useWords({ allWords, level, theme, mode, onExit }) {
+  const [words, setWords] = useState(() => buildWordPassage(allWords, level, theme, mode))
   const [segIndex, setSegIndex] = useState(0)
   const [input, setInput] = useState('')
   const [completed, setCompleted] = useState([])
@@ -34,7 +34,7 @@ export function useWords({ level, theme, mode, onExit }) {
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
-    setWords(buildWordPassage(level, theme, mode))
+    setWords(buildWordPassage(allWords, level, theme, mode))
     setSegIndex(0)
     setInput('')
     setCompleted([])
@@ -45,7 +45,7 @@ export function useWords({ level, theme, mode, onExit }) {
     setFinished(false)
     setResult(null)
     startTimeRef.current = null
-  }, [level, theme, mode])
+  }, [allWords, level, theme, mode])
 
   useEffect(() => {
     if (finished) return

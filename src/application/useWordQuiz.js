@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
-export function useWordQuiz({ level, theme, dir, mode, onExit }) {
+export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
   const [questions, setQuestions] = useState(() =>
-    makeQuiz(buildWordSet(level, theme), levelWords(level), dir),
+    makeQuiz(buildWordSet(words, level, theme), levelWords(words, level), dir),
   )
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
@@ -23,7 +23,7 @@ export function useWordQuiz({ level, theme, dir, mode, onExit }) {
   const q = questions[index]
 
   const restart = useCallback(() => {
-    setQuestions(makeQuiz(buildWordSet(level, theme), levelWords(level), dir))
+    setQuestions(makeQuiz(buildWordSet(words, level, theme), levelWords(words, level), dir))
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -34,7 +34,7 @@ export function useWordQuiz({ level, theme, dir, mode, onExit }) {
     setFinished(false)
     setResult(null)
     startTimeRef.current = null
-  }, [level, theme, dir])
+  }, [words, level, theme, dir])
 
   useEffect(() => {
     if (finished) return

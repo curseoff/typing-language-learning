@@ -22,8 +22,11 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run preview` | ビルド成果物のプレビュー |
 | `npm run lint` | ESLint（未定義参照・Hooks依存ミス等を検出） |
 | `npm run test` | Vitest（ドメインの回帰テスト＋UIスモーク） |
+| `npm run coverage` | カバレッジ計測（`coverage/` にHTML）＋閾値ゲート |
 | `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
 | **`npm run check`** | **lint → test → validate → build を一括実行** |
+| `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 2048KB） |
+| `npm run audit` | 本番(prod)依存の脆弱性ゲート（high 以上で失敗。dev は対象外） |
 | `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用） |
 
 「完了」とする前に **`npm run check`** を通すことを推奨します。
@@ -36,16 +39,32 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
   - ドメイン層（`romaji` / `typing` / `marathon` / `words` / `dictionary` / `records`）の回帰テスト（node 環境）
   - **UIスモーク**（`src/ui/App.smoke.test.jsx`, jsdom 環境）：各モードを開始してプレイ画面が描画されるか（白画面/モード破壊の自動検出）。`vite.config.js` の `environmentMatchGlobs` で `src/ui/**` だけ jsdom。
   - 過去の不具合（漢字↔読みアライメント、600文字で詰む 等）をテストで固定
+- **カバレッジ**（`npm run coverage`, v8）
+  - `coverage/` にHTMLレポート。`vite.config.js` の `test.coverage.thresholds` で退行ゲート（現状 statements/lines≈54% / branches≈76% / functions≈64%）。
+  - 入力エンジン（`domain/romaji` ≈100% / `domain/typing/units` のバリアント生成・翻訳モード）は重点的にテスト。UIフックは未カバーが多く今後の伸びしろ。
 - **スクリーンショット一覧**（`scripts/screenshots.mjs`）
   - `npm run screenshots` で build → preview → 各タブ（`?tab=` ディープリンク）をヘッドレスChromeで撮影 → `/tmp/app-shots/contact.png` に一覧化。クリックして回る目視確認を1枚に。
   - Chrome のパスは `CHROME=...` で上書き可。既存 dist を使うなら `-- --no-build`。
 - **validate**（`scripts/validate-sentences.mjs`）
   - 文・単語・英英の各データを検証（読み→ローマ字変換、重複、レベル/テーマ、文末記号、長音ーの警告 など）
 
+## 依存・セキュリティ
+
+- **本番(prod)依存は react / react-dom のみ**で、現状 `npm audit --omit=dev` は **脆弱性 0**。CI の `npm run audit` が high 以上で落とす。
+- `npm audit` 全体の警告は **dev 依存（vite/vitest/esbuild/electron/electron-builder 等のビルド・デスクトップ用ツール）**由来で、**デプロイされるサイトには含まれない**。解消は major 更新が必要なため、`--force` 一括ではなく **Dependabot（`.github/dependabot.yml`）の更新PRで段階対応**する。
+
+## バンドルサイズ
+
+- 大きいコンテンツは **遅延 import** で初回バンドルから外す：**単語例文**（`src/content/wordSentences/` レベル別）と**単語データ**（`src/content/wordsData.js`）。アプリは `loadWsentLevel()` / `loadWords()`＋件数表（`WSENT_COUNTS` / `WORD_COUNTS`）を使う。
+- 効果：初回エントリ **6.9MB → 約240KB**（選んだレベル/モードの時だけ各チャンクを取得）。
+- `npm run check-bundle` がエントリJSのサイズ予算（`BUNDLE_BUDGET_KB`、既定512）を超えたら失敗 → 静的 import への先祖返りを防ぐ。
+- Node ツール（validate/生成）は全件版（`wordsAll.js` / `wordSentences/all.js`）を使う。
+
 ## CI（GitHub Actions）
 
-- `.github/workflows/ci.yml` … `develop` / `master` への push・PR で `npm run check` を自動実行
+- `.github/workflows/ci.yml` … `develop` / `master` への push・PR で `npm run check`＋`npm run audit` を自動実行
 - `.github/workflows/deploy.yml` … `master` への push で本番（GitHub Pages）へ自動デプロイ
+- `.github/dependabot.yml` … npm / github-actions の更新を週次でPR化
 
 ## 公開（GitHub Pages）
 
