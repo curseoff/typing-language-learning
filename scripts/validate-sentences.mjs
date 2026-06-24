@@ -4,7 +4,7 @@
 import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
 import { WORD_LEVELS, WORD_THEMES, bandOf } from '../src/content/words.js'
 import { WORDS } from '../src/content/wordsAll.js'
-import { DICT } from '../src/content/dictionary.js'
+import { DICT } from '../src/content/dictionaryAll.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
 const ROMAJI_OK = /^[a-z'.,?!-]+$/ // 変換後ローマ字に許される文字
