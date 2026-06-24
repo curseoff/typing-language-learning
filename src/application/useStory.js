@@ -33,7 +33,7 @@ export function useStory({ mode, start, onExit }) {
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
   const [now, setNow] = useState(0)
-  const startTimeRef = useRef(null)
+  const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 場面ごとの累積記録（ノード単位×モード別）
 
   const node = nodes[nodeId]
@@ -59,7 +59,7 @@ export function useStory({ mode, start, onExit }) {
     setMistakes(0)
     setNow(0)
     setResult(null)
-    startTimeRef.current = null
+    setStartTime(null)
   }, [])
 
   // 経過時間の更新（エンディング中は止める）
@@ -69,18 +69,18 @@ export function useStory({ mode, start, onExit }) {
     return () => clearInterval(id)
   }, [stage])
 
-  const started = startTimeRef.current !== null
+  const started = startTime !== null
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
-    const min = (now - startTimeRef.current) / 60000
+    const min = (now - startTime) / 60000
     return min > 0 ? Math.round(typedKeys / min) : 0
-  }, [now, typedKeys, started])
+  }, [now, typedKeys, started, startTime])
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
+    return Math.round((now - startTime) / 100) / 10
+  }, [now, started, startTime])
 
-  const enterEnding = useCallback((n, keys, totalMistakes, endTime) => {
+  const enterEnding = useCallback((n, keys, totalMistakes, endTime, startedAt) => {
     flushTracker(trackerRef.current) // エンド到達時に現在の場面を確定
     setStage('ending')
     setFound((prev) => {
@@ -90,7 +90,7 @@ export function useStory({ mode, start, onExit }) {
       return upd
     })
     // 今回の記録を作成・保存（速い順ランキング）
-    const elapsedMs = startTimeRef.current ? endTime - startTimeRef.current : 0
+    const elapsedMs = startedAt ? endTime - startedAt : 0
     const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
     const record = {
       ending: n.ending,
@@ -133,7 +133,9 @@ export function useStory({ mode, start, onExit }) {
           setHasError(true)
           return
         }
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const _t = performance.now()
+        const startedAt = startTime ?? _t // この打鍵で開始した場合も正しい開始時刻を使う
+        setStartTime((p) => p ?? _t)
         setHasError(false)
         trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 場面ごと×モード別
         setTypedKeys((k) => k + 1)
@@ -143,7 +145,7 @@ export function useStory({ mode, start, onExit }) {
             setUnitIndex(unitIndex + 1)
           } else {
             setUnitIndex(0)
-            if (node.ending) enterEnding(node, typedKeys + 1, mistakes, performance.now())
+            if (node.ending) enterEnding(node, typedKeys + 1, mistakes, performance.now(), startedAt)
             else if (node.choices) setStage('choice')
             else if (node.next) setNodeId(node.next)
           }
@@ -158,7 +160,8 @@ export function useStory({ mode, start, onExit }) {
           setHasError(true)
           return
         }
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const _t = performance.now()
+        setStartTime((p) => p ?? _t)
         setHasError(false)
         trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 選択肢も現在の場面に集約
         setTypedKeys((k) => k + 1)
@@ -174,7 +177,7 @@ export function useStory({ mode, start, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [stage, node, nodeId, mode, units, unitIndex, choiceSegs, input, typedKeys, mistakes, onExit, restart, enterEnding])
+  }, [stage, node, nodeId, mode, units, unitIndex, choiceSegs, input, typedKeys, mistakes, startTime, onExit, restart, enterEnding])
 
   return {
     nodes,

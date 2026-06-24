@@ -18,7 +18,7 @@ export function useDict({ level, theme, mode, onExit }) {
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
-  const startTimeRef = useRef(null)
+  const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
 
   const entry = entries[index]
@@ -39,7 +39,7 @@ export function useDict({ level, theme, mode, onExit }) {
     setNow(0)
     setFinished(false)
     setResult(null)
-    startTimeRef.current = null
+    setStartTime(null)
   }, [level, theme])
 
   useEffect(() => {
@@ -48,20 +48,20 @@ export function useDict({ level, theme, mode, onExit }) {
     return () => clearInterval(id)
   }, [finished])
 
-  const started = startTimeRef.current !== null
+  const started = startTime !== null
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
-    const min = (now - startTimeRef.current) / 60000
+    const min = (now - startTime) / 60000
     return min > 0 ? Math.round(typedKeys / min) : 0
-  }, [now, typedKeys, started])
+  }, [now, typedKeys, started, startTime])
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
+    return Math.round((now - startTime) / 100) / 10
+  }, [now, started, startTime])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime) => {
-      const elapsedMs = endTime - startTimeRef.current
+      const elapsedMs = endTime - startTime
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
         level,
@@ -79,7 +79,7 @@ export function useDict({ level, theme, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, entries.length],
+    [level, theme, mode, entries.length, startTime],
   )
 
   useEffect(() => {
@@ -101,7 +101,8 @@ export function useDict({ level, theme, mode, onExit }) {
 
       const candidate = input + e.key
       if (segMatches(seg, candidate)) {
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const _t = performance.now()
+        setStartTime((p) => p ?? _t)
         setHasError(false)
         trackKey(trackerRef.current, itemId('d', mode, entry.word)) // 見出し語ごと×モード別
         const newKeys = typedKeys + 1

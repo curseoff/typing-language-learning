@@ -15,8 +15,8 @@ export function useMarathon({ active, onFinish }) {
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
   const [now, setNow] = useState(0)
+  const [startTime, setStartTime] = useState(null)
 
-  const startTimeRef = useRef(null)
   const segStartRef = useRef(null) // 現在の問題の開始時刻
   const segMistakesRef = useRef(0) // 現在の問題のミス数
   const segStatsRef = useRef([]) // 確定した問題ごとの記録
@@ -40,7 +40,7 @@ export function useMarathon({ active, onFinish }) {
     setMistakes(0)
     setHasError(false)
     setNow(0)
-    startTimeRef.current = null
+    setStartTime(null)
     segStartRef.current = null
     segMistakesRef.current = 0
     segStatsRef.current = []
@@ -48,8 +48,8 @@ export function useMarathon({ active, onFinish }) {
   }, [])
 
   const finish = useCallback(
-    (keys, totalMistakes, endTime) => {
-      const elapsedMs = endTime - startTimeRef.current
+    (keys, totalMistakes, endTime, startedAt) => {
+      const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const { mode, rank, source } = ctxRef.current
       const record = {
@@ -79,7 +79,8 @@ export function useMarathon({ active, onFinish }) {
 
       if (seg.variants.some((v) => v.startsWith(candidate))) {
         const t = performance.now()
-        if (startTimeRef.current === null) startTimeRef.current = t
+        const startedAt = startTime ?? t // この打鍵で開始した場合も正しい開始時刻を使う
+        setStartTime((p) => p ?? t)
         if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
         trackKey(trackerRef.current, itemId('s', ctxRef.current.mode, seg.en)) // 文ごと×モード別
@@ -112,7 +113,7 @@ export function useMarathon({ active, onFinish }) {
 
         if (reachedGoal) {
           flushTracker(trackerRef.current)
-          finish(newKeys, mistakes, t)
+          finish(newKeys, mistakes, t, startedAt)
           return
         }
 
@@ -130,7 +131,7 @@ export function useMarathon({ active, onFinish }) {
         setHasError(true)
       }
     },
-    [segments, segIndex, segInput, typedKeys, mistakes, finish],
+    [segments, segIndex, segInput, typedKeys, mistakes, startTime, finish],
   )
 
   useEffect(() => {
@@ -139,16 +140,16 @@ export function useMarathon({ active, onFinish }) {
     return () => window.removeEventListener('keydown', handleKey)
   }, [active, handleKey])
 
-  const started = startTimeRef.current !== null
+  const started = startTime !== null
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
-    const minutes = (now - startTimeRef.current) / 60000
+    const minutes = (now - startTime) / 60000
     return minutes > 0 ? Math.round(typedKeys / minutes) : 0
-  }, [now, typedKeys, started])
+  }, [now, typedKeys, started, startTime])
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
+    return Math.round((now - startTime) / 100) / 10
+  }, [now, started, startTime])
 
   return {
     start,

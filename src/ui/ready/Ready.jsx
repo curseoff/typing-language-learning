@@ -54,18 +54,18 @@ function SectionLabel({ children }) {
 }
 
 // 単語例文の収録一覧。レベルの例文を遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
+// 読み込んだ結果は対象レベルと一緒に持ち、レベルが変わった直後は「読み込み中…」を表示する。
 function WsentList({ level, mode }) {
-  const [items, setItems] = useState(null)
+  const [loaded, setLoaded] = useState(null) // { level, items }
   useEffect(() => {
     let alive = true
-    setItems(null)
-    loadWsentLevel(level).then((arr) => alive && setItems(arr))
+    loadWsentLevel(level).then((arr) => alive && setLoaded({ level, items: arr }))
     return () => {
       alive = false
     }
   }, [level])
-  if (!items) return <p className="pool-count">読み込み中…</p>
-  return <ItemList items={items} type="marathon" mode={mode} />
+  if (!loaded || loaded.level !== level) return <p className="pool-count">読み込み中…</p>
+  return <ItemList items={loaded.items} type="marathon" mode={mode} />
 }
 
 // 単語の収録一覧。単語データを遅延読み込みしてレベル×テーマで絞る。
