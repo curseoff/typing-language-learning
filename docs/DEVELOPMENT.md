@@ -24,6 +24,8 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run test` | Vitest（ドメインの回帰テスト＋UIスモーク） |
 | `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
 | **`npm run check`** | **lint → test → validate → build を一括実行** |
+| `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 2048KB） |
+| `npm run audit` | 本番(prod)依存の脆弱性ゲート（high 以上で失敗。dev は対象外） |
 | `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用） |
 
 「完了」とする前に **`npm run check`** を通すことを推奨します。
@@ -42,10 +44,21 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 - **validate**（`scripts/validate-sentences.mjs`）
   - 文・単語・英英の各データを検証（読み→ローマ字変換、重複、レベル/テーマ、文末記号、長音ーの警告 など）
 
+## 依存・セキュリティ
+
+- **本番(prod)依存は react / react-dom のみ**で、現状 `npm audit --omit=dev` は **脆弱性 0**。CI の `npm run audit` が high 以上で落とす。
+- `npm audit` 全体の警告は **dev 依存（vite/vitest/esbuild/electron/electron-builder 等のビルド・デスクトップ用ツール）**由来で、**デプロイされるサイトには含まれない**。解消は major 更新が必要なため、`--force` 一括ではなく **Dependabot（`.github/dependabot.yml`）の更新PRで段階対応**する。
+
+## バンドルサイズ
+
+- 大きいコンテンツ（単語例文 約6MB）は **遅延 import**（`src/content/wordSentences/`）で初回バンドルから外す。初回エントリは約1.6MB。
+- `npm run check-bundle` がエントリJSのサイズ予算（`BUNDLE_BUDGET_KB`、既定2048）を超えたら失敗 → 静的 import への先祖返りを防ぐ。
+
 ## CI（GitHub Actions）
 
-- `.github/workflows/ci.yml` … `develop` / `master` への push・PR で `npm run check` を自動実行
+- `.github/workflows/ci.yml` … `develop` / `master` への push・PR で `npm run check`＋`npm run audit` を自動実行
 - `.github/workflows/deploy.yml` … `master` への push で本番（GitHub Pages）へ自動デプロイ
+- `.github/dependabot.yml` … npm / github-actions の更新を週次でPR化
 
 ## 公開（GitHub Pages）
 

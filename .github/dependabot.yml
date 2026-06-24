@@ -1,0 +1,23 @@
+# 依存の更新を自動PR化（dev依存の脆弱性は --force 一括ではなく、レビュー可能なPRで段階対応）。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # 関連ツールはまとめて1PRに（レビューしやすく）
+      dev-tooling:
+        patterns:
+          - 'vite'
+          - 'vitest'
+          - '@vitejs/*'
+          - 'eslint*'
+          - '@eslint/*'
+          - 'electron*'
+          - '@testing-library/*'
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly

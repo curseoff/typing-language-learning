@@ -16,4 +16,5 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run check # lint → test → validate → build
+      - run: npm run check # lint → test → validate → build → bundle予算
+      - run: npm run audit # 本番(prod)依存に high 以上の脆弱性が無いことを保証（dev ツールは対象外）
