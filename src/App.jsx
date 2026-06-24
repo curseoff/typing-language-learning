@@ -27,9 +27,16 @@ const touchLevelLabel = (key) => TOUCH_LEVELS.find((l) => l.key === key)?.label 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 const cycle = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr.length]
 
+// 初期タブ（?tab=wsent 等のディープリンク。スクショ撮影や共有リンクに使える）
+const initialTab = (() => {
+  if (typeof location === 'undefined') return 'wsent'
+  const t = new URLSearchParams(location.search).get('tab')
+  return TYPE_KEYS.includes(t) ? t : 'wsent'
+})()
+
 export default function App() {
   const [phase, setPhase] = useState('ready') // ready | playing | result | story | words
-  const [gameType, setGameType] = useState('wsent') // wsent | story | words | dict | touch
+  const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
