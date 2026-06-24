@@ -25,6 +25,7 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run coverage` | カバレッジ計測（`coverage/` にHTML）＋閾値ゲート |
 | `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
 | **`npm run check`** | **lint → test → validate → build を一括実行** |
+| `npm run check:ci` | CIと同条件（Linux amd64 / node20）で `npm ci && npm run check` をコンテナ実行 |
 | `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 2048KB） |
 | `npm run audit` | 本番(prod)依存の脆弱性ゲート（high 以上で失敗。dev は対象外） |
 | `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用） |
@@ -59,6 +60,16 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 - 効果：初回エントリ **6.9MB → 約240KB**（選んだレベル/モードの時だけ各チャンクを取得）。
 - `npm run check-bundle` がエントリJSのサイズ予算（`BUNDLE_BUDGET_KB`、既定512）を超えたら失敗 → 静的 import への先祖返りを防ぐ。
 - Node ツール（validate/生成）は全件版（`wordsAll.js` / `wordSentences/all.js`）を使う。
+
+## ローカルでCIを再現（`npm run check:ci`）
+
+「ローカルは通るのにCIで落ちる」差（`npm ci` の厳密さ・OS/CPU差・タイムアウト）を出荷前に潰すため、**CIと同条件のコンテナ**で `npm ci && npm run check` を回せる（`scripts/check-ci.sh`）。
+
+- CIは **Linux amd64 / node20**。スクリプトは **amd64** を明示し、`@esbuild/*` 等のネイティブ依存も CI と同じ解決にする。
+- **Apple Container を優先、無ければ Docker** に自動フォールバック（どちらも OCI 互換）。Apple Container はコンテナ毎に軽量マイクロVMで動き、Docker Desktop 非依存。
+  - 初回は `container system start` ＋推奨カーネル（`container system kernel set --recommended`）が必要。
+  - Apple Silicon では amd64 は Rosetta 変換で動く（要 Rosetta）。
+- ホストの `node_modules`(arm64) を壊さないよう、コンテナ内 `node_modules` は **tmpfs** に分離している。
 
 ## CI（GitHub Actions）
 
