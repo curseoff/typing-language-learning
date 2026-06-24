@@ -7,8 +7,8 @@ import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepositor
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
-export function useDict({ level, theme, mode, onExit }) {
-  const [entries, setEntries] = useState(() => buildDictSet(level, theme, DICT_TYPE_COUNT))
+export function useDict({ dict, level, theme, mode, onExit }) {
+  const [entries, setEntries] = useState(() => buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
@@ -30,7 +30,7 @@ export function useDict({ level, theme, mode, onExit }) {
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
-    setEntries(buildDictSet(level, theme, DICT_TYPE_COUNT))
+    setEntries(buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -40,7 +40,7 @@ export function useDict({ level, theme, mode, onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
-  }, [level, theme])
+  }, [dict, level, theme])
 
   useEffect(() => {
     if (finished) return

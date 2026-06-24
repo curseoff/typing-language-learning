@@ -1,26 +1,22 @@
 // 英英辞典の出題生成（レベル×テーマで絞り込み）。
-import { DICT } from '../../content/dictionary.js'
-
+// 英英データ(dict)は遅延読み込みのため呼び出し側から渡す（純関数）。
 export const DICT_TYPE_COUNT = 12 // 入力モードの出題数（定義文を打つ）
 export const DICT_QUIZ_COUNT = 20 // 4択の問題数
 
-// 実際にエントリがあるレベルだけ（スターターは L1-L2）
-export const DICT_AVAILABLE_LEVELS = [...new Set(DICT.map((d) => d.level))].sort((a, b) => a - b)
-
-function pool(level, theme) {
-  let p = DICT.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  if (p.length === 0) p = DICT.filter((d) => d.level === level)
-  if (p.length === 0) p = DICT
+function pool(dict, level, theme) {
+  let p = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
+  if (p.length === 0) p = dict.filter((d) => d.level === level)
+  if (p.length === 0) p = dict
   return p
 }
 
-export function levelEntries(level) {
-  return DICT.filter((d) => d.level === level)
+export function levelEntries(dict, level) {
+  return dict.filter((d) => d.level === level)
 }
 
 // count 件（不足なら循環）。各エントリは {word, def, ja, kana} をそのまま返す。
-export function buildDictSet(level, theme, count) {
-  const shuffled = [...pool(level, theme)].sort(() => Math.random() - 0.5)
+export function buildDictSet(dict, level, theme, count) {
+  const shuffled = [...pool(dict, level, theme)].sort(() => Math.random() - 0.5)
   const out = []
   for (let i = 0; i < count; i++) out.push(shuffled[i % shuffled.length])
   return out

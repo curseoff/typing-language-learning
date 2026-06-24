@@ -3,21 +3,16 @@ import { useState, useEffect } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords } from '../../content/words.js'
-import { DICT, DICT_MODES } from '../../content/dictionary.js'
+import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { TOUCH_LEVELS } from '../../content/keyboard.js'
 import { STORY } from '../../content/story.js'
 import { recKey } from '../../domain/records/ranking.js'
-import { DICT_AVAILABLE_LEVELS } from '../../domain/dictionary/dictset.js'
 import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepository.js'
 import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
-
-// 選んだ条件（レベル×テーマ）の収録数
-const countBy = (list, level, theme) =>
-  list.filter((x) => x.level === level && (theme === 'すべて' || x.theme === theme)).length
 
 const GAME_TYPES = [
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
@@ -81,6 +76,21 @@ function WordsList({ level, theme, mode }) {
   if (!words) return <p className="pool-count">読み込み中…</p>
   const items = words.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
   return <ItemList items={items} type="words" mode={mode} />
+}
+
+// 英英の収録一覧。英英データを遅延読み込みしてレベル×テーマで絞る。
+function DictList({ level, theme, mode }) {
+  const [dict, setDict] = useState(null)
+  useEffect(() => {
+    let alive = true
+    loadDict().then((arr) => alive && setDict(arr))
+    return () => {
+      alive = false
+    }
+  }, [])
+  if (!dict) return <p className="pool-count">読み込み中…</p>
+  const items = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
+  return <ItemList items={items} type="dict" mode={mode} />
 }
 
 // 下部の「記録ランキング / 収録一覧」切り替え
@@ -351,18 +361,12 @@ export default function Ready({
             </div>
           </div>
           <p className="mode-desc">{dictModeDesc(dictMode)}</p>
-          <p className="pool-count">この条件の収録: {countBy(DICT, dictLevel, dictTheme)} 語</p>
+          <p className="pool-count">この条件の収録: {DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語</p>
 
           <StartRow onStart={onStart} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
-            <ItemList
-              items={DICT.filter(
-                (d) => d.level === dictLevel && (dictTheme === 'すべて' || d.theme === dictTheme),
-              )}
-              type="dict"
-              mode={dictMode}
-            />
+            <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
           ) : (
             <WordRecords
               list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
