@@ -3,19 +3,38 @@ name: CI
 on:
   push:
     branches: [develop, master]
+    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE', '.gitignore'] # ドキュメント等だけの変更ではCIを動かさない
   pull_request:
     branches: [develop, master]
+    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE', '.gitignore']
+
+# 同一ブランチで続けて push したら、進行中の古い実行を打ち切る
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-24.04-arm # arm64 ランナー（ローカルの check:ci と同アーキで一致・Rosetta非依存）
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
+      # lock が同じなら node_modules を復元し、npm ci（数十秒）を丸ごと省く
+      - name: Cache node_modules
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: npm-${{ runner.os }}-${{ runner.arch }}-node20-${{ hashFiles('package-lock.json') }}
       - run: npm ci
-      - run: npm run check # lint → test → validate → build → bundle予算
-      - run: npm run audit # 本番(prod)依存に high 以上の脆弱性が無いことを保証（dev ツールは対象外）
-      - run: npm run coverage # カバレッジ閾値ゲート（退行防止）
+        if: steps.nm.outputs.cache-hit != 'true'
+      # check の中身を個別ステップに展開。テストは coverage の1回だけにし、test の二重実行を解消
+      - run: npm run lint
+      - run: npm run validate
+      - run: npm run build
+      - run: npm run check-bundle
+      - run: npm run coverage # vitest run --coverage（全テスト＋閾値ゲート）
+      - run: npm run audit # 本番(prod)依存に high 以上の脆弱性が無いことを保証

@@ -66,7 +66,6 @@ WORDS.forEach((w, i) => {
 
   const roma = toRomaji(w.kana)
   if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${w.kana}）`)
-  if (roma.includes('-') || w.kana.includes('ー')) warn(`長音「ー」が含まれます: ${w.kana}`)
   if (kanaConsumed(w.kana, roma) !== [...w.kana].length) {
     warn(`canonical が読みを完全消費していません（${w.kana} → ${roma}）`)
   }
@@ -106,7 +105,6 @@ DICT.forEach((d, i) => {
 
   const roma = toRomaji(d.kana)
   if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${d.kana}）`)
-  if (roma.includes('-') || d.kana.includes('ー')) warn(`長音「ー」が含まれます: ${d.kana}`)
   if (kanaConsumed(d.kana, roma) !== [...d.kana].length) {
     warn(`canonical が読みを完全消費していません（${d.kana} → ${roma}）`)
   }
@@ -136,7 +134,6 @@ WORD_SENTENCES.forEach((s, i) => {
 
   const roma = toRomaji(s.kana)
   if (!ROMAJI_OK.test(roma)) err(`読みをローマ字変換できません → "${roma}"（kana: ${s.kana}）`)
-  if (roma.includes('-') || s.kana.includes('ー')) warn(`長音「ー」が含まれます: ${s.kana}`)
   if (kanaConsumed(s.kana, roma) !== [...s.kana].length)
     warn(`kana が読みを完全消費していません（${s.kana} → ${roma}）`)
 

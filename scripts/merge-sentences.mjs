@@ -60,7 +60,7 @@ function validate(s) {
     if (!s.ja?.endsWith(PUNCT[m])) e.push('和末尾')
     if (!s.kana?.endsWith(PUNCT[m])) e.push('kana末尾')
   } else e.push('en末尾')
-  if (s.kana?.includes('ー')) e.push('ー')
+  // 長音「ー」は許容（エンジンは "-" で入力。カタカナ長音語の読みに使う）
   const r = toRomaji(s.kana || '')
   if (!ROMAJI_OK.test(r)) e.push('ローマ字')
   else if (kanaConsumed(s.kana, r) !== [...s.kana].length) e.push('未消費')

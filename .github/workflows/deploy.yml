@@ -3,7 +3,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [master]
-  workflow_dispatch:
+    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE', '.gitignore'] # ドキュメント等だけの変更ではデプロイしない（dist は変わらない）
+  workflow_dispatch: # 手動実行は paths-ignore を無視して強制可
 
 permissions:
   contents: read
@@ -20,13 +21,21 @@ jobs:
     runs-on: ubuntu-24.04-arm # arm64 ランナー（CI と統一）
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
+      # lock が同じなら node_modules を復元し npm ci を省く
+      - name: Cache node_modules
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: npm-${{ runner.os }}-${{ runner.arch }}-node20-${{ hashFiles('package-lock.json') }}
       - run: npm ci
+        if: steps.nm.outputs.cache-hit != 'true'
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -38,4 +47,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

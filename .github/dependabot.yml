@@ -1,8 +1,10 @@
 # 依存の更新を自動PR化（dev依存の脆弱性は --force 一括ではなく、レビュー可能なPRで段階対応）。
+# 開発フロー（feature→develop→master）に合わせ、PR は develop 宛てにする。
 version: 2
 updates:
   - package-ecosystem: npm
     directory: '/'
+    target-branch: develop
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -19,5 +21,11 @@ updates:
           - '@testing-library/*'
   - package-ecosystem: github-actions
     directory: '/'
+    target-branch: develop
     schedule:
       interval: weekly
+    groups:
+      # アクションの更新は1PRにまとめる
+      github-actions:
+        patterns:
+          - '*'
