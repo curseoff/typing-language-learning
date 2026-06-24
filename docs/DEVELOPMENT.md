@@ -62,6 +62,21 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 - `Closes #N` は **feature→develop と develop→master の両方**のPR本文に書く（自動クローズは master 到達時のみ発火）。
 - マージ後は develop と master を揃え、マージ済みのローカルブランチを削除。develop が消えていたら master と同一内容で再作成して push する。
 
+## リリース版数と GitHub Release
+
+リリースのたびに版数を上げ、GitHub Release を残す。
+
+1. **`package.json` の `version` を上げる**（`vite.config.js` が `__APP_VERSION__` に注入し TOP画面 `v0.10.0` 表示に使う）。理想は release ブランチに含めてタグ対象コミットに版数が入る形。
+2. master 反映後、**GitHub Release を作成**（タグ `vX.Y.Z`＝マージコミット）：
+   ```bash
+   env -u GITHUB_TOKEN gh release create vX.Y.Z \
+     --target <フルSHA> --latest \
+     --title "vX.Y.Z — 要約" --notes "## ハイライト
+   - ..."
+   ```
+   - `--target` は **40桁のフルSHA**（短縮SHAや位置引数は不可。位置引数はアップロードファイル扱いになる）。
+   - ノートは区間コミット（`git log --no-merges 前タグ..今回`）から要約する。
+
 ## Git コミット（AI署名）
 
 AI（Claude）が打つコミットは、人間のコミットと**署名・名義を分離**する。離席で 1Password がロックしても失敗しないよう、**1Password非依存のローカル署名鍵**を使う。
