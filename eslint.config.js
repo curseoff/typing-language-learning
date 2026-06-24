@@ -4,7 +4,8 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
 
 export default [
-  { ignores: ['dist', 'release', 'node_modules'] },
+  // .claude/workflows は Workflow ランタイム専用DSL（トップレベル return 等）なので lint 対象外
+  { ignores: ['dist', 'release', 'node_modules', '.claude'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],

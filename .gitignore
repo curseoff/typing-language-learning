@@ -39,3 +39,7 @@ out
 .env
 .env.local
 .env.*.local
+
+# Claude Code ローカル設定（共有しない）
+.claude/settings.local.json
+.claude/*.lock

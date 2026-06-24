@@ -20,11 +20,17 @@ const wordBases = (t) => {
   if (t.endsWith('s')) f.push(t.slice(0, -1))
   if (t.endsWith('ed')) f.push(t.slice(0, -2), t.slice(0, -1))
   if (t.endsWith('ing')) f.push(t.slice(0, -3), t.slice(0, -3) + 'e')
+  // 子音重ね（tipped→tip, running→run）: 末尾2文字が同じ子音なら1つ落とす
+  const dbl = t.match(/^([a-z]+?)([bcdfghjklmnpqrstvwxz])\2(?:ed|ing)$/)
+  if (dbl) f.push(dbl[1] + dbl[2])
   return f
 }
 const sentenceUsesWord = (en, word) => {
-  const toks = en.toLowerCase().match(/[a-z]+/g) || []
-  return toks.some((t) => t === word || wordBases(t).includes(word))
+  const lc = en.toLowerCase()
+  const toks = lc.match(/[a-z]+/g) || []
+  if (toks.some((t) => t === word || wordBases(t).includes(word))) return true
+  // 融合語（deliverup=「deliver up」）: 単語境界を除いた連結でも照合する
+  return lc.replace(/[^a-z]+/g, '').includes(word)
 }
 
 const errors = []
