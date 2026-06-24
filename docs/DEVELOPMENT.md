@@ -21,9 +21,10 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run build` | 本番ビルド（`dist/`） |
 | `npm run preview` | ビルド成果物のプレビュー |
 | `npm run lint` | ESLint（未定義参照・Hooks依存ミス等を検出） |
-| `npm run test` | Vitest（ドメインの回帰テスト） |
-| `npm run validate` | 教材データの整合性チェック（文・単語・英英） |
+| `npm run test` | Vitest（ドメインの回帰テスト＋UIスモーク） |
+| `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
 | **`npm run check`** | **lint → test → validate → build を一括実行** |
+| `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用） |
 
 「完了」とする前に **`npm run check`** を通すことを推奨します。
 
@@ -31,9 +32,13 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 
 - **ESLint**（`eslint.config.js`, Flat config）
   - `eslint-plugin-react` / `react-hooks` を使用。未定義参照（白画面の原因）や `useEffect` 依存ミスを検出
-- **Vitest**（`src/**/*.test.js`）
-  - ドメイン層（`romaji` / `typing` / `marathon` / `words` / `dictionary` / `records`）の回帰テスト
+- **Vitest**（`src/**/*.test.{js,jsx}`）
+  - ドメイン層（`romaji` / `typing` / `marathon` / `words` / `dictionary` / `records`）の回帰テスト（node 環境）
+  - **UIスモーク**（`src/ui/App.smoke.test.jsx`, jsdom 環境）：各モードを開始してプレイ画面が描画されるか（白画面/モード破壊の自動検出）。`vite.config.js` の `environmentMatchGlobs` で `src/ui/**` だけ jsdom。
   - 過去の不具合（漢字↔読みアライメント、600文字で詰む 等）をテストで固定
+- **スクリーンショット一覧**（`scripts/screenshots.mjs`）
+  - `npm run screenshots` で build → preview → 各タブ（`?tab=` ディープリンク）をヘッドレスChromeで撮影 → `/tmp/app-shots/contact.png` に一覧化。クリックして回る目視確認を1枚に。
+  - Chrome のパスは `CHROME=...` で上書き可。既存 dist を使うなら `-- --no-build`。
 - **validate**（`scripts/validate-sentences.mjs`）
   - 文・単語・英英の各データを検証（読み→ローマ字変換、重複、レベル/テーマ、文末記号、長音ーの警告 など）
 
