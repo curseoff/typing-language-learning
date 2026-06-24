@@ -11,11 +11,11 @@ import {
 } from '../domain/dictionary/dictset.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 
-export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
+export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
   const build = () =>
     kind === 'pick'
-      ? makeDictPick(buildDictSet(level, theme, DICT_TYPE_COUNT), levelEntries(level))
-      : makeDictQuiz(buildDictSet(level, theme, DICT_QUIZ_COUNT), levelEntries(level))
+      ? makeDictPick(buildDictSet(dict, level, theme, DICT_TYPE_COUNT), levelEntries(dict, level))
+      : makeDictQuiz(buildDictSet(dict, level, theme, DICT_QUIZ_COUNT), levelEntries(dict, level))
   const [questions, setQuestions] = useState(build)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
@@ -44,7 +44,7 @@ export function useDictQuiz({ level, theme, kind = 'quiz', onExit }) {
     setResult(null)
     setStartTime(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level, theme, kind])
+  }, [dict, level, theme, kind])
 
   useEffect(() => {
     if (finished) return

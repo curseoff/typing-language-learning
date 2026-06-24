@@ -16,6 +16,8 @@
     "add-words": "node scripts/add-words.mjs",
     "gen-sentences": "node scripts/gen-sentences.mjs",
     "merge-sentences": "node scripts/merge-sentences.mjs",
+    "gen-dict": "node scripts/gen-dict.mjs",
+    "merge-dict": "node scripts/merge-dict.mjs",
     "check-readings": "node scripts/check-readings.mjs",
     "check": "npm run lint && npm run test && npm run validate && npm run build && npm run check-bundle",
     "check:ci": "bash scripts/check-ci.sh",

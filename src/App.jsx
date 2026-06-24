@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, loadWords } from './content/words.js'
 import { loadWsentLevel } from './content/wordSentences/index.js'
-import { DICT_MODES } from './content/dictionary.js'
+import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { TOUCH_LEVELS } from './content/keyboard.js'
-import { DICT_AVAILABLE_LEVELS } from './domain/dictionary/dictset.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
@@ -48,6 +47,7 @@ export default function App() {
   const [dictLevel, setDictLevel] = useState(DICT_AVAILABLE_LEVELS[0] ?? 1) // 英英のレベル
   const [dictTheme, setDictTheme] = useState('すべて') // 英英のテーマ
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
+  const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
@@ -88,7 +88,11 @@ export default function App() {
         setPhase('words')
       })
     } else if (gameType === 'dict') {
-      setPhase('dict')
+      // 英英データを遅延読み込みしてから英英モードへ
+      loadDict().then((d) => {
+        setDictData(d)
+        setPhase('dict')
+      })
     } else if (gameType === 'touch') {
       setPhase('touch')
     } else if (gameType === 'story') {
@@ -242,6 +246,7 @@ export default function App() {
       {phase === 'dict' && (
         <DictView
           key={`${dictLevel}-${dictTheme}-${dictMode}`}
+          dict={dictData}
           level={dictLevel}
           theme={dictTheme}
           mode={dictMode}

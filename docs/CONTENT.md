@@ -68,6 +68,20 @@
 - 新規英英は **既存単語の中から見出し語を選んで** 定義を書く。どの単語に英英を付けるか（カバレッジ）は別途方針で決める（まず頻出＝L1〜L3 から、等）。
 - `validate` はこの不変条件（`word ∈ words.en`／level・theme一致）を検査する。違反すると失敗する。
 
+### 英英の遅延読み込み・大量生成
+
+- **遅延読み込み**：英英データ（2千件超・約400KB）は `content/dictionaryData.js` に分離し動的 import。アプリは `dictionary.js` の `loadDict()`＋件数表 `DICT_COUNTS`／`DICT_AVAILABLE_LEVELS` を使う（**静的に全件 import しない**＝初回バンドルに載る）。Node ツールは `dictionaryAll.js`（全件）を使う。
+- **大量追加パイプライン**（単語例文と同じ流儀）：
+  ```bash
+  npm run gen-dict -- --count 2000 --chunks 20   # 未作成の頻出語を選定・分割（/tmp/dictgen/chunk-NN.json）
+  #   → 各 chunk をエージェントに読ませ out-NN.json（{word, def, ja, kana, level, theme}）を生成
+  npm run merge-dict                              # 構造検証（word∈words / def=[a-z ] / level・theme一致 / kana消費）
+  npm run check-readings -- --dir /tmp/dictgen    # 読み点検候補 rev-*.json（kuroshiro・誤検出多）
+  #   → 各 rev を点検エージェントへ → revfix-*.json（真の誤りだけ）
+  npm run merge-dict -- --write                   # revfix 適用＋ dictionaryData.js 再生成＋メタ更新
+  npm run check
+  ```
+
 ## 物語（`content/story.js`）
 
 分岐グラフ `STORY = { title, start, endingCount, nodes }`。各ノード：

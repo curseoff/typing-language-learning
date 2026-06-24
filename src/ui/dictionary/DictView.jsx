@@ -5,22 +5,22 @@ import { dictRecKey } from '../../infrastructure/dictRepository.js'
 import { kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 
-export default function DictView({ level, theme, mode, levelLabel, modeLabel, onExit }) {
+export default function DictView({ dict, level, theme, mode, levelLabel, modeLabel, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
       <span className="meta-badge mode">英英 / {modeLabel} / {theme}</span>
     </div>
   )
-  if (mode === 'quiz') return <QuizView level={level} theme={theme} meta={meta} onExit={onExit} />
-  if (mode === 'pick') return <PickView level={level} theme={theme} meta={meta} onExit={onExit} />
-  return <TypeView level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView dict={dict} level={level} theme={theme} meta={meta} onExit={onExit} />
+  if (mode === 'pick') return <PickView dict={dict} level={level} theme={theme} meta={meta} onExit={onExit} />
+  return <TypeView dict={dict} level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
 }
 
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
-function PickView({ level, theme, meta, onExit }) {
-  const q = useDictQuiz({ level, theme, kind: 'pick', onExit })
+function PickView({ dict, level, theme, meta, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, kind: 'pick', onExit })
 
   return (
     <div className="game">
@@ -81,8 +81,8 @@ function PickView({ level, theme, meta, onExit }) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）
-function TypeView({ level, theme, mode, meta, onExit }) {
-  const d = useDict({ level, theme, mode, onExit })
+function TypeView({ dict, level, theme, mode, meta, onExit }) {
+  const d = useDict({ dict, level, theme, mode, onExit })
   const seg = d.seg
   const isEn = mode === 'en'
   const jaProgress = isEn ? 0 : kanjiDone(seg, d.input)
@@ -133,8 +133,8 @@ function TypeView({ level, theme, mode, meta, onExit }) {
 }
 
 // 4択（定義→英単語をタイプ/クリック）
-function QuizView({ level, theme, meta, onExit }) {
-  const q = useDictQuiz({ level, theme, onExit })
+function QuizView({ dict, level, theme, meta, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, onExit })
 
   return (
     <div className="game">
