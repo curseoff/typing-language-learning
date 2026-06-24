@@ -1,5 +1,5 @@
 // タッチタイピング練習の状態機械（記録は保存しない）。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildDrill } from '../domain/touch/drill.js'
 import { TOUCH_LEVELS } from '../content/keyboard.js'
 
@@ -11,7 +11,7 @@ export function useTouch({ level, onExit }) {
   const [hasError, setHasError] = useState(false)
   const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
-  const startRef = useRef(null)
+  const [startTime, setStartTime] = useState(null)
 
   const target = targets[index]
 
@@ -22,7 +22,7 @@ export function useTouch({ level, onExit }) {
     setHasError(false)
     setNow(0)
     setFinished(false)
-    startRef.current = null
+    setStartTime(null)
   }, [keys])
 
   useEffect(() => {
@@ -32,8 +32,8 @@ export function useTouch({ level, onExit }) {
   }, [finished])
 
   const elapsedSec = useMemo(
-    () => (startRef.current && now ? Math.round((now - startRef.current) / 100) / 10 : 0),
-    [now],
+    () => (startTime && now ? Math.round((now - startTime) / 100) / 10 : 0),
+    [now, startTime],
   )
 
   useEffect(() => {
@@ -53,7 +53,8 @@ export function useTouch({ level, onExit }) {
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
       if (e.key.toLowerCase() === target) {
-        if (startRef.current === null) startRef.current = performance.now()
+        const _t = performance.now()
+        setStartTime((p) => p ?? _t)
         setHasError(false)
         if (index >= targets.length - 1) setFinished(true)
         else setIndex((i) => i + 1)

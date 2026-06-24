@@ -5,19 +5,25 @@ import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { Chars, RubyChars } from '../shared/index.js'
 
 export default function Passage({ segments, segIndex, segInput, completed, hasError }) {
-  let g = 0 // 打鍵対象(romaji/英字)の通し文字数 → 600超過の判定に使う
+  // 各セグメント先頭までの打鍵対象(romaji/英字)の通し文字数 → 600超過の判定に使う
+  const tgtLen = (seg, i) => {
+    const state = i < segIndex ? 'done' : i === segIndex ? 'current' : 'future'
+    return state === 'done'
+      ? (completed[i] ?? seg.canonical).length
+      : state === 'current'
+        ? guideText(seg, segInput).length
+        : seg.canonical.length
+  }
+  // offsets[i] = セグメント0..i の打鍵対象長の累積（over 判定は offsets[i-1]＝当該セグメント先頭までの累積）
+  const offsets = segments.reduce((acc, seg, i) => {
+    acc.push((acc[i - 1] ?? 0) + tgtLen(seg, i))
+    return acc
+  }, [])
   return (
     <div className={`passage ${hasError ? 'error' : ''}`}>
       {segments.map((seg, i) => {
         const state = i < segIndex ? 'done' : i === segIndex ? 'current' : 'future'
-        const tgtLen =
-          state === 'done'
-            ? (completed[i] ?? seg.canonical).length
-            : state === 'current'
-              ? guideText(seg, segInput).length
-              : seg.canonical.length
-        const over = g >= TARGET_KEYS
-        g += tgtLen
+        const over = (offsets[i - 1] ?? 0) >= TARGET_KEYS
 
         // 表示文字列と「打ち終えた文字数」「カーソル位置」を決める
         let display

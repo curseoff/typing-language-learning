@@ -1,6 +1,6 @@
 // 単語の4択クイズの状態機械。選択肢を「打って」選ぶ。30問で終了。
 // dir='en'(英語訳: 和訳→英単語) / 'ja'(日本語訳: 英単語→和訳をローマ字)
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
@@ -18,7 +18,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
-  const startTimeRef = useRef(null)
+  const [startTime, setStartTime] = useState(null)
 
   const q = questions[index]
 
@@ -33,7 +33,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
     setNow(0)
     setFinished(false)
     setResult(null)
-    startTimeRef.current = null
+    setStartTime(null)
   }, [words, level, theme, dir])
 
   useEffect(() => {
@@ -42,15 +42,15 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
     return () => clearInterval(id)
   }, [finished])
 
-  const started = startTimeRef.current !== null
+  const started = startTime !== null
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
-    return Math.round((now - startTimeRef.current) / 100) / 10
-  }, [now, started])
+    return Math.round((now - startTime) / 100) / 10
+  }, [now, started, startTime])
 
   const finish = useCallback(
     (correctCount, totalMistakes, endTime) => {
-      const seconds = Math.round((endTime - startTimeRef.current) / 100) / 10
+      const seconds = Math.round((endTime - startTime) / 100) / 10
       const total = questions.length
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
       const record = {
@@ -68,12 +68,13 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, questions.length],
+    [level, theme, mode, questions.length, startTime],
   )
 
   const commit = useCallback(
     (option) => {
-      if (startTimeRef.current === null) startTimeRef.current = performance.now()
+      const _t = performance.now()
+      setStartTime((p) => p ?? _t)
       setPicked(option)
       if (option.answer) setCorrect((c) => c + 1)
     },
@@ -134,7 +135,8 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
       const candidate = input + e.key
       const canType = q.options.some((o) => o.variants.some((v) => v.startsWith(candidate)))
       if (canType) {
-        if (startTimeRef.current === null) startTimeRef.current = performance.now()
+        const _t = performance.now()
+        setStartTime((p) => p ?? _t)
         setHasError(false)
         setInput(candidate)
         const hit = q.options.find((o) => o.variants.includes(candidate))
