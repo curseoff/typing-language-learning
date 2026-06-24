@@ -13,7 +13,7 @@ export const meta = {
 }
 
 // 設定（args で上書き可）
-const COUNT = args?.count ?? 1000
+const COUNT = args?.count ?? 1100
 const CHUNKS = args?.chunks ?? 12
 const DIR = '/tmp/sentgen'
 const WRITE = args?.write ?? true
