@@ -37,10 +37,10 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
   - `eslint-plugin-react` / `react-hooks` を使用。未定義参照（白画面の原因）や `useEffect` 依存ミスを検出
 - **Vitest**（`src/**/*.test.{js,jsx}`）
   - ドメイン層（`romaji` / `typing` / `marathon` / `words` / `dictionary` / `records`）の回帰テスト（node 環境）
-  - **UIスモーク**（`src/ui/App.smoke.test.jsx`, jsdom 環境）：各モードを開始してプレイ画面が描画されるか（白画面/モード破壊の自動検出）。`vite.config.js` の `environmentMatchGlobs` で `src/ui/**` だけ jsdom。
+  - **UIスモーク**（`src/ui/App.smoke.test.jsx`, jsdom 環境）：各モードを開始してプレイ画面が描画されるか（白画面/モード破壊の自動検出）。UIテストはファイル先頭の `// @vitest-environment jsdom` で個別に jsdom 指定（vitest 4 で environmentMatchGlobs 廃止）。
   - 過去の不具合（漢字↔読みアライメント、600文字で詰む 等）をテストで固定
 - **カバレッジ**（`npm run coverage`, v8）
-  - `coverage/` にHTMLレポート。`vite.config.js` の `test.coverage.thresholds` で退行ゲート（現状 statements/lines≈54% / branches≈76% / functions≈64%）。
+  - `coverage/` にHTMLレポート。`vite.config.js` の `test.coverage.thresholds` で退行ゲート（coverage-v8 4 の計測基準で statements/lines≈47% / branches≈38% / functions≈55%。v2→v4 で計測方式が変わり数値が変動）。
   - 入力エンジン（`domain/romaji` ≈100% / `domain/typing/units` のバリアント生成・翻訳モード）は重点的にテスト。UIフックは未カバーが多く今後の伸びしろ。
 - **スクリーンショット一覧**（`scripts/screenshots.mjs`）
   - `npm run screenshots` で build → preview → 各タブ（`?tab=` ディープリンク）をヘッドレスChromeで撮影 → `/tmp/app-shots/contact.png` に一覧化。クリックして回る目視確認を1枚に。
