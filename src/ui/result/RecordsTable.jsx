@@ -1,9 +1,11 @@
-// 記録ランキングテーブル（モード×レベル別）。
+// 記録ランキングテーブル（モード×レベル別）。行クリックで記録詳細を表示。
 import { modeLabel } from '../../content/modes.js'
 import { MAX_RECORDS } from '../../domain/records/ranking.js'
+import { useRecordDetail } from './useRecordDetail.jsx'
 
 export default function RecordsTable({ records, modeKey, rankText, highlight }) {
   const list = records || []
+  const { open, modal } = useRecordDetail()
   return (
     <div className="records">
       <h3>
@@ -27,7 +29,12 @@ export default function RecordsTable({ records, modeKey, rankText, highlight }) 
           </thead>
           <tbody>
             {list.map((r, i) => (
-              <tr key={i} className={highlight && r.date === highlight ? 'me' : ''}>
+              <tr
+                key={i}
+                className={`row-click ${highlight && r.date === highlight ? 'me' : ''}`}
+                onClick={() => open(r, i + 1, { rankText, modeKey, list, isQuiz: false })}
+                title="クリックで記録の詳細"
+              >
                 <td>{i + 1}</td>
                 <td className="speed">{r.speed} 打/分</td>
                 <td>{r.accuracy}%</td>
@@ -38,6 +45,7 @@ export default function RecordsTable({ records, modeKey, rankText, highlight }) 
           </tbody>
         </table>
       )}
+      {modal}
     </div>
   )
 }

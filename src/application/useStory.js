@@ -12,6 +12,7 @@ import {
   saveStoryRecord,
 } from '../infrastructure/storyRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useStory({ mode, start, onExit }) {
@@ -35,6 +36,7 @@ export function useStory({ mode, start, onExit }) {
   const [now, setNow] = useState(0)
   const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 場面ごとの累積記録（ノード単位×モード別）
+  const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録（行=ユニット単位）
 
   const node = nodes[nodeId]
   const lang = typingLang(mode)
@@ -52,6 +54,7 @@ export function useStory({ mode, start, onExit }) {
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
+    segTrackerRef.current = newSegTracker()
     setNodeId(STORY.start)
     setStage('text')
     reset()
@@ -100,6 +103,7 @@ export function useStory({ mode, start, onExit }) {
       mistakes: totalMistakes,
       accuracy,
       seconds,
+      segStats: segTrackerRef.current.list,
       date: new Date().toLocaleString('ja-JP'),
     }
     setResult(record)
@@ -130,6 +134,7 @@ export function useStory({ mode, start, onExit }) {
         if (!segMatches(seg, candidate)) {
           setMistakes((m) => m + 1)
           trackMiss(trackerRef.current)
+          segMiss(segTrackerRef.current)
           setHasError(true)
           return
         }
@@ -137,15 +142,23 @@ export function useStory({ mode, start, onExit }) {
         const startedAt = startTime ?? _t // この打鍵で開始した場合も正しい開始時刻を使う
         setStartTime((p) => p ?? _t)
         setHasError(false)
+        segMark(segTrackerRef.current, _t) // この行の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 場面ごと×モード別
         setTypedKeys((k) => k + 1)
         if (seg.variants.includes(candidate)) {
+          // 行（ユニット）1件の完了を「問題ごとの記録」に積む
+          segPush(segTrackerRef.current, {
+            type: seg.type,
+            label: seg.type === 'en' ? seg.en : seg.ja,
+            keys: candidate.length,
+            t: _t,
+          })
           setInput('')
           if (unitIndex < units.length - 1) {
             setUnitIndex(unitIndex + 1)
           } else {
             setUnitIndex(0)
-            if (node.ending) enterEnding(node, typedKeys + 1, mistakes, performance.now(), startedAt)
+            if (node.ending) enterEnding(node, typedKeys + 1, mistakes, _t, startedAt)
             else if (node.choices) setStage('choice')
             else if (node.next) setNodeId(node.next)
           }

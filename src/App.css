@@ -1273,6 +1273,7 @@ kbd {
 .seg-stats th {
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap;
 }
 .seg-stats td.speed {
   font-weight: 700;
@@ -1355,4 +1356,63 @@ kbd {
 /* 打鍵中に間違えた「今打つ文字」（漢字本体・ふりがな・英語）を赤く */
 .rerr {
   color: var(--red);
+}
+
+/* 記録ランキング: クリックで詳細 */
+.records tr.row-click {
+  cursor: pointer;
+}
+.records tbody tr.row-click:hover {
+  background: var(--panel-2);
+}
+
+/* 記録の結果ページ（全画面） */
+.record-page {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  overflow-y: auto;
+  z-index: 50;
+}
+.record-page-inner {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 20px 64px;
+  text-align: center;
+}
+.modal-close {
+  position: fixed;
+  top: 16px;
+  right: 22px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 1;
+}
+.modal-close:hover {
+  color: var(--text);
+}
+.detail-rank {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--accent);
+  font-weight: 800;
+}
+.result-date {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+/* 問題ごとの記録: 4択クイズの正誤 */
+.seg-stats td.ok {
+  color: var(--green);
+  font-weight: 700;
+}
+.seg-stats .q-answer {
+  color: var(--muted);
 }

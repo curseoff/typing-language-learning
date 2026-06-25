@@ -7,6 +7,7 @@ import { TARGET_KEYS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useWords({ allWords, level, theme, mode, onExit }) {
@@ -23,6 +24,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
   const [records, setRecords] = useState(() => loadWordRecords())
   const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
+  const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
 
   // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
   const segments = useMemo(
@@ -34,6 +36,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
+    segTrackerRef.current = newSegTracker()
     setWords(buildWordPassage(allWords, level, theme, mode))
     setSegIndex(0)
     setInput('')
@@ -77,6 +80,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
         mistakes: totalMistakes,
         accuracy,
         seconds,
+        segStats: segTrackerRef.current.list,
         date: new Date().toLocaleString('ja-JP'),
       }
       setRecords(saveWordRecord(record))
@@ -110,16 +114,30 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
         const startedAt = startTime ?? t // この打鍵で開始した場合も正しい開始時刻を使う
         setStartTime((p) => p ?? t)
         setHasError(false)
+        segMark(segTrackerRef.current, t) // この語の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('w', mode, seg.en)) // 単語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
 
-        if (newKeys >= TARGET_KEYS) {
+        const completesSeg = seg.variants.includes(candidate)
+        const reachedGoal = newKeys >= TARGET_KEYS
+        // 語の完了 or 打ち切りで「問題ごとの記録」を1件積む
+        if (completesSeg || reachedGoal) {
+          segPush(segTrackerRef.current, {
+            type: seg.type,
+            label: seg.type === 'en' ? seg.en : seg.ja,
+            keys: candidate.length,
+            t,
+            partial: !completesSeg,
+          })
+        }
+
+        if (reachedGoal) {
           flushTracker(trackerRef.current)
           finish(newKeys, mistakes, t, startedAt)
           return
         }
-        if (seg.variants.includes(candidate)) {
+        if (completesSeg) {
           // 単語を打ち尽くした場合は終了（600未満でも詰まないように）
           if (segIndex + 1 >= segments.length) {
             flushTracker(trackerRef.current)
@@ -135,6 +153,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
       } else {
         setMistakes((m) => m + 1)
         trackMiss(trackerRef.current)
+        segMiss(segTrackerRef.current)
         setHasError(true)
       }
     }

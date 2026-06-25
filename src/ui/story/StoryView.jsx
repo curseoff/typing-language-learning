@@ -5,6 +5,8 @@ import { lookahead } from '../../domain/story/navigation.js'
 import { segMatches } from '../../domain/typing/units.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, RubyChars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
+import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import SegStatsTable from '../result/SegStatsTable.jsx'
 
 // 現在打っているセグメントの表示
 function ActiveSegment({ seg, input, hasError }) {
@@ -40,6 +42,7 @@ function ActiveSegment({ seg, input, hasError }) {
 
 // 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）
 function StoryRecords({ list, highlight }) {
+  const { open, modal } = useRecordDetail()
   if (!list || list.length === 0) return null
   return (
     <div className="records">
@@ -60,7 +63,12 @@ function StoryRecords({ list, highlight }) {
         </thead>
         <tbody>
           {list.map((r, i) => (
-            <tr key={i} className={highlight && r.date === highlight ? 'me' : ''}>
+            <tr
+              key={i}
+              className={`row-click ${highlight && r.date === highlight ? 'me' : ''}`}
+              onClick={() => open(r, i + 1, { rankText: '物語', list, hasEnding: true })}
+              title="クリックで記録の詳細"
+            >
               <td>{i + 1}</td>
               <td className="speed">{r.speed} 打/分</td>
               <td>{r.accuracy}%</td>
@@ -71,6 +79,7 @@ function StoryRecords({ list, highlight }) {
           ))}
         </tbody>
       </table>
+      {modal}
     </div>
   )
 }
@@ -155,6 +164,7 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
           <p className="key-hint">
             <kbd>Enter</kbd> 最初から / <kbd>Esc</kbd> トップ
           </p>
+          <SegStatsTable segStats={result?.segStats} />
           <StoryRecords list={records} highlight={result?.date} />
         </div>
       ) : (

@@ -5,6 +5,7 @@ import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
 export function useDict({ dict, level, theme, mode, onExit }) {
@@ -20,6 +21,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
   const [records, setRecords] = useState(() => loadDictRecords())
   const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
+  const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
 
   const entry = entries[index]
   // 定義(en=def)/和訳(ja) を buildUnits 用に渡してセグメント化
@@ -30,6 +32,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
+    segTrackerRef.current = newSegTracker()
     setEntries(buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
     setIndex(0)
     setInput('')
@@ -73,6 +76,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
         mistakes: totalMistakes,
         accuracy,
         seconds,
+        segStats: segTrackerRef.current.list,
         date: new Date().toLocaleString('ja-JP'),
       }
       setRecords(saveDictRecord(record))
@@ -101,16 +105,24 @@ export function useDict({ dict, level, theme, mode, onExit }) {
 
       const candidate = input + e.key
       if (segMatches(seg, candidate)) {
-        const _t = performance.now()
-        setStartTime((p) => p ?? _t)
+        const t = performance.now()
+        setStartTime((p) => p ?? t)
         setHasError(false)
+        segMark(segTrackerRef.current, t) // この見出し語の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('d', mode, entry.word)) // 見出し語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
         if (seg.variants.includes(candidate)) {
+          // 見出し語1件の完了を「問題ごとの記録」に積む
+          segPush(segTrackerRef.current, {
+            type: seg.type,
+            label: entry.word,
+            keys: candidate.length,
+            t,
+          })
           if (index >= entries.length - 1) {
             flushTracker(trackerRef.current)
-            finish(newKeys, mistakes, performance.now())
+            finish(newKeys, mistakes, t)
           } else {
             setIndex((i) => i + 1)
             setInput('')
@@ -121,6 +133,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
       } else {
         setMistakes((m) => m + 1)
         trackMiss(trackerRef.current)
+        segMiss(segTrackerRef.current)
         setHasError(true)
       }
     }

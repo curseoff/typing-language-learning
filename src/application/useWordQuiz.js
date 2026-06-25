@@ -1,6 +1,6 @@
 // 単語の4択クイズの状態機械。選択肢を「打って」選ぶ。30問で終了。
 // dir='en'(英語訳: 和訳→英単語) / 'ja'(日本語訳: 英単語→和訳をローマ字)
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
@@ -19,10 +19,14 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
   const [startTime, setStartTime] = useState(null)
+  const segStatsRef = useRef([]) // 今回プレイの問題ごとの記録（設問の正誤）
+  const perQMissRef = useRef(0) // 現在の設問のタイプミス数
 
   const q = questions[index]
 
   const restart = useCallback(() => {
+    segStatsRef.current = []
+    perQMissRef.current = 0
     setQuestions(makeQuiz(buildWordSet(words, level, theme), levelWords(words, level), dir))
     setIndex(0)
     setInput('')
@@ -62,6 +66,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
         mistakes: totalMistakes,
         accuracy,
         seconds,
+        segStats: segStatsRef.current,
         date: new Date().toLocaleString('ja-JP'),
       }
       setRecords(saveWordRecord(record))
@@ -92,6 +97,19 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
 
   const advance = useCallback(() => {
     if (picked === null) return
+    // 現在の設問の結果（問題・正誤・ミス）を「問題ごとの記録」に積む
+    const cur = questions[index]
+    segStatsRef.current = [
+      ...segStatsRef.current,
+      {
+        no: segStatsRef.current.length + 1,
+        label: cur.prompt,
+        answer: cur.answerDisplay,
+        correct: !!picked.answer,
+        mistakes: perQMissRef.current,
+      },
+    ]
+    perQMissRef.current = 0
     if (index >= questions.length - 1) {
       finish(correct, mistakes, performance.now())
     } else {
@@ -100,7 +118,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
       setPicked(null)
       setHasError(false)
     }
-  }, [picked, index, questions.length, finish, correct, mistakes])
+  }, [picked, index, questions, finish, correct, mistakes])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -143,6 +161,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
         if (hit) commit(hit)
       } else {
         setMistakes((m) => m + 1)
+        perQMissRef.current += 1
         setHasError(true)
       }
     }
