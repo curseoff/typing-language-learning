@@ -45,9 +45,11 @@ export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over 
 // フロー参照表示用：打った分だけ緑（.rdone）＋漢字にふりがな。
 // done=漢字(ja文字)の打鍵済み数 / kanaDone=読み(かな)の打鍵済み数。
 // ふりがな(rt)は「かな単位」で着色するので、太陽(たいよう)で「た」を打つと「た」だけ色が変わる。
-export function RubyTyped({ ja, kana, done, kanaDone = 0 }) {
+// hasError時は今打つ文字(漢字=done位置 / ふりがな=kanaDone位置)を赤(.rerr)にする。
+export function RubyTyped({ ja, kana, done, kanaDone = 0, hasError = false }) {
+  const cellCls = (i, end) => (i < end ? 'rdone' : i === end && hasError ? 'rerr' : '')
   const charSpan = (ch, gi) => (
-    <span key={gi} className={gi < done ? 'rdone' : ''}>
+    <span key={gi} className={cellCls(gi, done)}>
       {ch}
     </span>
   )
@@ -57,7 +59,7 @@ export function RubyTyped({ ja, kana, done, kanaDone = 0 }) {
         {p.chars.map((ch, j) => charSpan(ch, p.from + j))}
         <rt>
           {[...p.ruby].map((rc, j) => (
-            <span key={j} className={p.kanaFrom + j < kanaDone ? 'rdone' : ''}>
+            <span key={j} className={cellCls(p.kanaFrom + j, kanaDone)}>
               {rc}
             </span>
           ))}
@@ -83,13 +85,18 @@ export function RubyText({ ja, kana }) {
   )
 }
 
-// 打った分だけ緑（.rdone、カーソルなし）。フロー参照表示用。
-export function Typed({ text, done }) {
-  return [...text].map((ch, i) => (
-    <span key={i} className={i < done ? 'rdone' : ''}>
-      {ch}
-    </span>
-  ))
+// 打った分だけ緑（.rdone）。間違えた時は今打つ文字(done位置)を赤(.rerr)に。
+export function Typed({ text, done, hasError = false }) {
+  return [...text].map((ch, i) => {
+    let cls = ''
+    if (i < done) cls = 'rdone'
+    else if (i === done && hasError) cls = 'rerr'
+    return (
+      <span key={i} className={cls}>
+        {ch}
+      </span>
+    )
+  })
 }
 
 // 翻訳モードの伏せ字（打った分だけ現れる）

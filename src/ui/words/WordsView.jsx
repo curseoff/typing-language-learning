@@ -55,7 +55,12 @@ function TypeView({ words, level, theme, mode, meta, onExit }) {
             ]}
             progress={w.progress}
           />
-          <TopFlow segments={w.segments} segIndex={w.segIndex} segInput={w.segInput} />
+          <TopFlow
+            segments={w.segments}
+            segIndex={w.segIndex}
+            segInput={w.segInput}
+            hasError={w.hasError}
+          />
           <p className="hint">
             英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
             <kbd>Esc</kbd> で中断してトップへ。

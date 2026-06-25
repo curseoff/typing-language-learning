@@ -29,6 +29,7 @@ export function Flow({
   enDone,
   jaDone,
   jaKanaDone = 0,
+  hasError = false,
   activeRow,
   showEn = true,
   showJa = true,
@@ -43,7 +44,13 @@ export function Flow({
           items={items}
           cur={cur}
           active={activeRow === 'en'}
-          render={(it, isCur) => (isCur ? <Typed text={it.en} done={enDone} /> : it.en)}
+          render={(it, isCur) =>
+            isCur ? (
+              <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
+            ) : (
+              it.en
+            )
+          }
         />
       )}
       {showJa && (
@@ -57,12 +64,18 @@ export function Flow({
             <span className="flow-ja">
               {it.kana ? (
                 isCur ? (
-                  <RubyTyped ja={it.ja} kana={it.kana} done={jaDone} kanaDone={jaKanaDone} />
+                  <RubyTyped
+                    ja={it.ja}
+                    kana={it.kana}
+                    done={jaDone}
+                    kanaDone={jaKanaDone}
+                    hasError={activeRow === 'ja' && hasError}
+                  />
                 ) : (
                   <RubyText ja={it.ja} kana={it.kana} />
                 )
               ) : isCur ? (
-                <Typed text={it.ja} done={jaDone} />
+                <Typed text={it.ja} done={jaDone} hasError={activeRow === 'ja' && hasError} />
               ) : (
                 it.ja
               )}

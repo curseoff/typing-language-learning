@@ -46,7 +46,14 @@ export default function MarathonView({
         />
       ) : (
         <>
-          {currentSeg && <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} />}
+          {currentSeg && (
+            <TopFlow
+              segments={segments}
+              segIndex={segIndex}
+              segInput={segInput}
+              hasError={hasError}
+            />
+          )}
           <Passage
             segments={segments}
             segIndex={segIndex}

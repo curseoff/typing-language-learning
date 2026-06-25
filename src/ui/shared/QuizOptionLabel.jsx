@@ -7,13 +7,19 @@ import { RubyTyped } from './Text.jsx'
 export default function QuizOptionLabel({ opt, input, picked, hasError }) {
   const typing = picked === null && input && opt.variants.some((v) => v.startsWith(input))
 
-  // 和訳の選択肢：ルビ付き＋打鍵進捗で着色（漢字は漢字単位、ふりがなはかな単位）
+  // 和訳の選択肢：ルビ付き＋打鍵進捗で着色（漢字は漢字単位、ふりがなはかな単位）。間違えたら赤。
   if (opt.kana) {
     const done = typing ? kanjiDone({ ja: opt.display, kana: opt.kana }, input) : 0
     const kanaDone = typing ? kanaConsumed(opt.kana, input) : 0
     return (
-      <span className={`opt-ruby ${typing && hasError ? 'err' : ''}`}>
-        <RubyTyped ja={opt.display} kana={opt.kana} done={done} kanaDone={kanaDone} />
+      <span className="opt-ruby">
+        <RubyTyped
+          ja={opt.display}
+          kana={opt.kana}
+          done={done}
+          kanaDone={kanaDone}
+          hasError={typing && hasError}
+        />
       </span>
     )
   }

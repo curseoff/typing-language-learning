@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '../../domain/typing/progress.js'
 import { Flow } from '../shared/index.js'
 
-export default function TopFlow({ segments, segIndex, segInput }) {
+export default function TopFlow({ segments, segIndex, segInput, hasError = false }) {
   // 文ごとに1件(sentenceIndex で集約)
   const sentences = useMemo(() => {
     const map = new Map()
@@ -49,6 +49,7 @@ export default function TopFlow({ segments, segIndex, segInput }) {
       enDone={enDone}
       jaDone={jaDone}
       jaKanaDone={jaKanaDone}
+      hasError={hasError}
       activeRow={enActive ? 'en' : jaActive ? 'ja' : null}
       showEn
       showJa
