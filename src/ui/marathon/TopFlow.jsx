@@ -57,6 +57,7 @@ export default function TopFlow({ segments, segIndex, segInput, hasError = false
       showJa
       wrap={!ticker}
       ticker={ticker}
+      isBoth={isBoth}
     />
   )
 }
