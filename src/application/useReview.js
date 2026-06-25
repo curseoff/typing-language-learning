@@ -42,7 +42,7 @@ export function useReview({ deck, items, onExit }) {
     })
     const toCard = (id, isNew) => {
       const it = byId.get(id)
-      return { id, prompt: deck.prompt(it), answer: deck.answer(it), isNew }
+      return { id, prompt: deck.prompt(it), answer: deck.answer(it), box: srs[id]?.box ?? 0, isNew }
     }
     return [...shuffle(reviews).map((id) => toCard(id, false)), ...news.map((id) => toCard(id, true))]
   }, [deck, items])

@@ -1,6 +1,7 @@
 // 復習(SRS)画面。デッキの手がかり(prompt)を見て英単語(answer)をタイプ＝産出想起。
 // 答えは伏せ、長さだけ下線で示す。
 import { useReview } from '../../application/useReview.js'
+import { clozeShown } from '../../domain/srs/srs.js'
 import { StatsRow } from '../shared/index.js'
 
 export default function ReviewView({ deck, items, onExit }) {
@@ -46,6 +47,8 @@ export default function ReviewView({ deck, items, onExit }) {
 
   const { card, input, revealed } = r
   const target = card.answer
+  // 習熟(box)に応じて一部の文字をヒント表示（穴埋め）。位置は id で決定的。
+  const shown = clozeShown(target, card.box, card.id)
 
   return (
     <div className="game">
@@ -58,11 +61,11 @@ export default function ReviewView({ deck, items, onExit }) {
             <span className="reveal-answer">{target}</span>
           ) : (
             <>
-              {[...target].map((ch, i) => (
-                <span key={i} className={i < input.length ? 'rdone' : 'blank'}>
-                  {i < input.length ? input[i] : '_'}
-                </span>
-              ))}
+              {[...target].map((ch, i) => {
+                if (i < input.length) return <span key={i} className="rdone">{input[i]}</span>
+                if (shown[i]) return <span key={i} className="hint-char">{ch}</span> // ヒント文字
+                return <span key={i} className="blank">_</span>
+              })}
               <span className="caret">▍</span>
             </>
           )}

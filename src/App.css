@@ -1298,3 +1298,9 @@ kbd {
   color: var(--muted);
   font-size: 13px;
 }
+
+/* 復習の穴埋めヒント（習熟で見せる字が減る） */
+.word-input .hint-char {
+  color: var(--accent);
+  opacity: 0.5;
+}
