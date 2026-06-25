@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import App from '../App.jsx'
 
-const TABS = ['復習', '物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
+const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
 
 // タブ列(.type-tabs)の中だけでラベルを探す（dev パネル等の同名要素と衝突しないように）
 const clickTab = (container, label) => {
@@ -62,5 +62,12 @@ describe('App スモーク', () => {
     fireEvent.click(within(container).getByText('L2', { exact: false }))
     start()
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
+  })
+
+  it('各タブの「復習する」ボタンで復習セッション（復習バッジ）が始まる', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '単語')
+    fireEvent.click(within(container).getByText(/復習する/))
+    await waitFor(() => expect(badgeText(container)).toMatch(/復習/), { timeout: 8000 })
   })
 })

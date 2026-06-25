@@ -12,12 +12,11 @@ import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 import { loadSrs, todayNum, newIntroducedToday } from '../../infrastructure/srsRepository.js'
-import { DECKS, DECK_KEYS } from '../../application/reviewDecks.js'
+import { DECKS } from '../../application/reviewDecks.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
 
 const GAME_TYPES = [
-  { key: 'review', icon: '🔁', label: '復習', sub: '間隔反復で定着' },
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
   { key: 'words', icon: '🔤', label: '単語', sub: '語彙を覚える' },
   { key: 'wsent', icon: '✍️', label: '単語例文', sub: '単語を文で使う' },
@@ -137,8 +136,7 @@ export default function Ready({
   onDictModeChange,
   touchLevel,
   onTouchLevelChange,
-  reviewDeck,
-  onReviewDeckChange,
+  onReview,
   onStart,
   records,
 }) {
@@ -164,11 +162,6 @@ export default function Ready({
           </button>
         ))}
       </div>
-
-      {/* ── 復習（SRS） ── */}
-      {gameType === 'review' && (
-        <ReviewPanel deckKey={reviewDeck} onDeckChange={onReviewDeckChange} onStart={onStart} />
-      )}
 
       {/* ── 単語例文（レベル別） ── */}
       {gameType === 'wsent' && (
@@ -209,6 +202,7 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]} 文</p>
 
           <StartRow onStart={onStart} />
+          <ReviewButton deckKey="wsent" onReview={onReview} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
             <WsentList level={wsentLevel} mode={mode} />
@@ -309,6 +303,7 @@ export default function Ready({
           </p>
 
           <StartRow onStart={onStart} />
+          <ReviewButton deckKey="words" onReview={onReview} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
             <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
@@ -374,6 +369,7 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語</p>
 
           <StartRow onStart={onStart} />
+          <ReviewButton deckKey="dict" onReview={onReview} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
             <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
@@ -429,41 +425,24 @@ function dictModeDesc(key) {
   }
 }
 
-// 復習パネル：デッキ(単語/単語例文/英英)を選び、srs だけで集計（コンテンツは読まない＝軽量）。
-function ReviewPanel({ deckKey, onDeckChange, onStart }) {
+// 復習ボタン：各タブ内に置く。srs だけで集計（コンテンツは読まない＝軽量）。
+function ReviewButton({ deckKey, onReview }) {
+  const deck = DECKS[deckKey]
   const srs = loadSrs()
   const today = todayNum()
-  const deck = DECKS[deckKey]
   const cards = Object.entries(srs).filter(([id]) => id.startsWith(deck.prefix))
   const learned = cards.length
   const due = cards.filter(([, c]) => c.due <= today).length
-  const newToday = Math.max(0, 10 - newIntroducedToday()) // 1日10語まで新規導入（全デッキ合計）
+  const newToday = Math.max(0, 10 - newIntroducedToday()) // 1日10件まで新規導入（全デッキ合計）
   return (
-    <>
-      <div className="story-pick">🔁 間隔反復（SRS）で語彙を定着させる</div>
-      <SectionLabel>デッキ</SectionLabel>
-      <div className="mode-select">
-        <div className="mode-group">
-          <div className="mode-btns">
-            {DECK_KEYS.map((k) => (
-              <button
-                key={k}
-                className={`mode-btn ${deckKey === k ? 'active' : ''}`}
-                onClick={() => onDeckChange(k)}
-              >
-                {DECKS[k].label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <p className="mode-desc">{deck.dir}。正解で間隔が延び、間違えると近く再出題されます。</p>
-      <p className="pool-count">
-        今日の復習 <b>{due}</b> ＋ 新規 <b>{newToday}</b> ＝ 約 <b>{due + newToday}</b> 件 ／ 覚えた{' '}
-        {learned} 件
+    <div className="review-row">
+      <button className="btn-review" onClick={() => onReview(deckKey)}>
+        🔁 この語彙を復習する（{deck.dir.includes('定義') ? '定義→見出し語' : '思い出す練習'}）
+      </button>
+      <p className="review-meta">
+        今日 復習 <b>{due}</b> ＋ 新規 <b>{newToday}</b> 件 ／ 覚えた {learned} 件（間隔反復）
       </p>
-      <StartRow onStart={onStart} />
-    </>
+    </div>
   )
 }
 

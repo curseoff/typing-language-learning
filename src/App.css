@@ -1274,3 +1274,27 @@ kbd {
   color: var(--accent);
   font-weight: 800;
 }
+
+/* 各タブ内の「復習する」ボタン（SRS） */
+.review-row {
+  margin-top: 14px;
+  text-align: center;
+}
+.btn-review {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-review:hover {
+  background: rgba(56, 189, 248, 0.12);
+}
+.review-meta {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
