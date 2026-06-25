@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { alignJaToKana, kanjiDone, rubyParts } from './progress.js'
+import { alignJaToKana, kanjiDone, rubyParts, chipProgress } from './progress.js'
 import { WORDS } from '../../content/wordsAll.js'
 import { WORD_SENTENCES } from '../../content/wordSentences/all.js'
 
@@ -76,5 +76,20 @@ describe('rubyParts (ふりがな)', () => {
       // ja がかなのみの語は chars(=かな)が並ぶので kana と一致、漢字語も読みで一致
       expect(joined.length).toBe(expected.length)
     }
+  })
+})
+
+describe('chipProgress (チップ着色)', () => {
+  it('英訳: 今打っている英単語の打鍵済み文字数を返す', () => {
+    const seg = { type: 'en', en: 'I read books.', words: ['I', 'read', 'books', '.'] }
+    expect(chipProgress(seg, 'I rea')).toEqual({ used: 1, curDone: 3, curKanaDone: 0 })
+  })
+
+  it('日本語訳: 打ち終えた語数と、今打っている語の進捗を返す', () => {
+    const seg = { type: 'ja', ja: '本を読む', kana: 'ほんをよむ', words: ['本', 'を', '読む'] }
+    expect(chipProgress(seg, 'honn').used).toBe(1) // 「本」打ち終え→現在は「を」
+    const p = chipProgress(seg, 'honnwoyo') // 「読む」を「よ」まで
+    expect(p.used).toBe(2)
+    expect(p.curKanaDone).toBe(1) // 読む=よむ の「よ」1かな
   })
 })

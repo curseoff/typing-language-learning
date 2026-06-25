@@ -1,5 +1,5 @@
 // 翻訳モード(英訳/和訳)。上に原文、下に単語チップ、入力欄は伏せて打つと現れる。
-import { consumedWords, guideText } from '../../domain/typing/progress.js'
+import { chipProgress, guideText } from '../../domain/typing/progress.js'
 import { Chips, MaskedText, RubyText } from '../shared/index.js'
 
 export default function TranslateView({ segments, segIndex, segInput, hasError }) {
@@ -15,7 +15,7 @@ export default function TranslateView({ segments, segIndex, segInput, hasError }
 
   const target = guideText(seg, segInput) // 打つべき文字列(伏せて表示)
   const pos = segInput.length
-  const used = consumedWords(seg, segInput) // 打ち終えた単語数
+  const { used, curDone, curKanaDone } = chipProgress(seg, segInput) // チップ着色用の進捗
 
   return (
     <div className="translate">
@@ -23,7 +23,13 @@ export default function TranslateView({ segments, segIndex, segInput, hasError }
       <div className="tr-source">{renderSource(seg)}</div>
       {next && <div className="tr-next">次: {renderSource(next)}</div>}
 
-      <Chips chips={seg.chips} used={used} />
+      <Chips
+        chips={seg.chips}
+        used={used}
+        curDone={curDone}
+        curKanaDone={curKanaDone}
+        hasError={hasError}
+      />
 
       <div className={`tr-input ${hasError ? 'error' : ''}`}>
         <MaskedText text={target} pos={pos} hasError={hasError} />

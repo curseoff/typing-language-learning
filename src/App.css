@@ -997,6 +997,10 @@ h1 {
   border-bottom-width: 1px;
   color: var(--muted);
 }
+/* 今打っている単語のチップを強調（打鍵分は .rdone で着色） */
+.chip.current {
+  border-color: var(--accent);
+}
 .tr-input {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 26px;

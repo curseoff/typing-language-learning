@@ -122,14 +122,35 @@ export function MaskedText({ text, pos, hasError }) {
 }
 
 // 単語チップ（語順index < used を消費表示）。chips=[{text,i}]
-export function Chips({ chips, used }) {
+// used=打ち終えた語数。今打っている語(c.i===used)は打鍵分を着色し、間違えたら赤。
+export function Chips({ chips, used, curDone = 0, curKanaDone = 0, hasError = false }) {
   return (
     <div className="tr-chips">
-      {chips.map((c) => (
-        <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
-          {c.kana ? <RubyText ja={c.text} kana={c.kana} /> : c.text}
-        </span>
-      ))}
+      {chips.map((c) => {
+        const isCur = c.i === used
+        const cls = `chip ${c.i < used ? 'used' : ''} ${isCur ? 'current' : ''}`
+        return (
+          <span key={c.i} className={cls}>
+            {c.kana ? (
+              isCur ? (
+                <RubyTyped
+                  ja={c.text}
+                  kana={c.kana}
+                  done={curDone}
+                  kanaDone={curKanaDone}
+                  hasError={hasError}
+                />
+              ) : (
+                <RubyText ja={c.text} kana={c.kana} />
+              )
+            ) : isCur ? (
+              <Typed text={c.text} done={curDone} hasError={hasError} />
+            ) : (
+              c.text
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }

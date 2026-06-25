@@ -162,3 +162,27 @@ export function consumedWords(seg, input) {
   }
   return count
 }
+
+// 翻訳モードのチップ着色用：打ち終えた語数(used)と、今打っている語の進捗
+// （curDone=語内の漢字/英字の打鍵済み, curKanaDone=語内のかなの打鍵済み）を返す。
+export function chipProgress(seg, input) {
+  const used = consumedWords(seg, input)
+  const curWord = seg.words?.[used]
+  if (!curWord) return { used, curDone: 0, curKanaDone: 0 }
+  const wordLen = [...curWord].length
+  if (seg.type === 'ja') {
+    const consumed = kanaConsumed(seg.kana, input)
+    const ends = alignJaToKana(seg.ja, seg.kana)
+    let cumJa = 0
+    for (let k = 0; k < used; k++) cumJa += [...seg.words[k]].length
+    const wordKanaStart = cumJa === 0 ? 0 : ends[cumJa - 1]
+    const curKanaDone = Math.max(0, consumed - wordKanaStart)
+    let curDone = 0
+    for (let j = 0; j < wordLen; j++) if ((ends[cumJa + j] ?? Infinity) <= consumed) curDone++
+    return { used, curDone, curKanaDone }
+  }
+  const ends = enWordEnds(seg.en)
+  const start = (ends[used] ?? input.length) - wordLen
+  const curDone = Math.max(0, Math.min(input.length - start, wordLen))
+  return { used, curDone, curKanaDone: 0 }
+}
