@@ -1,5 +1,21 @@
 // 入力ユニットの生成（モード別のセグメント列・単語チップ）。
 import { romajiVariants, toRomaji } from '../romaji/romaji.js'
+import { alignJaToKana } from './progress.js'
+
+// 各語に読み(kana)を割り当てる（チップのルビ表示用）。ja の文字位置→kana 終端で切り出す。
+function withWordKana(words, ja, kana) {
+  if (!kana || words.join('') !== ja) return words.map((text, i) => ({ text, i }))
+  const ends = alignJaToKana(ja, kana)
+  const kanaArr = [...kana]
+  let pos = 0
+  return words.map((text, i) => {
+    const len = [...text].length
+    const kStart = pos === 0 ? 0 : ends[pos - 1]
+    const kEnd = ends[pos + len - 1]
+    pos += len
+    return { text, i, kana: kanaArr.slice(kStart, kEnd).join('') }
+  })
+}
 
 function enSeg(item, translate) {
   return { type: 'en', en: item.en, ja: item.ja, kana: item.kana, variants: [item.en], canonical: item.en, translate }
@@ -63,7 +79,8 @@ export function buildUnits(item, mode) {
         if (p) words.push(p)
       }
       s.words = words
-      s.chips = scramble(words.map((text, i) => ({ text, i })))
+      // チップには読み(kana)も持たせ、ルビ表示できるようにする
+      s.chips = scramble(withWordKana(words, item.ja, item.kana))
       return [s]
     }
     case 'en':

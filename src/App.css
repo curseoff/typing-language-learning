@@ -596,6 +596,64 @@ h1 {
   font-size: 15px;
   transition: opacity 0.15s ease;
 }
+
+/* ティッカー: 現在語の左端を固定し、ストリップ全体を滑らかに左へスライド。
+   完了語は左へ流れて clip+フェード、現在語は常に全文字が見える。 */
+.flow.ticker .flow-track {
+  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。 */
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
+}
+.flow-strip {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  transition: transform 0.12s linear;
+}
+
+/* 英語・日本語モード: 英語＋和訳を1ペアにまとめ横一列で交互に並べる */
+.flow.pairs {
+  display: block;
+}
+.flow.pairs .flow-strip {
+  gap: 10px;
+  align-items: stretch;
+}
+.flow-pair {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid #334155;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+.flow-pair.current {
+  opacity: 1;
+  border-color: var(--accent);
+}
+.flow-pair.past {
+  opacity: 0.22;
+}
+.flow-pair .pair-en {
+  font-weight: 700;
+  font-size: 17px;
+}
+.flow-pair .pair-ja {
+  font-weight: 700;
+  color: var(--gold);
+}
+/* 入力中の言語に下線を付けて「今どちらを打つか」を示す */
+.flow-pair .pair-en.typing,
+.flow-pair .pair-ja.typing {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
 .flow-item.past,
 .flow-item.future {
   opacity: 0.3;
@@ -607,6 +665,31 @@ h1 {
 }
 .flow-item.current.typing {
   opacity: 1;
+}
+/* 単語モード(ticker)の英語/日本語: 各単語を「英語・日本語」ペアと同じ枠デザインに揃える。
+   枠は常に付け、現在語は枠色をアクセント＋下線に変えるだけ（枠の出現で見た目が変わらない）。 */
+.flow.ticker .flow-item {
+  font-size: 17px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid #334155;
+  opacity: 0.4;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+.flow.ticker .flow-item.past {
+  opacity: 0.22;
+}
+.flow.ticker .flow-item.current {
+  font-size: 17px; /* current でも拡大しない＝前後でサイズを揃える */
+  opacity: 1;
+}
+.flow.ticker .flow-item.current.typing {
+  border-color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
 }
 
 /* 物語モード: 長文は折り返す（横ティッカーをやめる） */
@@ -997,6 +1080,10 @@ h1 {
   border-bottom-width: 1px;
   color: var(--muted);
 }
+/* 今打っている単語のチップを強調（打鍵分は .rdone で着色） */
+.chip.current {
+  border-color: var(--accent);
+}
 .tr-input {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 26px;
@@ -1263,4 +1350,9 @@ kbd {
 }
 .records tbody tr:nth-child(1) td.speed {
   color: var(--gold);
+}
+
+/* 打鍵中に間違えた「今打つ文字」（漢字本体・ふりがな・英語）を赤く */
+.rerr {
+  color: var(--red);
 }

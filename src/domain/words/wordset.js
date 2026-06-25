@@ -72,6 +72,7 @@ export function makeQuiz(words, pool, dir, optionCount = 4) {
     const opts = [...chosen].sort(() => Math.random() - 0.5)
     return {
       prompt: dir === 'ja' ? w.en : w.ja, // 出題（表示する側）
+      promptKana: dir === 'ja' ? undefined : w.kana, // 英語訳=和訳が出題→ルビ用の読み
       answerDisplay: optDisplay(w, dir),
       options: opts.map((o) => ({
         display: optDisplay(o, dir),

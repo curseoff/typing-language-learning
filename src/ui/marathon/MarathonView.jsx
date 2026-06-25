@@ -2,7 +2,6 @@
 import { modeLabel } from '../../content/modes.js'
 import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { StatsRow } from '../shared/index.js'
-import Passage from './Passage.jsx'
 import TopFlow from './TopFlow.jsx'
 import TranslateView from './TranslateView.jsx'
 
@@ -12,7 +11,6 @@ export default function MarathonView({
   segments,
   segIndex,
   segInput,
-  completed,
   hasError,
   typedKeys,
   mistakes,
@@ -45,16 +43,15 @@ export default function MarathonView({
           hasError={hasError}
         />
       ) : (
-        <>
-          {currentSeg && <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} />}
-          <Passage
+        currentSeg && (
+          <TopFlow
             segments={segments}
             segIndex={segIndex}
             segInput={segInput}
-            completed={completed}
             hasError={hasError}
+            ticker
           />
-        </>
+        )
       )}
 
       <p className="hint">
