@@ -45,7 +45,7 @@ export default function ReviewView({ deck, items, onExit }) {
     )
   }
 
-  const { card, input, revealed } = r
+  const { card, input, answered, wasOk, example } = r
   const target = card.answer
   // 習熟(box)に応じて一部の文字をヒント表示（穴埋め）。位置は id で決定的。
   const shown = clozeShown(target, card.box, card.id)
@@ -57,8 +57,11 @@ export default function ReviewView({ deck, items, onExit }) {
         <div className="word-dir">{deck.dir}（Tab=答えを見る / Esc=終了）</div>
         <p className="word-prompt">{card.prompt}</p>
         <div className="word-input">
-          {revealed ? (
-            <span className="reveal-answer">{target}</span>
+          {answered ? (
+            <span className={wasOk ? 'reveal-answer' : 'reveal-answer wrong'}>
+              {wasOk ? '✓ ' : '✗ '}
+              {target}
+            </span>
           ) : (
             <>
               {[...target].map((ch, i) => {
@@ -70,8 +73,14 @@ export default function ReviewView({ deck, items, onExit }) {
             </>
           )}
         </div>
-        {revealed && <p className="hint">Enter で次へ</p>}
-        {card.isNew && !revealed && <p className="hint">新しい単語</p>}
+        {answered && example && (
+          <div className="review-example">
+            <p className="rex-en">{example.en}</p>
+            <p className="rex-ja">{example.ja}</p>
+          </div>
+        )}
+        {answered && <p className="hint">Enter で次へ</p>}
+        {card.isNew && !answered && <p className="hint">新しい単語</p>}
       </div>
 
       <StatsRow

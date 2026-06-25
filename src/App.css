@@ -1304,3 +1304,23 @@ kbd {
   color: var(--accent);
   opacity: 0.5;
 }
+
+/* 復習：想起後に見せる例文 */
+.review-example {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border-radius: 10px;
+}
+.rex-en {
+  margin: 0;
+  font-weight: 600;
+}
+.rex-ja {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.reveal-answer.wrong {
+  color: var(--red);
+}

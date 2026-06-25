@@ -2,6 +2,7 @@
 // いずれも英単語をタイプ＝産出想起。ミスなく打てれば正解→box上げ／ミス or 答えを見る→box1。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { review, buildQueue } from '../domain/srs/srs.js'
+import { loadExampleMap } from './reviewExamples.js'
 import {
   loadSrs,
   saveCard,
@@ -50,13 +51,25 @@ export function useReview({ deck, items, onExit }) {
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [mistakes, setMistakes] = useState(0)
-  const [revealed, setRevealed] = useState(false)
+  const [answered, setAnswered] = useState(false) // 回答後（例文を見せ、Enterで次へ）
+  const [wasOk, setWasOk] = useState(false)
   const [correct, setCorrect] = useState(0)
+  const [examples, setExamples] = useState(null) // 単語→例文 Map（背景で遅延ロード）
   const erroredRef = useRef(false)
+
+  // 例文は背景で読み込む（セッションを止めない）
+  useEffect(() => {
+    let alive = true
+    loadExampleMap().then((m) => alive && setExamples(m))
+    return () => {
+      alive = false
+    }
+  }, [])
 
   const card = cardsDeck[index]
   const finished = index >= cardsDeck.length
   const target = card?.answer ?? ''
+  const example = answered && card ? (examples?.get(card.answer) ?? null) : null
 
   const grade = useCallback(
     (ok) => {
@@ -73,15 +86,16 @@ export function useReview({ deck, items, onExit }) {
   const next = useCallback(() => {
     setIndex((i) => i + 1)
     setInput('')
-    setRevealed(false)
+    setAnswered(false)
     erroredRef.current = false
   }, [])
 
   const reveal = useCallback(() => {
-    if (finished || revealed) return
+    if (finished || answered) return
     grade(false)
-    setRevealed(true)
-  }, [finished, revealed, grade])
+    setWasOk(false)
+    setAnswered(true)
+  }, [finished, answered, grade])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -91,7 +105,7 @@ export function useReview({ deck, items, onExit }) {
         return
       }
       if (finished) return
-      if (revealed) {
+      if (answered) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           next()
@@ -114,8 +128,10 @@ export function useReview({ deck, items, onExit }) {
       if (target.startsWith(cand)) {
         setInput(cand)
         if (cand === target) {
+          // 打ち終えたら採点し、例文を見せてから Enter で次へ
           grade(!erroredRef.current)
-          next()
+          setWasOk(!erroredRef.current)
+          setAnswered(true)
         }
       } else {
         setMistakes((m) => m + 1)
@@ -124,12 +140,14 @@ export function useReview({ deck, items, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [input, target, finished, revealed, grade, next, reveal, onExit])
+  }, [input, target, finished, answered, grade, next, reveal, onExit])
 
   return {
     card,
     finished,
-    revealed,
+    answered,
+    wasOk,
+    example,
     input,
     mistakes,
     index,
