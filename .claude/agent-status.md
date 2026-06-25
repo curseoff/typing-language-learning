@@ -11,3 +11,4 @@
 | 2026-06-26 | （セットアップ） | チーム編成 | 完了 | coder / ddd-auditor / ui-auditor / planner を定義 |
 | 2026-06-26 | ddd-auditor | DDD/レイヤード構成の監査（現状コード全体） | 完了 | 重大(高)なし。中2件(M-1: UI→infra直import / M-2: domainのMath.random)・低3件。循環依存0・lint緑 |
 | 2026-06-26 | 司令塔（本人承認後） | 監査指摘を Issue 化 | 完了 | #95(M-1) #96(M-2) 作成。着手判断は本人 |
+| 2026-06-26 | coder | #96 実装：domain 出題乱数の rng DI 化＋決定的テスト（feature/rng-di） | 完了 | 後方互換でrng注入・決定的テスト追加。check緑(79)・カバレッジ向上→閾値ラチェット。司令塔がAI署名でコミット |
