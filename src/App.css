@@ -666,6 +666,15 @@ h1 {
 .flow-item.current.typing {
   opacity: 1;
 }
+/* 単語モード(ticker)の英語/日本語: 今打つべき単語を青枠＋下線で明示 */
+.flow.ticker .flow-item.current.typing {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 1px 8px;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
 
 /* 物語モード: 長文は折り返す（横ティッカーをやめる） */
 .flow.wrap .flow-row {
