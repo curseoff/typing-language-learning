@@ -97,16 +97,55 @@ export function romajiVariants(kana) {
 
 // ローマ字入力 input が、kana の先頭から何文字ぶんを打ち終えたかを返す。
 // 先頭 k 文字を綴り切るローマ字のいずれかが input の先頭にあれば、k 文字完了。
+//
+// 全変種展開（expand）は読みの長さに対して指数的になるため、input を直接マッチして
+// 線形に解く。状態 (i=かなindex, p=入力位置) を DFS＋メモ化で辿り、到達できた最大の i を返す。
+// expand と同一の規則（っ＝子音重ね/xtu/ltu、ん＝nn/n'/単独n、拗音、BASE/濁点）を局所適用する。
 export function kanaConsumed(kana, input) {
   const hira = toHiragana(kana)
+  const n = hira.length
   let best = 0
-  for (let k = 1; k <= hira.length; k++) {
-    const vs = new Set(expand(hira.slice(0, k), 0))
-    for (const v of vs) {
-      if (input.startsWith(v)) {
-        best = k
-        break
+  // 1ユニット（拗音=2字 / それ以外=1字。っ・ん は呼び出し側で別扱い）の [綴り, 進めるかな数]
+  const units = (j) => {
+    if (j >= n) return []
+    const ch = hira[j]
+    const nx = hira[j + 1]
+    if (nx && SMALL_Y.has(nx) && YOUON[ch + nx]) return YOUON[ch + nx].map((h) => [h, 2])
+    return (BASE[ch] || [ch]).map((h) => [h, 1])
+  }
+  const seen = new Set()
+  const stack = [[0, 0]]
+  while (stack.length) {
+    const [i, p] = stack.pop()
+    const key = i * (input.length + 1) + p
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (i > best) best = i
+    if (i >= n) continue
+    const ch = hira[i]
+    const nx = hira[i + 1]
+    const opts = [] // [綴り, 次のかなindex]
+    if (ch === 'っ') {
+      opts.push(['xtu', i + 1], ['ltu', i + 1]) // 単独入力（っ単体で確定）
+      // 子音重ね：次のユニットの頭子音を重ねる。結合形は「っ＋次の音」をまとめて進める
+      for (const [s2, adv] of units(i + 1)) {
+        const c = s2[0]
+        if (!VOWELS.has(c) && c !== 'n') opts.push([c + s2, i + 1 + adv])
       }
+    } else if (ch === 'ん') {
+      opts.push(['nn', i + 1], ["n'", i + 1]) // ん単体で確定
+      // 単独 n：後続が子音（n/y以外）のときのみ。結合形は「ん＋次の音」をまとめて進める
+      for (const [s2, adv] of units(i + 1)) {
+        const c = s2[0]
+        if (!VOWELS.has(c) && c !== 'n' && c !== 'y') opts.push(['n' + s2, i + 1 + adv])
+      }
+    } else if (nx && SMALL_Y.has(nx) && YOUON[ch + nx]) {
+      for (const h of YOUON[ch + nx]) opts.push([h, i + 2])
+    } else {
+      for (const h of BASE[ch] || [ch]) opts.push([h, i + 1])
+    }
+    for (const [s, ni] of opts) {
+      if (input.startsWith(s, p)) stack.push([ni, p + s.length])
     }
   }
   return best
