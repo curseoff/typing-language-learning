@@ -23,6 +23,7 @@ const DIR = arg('dir', '/tmp/app-shots')
 const CHROME =
   process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const TABS = [
+  { key: 'review', label: '復習' },
   { key: 'wsent', label: '単語例文' },
   { key: 'words', label: '単語' },
   { key: 'dict', label: '英英辞典' },

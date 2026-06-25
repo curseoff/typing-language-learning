@@ -1264,3 +1264,13 @@ kbd {
 .records tbody tr:nth-child(1) td.speed {
   color: var(--gold);
 }
+
+/* ---- 復習(SRS) ---- */
+.word-input .blank {
+  color: var(--muted);
+  opacity: 0.4;
+}
+.reveal-answer {
+  color: var(--accent);
+  font-weight: 800;
+}

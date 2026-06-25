@@ -11,10 +11,12 @@ import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepositor
 import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
+import { loadSrs, todayNum, newIntroducedToday } from '../../infrastructure/srsRepository.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
 
 const GAME_TYPES = [
+  { key: 'review', icon: '🔁', label: '復習', sub: '間隔反復で定着' },
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
   { key: 'words', icon: '🔤', label: '単語', sub: '語彙を覚える' },
   { key: 'wsent', icon: '✍️', label: '単語例文', sub: '単語を文で使う' },
@@ -159,6 +161,9 @@ export default function Ready({
           </button>
         ))}
       </div>
+
+      {/* ── 復習（SRS） ── */}
+      {gameType === 'review' && <ReviewPanel onStart={onStart} />}
 
       {/* ── 単語例文（レベル別） ── */}
       {gameType === 'wsent' && (
@@ -417,6 +422,27 @@ function dictModeDesc(key) {
     default:
       return '英語の定義を読んで、4つの英単語から正解を入力（4択・20問）。回答後に和訳を表示。'
   }
+}
+
+// 復習パネル：srs だけで集計（単語データは読まない＝軽量）。
+function ReviewPanel({ onStart }) {
+  const cards = Object.values(loadSrs())
+  const today = todayNum()
+  const learned = cards.length
+  const due = cards.filter((c) => c.due <= today).length
+  const newToday = Math.max(0, 10 - newIntroducedToday()) // 1日10語まで新規導入
+  return (
+    <>
+      <div className="story-pick">🔁 間隔反復（SRS）で語彙を定着させる</div>
+      <p className="pool-count">
+        今日の復習 <b>{due}</b> 語 ＋ 新規 <b>{newToday}</b> 語 ＝ 約 <b>{due + newToday}</b> 語
+      </p>
+      <p className="mode-desc">
+        和訳を見て英単語をタイプ＝思い出す練習。正解で間隔が延び、間違えると近く再出題されます。覚えた語: {learned} 語。
+      </p>
+      <StartRow onStart={onStart} />
+    </>
+  )
 }
 
 function StartRow({ onStart }) {

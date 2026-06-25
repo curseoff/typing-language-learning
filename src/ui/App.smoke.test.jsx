@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
 import App from '../App.jsx'
 
-const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
+const TABS = ['復習', '物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
 
 // タブ列(.type-tabs)の中だけでラベルを探す（dev パネル等の同名要素と衝突しないように）
 const clickTab = (container, label) => {

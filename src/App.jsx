@@ -13,10 +13,11 @@ import MarathonView from './ui/marathon/MarathonView.jsx'
 import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
+import ReviewView from './ui/review/ReviewView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 
-const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
+const TYPE_KEYS = ['review', 'story', 'words', 'wsent', 'dict', 'touch']
 const MODE_KEYS = MODES.map((m) => m.key)
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
 const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
@@ -81,11 +82,11 @@ export default function App() {
   }, [startMarathon, mode, wsentLevel])
 
   const start = useCallback(() => {
-    if (gameType === 'words') {
-      // 単語データ（約1.6MB）を遅延読み込みしてから単語モードへ
+    if (gameType === 'words' || gameType === 'review') {
+      // 単語データ（約1.6MB）を遅延読み込みしてから 単語/復習 モードへ
       loadWords().then((w) => {
         setWordsData(w)
-        setPhase('words')
+        setPhase(gameType === 'review' ? 'review' : 'words')
       })
     } else if (gameType === 'dict') {
       // 英英データを遅延読み込みしてから英英モードへ
@@ -229,6 +230,8 @@ export default function App() {
           onExit={() => setPhase('ready')}
         />
       )}
+
+      {phase === 'review' && <ReviewView words={wordsData} onExit={() => setPhase('ready')} />}
 
       {phase === 'words' && (
         <WordsView
