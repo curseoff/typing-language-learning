@@ -53,7 +53,8 @@ export function RubyTyped({ ja, kana, done }) {
     p.ruby ? (
       <ruby key={pi}>
         {p.chars.map((ch, j) => charSpan(ch, p.from + j))}
-        <rt>{p.ruby}</rt>
+        {/* その漢字を打ち終えたら、ふりがな(rt)も打鍵色にする */}
+        <rt className={done >= p.from + p.chars.length ? 'rdone' : ''}>{p.ruby}</rt>
       </ruby>
     ) : (
       <Fragment key={pi}>{p.chars.map((ch, j) => charSpan(ch, p.from + j))}</Fragment>
