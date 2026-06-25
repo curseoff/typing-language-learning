@@ -4,6 +4,7 @@ import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../infrastructure/dictRepository.js'
 import { kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { useRecordDetail } from '../result/useRecordDetail.jsx'
 
 export default function DictView({ dict, level, theme, mode, levelLabel, modeLabel, onExit }) {
   const meta = (
@@ -196,6 +197,7 @@ function QuizView({ dict, level, theme, meta, onExit }) {
 
 function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
   const list = records[dictRecKey(level, theme, mode)] || []
+  const { open, modal } = useRecordDetail()
   const isQuiz = mode === 'quiz' || mode === 'pick' // 選択式＝正解数で表示
   return (
     <div className="result">
@@ -257,7 +259,12 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
             </thead>
             <tbody>
               {list.map((r, i) => (
-                <tr key={i} className={r.date === result.date ? 'me' : ''}>
+                <tr
+                  key={i}
+                  className={`row-click ${r.date === result.date ? 'me' : ''}`}
+                  onClick={() => open(r, i + 1, { rankText: '英英' })}
+                  title="クリックで記録の詳細"
+                >
                   <td>{i + 1}</td>
                   <td className="speed">{isQuiz ? `${r.correct}/${r.words}` : `${r.speed} 打/分`}</td>
                   <td>{r.accuracy}%</td>
@@ -269,6 +276,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
           </table>
         )}
       </div>
+      {modal}
     </div>
   )
 }
