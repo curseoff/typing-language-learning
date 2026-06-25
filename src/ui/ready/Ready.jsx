@@ -12,6 +12,7 @@ import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 import RecordsTable from '../result/RecordsTable.jsx'
+import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import ItemList from './ItemList.jsx'
 
 const GAME_TYPES = [
@@ -306,6 +307,7 @@ export default function Ready({
             <WordRecords
               list={loadWordRecords()[wordRecKey(wordLevel, wordTheme, wordMode)]}
               isQuiz={wordMode.startsWith('quiz')}
+              rankText={`単語 ${dictLevelLabel(wordLevel)} ${wordTheme}`}
             />
           )}
         </>
@@ -371,6 +373,7 @@ export default function Ready({
             <WordRecords
               list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
               isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
+              rankText={`英英 ${dictLevelLabel(dictLevel)} ${dictTheme}`}
             />
           )}
         </>
@@ -448,9 +451,10 @@ function wordModeDesc(key) {
   }
 }
 
-// 単語の記録（入力=速度、4択=正解数）
-function WordRecords({ list, isQuiz }) {
+// 単語の記録（入力=速度、4択=正解数）。行クリックで詳細。
+function WordRecords({ list, isQuiz, rankText }) {
   const rows = list || []
+  const { open, modal } = useRecordDetail()
   return (
     <div className="records">
       <h3>
@@ -471,7 +475,12 @@ function WordRecords({ list, isQuiz }) {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i}>
+              <tr
+                key={i}
+                className="row-click"
+                onClick={() => open(r, i + 1, { rankText, list: rows, isQuiz })}
+                title="クリックで記録の詳細"
+              >
                 <td>{i + 1}</td>
                 <td className="speed">{isQuiz ? `${r.correct}/${r.words}` : `${r.speed} 打/分`}</td>
                 <td>{r.accuracy}%</td>
@@ -482,6 +491,7 @@ function WordRecords({ list, isQuiz }) {
           </tbody>
         </table>
       )}
+      {modal}
     </div>
   )
 }
@@ -517,6 +527,7 @@ function StoryScenes({ mode }) {
 
 function StoryRecords({ list }) {
   const rows = list || []
+  const { open, modal } = useRecordDetail()
   return (
     <div className="records">
       <h3>
@@ -538,7 +549,12 @@ function StoryRecords({ list }) {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i}>
+              <tr
+                key={i}
+                className="row-click"
+                onClick={() => open(r, i + 1, { rankText: '物語', list: rows, hasEnding: true })}
+                title="クリックで記録の詳細"
+              >
                 <td>{i + 1}</td>
                 <td className="speed">{r.speed} 打/分</td>
                 <td>{r.accuracy}%</td>
@@ -550,6 +566,7 @@ function StoryRecords({ list }) {
           </tbody>
         </table>
       )}
+      {modal}
     </div>
   )
 }

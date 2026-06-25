@@ -55,8 +55,10 @@ export default function App() {
 
   // マラソンのゲームセッション
   const onFinish = useCallback((record, stats) => {
-    setRecords(saveRecord(record))
-    setLastResult(record)
+    // 問題ごとの記録(segStats)も記録に保存し、後でランキングから見返せるようにする
+    const full = { ...record, segStats: stats }
+    setRecords(saveRecord(full))
+    setLastResult(full)
     setSegStats(stats)
     setPhase('result')
   }, [])

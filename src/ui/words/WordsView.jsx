@@ -3,6 +3,8 @@ import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../infrastructure/wordsRepository.js'
 import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
+import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import SegStatsTable from '../result/SegStatsTable.jsx'
 import TopFlow from '../marathon/TopFlow.jsx'
 
 export default function WordsView({ words, level, theme, mode, levelLabel, modeLabel, onExit }) {
@@ -155,6 +157,7 @@ function QuizView({ words, level, theme, mode, dir, meta, onExit }) {
 
 function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
   const list = records[wordRecKey(level, theme, mode)] || []
+  const { open, modal } = useRecordDetail()
   const isQuiz = mode.startsWith('quiz')
   return (
     <div className="result">
@@ -198,6 +201,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
         <kbd>Enter</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
       </p>
 
+      <SegStatsTable segStats={result.segStats} />
       <div className="records">
         <h3>記録ランキング（最大15件）</h3>
         {list.length === 0 ? (
@@ -215,7 +219,12 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
             </thead>
             <tbody>
               {list.map((r, i) => (
-                <tr key={i} className={r.date === result.date ? 'me' : ''}>
+                <tr
+                  key={i}
+                  className={`row-click ${r.date === result.date ? 'me' : ''}`}
+                  onClick={() => open(r, i + 1, { rankText: '単語', list, isQuiz })}
+                  title="クリックで記録の詳細"
+                >
                   <td>{i + 1}</td>
                   <td className="speed">{isQuiz ? `${r.correct}/${r.words}` : `${r.speed} 打/分`}</td>
                   <td>{r.accuracy}%</td>
@@ -227,6 +236,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
           </table>
         )}
       </div>
+      {modal}
     </div>
   )
 }
