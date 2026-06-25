@@ -14,6 +14,7 @@ import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 import ReviewView from './ui/review/ReviewView.jsx'
+import { DECKS, DECK_KEYS } from './application/reviewDecks.js'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 
@@ -50,6 +51,8 @@ export default function App() {
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
+  const [reviewDeck, setReviewDeck] = useState('words') // 復習デッキ: words | wsent | dict
+  const [reviewItems, setReviewItems] = useState(null) // 復習対象コンテンツ（遅延読み込み）
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -82,11 +85,17 @@ export default function App() {
   }, [startMarathon, mode, wsentLevel])
 
   const start = useCallback(() => {
-    if (gameType === 'words' || gameType === 'review') {
-      // 単語データ（約1.6MB）を遅延読み込みしてから 単語/復習 モードへ
+    if (gameType === 'review') {
+      // 選択デッキのコンテンツを遅延読み込みしてから復習へ
+      DECKS[reviewDeck].loadContent().then((items) => {
+        setReviewItems(items)
+        setPhase('review')
+      })
+    } else if (gameType === 'words') {
+      // 単語データ（約1.6MB）を遅延読み込みしてから単語モードへ
       loadWords().then((w) => {
         setWordsData(w)
-        setPhase(gameType === 'review' ? 'review' : 'words')
+        setPhase('words')
       })
     } else if (gameType === 'dict') {
       // 英英データを遅延読み込みしてから英英モードへ
@@ -102,7 +111,7 @@ export default function App() {
     } else {
       startGame()
     }
-  }, [gameType, startGame])
+  }, [gameType, reviewDeck, startGame])
 
   // Tab=種類、↑↓=レベル、←→=モード、Enter=スタート/もう一度、Esc=トップへ戻る
   useEffect(() => {
@@ -136,6 +145,7 @@ export default function App() {
         const dir = e.key === 'ArrowRight' ? 1 : -1
         if (gameType === 'words') setWordMode((p) => cycle(WORD_MODE_KEYS, p, dir))
         else if (gameType === 'dict') setDictMode((p) => cycle(DICT_MODE_KEYS, p, dir))
+        else if (gameType === 'review') setReviewDeck((p) => cycle(DECK_KEYS, p, dir))
         else if (gameType === 'touch') {
           /* タッチタイピングはモードなし */
         } else setMode((p) => cycle(MODE_KEYS, p, dir))
@@ -217,6 +227,8 @@ export default function App() {
           onDictModeChange={setDictMode}
           touchLevel={touchLevel}
           onTouchLevelChange={setTouchLevel}
+          reviewDeck={reviewDeck}
+          onReviewDeckChange={setReviewDeck}
           onStart={start}
           records={records}
         />
@@ -231,7 +243,14 @@ export default function App() {
         />
       )}
 
-      {phase === 'review' && <ReviewView words={wordsData} onExit={() => setPhase('ready')} />}
+      {phase === 'review' && reviewItems && (
+        <ReviewView
+          key={reviewDeck}
+          deck={DECKS[reviewDeck]}
+          items={reviewItems}
+          onExit={() => setPhase('ready')}
+        />
+      )}
 
       {phase === 'words' && (
         <WordsView

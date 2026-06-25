@@ -1,5 +1,5 @@
-// 復習(SRS)セッションの状態機械。和訳(ja)を見て英単語(en)をタイプ＝産出想起。
-// ミスなく打てれば正解→box上げ／ミス or 答えを見る→box1に戻す。
+// 復習(SRS)セッションの状態機械。デッキ(単語/英英/単語例文)ごとに手がかりは違うが、
+// いずれも英単語をタイプ＝産出想起。ミスなく打てれば正解→box上げ／ミス or 答えを見る→box1。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { review, buildQueue } from '../domain/srs/srs.js'
 import {
@@ -21,11 +21,18 @@ const shuffle = (a) => {
   return r
 }
 
-export function useReview({ words, onExit }) {
-  // セッション開始時にデッキを確定（頻度順で新規を導入、復習はシャッフル）
-  const deck = useMemo(() => {
-    const byEn = new Map(words.map((w) => [w.en, w]))
-    const ids = [...words].sort((a, b) => (a.freq ?? 1e9) - (b.freq ?? 1e9)).map((w) => w.en)
+export function useReview({ deck, items, onExit }) {
+  // セッション開始時にデッキを確定（新規は order 順、復習はシャッフル）
+  const cardsDeck = useMemo(() => {
+    const ordered = deck.order(items)
+    const byId = new Map()
+    const ids = []
+    for (const it of ordered) {
+      const id = deck.id(it)
+      if (byId.has(id)) continue // 同一語の重複（例文）は最初の1件
+      byId.set(id, it)
+      ids.push(id)
+    }
     const srs = loadSrs()
     const today = todayNum()
     const remainingNew = Math.max(0, NEW_PER_DAY - newIntroducedToday())
@@ -33,30 +40,30 @@ export function useReview({ words, onExit }) {
       newLimit: remainingNew,
       reviewLimit: REVIEW_LIMIT,
     })
-    return [
-      ...shuffle(reviews).map((id) => ({ ...byEn.get(id), isNew: false })),
-      ...news.map((id) => ({ ...byEn.get(id), isNew: true })),
-    ]
-  }, [words])
+    const toCard = (id, isNew) => {
+      const it = byId.get(id)
+      return { id, prompt: deck.prompt(it), answer: deck.answer(it), isNew }
+    }
+    return [...shuffle(reviews).map((id) => toCard(id, false)), ...news.map((id) => toCard(id, true))]
+  }, [deck, items])
 
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [mistakes, setMistakes] = useState(0)
-  const [revealed, setRevealed] = useState(false) // 答え表示中（要 Enter で次へ）
+  const [revealed, setRevealed] = useState(false)
   const [correct, setCorrect] = useState(0)
   const erroredRef = useRef(false)
 
-  const card = deck[index]
-  const finished = index >= deck.length
-  const target = card?.en ?? ''
+  const card = cardsDeck[index]
+  const finished = index >= cardsDeck.length
+  const target = card?.answer ?? ''
 
-  // SRS を更新して次のカードへ
   const grade = useCallback(
     (ok) => {
       if (!card) return
       const today = todayNum()
-      const prev = loadSrs()[card.en]
-      saveCard(card.en, review(prev, ok, today))
+      const prev = loadSrs()[card.id]
+      saveCard(card.id, review(prev, ok, today))
       if (!prev && card.isNew) addIntroduced(1)
       if (ok) setCorrect((c) => c + 1)
     },
@@ -73,7 +80,7 @@ export function useReview({ words, onExit }) {
   const reveal = useCallback(() => {
     if (finished || revealed) return
     grade(false)
-    setRevealed(true) // 答えを見せ、Enter で次へ
+    setRevealed(true)
   }, [finished, revealed, grade])
 
   useEffect(() => {
@@ -92,7 +99,6 @@ export function useReview({ words, onExit }) {
         return
       }
       if (e.key === 'Tab') {
-        // 答えを見る
         e.preventDefault()
         reveal()
         return
@@ -108,7 +114,7 @@ export function useReview({ words, onExit }) {
       if (target.startsWith(cand)) {
         setInput(cand)
         if (cand === target) {
-          grade(!erroredRef.current) // ミス無しなら正解
+          grade(!erroredRef.current)
           next()
         }
       } else {
@@ -127,7 +133,7 @@ export function useReview({ words, onExit }) {
     input,
     mistakes,
     index,
-    total: deck.length,
+    total: cardsDeck.length,
     correct,
     reveal,
   }

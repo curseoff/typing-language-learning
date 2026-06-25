@@ -1,18 +1,18 @@
-// 復習(SRS)画面。和訳を見て英単語をタイプ＝産出想起。答えは伏せ、長さだけ下線で示す。
+// 復習(SRS)画面。デッキの手がかり(prompt)を見て英単語(answer)をタイプ＝産出想起。
+// 答えは伏せ、長さだけ下線で示す。
 import { useReview } from '../../application/useReview.js'
 import { StatsRow } from '../shared/index.js'
 
-export default function ReviewView({ words, onExit }) {
-  const r = useReview({ words, onExit })
+export default function ReviewView({ deck, items, onExit }) {
+  const r = useReview({ deck, items, onExit })
 
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">復習</span>
-      <span className="meta-badge mode">間隔反復</span>
+      <span className="meta-badge mode">{deck.label}</span>
     </div>
   )
 
-  // 今日の対象が無い
   if (r.total === 0) {
     return (
       <div className="game">
@@ -28,7 +28,6 @@ export default function ReviewView({ words, onExit }) {
     )
   }
 
-  // 終了
   if (r.finished) {
     return (
       <div className="game">
@@ -45,15 +44,16 @@ export default function ReviewView({ words, onExit }) {
     )
   }
 
-  const { card, input, revealed, target } = { ...r, target: r.card?.en ?? '' }
+  const { card, input, revealed } = r
+  const target = card.answer
 
   return (
     <div className="game">
       {meta}
       <div className="word-card">
-        <div className="word-dir">意味に合う英単語を入力（Tab=答えを見る / Esc=終了）</div>
-        <p className="word-prompt">{card.ja}</p>
-        <div className={`word-input ${r.mistakes > 0 && !revealed ? '' : ''}`}>
+        <div className="word-dir">{deck.dir}（Tab=答えを見る / Esc=終了）</div>
+        <p className="word-prompt">{card.prompt}</p>
+        <div className="word-input">
           {revealed ? (
             <span className="reveal-answer">{target}</span>
           ) : (

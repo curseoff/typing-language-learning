@@ -12,6 +12,7 @@ import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
 import { loadSrs, todayNum, newIntroducedToday } from '../../infrastructure/srsRepository.js'
+import { DECKS, DECK_KEYS } from '../../application/reviewDecks.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
 
@@ -136,6 +137,8 @@ export default function Ready({
   onDictModeChange,
   touchLevel,
   onTouchLevelChange,
+  reviewDeck,
+  onReviewDeckChange,
   onStart,
   records,
 }) {
@@ -163,7 +166,9 @@ export default function Ready({
       </div>
 
       {/* ── 復習（SRS） ── */}
-      {gameType === 'review' && <ReviewPanel onStart={onStart} />}
+      {gameType === 'review' && (
+        <ReviewPanel deckKey={reviewDeck} onDeckChange={onReviewDeckChange} onStart={onStart} />
+      )}
 
       {/* ── 単語例文（レベル別） ── */}
       {gameType === 'wsent' && (
@@ -424,21 +429,38 @@ function dictModeDesc(key) {
   }
 }
 
-// 復習パネル：srs だけで集計（単語データは読まない＝軽量）。
-function ReviewPanel({ onStart }) {
-  const cards = Object.values(loadSrs())
+// 復習パネル：デッキ(単語/単語例文/英英)を選び、srs だけで集計（コンテンツは読まない＝軽量）。
+function ReviewPanel({ deckKey, onDeckChange, onStart }) {
+  const srs = loadSrs()
   const today = todayNum()
+  const deck = DECKS[deckKey]
+  const cards = Object.entries(srs).filter(([id]) => id.startsWith(deck.prefix))
   const learned = cards.length
-  const due = cards.filter((c) => c.due <= today).length
-  const newToday = Math.max(0, 10 - newIntroducedToday()) // 1日10語まで新規導入
+  const due = cards.filter(([, c]) => c.due <= today).length
+  const newToday = Math.max(0, 10 - newIntroducedToday()) // 1日10語まで新規導入（全デッキ合計）
   return (
     <>
       <div className="story-pick">🔁 間隔反復（SRS）で語彙を定着させる</div>
+      <SectionLabel>デッキ</SectionLabel>
+      <div className="mode-select">
+        <div className="mode-group">
+          <div className="mode-btns">
+            {DECK_KEYS.map((k) => (
+              <button
+                key={k}
+                className={`mode-btn ${deckKey === k ? 'active' : ''}`}
+                onClick={() => onDeckChange(k)}
+              >
+                {DECKS[k].label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p className="mode-desc">{deck.dir}。正解で間隔が延び、間違えると近く再出題されます。</p>
       <p className="pool-count">
-        今日の復習 <b>{due}</b> 語 ＋ 新規 <b>{newToday}</b> 語 ＝ 約 <b>{due + newToday}</b> 語
-      </p>
-      <p className="mode-desc">
-        和訳を見て英単語をタイプ＝思い出す練習。正解で間隔が延び、間違えると近く再出題されます。覚えた語: {learned} 語。
+        今日の復習 <b>{due}</b> ＋ 新規 <b>{newToday}</b> ＝ 約 <b>{due + newToday}</b> 件 ／ 覚えた{' '}
+        {learned} 件
       </p>
       <StartRow onStart={onStart} />
     </>
