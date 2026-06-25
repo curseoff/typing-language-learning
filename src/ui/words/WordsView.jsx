@@ -60,6 +60,7 @@ function TypeView({ words, level, theme, mode, meta, onExit }) {
             segIndex={w.segIndex}
             segInput={w.segInput}
             hasError={w.hasError}
+            ticker
           />
           <p className="hint">
             英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。

@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '../../domain/typing/progress.js'
 import { Flow } from '../shared/index.js'
 
-export default function TopFlow({ segments, segIndex, segInput, hasError = false }) {
+export default function TopFlow({ segments, segIndex, segInput, hasError = false, ticker = false }) {
   // 文ごとに1件(sentenceIndex で集約)
   const sentences = useMemo(() => {
     const map = new Map()
@@ -18,7 +18,7 @@ export default function TopFlow({ segments, segIndex, segInput, hasError = false
   )
 
   const seg = segments[segIndex]
-  const cur = seg ? seg.sentenceIndex : 0
+  const curIdx = seg ? sentences.findIndex((s) => s.sentenceIndex === seg.sentenceIndex) : 0
   const enActive = seg?.type === 'en'
   const jaActive = seg?.type === 'ja'
 
@@ -40,12 +40,14 @@ export default function TopFlow({ segments, segIndex, segInput, hasError = false
     return { jaDone: count, jaKanaDone: consumed }
   }, [seg, jaActive, segInput])
 
-  // 現在の文＋先読み数件を折り返し表示
-  const items = sentences.slice(cur, cur + 5)
+  // ティッカー: 0から全件描画し現在語の左端を固定して滑らかにスクロール（単語モード向け）。
+  // 通常(wrap): 現在文＋先読み数件を折り返し表示（長文の例文・物語向け）。
+  const items = ticker ? sentences.slice(0, curIdx + 6) : sentences.slice(curIdx, curIdx + 5)
+  const flowCur = ticker ? curIdx : 0
   return (
     <Flow
       items={items}
-      cur={0}
+      cur={flowCur}
       enDone={enDone}
       jaDone={jaDone}
       jaKanaDone={jaKanaDone}
@@ -53,7 +55,8 @@ export default function TopFlow({ segments, segIndex, segInput, hasError = false
       activeRow={enActive ? 'en' : jaActive ? 'ja' : null}
       showEn
       showJa
-      wrap
+      wrap={!ticker}
+      ticker={ticker}
     />
   )
 }

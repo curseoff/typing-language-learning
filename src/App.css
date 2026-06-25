@@ -596,6 +596,20 @@ h1 {
   font-size: 15px;
   transition: opacity 0.15s ease;
 }
+
+/* ティッカー: 現在語の左端を固定し、ストリップ全体を滑らかに左へスライド。
+   完了語は左へ流れて clip+フェード、現在語は常に全文字が見える。 */
+.flow.ticker .flow-track {
+  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。 */
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
+}
+.flow-strip {
+  display: flex;
+  gap: 24px;
+  width: max-content;
+  transition: transform 0.28s ease;
+}
 .flow-item.past,
 .flow-item.future {
   opacity: 0.3;
