@@ -127,7 +127,7 @@ export function Chips({ chips, used }) {
     <div className="tr-chips">
       {chips.map((c) => (
         <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
-          {c.text}
+          {c.kana ? <RubyText ja={c.text} kana={c.kana} /> : c.text}
         </span>
       ))}
     </div>
