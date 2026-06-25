@@ -262,7 +262,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
                 <tr
                   key={i}
                   className={`row-click ${r.date === result.date ? 'me' : ''}`}
-                  onClick={() => open(r, i + 1, { rankText: '英英' })}
+                  onClick={() => open(r, i + 1, { rankText: '英英', list, isQuiz })}
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>

@@ -220,7 +220,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
                 <tr
                   key={i}
                   className={`row-click ${r.date === result.date ? 'me' : ''}`}
-                  onClick={() => open(r, i + 1, { rankText: '単語' })}
+                  onClick={() => open(r, i + 1, { rankText: '単語', list, isQuiz })}
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>

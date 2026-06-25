@@ -32,7 +32,7 @@ export default function RecordsTable({ records, modeKey, rankText, highlight }) 
               <tr
                 key={i}
                 className={`row-click ${highlight && r.date === highlight ? 'me' : ''}`}
-                onClick={() => open(r, i + 1, { rankText, modeKey })}
+                onClick={() => open(r, i + 1, { rankText, modeKey, list, isQuiz: false })}
                 title="クリックで記録の詳細"
               >
                 <td>{i + 1}</td>

@@ -1273,6 +1273,7 @@ kbd {
 .seg-stats th {
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap;
 }
 .seg-stats td.speed {
   font-weight: 700;
@@ -1365,39 +1366,32 @@ kbd {
   background: var(--panel-2);
 }
 
-/* 記録詳細モーダル */
-.modal-backdrop {
+/* 記録の結果ページ（全画面） */
+.record-page {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+  background: var(--bg);
+  overflow-y: auto;
   z-index: 50;
 }
-.modal-card {
+.record-page-inner {
   position: relative;
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 16px;
-  padding: 28px 32px;
-  max-width: 560px;
-  width: 100%;
-  max-height: 88vh;
-  overflow-y: auto;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 20px 64px;
   text-align: center;
 }
 .modal-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
+  position: fixed;
+  top: 16px;
+  right: 22px;
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 24px;
+  font-size: 28px;
   line-height: 1;
   cursor: pointer;
+  z-index: 1;
 }
 .modal-close:hover {
   color: var(--text);

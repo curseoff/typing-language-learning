@@ -65,7 +65,7 @@ function StoryRecords({ list, highlight }) {
             <tr
               key={i}
               className={`row-click ${highlight && r.date === highlight ? 'me' : ''}`}
-              onClick={() => open(r, i + 1, { rankText: '物語' })}
+              onClick={() => open(r, i + 1, { rankText: '物語', list, hasEnding: true })}
               title="クリックで記録の詳細"
             >
               <td>{i + 1}</td>
