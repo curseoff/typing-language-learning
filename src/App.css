@@ -605,10 +605,11 @@ h1 {
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
 }
 .flow-strip {
+  position: relative;
   display: flex;
   gap: 24px;
   width: max-content;
-  transition: transform 0.28s ease;
+  transition: transform 0.12s linear;
 }
 .flow-item.past,
 .flow-item.future {

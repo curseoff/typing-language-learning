@@ -2,19 +2,25 @@
 import { useLayoutEffect, useRef } from 'react'
 import { Typed, RubyTyped, RubyText } from './Text.jsx'
 
-// 1行ぶん。現在文を明るく＋進捗、先の文は薄く。
-// ticker=true のときは現在語の左端を固定し、ストリップ全体を translateX で滑らかに左スクロールする
-// （完了語は左へ流れてフェード・クリップ）。現在語は常に全文字が見える。
-// transform は ref で直接更新（state を持たず再レンダーを起こさない／CSS transition は効く）。
-function FlowRow({ tag, tagClass, items, cur, active, render, ticker }) {
-  const curRef = useRef(null)
+// カーソル（入力位置）を画面の一定位置(ANCHOR_RATIO)に保つように、1文字ごとにストリップを
+// 左へスクロールする（エディタ式）。入力位置がしきい値に届くまではスクロールせず左から流す。
+// 現在語のカーソルは offsetLeft + 幅×進捗(frac) で近似。transform は ref で直接更新。
+const ANCHOR_RATIO = 0.35
+
+// 1行ぶん。現在文を明るく＋進捗、先の文は薄く。ticker=true で1文字ごとの左スクロール。
+function FlowRow({ tag, tagClass, items, cur, active, render, ticker, frac = 0 }) {
+  const trackRef = useRef(null)
   const stripRef = useRef(null)
+  const curRef = useRef(null)
   useLayoutEffect(() => {
     const strip = stripRef.current
-    if (!strip) return
-    const offset = curRef.current ? curRef.current.offsetLeft : 0
-    strip.style.transform = `translateX(${-offset}px)`
-  }, [cur, items.length])
+    const word = curRef.current
+    const track = trackRef.current
+    if (!strip || !word || !track) return
+    const anchor = track.clientWidth * ANCHOR_RATIO
+    const cursorX = word.offsetLeft + word.offsetWidth * frac // 入力位置(近似)
+    strip.style.transform = `translateX(${Math.min(0, anchor - cursorX)}px)`
+  }, [frac, cur, items.length])
 
   const cells = items.map((it, k) => (
     <span
@@ -31,7 +37,7 @@ function FlowRow({ tag, tagClass, items, cur, active, render, ticker }) {
   return (
     <div className="flow-row">
       <span className={`ref-tag ${tagClass}`}>{tag}</span>
-      <div className="flow-track">
+      <div className="flow-track" ref={trackRef}>
         {ticker ? (
           <div className="flow-strip" ref={stripRef}>
             {cells}
@@ -58,6 +64,16 @@ export function Flow({
   wrap = false,
   ticker = false,
 }) {
+  // 1文字ごとスクロール用の進捗(0..1)。en=入力文字/語長、ja=かな進捗/かな長。
+  const current = items[cur]
+  const enLen = current ? [...current.en].length : 0
+  const enFrac = enLen ? Math.min(1, enDone / enLen) : 0
+  let jaFrac = 0
+  if (current) {
+    const unit = current.kana ? [...current.kana].length : [...current.ja].length
+    const doneU = current.kana ? jaKanaDone : jaDone
+    jaFrac = unit ? Math.min(1, doneU / unit) : 0
+  }
   return (
     <div className={`flow ${wrap ? 'wrap' : ''} ${ticker ? 'ticker' : ''}`}>
       {showEn && (
@@ -67,6 +83,7 @@ export function Flow({
           items={items}
           cur={cur}
           ticker={ticker}
+          frac={enFrac}
           active={activeRow === 'en'}
           render={(it, isCur) =>
             isCur ? (
@@ -84,6 +101,7 @@ export function Flow({
           items={items}
           cur={cur}
           ticker={ticker}
+          frac={jaFrac}
           active={activeRow === 'ja'}
           render={(it, isCur) => (
             <span className="flow-ja">
