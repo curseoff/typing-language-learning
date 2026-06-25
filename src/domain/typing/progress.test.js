@@ -54,15 +54,15 @@ describe('alignJaToKana', () => {
 describe('rubyParts (ふりがな)', () => {
   it('漢字runにのみ読みを付け、送り仮名は素通し', () => {
     expect(rubyParts('分ける', 'わける')).toEqual([
-      { chars: ['分'], from: 0, ruby: 'わ' },
-      { chars: ['け'], from: 1, ruby: null },
-      { chars: ['る'], from: 2, ruby: null },
+      { chars: ['分'], from: 0, kanaFrom: 0, ruby: 'わ' },
+      { chars: ['け'], from: 1, kanaFrom: 1, ruby: null },
+      { chars: ['る'], from: 2, kanaFrom: 2, ruby: null },
     ])
   })
 
   it('連続漢字は1つのrubyにまとめ、読みは全体スライス', () => {
     expect(rubyParts('飛行機', 'ひこうき')).toEqual([
-      { chars: ['飛', '行', '機'], from: 0, ruby: 'ひこうき' },
+      { chars: ['飛', '行', '機'], from: 0, kanaFrom: 0, ruby: 'ひこうき' },
     ])
   })
 

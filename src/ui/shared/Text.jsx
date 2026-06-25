@@ -43,7 +43,9 @@ export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over 
 }
 
 // フロー参照表示用：打った分だけ緑（.rdone）＋漢字にふりがな。
-export function RubyTyped({ ja, kana, done }) {
+// done=漢字(ja文字)の打鍵済み数 / kanaDone=読み(かな)の打鍵済み数。
+// ふりがな(rt)は「かな単位」で着色するので、太陽(たいよう)で「た」を打つと「た」だけ色が変わる。
+export function RubyTyped({ ja, kana, done, kanaDone = 0 }) {
   const charSpan = (ch, gi) => (
     <span key={gi} className={gi < done ? 'rdone' : ''}>
       {ch}
@@ -53,8 +55,13 @@ export function RubyTyped({ ja, kana, done }) {
     p.ruby ? (
       <ruby key={pi}>
         {p.chars.map((ch, j) => charSpan(ch, p.from + j))}
-        {/* その漢字を打ち終えたら、ふりがな(rt)も打鍵色にする */}
-        <rt className={done >= p.from + p.chars.length ? 'rdone' : ''}>{p.ruby}</rt>
+        <rt>
+          {[...p.ruby].map((rc, j) => (
+            <span key={j} className={p.kanaFrom + j < kanaDone ? 'rdone' : ''}>
+              {rc}
+            </span>
+          ))}
+        </rt>
       </ruby>
     ) : (
       <Fragment key={pi}>{p.chars.map((ch, j) => charSpan(ch, p.from + j))}</Fragment>

@@ -22,8 +22,18 @@ function FlowRow({ tag, tagClass, items, cur, active, render }) {
   )
 }
 
-// items=[{en,ja}], cur=現在index, enDone/jaDone=現在文の進捗, activeRow='en'|'ja'|null
-export function Flow({ items, cur, enDone, jaDone, activeRow, showEn = true, showJa = true, wrap = false }) {
+// items=[{en,ja}], cur=現在index, enDone/jaDone=現在文の進捗, jaKanaDone=読み(かな)の進捗, activeRow='en'|'ja'|null
+export function Flow({
+  items,
+  cur,
+  enDone,
+  jaDone,
+  jaKanaDone = 0,
+  activeRow,
+  showEn = true,
+  showJa = true,
+  wrap = false,
+}) {
   return (
     <div className={`flow ${wrap ? 'wrap' : ''}`}>
       {showEn && (
@@ -47,7 +57,7 @@ export function Flow({ items, cur, enDone, jaDone, activeRow, showEn = true, sho
             <span className="flow-ja">
               {it.kana ? (
                 isCur ? (
-                  <RubyTyped ja={it.ja} kana={it.kana} done={jaDone} />
+                  <RubyTyped ja={it.ja} kana={it.kana} done={jaDone} kanaDone={jaKanaDone} />
                 ) : (
                   <RubyText ja={it.ja} kana={it.kana} />
                 )

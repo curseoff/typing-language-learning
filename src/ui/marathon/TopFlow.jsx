@@ -30,14 +30,14 @@ export default function TopFlow({ segments, segIndex, segInput }) {
       : isBoth
         ? seg.en.length
         : 0
-  // 漢字の進捗（ローマ字の進捗を漢字位置に変換）
-  const jaDone = useMemo(() => {
-    if (!seg || !jaActive) return 0
+  // 漢字の進捗（ローマ字→漢字位置）と、読み(かな)の進捗（ルビをかな単位で着色するため）
+  const { jaDone, jaKanaDone } = useMemo(() => {
+    if (!seg || !jaActive) return { jaDone: 0, jaKanaDone: 0 }
     const consumed = kanaConsumed(seg.kana, segInput)
     const ends = alignJaToKana(seg.ja, seg.kana)
     let count = 0
     for (const e of ends) if (e <= consumed) count++
-    return count
+    return { jaDone: count, jaKanaDone: consumed }
   }, [seg, jaActive, segInput])
 
   // 現在の文＋先読み数件を折り返し表示
@@ -48,6 +48,7 @@ export default function TopFlow({ segments, segIndex, segInput }) {
       cur={0}
       enDone={enDone}
       jaDone={jaDone}
+      jaKanaDone={jaKanaDone}
       activeRow={enActive ? 'en' : jaActive ? 'ja' : null}
       showEn
       showJa
