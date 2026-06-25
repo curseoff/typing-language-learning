@@ -29,4 +29,25 @@ describe('romaji', () => {
     expect(kanaConsumed('よやくする', 'yoyaku')).toBe(3) // よ や く
     expect(kanaConsumed('よやくする', 'yoyakusuru')).toBe(5)
   })
+
+  it('kanaConsumed: shi/si・促音・撥音の変種でも一致する', () => {
+    expect(kanaConsumed('しんせつ', 'sinse')).toBe(3) // し ん せ（si + n + se）
+    expect(kanaConsumed('しんせつ', 'cinsetu')).toBe(4) // ci/tu の別綴りでも全消費
+    expect(kanaConsumed('あっか', 'akka')).toBe(3) // 子音重ね
+    expect(kanaConsumed('あっか', 'axtuka')).toBe(3) // xtu 入力
+  })
+
+  it('kanaConsumed: 撥音/促音が境界かつ次音が未完なら手前で止める（孤立綴りの回帰）', () => {
+    // 「cin」だけでは「しん」は確定しない（次の音が綴り切れていない）→ し のみ
+    expect(kanaConsumed('しんせつ', 'cinc')).toBe(1)
+    // 「akk」だけでは「あっか」は確定しない → あ のみ
+    expect(kanaConsumed('あっか', 'akk')).toBe(1)
+  })
+
+  it('kanaConsumed: 長い読みでも線形時間で解ける（指数展開しない）', () => {
+    const kana = 'けんきゅうしつはびじゃくなひかりをけんしゅつする'
+    const t = performance.now()
+    expect(kanaConsumed(kana, toRomaji(kana))).toBe([...kana].length) // 全消費
+    expect(performance.now() - t).toBeLessThan(50) // 旧実装は指数的で桁違いに遅かった
+  })
 })
