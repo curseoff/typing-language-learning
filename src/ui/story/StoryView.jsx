@@ -6,6 +6,7 @@ import { segMatches } from '../../domain/typing/units.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, RubyChars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import SegStatsTable from '../result/SegStatsTable.jsx'
 
 // 現在打っているセグメントの表示
 function ActiveSegment({ seg, input, hasError }) {
@@ -163,6 +164,7 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
           <p className="key-hint">
             <kbd>Enter</kbd> 最初から / <kbd>Esc</kbd> トップ
           </p>
+          <SegStatsTable segStats={result?.segStats} />
           <StoryRecords list={records} highlight={result?.date} />
         </div>
       ) : (

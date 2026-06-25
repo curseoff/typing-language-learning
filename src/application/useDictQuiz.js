@@ -1,6 +1,6 @@
 // 英英辞典の選択式（打って選ぶ）。
 // kind='quiz': 定義→英単語4択（回答後に和訳開示） / kind='pick': 単語+和訳→説明文4択
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DICT_QUIZ_COUNT,
   DICT_TYPE_COUNT,
@@ -28,10 +28,14 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
   const [startTime, setStartTime] = useState(null)
+  const segStatsRef = useRef([]) // 今回プレイの問題ごとの記録（設問の正誤）
+  const perQMissRef = useRef(0)
 
   const q = questions[index]
 
   const restart = useCallback(() => {
+    segStatsRef.current = []
+    perQMissRef.current = 0
     setQuestions(build())
     setIndex(0)
     setInput('')
@@ -72,6 +76,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
         mistakes: totalMistakes,
         accuracy,
         seconds,
+        segStats: segStatsRef.current,
         date: new Date().toLocaleString('ja-JP'),
       }
       setRecords(saveDictRecord(record))
@@ -98,6 +103,18 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
 
   const advance = useCallback(() => {
     if (picked === null) return
+    const cur = questions[index]
+    segStatsRef.current = [
+      ...segStatsRef.current,
+      {
+        no: segStatsRef.current.length + 1,
+        label: cur.prompt,
+        answer: cur.answerDisplay,
+        correct: !!picked.answer,
+        mistakes: perQMissRef.current,
+      },
+    ]
+    perQMissRef.current = 0
     if (index >= questions.length - 1) {
       finish(correct, mistakes, performance.now())
     } else {
@@ -106,7 +123,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
       setPicked(null)
       setHasError(false)
     }
-  }, [picked, index, questions.length, finish, correct, mistakes])
+  }, [picked, index, questions, finish, correct, mistakes])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -147,6 +164,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
         if (hit) commit(hit)
       } else {
         setMistakes((m) => m + 1)
+        perQMissRef.current += 1
         setHasError(true)
       }
     }

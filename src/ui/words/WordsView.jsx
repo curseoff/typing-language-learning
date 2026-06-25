@@ -4,6 +4,7 @@ import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../infrastructure/wordsRepository.js'
 import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import SegStatsTable from '../result/SegStatsTable.jsx'
 import TopFlow from '../marathon/TopFlow.jsx'
 
 export default function WordsView({ words, level, theme, mode, levelLabel, modeLabel, onExit }) {
@@ -200,6 +201,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
         <kbd>Enter</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
       </p>
 
+      <SegStatsTable segStats={result.segStats} />
       <div className="records">
         <h3>記録ランキング（最大15件）</h3>
         {list.length === 0 ? (

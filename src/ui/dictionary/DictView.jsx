@@ -5,6 +5,7 @@ import { dictRecKey } from '../../infrastructure/dictRepository.js'
 import { kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import SegStatsTable from '../result/SegStatsTable.jsx'
 
 export default function DictView({ dict, level, theme, mode, levelLabel, modeLabel, onExit }) {
   const meta = (
@@ -242,6 +243,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
         <kbd>Enter</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
       </p>
 
+      <SegStatsTable segStats={result.segStats} />
       <div className="records">
         <h3>記録ランキング（最大15件）</h3>
         {list.length === 0 ? (

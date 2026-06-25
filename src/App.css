@@ -1407,3 +1407,12 @@ kbd {
   font-size: 13px;
   margin-top: 6px;
 }
+
+/* 問題ごとの記録: 4択クイズの正誤 */
+.seg-stats td.ok {
+  color: var(--green);
+  font-weight: 700;
+}
+.seg-stats .q-answer {
+  color: var(--muted);
+}
