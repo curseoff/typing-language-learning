@@ -1264,3 +1264,8 @@ kbd {
 .records tbody tr:nth-child(1) td.speed {
   color: var(--gold);
 }
+
+/* 4択の和訳選択肢（ルビ付き）の打鍵エラー色 */
+.opt-ruby.err .rdone {
+  color: var(--red);
+}

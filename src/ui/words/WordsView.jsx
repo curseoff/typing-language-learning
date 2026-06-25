@@ -2,7 +2,7 @@
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../infrastructure/wordsRepository.js'
-import { StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 
 export default function WordsView({ words, level, theme, mode, levelLabel, modeLabel, onExit }) {
@@ -98,7 +98,13 @@ function QuizView({ words, level, theme, mode, dir, meta, onExit }) {
             <div className="word-dir">
               {dir === 'ja' ? '英単語に合う和訳をローマ字で入力' : '意味に合う英単語を入力'}
             </div>
-            <p className="word-prompt">{q.question.prompt}</p>
+            <p className="word-prompt">
+              {q.question.promptKana ? (
+                <RubyText ja={q.question.prompt} kana={q.question.promptKana} />
+              ) : (
+                q.question.prompt
+              )}
+            </p>
             <div className={`word-input ${q.hasError ? 'error' : ''}`}>
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}

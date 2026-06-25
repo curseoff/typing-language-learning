@@ -1,19 +1,26 @@
 // 4択の選択肢ラベル。入力中の候補は、打った分だけ色づけて「どこまで打ったか」を示す。
-// Chars(1文字ずつの字間あり)は使わず、打鍵済みプレフィックスのみ着色して字間を保つ。
+// 和訳（kana あり）の選択肢はルビ付きで表示する。
 // opt = { display, variants, kana? }
 import { kanjiDone } from '../../domain/typing/progress.js'
+import { RubyTyped } from './Text.jsx'
 
 export default function QuizOptionLabel({ opt, input, picked, hasError }) {
   const typing = picked === null && input && opt.variants.some((v) => v.startsWith(input))
+
+  // 和訳の選択肢：ルビ付き＋打鍵進捗で着色
+  if (opt.kana) {
+    const done = typing ? kanjiDone({ ja: opt.display, kana: opt.kana }, input) : 0
+    return (
+      <span className={`opt-ruby ${typing && hasError ? 'err' : ''}`}>
+        <RubyTyped ja={opt.display} kana={opt.kana} done={done} />
+      </span>
+    )
+  }
+
+  // 英語の選択肢：打鍵済みプレフィックスのみ着色（字間を保つため1 span で包む）
   if (!typing) return <span>{opt.display}</span>
-
-  let done = 0
-  if (opt.display === opt.variants[0]) done = input.length // 表示＝入力対象（英語）
-  else if (opt.kana) done = kanjiDone({ ja: opt.display, kana: opt.kana }, input) // 漢字←ローマ字
-  else return <span>{opt.display}</span>
-
   const chars = [...opt.display]
-  // 親が flex+gap でも隙間が入らないよう、ラベル全体を1つの span で包む
+  const done = input.length
   return (
     <span>
       <span className={`opt-typed ${hasError ? 'err' : ''}`}>{chars.slice(0, done).join('')}</span>
