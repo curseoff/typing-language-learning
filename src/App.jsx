@@ -180,6 +180,21 @@ export default function App() {
     setPhase('result')
   }, [mode, wsentLevel])
 
+  // 開発時だけ：?preview=result|play|story でその画面を即表示（スクショ自動化用。本番ビルドには無効）
+  // マウント時1回だけ実行する（依存配列を空にして再実行で取り消されないようにする）。
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const p = new URLSearchParams(location.search).get('preview')
+    if (!p) return
+    const id = setTimeout(() => {
+      if (p === 'result') previewResult()
+      else if (p === 'play') startGame() // 単語例文プレイ（フロー表示）
+      else if (p === 'story') setPhase('story')
+    }, 0)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="app">
       <h1>英文・和文タイピング</h1>
