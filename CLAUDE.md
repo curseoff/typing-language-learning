@@ -9,7 +9,8 @@
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
 
 ## Git / PR ワークフロー
-- ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
+- ブランチ：`feature/<機能名>` → **`feature/agents`（検証・統合）** → `develop` → `master`。各 `feature/*` はまず **`feature/agents` にマージして動作検証**し、OK になってから `develop` へ上げる（develop には未検証のものを入れない）。`develop` と `master` は乖離しうるので、新ブランチの起点と差分を毎回確認する。
+  - `feature/agents` は**長寿命の検証ブランチ**。`feature/agents` → `develop` を PR マージすると **auto-delete で feature/agents が消える**ため、マージ後は `develop` から **`feature/agents` を再作成**して使い続ける（リリース枝 `release/*` と同じ注意）。
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
 - 何かを「完了」と言う前に必ず **`npm run check`**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**）を通す。**`check` が通れば CI も通る**。素早く回したい時は `npm run check:fast`（coverage の代わりに test）。
