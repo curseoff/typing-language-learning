@@ -122,12 +122,14 @@ export function MaskedText({ text, pos, hasError }) {
 }
 
 // 単語チップ（語順index < used を消費表示）。chips=[{text,i}]
-// used=打ち終えた語数。今打っている語(c.i===used)は打鍵分を着色し、間違えたら赤。
+// used=打ち終えた語数。今打っている語の頭文字を正しく打ってから(=curDone/curKanaDone>0)
+// 強調＋着色する。打つ前は正解チップを見せない。間違えたら赤。
 export function Chips({ chips, used, curDone = 0, curKanaDone = 0, hasError = false }) {
+  const matchedCur = curDone > 0 || curKanaDone > 0 // 頭文字がマッチしたか
   return (
     <div className="tr-chips">
       {chips.map((c) => {
-        const isCur = c.i === used
+        const isCur = c.i === used && matchedCur
         const cls = `chip ${c.i < used ? 'used' : ''} ${isCur ? 'current' : ''}`
         return (
           <span key={c.i} className={cls}>
