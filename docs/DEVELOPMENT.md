@@ -24,13 +24,19 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run test` | Vitest（ドメインの回帰テスト＋UIスモーク） |
 | `npm run coverage` | カバレッジ計測（`coverage/` にHTML）＋閾値ゲート |
 | `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
-| **`npm run check`** | **lint → test → validate → build を一括実行** |
+| **`npm run check`** | **lint → coverage → validate → build → check-bundle → audit（＝CI同等。通れば CI も通る）** |
+| `npm run check:fast` | coverage の代わりに test を回す軽量版（反復用） |
 | `npm run check:ci` | CIと同条件（Linux arm64 / node20）で `npm ci && npm run check` をコンテナ実行 |
-| `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 2048KB） |
+| `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 512KB） |
 | `npm run audit` | 本番(prod)依存の脆弱性ゲート（high 以上で失敗。dev は対象外） |
-| `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用） |
+| `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用・production preview） |
+| `npm run shots:play` | dev サーバ相手に `?preview=result\|play\|story` を撮影（プレイ中/結果/記録を手動プレイ無しで確認） |
+| `npm run release -- <patch\|minor\|major\|x.y.z>` | リリース一括（本人実行・本人の git/gh 認証）：自己点検→版上げ＋lock同期→check→release枝＋master PR→CI待ち→マージ→develop揃え→GitHub Release→デプロイ確認 |
 
-「完了」とする前に **`npm run check`** を通すことを推奨します。
+「完了」とする前に **`npm run check`** を通すこと。`check` は **CI と同等**（coverage の閾値ゲートを含む）なので「checkが通れば CI も通る」。
+
+- **push 前フック**：`.githooks/pre-push` が `check` を実行し、CI が落ちるコードの push を防ぐ（`prepare` スクリプトが `core.hooksPath .githooks` を設定。既存クローンは一度 `npm install` か `git config core.hooksPath .githooks`）。ドキュメントのみの変更はスキップ。急ぐ時は `git push --no-verify`。
+- **ブランチ保護**：`master` / `develop` は **status check「check」必須**（CI緑でないとマージ不可）。`enforce_admins=false`（オーナーは緊急時バイパス可）。設定: `gh api -X PUT repos/<owner>/<repo>/branches/<br>/protection`。
 
 ## 品質チェック
 

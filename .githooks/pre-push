@@ -1,0 +1,12 @@
+#!/bin/sh
+# push 前に CI と同じゲート（lint→coverage→validate→build→check-bundle→audit）を実行。
+# 「ローカルは通るのにCIで落ちる」を防ぐ。急ぐときは `git push --no-verify` で回避可。
+# ドキュメントのみの変更（*.md / docs/ のみ）はスキップ。
+range="origin/$(git rev-parse --abbrev-ref HEAD)..HEAD"
+changed=$(git diff --name-only "$range" 2>/dev/null || git diff --name-only HEAD)
+if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qvE '^(.*\.md$|docs/)'; then
+  echo "pre-push: ドキュメントのみの変更のため check をスキップ"
+  exit 0
+fi
+echo "pre-push: npm run check（CI同等ゲート）を実行中… 急ぐ時は --no-verify"
+npm run check || { echo "pre-push: check に失敗。push を中止しました（--no-verify で強制可）"; exit 1; }
