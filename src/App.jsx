@@ -13,6 +13,8 @@ import MarathonView from './ui/marathon/MarathonView.jsx'
 import Result from './ui/result/Result.jsx'
 import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
+import ReviewView from './ui/review/ReviewView.jsx'
+import { DECKS } from './application/reviewDecks.js'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 
@@ -49,6 +51,8 @@ export default function App() {
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
+  const [reviewDeck, setReviewDeck] = useState('words') // 復習デッキ: words | wsent | dict
+  const [reviewItems, setReviewItems] = useState(null) // 復習対象コンテンツ（遅延読み込み）
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -102,6 +106,15 @@ export default function App() {
       startGame()
     }
   }, [gameType, startGame])
+
+  // 各タブ内の「復習する」ボタン：デッキのコンテンツを読み込んで復習へ
+  const onReview = useCallback((deckKey) => {
+    setReviewDeck(deckKey)
+    DECKS[deckKey].loadContent().then((items) => {
+      setReviewItems(items)
+      setPhase('review')
+    })
+  }, [])
 
   // Tab=種類、↑↓=レベル、←→=モード、Enter=スタート/もう一度、Esc=トップへ戻る
   useEffect(() => {
@@ -216,6 +229,7 @@ export default function App() {
           onDictModeChange={setDictMode}
           touchLevel={touchLevel}
           onTouchLevelChange={setTouchLevel}
+          onReview={onReview}
           onStart={start}
           records={records}
         />
@@ -226,6 +240,15 @@ export default function App() {
           key={touchLevel}
           level={touchLevel}
           levelLabel={touchLevelLabel(touchLevel)}
+          onExit={() => setPhase('ready')}
+        />
+      )}
+
+      {phase === 'review' && reviewItems && (
+        <ReviewView
+          key={reviewDeck}
+          deck={DECKS[reviewDeck]}
+          items={reviewItems}
           onExit={() => setPhase('ready')}
         />
       )}

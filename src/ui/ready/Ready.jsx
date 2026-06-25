@@ -11,6 +11,8 @@ import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepositor
 import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
 import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
 import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
+import { loadSrs, todayNum, newIntroducedToday } from '../../infrastructure/srsRepository.js'
+import { DECKS } from '../../application/reviewDecks.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
 
@@ -134,6 +136,7 @@ export default function Ready({
   onDictModeChange,
   touchLevel,
   onTouchLevelChange,
+  onReview,
   onStart,
   records,
 }) {
@@ -199,6 +202,7 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]} 文</p>
 
           <StartRow onStart={onStart} />
+          <ReviewButton deckKey="wsent" onReview={onReview} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
             <WsentList level={wsentLevel} mode={mode} />
@@ -299,6 +303,7 @@ export default function Ready({
           </p>
 
           <StartRow onStart={onStart} />
+          <ReviewButton deckKey="words" onReview={onReview} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
             <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
@@ -364,6 +369,7 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語</p>
 
           <StartRow onStart={onStart} />
+          <ReviewButton deckKey="dict" onReview={onReview} />
           <BottomTabs value={bottomTab} onChange={setBottomTab} />
           {bottomTab === 'list' ? (
             <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
@@ -417,6 +423,27 @@ function dictModeDesc(key) {
     default:
       return '英語の定義を読んで、4つの英単語から正解を入力（4択・20問）。回答後に和訳を表示。'
   }
+}
+
+// 復習ボタン：各タブ内に置く。srs だけで集計（コンテンツは読まない＝軽量）。
+function ReviewButton({ deckKey, onReview }) {
+  const deck = DECKS[deckKey]
+  const srs = loadSrs()
+  const today = todayNum()
+  const cards = Object.entries(srs).filter(([id]) => id.startsWith(deck.prefix))
+  const learned = cards.length
+  const due = cards.filter(([, c]) => c.due <= today).length
+  const newToday = Math.max(0, 10 - newIntroducedToday()) // 1日10件まで新規導入（全デッキ合計）
+  return (
+    <div className="review-row">
+      <button className="btn-review" onClick={() => onReview(deckKey)}>
+        🔁 この語彙を復習する（{deck.dir.includes('定義') ? '定義→見出し語' : '思い出す練習'}）
+      </button>
+      <p className="review-meta">
+        今日 復習 <b>{due}</b> ＋ 新規 <b>{newToday}</b> 件 ／ 覚えた {learned} 件（間隔反復）
+      </p>
+    </div>
+  )
 }
 
 function StartRow({ onStart }) {

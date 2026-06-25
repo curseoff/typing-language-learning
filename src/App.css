@@ -1264,3 +1264,63 @@ kbd {
 .records tbody tr:nth-child(1) td.speed {
   color: var(--gold);
 }
+
+/* ---- 復習(SRS) ---- */
+.word-input .blank {
+  color: var(--muted);
+  opacity: 0.4;
+}
+.reveal-answer {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* 各タブ内の「復習する」ボタン（SRS） */
+.review-row {
+  margin-top: 14px;
+  text-align: center;
+}
+.btn-review {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-review:hover {
+  background: rgba(56, 189, 248, 0.12);
+}
+.review-meta {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 復習の穴埋めヒント（習熟で見せる字が減る） */
+.word-input .hint-char {
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+/* 復習：想起後に見せる例文 */
+.review-example {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  background: var(--panel-2);
+  border-radius: 10px;
+}
+.rex-en {
+  margin: 0;
+  font-weight: 600;
+}
+.rex-ja {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.reveal-answer.wrong {
+  color: var(--red);
+}

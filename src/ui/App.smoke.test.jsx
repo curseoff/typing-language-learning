@@ -63,4 +63,11 @@ describe('App スモーク', () => {
     start()
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
   })
+
+  it('各タブの「復習する」ボタンで復習セッション（復習バッジ）が始まる', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '単語')
+    fireEvent.click(within(container).getByText(/復習する/))
+    await waitFor(() => expect(badgeText(container)).toMatch(/復習/), { timeout: 8000 })
+  })
 })
