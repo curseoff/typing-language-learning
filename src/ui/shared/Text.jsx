@@ -43,9 +43,13 @@ export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over 
 }
 
 // フロー参照表示用：打った分だけ緑（.rdone）＋漢字にふりがな。
-export function RubyTyped({ ja, kana, done }) {
+// done=漢字(ja文字)の打鍵済み数 / kanaDone=読み(かな)の打鍵済み数。
+// ふりがな(rt)は「かな単位」で着色するので、太陽(たいよう)で「た」を打つと「た」だけ色が変わる。
+// hasError時は今打つ文字(漢字=done位置 / ふりがな=kanaDone位置)を赤(.rerr)にする。
+export function RubyTyped({ ja, kana, done, kanaDone = 0, hasError = false }) {
+  const cellCls = (i, end) => (i < end ? 'rdone' : i === end && hasError ? 'rerr' : '')
   const charSpan = (ch, gi) => (
-    <span key={gi} className={gi < done ? 'rdone' : ''}>
+    <span key={gi} className={cellCls(gi, done)}>
       {ch}
     </span>
   )
@@ -53,7 +57,13 @@ export function RubyTyped({ ja, kana, done }) {
     p.ruby ? (
       <ruby key={pi}>
         {p.chars.map((ch, j) => charSpan(ch, p.from + j))}
-        <rt>{p.ruby}</rt>
+        <rt>
+          {[...p.ruby].map((rc, j) => (
+            <span key={j} className={cellCls(p.kanaFrom + j, kanaDone)}>
+              {rc}
+            </span>
+          ))}
+        </rt>
       </ruby>
     ) : (
       <Fragment key={pi}>{p.chars.map((ch, j) => charSpan(ch, p.from + j))}</Fragment>
@@ -75,13 +85,18 @@ export function RubyText({ ja, kana }) {
   )
 }
 
-// 打った分だけ緑（.rdone、カーソルなし）。フロー参照表示用。
-export function Typed({ text, done }) {
-  return [...text].map((ch, i) => (
-    <span key={i} className={i < done ? 'rdone' : ''}>
-      {ch}
-    </span>
-  ))
+// 打った分だけ緑（.rdone）。間違えた時は今打つ文字(done位置)を赤(.rerr)に。
+export function Typed({ text, done, hasError = false }) {
+  return [...text].map((ch, i) => {
+    let cls = ''
+    if (i < done) cls = 'rdone'
+    else if (i === done && hasError) cls = 'rerr'
+    return (
+      <span key={i} className={cls}>
+        {ch}
+      </span>
+    )
+  })
 }
 
 // 翻訳モードの伏せ字（打った分だけ現れる）
@@ -107,14 +122,37 @@ export function MaskedText({ text, pos, hasError }) {
 }
 
 // 単語チップ（語順index < used を消費表示）。chips=[{text,i}]
-export function Chips({ chips, used }) {
+// used=打ち終えた語数。今打っている語の頭文字を正しく打ってから(=curDone/curKanaDone>0)
+// 強調＋着色する。打つ前は正解チップを見せない。間違えたら赤。
+export function Chips({ chips, used, curDone = 0, curKanaDone = 0, hasError = false }) {
+  const matchedCur = curDone > 0 || curKanaDone > 0 // 頭文字がマッチしたか
   return (
     <div className="tr-chips">
-      {chips.map((c) => (
-        <span key={c.i} className={`chip ${c.i < used ? 'used' : ''}`}>
-          {c.text}
-        </span>
-      ))}
+      {chips.map((c) => {
+        const isCur = c.i === used && matchedCur
+        const cls = `chip ${c.i < used ? 'used' : ''} ${isCur ? 'current' : ''}`
+        return (
+          <span key={c.i} className={cls}>
+            {c.kana ? (
+              isCur ? (
+                <RubyTyped
+                  ja={c.text}
+                  kana={c.kana}
+                  done={curDone}
+                  kanaDone={curKanaDone}
+                  hasError={hasError}
+                />
+              ) : (
+                <RubyText ja={c.text} kana={c.kana} />
+              )
+            ) : isCur ? (
+              <Typed text={c.text} done={curDone} hasError={hasError} />
+            ) : (
+              c.text
+            )}
+          </span>
+        )
+      })}
     </div>
   )
 }

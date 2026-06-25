@@ -86,6 +86,7 @@ export function rubyParts(ja, kana) {
   }
   const parts = []
   let i = 0
+  // kanaFrom = その部分の読みが kana の何文字目から始まるか（ルビをかな単位で着色するため）
   while (i < jaChars.length) {
     if (!isKanaCh(jaChars[i])) {
       const start = i
@@ -95,10 +96,11 @@ export function rubyParts(ja, kana) {
       parts.push({
         chars: jaChars.slice(start, i),
         from: start,
+        kanaFrom: startKana,
         ruby: kanaArr.slice(startKana, endKana).join(''),
       })
     } else {
-      parts.push({ chars: [jaChars[i]], from: i, ruby: null })
+      parts.push({ chars: [jaChars[i]], from: i, kanaFrom: i === 0 ? 0 : ends[i - 1], ruby: null })
       i++
     }
   }
@@ -107,7 +109,7 @@ export function rubyParts(ja, kana) {
   const covered = parts.reduce((n, p) => n + (p.ruby ? [...p.ruby].length : p.chars.length), 0)
   const hasKanji = parts.some((p) => p.ruby !== null)
   if (hasKanji && covered !== kanaArr.length) {
-    return [{ chars: jaChars, from: 0, ruby: kana }]
+    return [{ chars: jaChars, from: 0, kanaFrom: 0, ruby: kana }]
   }
   return parts
 }
@@ -159,4 +161,28 @@ export function consumedWords(seg, input) {
     else break
   }
   return count
+}
+
+// 翻訳モードのチップ着色用：打ち終えた語数(used)と、今打っている語の進捗
+// （curDone=語内の漢字/英字の打鍵済み, curKanaDone=語内のかなの打鍵済み）を返す。
+export function chipProgress(seg, input) {
+  const used = consumedWords(seg, input)
+  const curWord = seg.words?.[used]
+  if (!curWord) return { used, curDone: 0, curKanaDone: 0 }
+  const wordLen = [...curWord].length
+  if (seg.type === 'ja') {
+    const consumed = kanaConsumed(seg.kana, input)
+    const ends = alignJaToKana(seg.ja, seg.kana)
+    let cumJa = 0
+    for (let k = 0; k < used; k++) cumJa += [...seg.words[k]].length
+    const wordKanaStart = cumJa === 0 ? 0 : ends[cumJa - 1]
+    const curKanaDone = Math.max(0, consumed - wordKanaStart)
+    let curDone = 0
+    for (let j = 0; j < wordLen; j++) if ((ends[cumJa + j] ?? Infinity) <= consumed) curDone++
+    return { used, curDone, curKanaDone }
+  }
+  const ends = enWordEnds(seg.en)
+  const start = (ends[used] ?? input.length) - wordLen
+  const curDone = Math.max(0, Math.min(input.length - start, wordLen))
+  return { used, curDone, curKanaDone: 0 }
 }
