@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { modeLabel } from '../../content/modes.js'
 import SegStatsTable from './SegStatsTable.jsx'
+import { useReplay } from './ReplayContext.jsx'
 
 export default function RecordDetail({
   list,
@@ -15,6 +16,7 @@ export default function RecordDetail({
   onClose,
 }) {
   const [cur, setCur] = useState(initial) // { record, position }
+  const onReplay = useReplay()
   useEffect(() => {
     // キャプチャ段階で処理し伝播を止める＝下のページの Esc ハンドラより先に閉じる
     const onKey = (e) => {
@@ -30,6 +32,9 @@ export default function RecordDetail({
 
   const r = cur.record
   const quiz = r.correct != null
+  // 「もう一度チャレンジ」を出せる記録か。seed があれば同じ問題列を再現でき、
+  // 物語は決定的（固定ナラティブ）なので seed 無しでも同じ開始から再挑戦できる。
+  const replayable = r.seed != null || r.source === 'story'
 
   return (
     <div className="record-page">
@@ -56,7 +61,9 @@ export default function RecordDetail({
         </div>
         <div className="result-date">{r.date}</div>
 
-        {r.segStats && <SegStatsTable segStats={r.segStats} />}
+        {/* 場面（segStats）と、その場面で選んだ選択肢（choices）を時系列で統合表示。
+            choices は物語の新記録のみ持つ（旧記録・他モードは無し＝後方互換）。 */}
+        {r.segStats && <SegStatsTable segStats={r.segStats} choices={r.choices} />}
 
         <div className="records">
           <h3>
@@ -97,6 +104,16 @@ export default function RecordDetail({
         </div>
 
         <div className="ending-actions">
+          {/* リプレイ可能な記録だけ表示（旧記録＝seed無し・source無しには出さない＝後方互換） */}
+          {onReplay && replayable && (
+            <button
+              className="btn-primary"
+              onClick={() => onReplay(r)}
+              title="この記録と同じ問題列で再挑戦"
+            >
+              もう一度チャレンジ
+            </button>
+          )}
           <button className="story-exit" onClick={onClose}>
             閉じる
           </button>

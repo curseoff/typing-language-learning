@@ -2,6 +2,7 @@
 import { useStory } from '../../application/useStory.js'
 import { STORY } from '../../content/story.js'
 import { lookahead } from '../../domain/story/navigation.js'
+import { storyFlowProgress } from '../../domain/story/flowProgress.js'
 import { segMatches } from '../../domain/typing/units.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, RubyChars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
@@ -114,20 +115,18 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
   }
   const barProgress = barTarget.length ? Math.min(1, input.length / barTarget.length) : 0
 
-  // 英語/日本語フロー（翻訳モード以外で表示）
+  // 英語/日本語フロー（翻訳モード以外で表示）。問題入力中は wsent と同じカード型(ticker)、
+  // 選択肢表示中は以前の段組み(wrap)に切り替える。
   const isTranslate = mode === 'en-tr' || mode === 'ja-tr'
+  const isBoth = mode === 'both'
   const activeType = units[unitIndex]?.type
   const flowItems = [node, ...lookahead(node, nodes)]
-  let enDone = 0
-  let jaDone = 0
-  if (stage === 'choice') {
-    enDone = node.en.length
-    jaDone = [...node.ja].length
-  } else {
-    if (activeType === 'en') enDone = Math.min(input.length, node.en.length)
-    else if (mode === 'both') enDone = node.en.length // 英語は入力済み、和文入力中
-    if (activeType === 'ja') jaDone = kanjiDone({ ja: node.ja, kana: node.kana }, input)
-  }
+  const { enDone, jaDone, jaKanaDone, activeRow } = storyFlowProgress(node, {
+    stage,
+    mode,
+    activeType,
+    input,
+  })
 
   return (
     <div className="story">
@@ -185,8 +184,15 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
               cur={0}
               enDone={enDone}
               jaDone={jaDone}
-              activeRow={stage === 'choice' ? null : activeType}
-              wrap
+              jaKanaDone={jaKanaDone}
+              hasError={hasError}
+              activeRow={activeRow}
+              showEn
+              showJa
+              // 問題入力中はカード型(ticker)、選択肢表示中は以前の段組み(wrap)に切替
+              ticker={stage === 'text'}
+              wrap={stage === 'choice'}
+              isBoth={isBoth}
             />
           )}
 
@@ -196,7 +202,11 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
             </div>
           )}
 
-          <ActiveSegment seg={units[unitIndex]} input={input} hasError={hasError} />
+          {/* 翻訳モードは Flow が出ないので入力欄が必要。非翻訳（en/ja/both）は Flow が
+              入力進捗を兼ねるため、重複するモノスペース入力欄は出さない。 */}
+          {isTranslate && (
+            <ActiveSegment seg={units[unitIndex]} input={input} hasError={hasError} />
+          )}
 
           {stage === 'choice' && (
             <div className="story-choices">

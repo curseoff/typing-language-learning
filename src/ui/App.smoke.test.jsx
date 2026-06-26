@@ -34,12 +34,12 @@ describe('App スモーク', () => {
       const { container } = render(<App />)
       clickTab(container, label)
       start()
-      // Ready が外れ、プレイ画面（.game か .story-*）が出ている＝白画面でない
+      // Ready が外れ、プレイ画面（.game か物語 .story）が出ている＝白画面でない
       // 単語/単語例文は対象データを遅延 import するため、CI遅延を見込んで待つ
       await waitFor(
         () => {
           expect(container.querySelector('.ready')).toBeNull()
-          expect(container.querySelector('.game, .story-prompt, .story-en')).not.toBeNull()
+          expect(container.querySelector('.game, .story')).not.toBeNull()
         },
         { timeout: 8000 },
       )

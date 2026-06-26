@@ -37,6 +37,7 @@ export function useStory({ mode, start, onExit }) {
   const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 場面ごとの累積記録（ノード単位×モード別）
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録（行=ユニット単位）
+  const choicesRef = useRef([]) // 今回プレイで選んだ選択肢（選んだ順に { en, ja }）
 
   const node = nodes[nodeId]
   const lang = typingLang(mode)
@@ -55,6 +56,7 @@ export function useStory({ mode, start, onExit }) {
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
+    choicesRef.current = []
     setNodeId(STORY.start)
     setStage('text')
     reset()
@@ -96,6 +98,8 @@ export function useStory({ mode, start, onExit }) {
     const elapsedMs = startedAt ? endTime - startedAt : 0
     const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
     const record = {
+      source: 'story', // リプレイの分岐用（App.replay）。物語は決定的なので seed は不要。
+      mode, // 再挑戦を同じ入力モードで始めるために保存
       ending: n.ending,
       endLabel: n.endLabel,
       speed,
@@ -104,11 +108,12 @@ export function useStory({ mode, start, onExit }) {
       accuracy,
       seconds,
       segStats: segTrackerRef.current.list,
+      choices: choicesRef.current, // プレイ中に選んだ選択肢（選んだ順）
       date: new Date().toLocaleString('ja-JP'),
     }
     setResult(record)
     setRecords(saveStoryRecord(record))
-  }, [])
+  }, [mode])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -180,6 +185,17 @@ export function useStory({ mode, start, onExit }) {
         setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {
+          // 選んだ選択肢を記録（後で結果ページに表示）。
+          // afterSeg＝この選択をした時点の場面数。選択は「ノード本文を打ち終えた直後」に
+          // 起きるので、segStats の現在件数がそのまま「この選択を差し込む場面位置」になる。
+          choicesRef.current = [
+            ...choicesRef.current,
+            {
+              en: node.choices[idx].en,
+              ja: node.choices[idx].ja,
+              afterSeg: segTrackerRef.current.list.length,
+            },
+          ]
           setStage('text')
           reset()
           setNodeId(node.choices[idx].next)
