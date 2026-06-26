@@ -7,7 +7,7 @@
 - **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
 - **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
-- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装／ddd-auditor・ui-auditor＝read-only監査／planner＝UX企画・Issue草案）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う。委任のたびに `.claude/agent-status.md`（稼働台帳）を更新し、観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`/team`** で各エージェントの稼働状況を確認できる。
+- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装／ddd-auditor・ui-auditor＝read-only監査／planner＝UX企画・Issue草案）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う。委任のたびに `tmp/agent-status.md`（稼働台帳・ローカルのみ／gitignore）を更新し、観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`/team`** で各エージェントの稼働状況を確認できる。
 
 ## Git / PR ワークフロー
 - ブランチ：`feature/<機能名>` → **`feature/agents`（検証・統合）** → `develop` → `master`。各 `feature/*` はまず **`feature/agents` にマージして動作検証**し、OK になってから `develop` へ上げる（develop には未検証のものを入れない）。`develop` と `master` は乖離しうるので、新ブランチの起点と差分を毎回確認する。
