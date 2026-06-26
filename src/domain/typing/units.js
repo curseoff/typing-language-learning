@@ -44,10 +44,11 @@ export function jaPunct(ja) {
   return (ja.match(/[。、！？]$/) || [])[0]
 }
 
-export function scramble(arr) {
+// rng は乱数源（既定 Math.random）。テストはシード付き rng を注入して決定的にできる。
+export function scramble(arr, rng = Math.random) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rng() * (i + 1))
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
@@ -56,7 +57,7 @@ export function scramble(arr) {
 // モードに応じて、1つの文(item)を打つためのセグメント列を返す。
 // en=英語 / ja=日本語 / both=英→日 / en-tr=英訳(伏せ) / ja-tr=日本語訳(伏せ)
 // 翻訳モードでは chips(単語チップ)を付与する。
-export function buildUnits(item, mode) {
+export function buildUnits(item, mode, { rng = Math.random } = {}) {
   switch (mode) {
     case 'ja':
       return [jaSeg(item, false)]
@@ -67,7 +68,7 @@ export function buildUnits(item, mode) {
       const words = enWords(item.en)
       s.words = words
       // chips は {text, i}(元の語順index)。表示はシャッフル。
-      s.chips = scramble(words.map((text, i) => ({ text, i })))
+      s.chips = scramble(words.map((text, i) => ({ text, i })), rng)
       return [s]
     }
     case 'ja-tr': {
@@ -80,7 +81,7 @@ export function buildUnits(item, mode) {
       }
       s.words = words
       // チップには読み(kana)も持たせ、ルビ表示できるようにする
-      s.chips = scramble(withWordKana(words, item.ja, item.kana))
+      s.chips = scramble(withWordKana(words, item.ja, item.kana), rng)
       return [s]
     }
     case 'en':

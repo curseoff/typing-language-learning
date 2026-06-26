@@ -1,7 +1,7 @@
 // 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 を振り分ける。
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
-import { dictRecKey } from '../../infrastructure/dictRepository.js'
+import { dictRecKey } from '../../application/records.js'
 import { kanjiDone } from '../../domain/typing/progress.js'
 import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'

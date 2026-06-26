@@ -1,7 +1,7 @@
 // 単語問題の画面。入力モード（英語/日本語/英語・日本語）と4択クイズを振り分ける。
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
-import { wordRecKey } from '../../infrastructure/wordsRepository.js'
+import { wordRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'

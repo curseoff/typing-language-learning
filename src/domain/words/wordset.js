@@ -13,10 +13,10 @@ function levelThemePool(words, level, theme) {
   return pool
 }
 
-// 4択クイズ用：count語（既定30）
-export function buildWordSet(words, level, theme, count = WORD_COUNT) {
+// 4択クイズ用：count語（既定30）。rng は乱数源（既定 Math.random）。
+export function buildWordSet(words, level, theme, count = WORD_COUNT, { rng = Math.random } = {}) {
   const pool = levelThemePool(words, level, theme)
-  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  const shuffled = [...pool].sort(() => rng() - 0.5)
   const out = []
   for (let i = 0; i < count; i++) out.push(shuffled[i % shuffled.length])
   return out
@@ -27,9 +27,9 @@ const minKeys = (seg) => Math.min(...seg.variants.map((v) => v.length))
 
 // 入力モード用：最短の綴りで打っても TARGET_KEYS(600) を超えるよう語を並べる（足りなければ循環）。
 // canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても600前に打ち尽くさない。
-export function buildWordPassage(words, level, theme, mode) {
+export function buildWordPassage(words, level, theme, mode, { rng = Math.random } = {}) {
   const pool = levelThemePool(words, level, theme)
-  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  const shuffled = [...pool].sort(() => rng() - 0.5)
   const out = []
   let chars = 0
   let i = 0
@@ -57,11 +57,11 @@ const variantsCollide = (va, vb) =>
 
 // 各語に4択を作る。打って選ぶので、正解・誤答すべての選択肢が
 // 互いに前方一致で衝突しないよう、variant 単位で誤答を選ぶ。
-export function makeQuiz(words, pool, dir, optionCount = 4) {
+export function makeQuiz(words, pool, dir, optionCount = 4, { rng = Math.random } = {}) {
   return words.map((w) => {
     const chosen = [w]
     const chosenVars = [optVariants(w, dir)]
-    const candidates = [...pool].filter((p) => p.en !== w.en).sort(() => Math.random() - 0.5)
+    const candidates = [...pool].filter((p) => p.en !== w.en).sort(() => rng() - 0.5)
     for (const p of candidates) {
       if (chosen.length >= optionCount) break
       const vars = optVariants(p, dir)
@@ -69,7 +69,7 @@ export function makeQuiz(words, pool, dir, optionCount = 4) {
       chosen.push(p)
       chosenVars.push(vars)
     }
-    const opts = [...chosen].sort(() => Math.random() - 0.5)
+    const opts = [...chosen].sort(() => rng() - 0.5)
     return {
       prompt: dir === 'ja' ? w.en : w.ja, // 出題（表示する側）
       promptKana: dir === 'ja' ? undefined : w.kana, // 英語訳=和訳が出題→ルビ用の読み

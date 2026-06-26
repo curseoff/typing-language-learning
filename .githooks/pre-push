@@ -1,0 +1,13 @@
+#!/bin/sh
+# push 前に CI と同じゲート（npm run check）を実行し、CIが落ちるコードの push を防ぐ。
+# 急ぐ時は `git push --no-verify`。ドキュメントのみ（*.md / docs/）の変更はスキップ。
+base=$(git merge-base HEAD origin/develop 2>/dev/null || git merge-base HEAD origin/master 2>/dev/null)
+if [ -n "$base" ]; then
+  changed=$(git diff --name-only "$base" HEAD)
+  if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qvE '^(.*\.md$|docs/)'; then
+    echo "pre-push: ドキュメントのみの変更 → check をスキップ"
+    exit 0
+  fi
+fi
+echo "pre-push: npm run check（CI同等ゲート）を実行中… 急ぐ時は --no-verify"
+npm run check || { echo "pre-push: check に失敗。push を中止しました（--no-verify で強制可）"; exit 1; }
