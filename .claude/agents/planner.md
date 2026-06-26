@@ -31,6 +31,10 @@ tools: Read, Grep, Glob, Bash, WebSearch
   - `## 受け入れ条件`（完成判定）
   - `## 規模感`（小/中/大・関係しそうな層/ファイル）
 - **ラベル候補**：UX 系＝`enhancement` / `ux` / `content` / `learning`、技術系＝`tech-debt` / `architecture` / `testing` / `documentation` など（**リポジトリに存在するものを優先**。無ければ提案に留める）。
+- **【UX/見た目の Issue は該当スクショを画像で埋め込む（必須）】** 本人が視覚的に解釈できるよう、ファイル名の言及でなく **実画像を貼る**こと。手順：
+  1. 画像を用意（`npm run screenshots` / `npm run shots:play` で `/tmp/app-shots/*.png` を生成、または既存を流用）。
+  2. ホスティング用ブランチ **`issue-assets`** の `assets/` に push（develop等は汚さない）。例：`git fetch origin issue-assets` →（無ければ `git push origin develop:refs/heads/issue-assets`）→ そのブランチに `assets/<名前>.png` を追加コミット（`scripts/ai-commit.sh`）→ `git push origin issue-assets --no-verify`。作業後は元ブランチへ戻す。
+  3. 本文に **raw URL で埋め込む**：`![説明](https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/<名前>.png)`。HTTP 200 を `curl` で確認してから貼る。説明文（alt）に「どこが問題か」を書く。
 
 ## 報告フォーマット（司令塔に返す）
 - 厳選した案の一覧（タイトル＋一言＋効果/規模）
