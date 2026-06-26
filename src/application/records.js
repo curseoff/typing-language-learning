@@ -4,10 +4,14 @@
 import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
 import { loadDictRecords, dictRecKey } from '../infrastructure/dictRepository.js'
 import { loadStoryRecords } from '../infrastructure/storyRepository.js'
+import { loadRecords, saveRecord } from '../infrastructure/recordsRepository.js'
 import { loadItemStats, itemId } from '../infrastructure/itemStatsRepository.js'
 
 // ── ランキング（モード別） ──
 export { loadWordRecords, loadDictRecords, loadStoryRecords }
+
+// ── マラソンの記録 I/O（読み書き）。UI 合成層(App.jsx)の記録窓口をここに一本化 ──
+export { loadRecords, saveRecord }
 
 // 記録マップのキー生成（フック由来の records マップから該当条件を引くのに使う）。
 export { wordRecKey, dictRecKey }

@@ -7,7 +7,10 @@ import {
   dictRanking,
   loadStoryRecords,
   loadItemStats,
+  loadRecords,
+  saveRecord,
 } from './records.js'
+import { recKey } from '../domain/records/ranking.js'
 
 describe('application/records（記録ファサード）', () => {
   beforeEach(() => localStorage.clear())
@@ -43,5 +46,15 @@ describe('application/records（記録ファサード）', () => {
   it('未保存時は空を返す（read のファサードが落ちない）', () => {
     expect(loadStoryRecords()).toEqual([])
     expect(loadItemStats()).toEqual({})
+  })
+
+  it('saveRecord で保存した記録を loadRecords で読み戻せる（マラソン記録の窓口）', () => {
+    expect(loadRecords()).toEqual({})
+    const record = { mode: 'both', rank: 1, wpm: 50, accuracy: 100 }
+    const all = saveRecord(record)
+    const key = recKey(record.mode, record.rank, record.source)
+    expect(all[key]).toContainEqual(expect.objectContaining({ wpm: 50 }))
+    // 再エクスポートは infrastructure と同一実体なので読み戻せる
+    expect(loadRecords()[key]).toContainEqual(expect.objectContaining({ wpm: 50 }))
   })
 })
