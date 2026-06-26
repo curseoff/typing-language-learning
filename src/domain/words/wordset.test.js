@@ -7,6 +7,17 @@ import { WORDS } from '../../content/wordsAll.js'
 const MODES = ['en', 'ja', 'both']
 const LEVELS = [1, 2, 3, 4]
 
+// テスト用シード付き PRNG（mulberry32）。同じ seed で同じ乱数列を返す。
+function mulberry32(seed) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 describe('buildWordSet (4択用)', () => {
   it('指定数の語を返す', () => {
     expect(buildWordSet(WORDS, 1, 'すべて').length).toBe(WORD_COUNT)
@@ -25,6 +36,36 @@ describe('buildWordPassage (入力用・600文字)', () => {
         expect(shortest, `mode=${mode} L${level}`).toBeGreaterThanOrEqual(TARGET_KEYS)
       }
     }
+  })
+})
+
+describe('rng 注入（決定的）', () => {
+  it('buildWordSet は同じ seed の rng で同じ並びを返す', () => {
+    const a = buildWordSet(WORDS, 2, 'すべて', WORD_COUNT, { rng: mulberry32(99) })
+    const b = buildWordSet(WORDS, 2, 'すべて', WORD_COUNT, { rng: mulberry32(99) })
+    expect(a.map((w) => w.en)).toEqual(b.map((w) => w.en))
+  })
+
+  it('buildWordSet は seed が違えば並びが変わる', () => {
+    const a = buildWordSet(WORDS, 2, 'すべて', WORD_COUNT, { rng: mulberry32(1) })
+    const b = buildWordSet(WORDS, 2, 'すべて', WORD_COUNT, { rng: mulberry32(2) })
+    expect(a.map((w) => w.en)).not.toEqual(b.map((w) => w.en))
+  })
+
+  it('buildWordPassage は同じ seed の rng で同じ並びを返す', () => {
+    const a = buildWordPassage(WORDS, 2, 'すべて', 'en', { rng: mulberry32(5) })
+    const b = buildWordPassage(WORDS, 2, 'すべて', 'en', { rng: mulberry32(5) })
+    expect(a.map((w) => w.en)).toEqual(b.map((w) => w.en))
+  })
+
+  it('makeQuiz は同じ seed の rng で同じ選択肢列を返す', () => {
+    const set = buildWordSet(WORDS, 2, 'すべて', WORD_COUNT, { rng: mulberry32(3) })
+    const pool = levelWords(WORDS, 2)
+    const a = makeQuiz(set, pool, 'en', 4, { rng: mulberry32(8) })
+    const b = makeQuiz(set, pool, 'en', 4, { rng: mulberry32(8) })
+    expect(a.map((q) => q.options.map((o) => o.display))).toEqual(
+      b.map((q) => q.options.map((o) => o.display)),
+    )
   })
 })
 

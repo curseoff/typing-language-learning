@@ -44,5 +44,8 @@ out
 .claude/settings.local.json
 .claude/*.lock
 
+# ランタイム状態（エージェント稼働台帳など・ローカルのみ。リポジトリ直下 tmp/）
+/tmp/
+
 # テストカバレッジ出力
 coverage

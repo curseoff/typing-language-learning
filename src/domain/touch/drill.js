@@ -1,15 +1,15 @@
 // タッチタイピングの出題列生成（キー集合からランダムにN打、同キー連続は避ける）。
 export const TOUCH_COUNT = 40
 
-export function buildDrill(keys, count = TOUCH_COUNT) {
+export function buildDrill(keys, count = TOUCH_COUNT, { rng = Math.random } = {}) {
   const out = []
   let prev = null
   for (let i = 0; i < count; i++) {
-    let k = keys[Math.floor(Math.random() * keys.length)]
+    let k = keys[Math.floor(rng() * keys.length)]
     if (keys.length > 1) {
       let guard = 0
       while (k === prev && guard < 5) {
-        k = keys[Math.floor(Math.random() * keys.length)]
+        k = keys[Math.floor(rng() * keys.length)]
         guard++
       }
     }

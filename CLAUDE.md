@@ -7,9 +7,11 @@
 - **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
 - **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
+- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装／ddd-auditor・ui-auditor＝read-only監査／planner＝UX企画・Issue草案）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う。委任のたびに `tmp/agent-status.md`（稼働台帳・ローカルのみ／gitignore）を更新し、観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`/team`** で各エージェントの稼働状況を確認できる。
 
 ## Git / PR ワークフロー
-- ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
+- ブランチ：`feature/<機能名>` → **`feature/agents`（検証・統合）** → `develop` → `master`。各 `feature/*` はまず **`feature/agents` にマージして動作検証**し、OK になってから `develop` へ上げる（develop には未検証のものを入れない）。`develop` と `master` は乖離しうるので、新ブランチの起点と差分を毎回確認する。
+  - `feature/agents` は**長寿命の検証ブランチ**。`feature/agents` → `develop` を PR マージすると **auto-delete で feature/agents が消える**ため、マージ後は `develop` から **`feature/agents` を再作成**して使い続ける（リリース枝 `release/*` と同じ注意）。
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
 - 何かを「完了」と言う前に必ず **`npm run check`**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**）を通す。**`check` が通れば CI も通る**。素早く回したい時は `npm run check:fast`（coverage の代わりに test）。
@@ -21,7 +23,7 @@
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
 - **修正したら毎回コミットまで自分で行う**（コミット案の提示で止めない）。push/PR は上記のとおり指示があるときだけ。
-- **AI（私）のコミットは専用の署名コマンドで打つ**（author/committer=AI名義・**ローカル鍵署名で1Password非依存**・Verified付き）。離席で 1Password がロックしても失敗しない。コマンドと理由は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
+- **AI（私・coder等）のコミットは `scripts/ai-commit.sh -m "…"` で打つ**（AI名義・**ローカル鍵署名で1Password非依存**・Verified付き。識別子はローカル `git config ai.*` から読むので個人情報を書かない）。初回設定・詳細は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
 
 ## コンテンツ規約（src/content）
 - 単語/英英/文章を足したら **`npm run validate`**（または `npm run check`）で必ず検証。

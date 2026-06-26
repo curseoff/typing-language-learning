@@ -15,8 +15,9 @@ export function levelEntries(dict, level) {
 }
 
 // count 件（不足なら循環）。各エントリは {word, def, ja, kana} をそのまま返す。
-export function buildDictSet(dict, level, theme, count) {
-  const shuffled = [...pool(dict, level, theme)].sort(() => Math.random() - 0.5)
+// rng は乱数源（既定 Math.random）。
+export function buildDictSet(dict, level, theme, count, { rng = Math.random } = {}) {
+  const shuffled = [...pool(dict, level, theme)].sort(() => rng() - 0.5)
   const out = []
   for (let i = 0; i < count; i++) out.push(shuffled[i % shuffled.length])
   return out
@@ -24,15 +25,21 @@ export function buildDictSet(dict, level, theme, count) {
 
 // 4択：英語の定義(prompt)に対し、4つの英単語から正解(word)を選ぶ。
 // options=[{display, variants, answer}], ja=和訳(回答後に開示)
-export function makeDictQuiz(entries, distractorPool, count = DICT_QUIZ_COUNT, optionCount = 4) {
+export function makeDictQuiz(
+  entries,
+  distractorPool,
+  count = DICT_QUIZ_COUNT,
+  optionCount = 4,
+  { rng = Math.random } = {},
+) {
   const items = []
   for (let i = 0; i < count; i++) {
     const e = entries[i % entries.length]
     const others = distractorPool.filter(
       (p) => p.word !== e.word && !p.word.startsWith(e.word) && !e.word.startsWith(p.word),
     )
-    const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, optionCount - 1)
-    const opts = [e, ...distractors].sort(() => Math.random() - 0.5)
+    const distractors = [...others].sort(() => rng() - 0.5).slice(0, optionCount - 1)
+    const opts = [e, ...distractors].sort(() => rng() - 0.5)
     items.push({
       prompt: e.def,
       ja: e.ja,
@@ -45,7 +52,13 @@ export function makeDictQuiz(entries, distractorPool, count = DICT_QUIZ_COUNT, o
 
 // 説明文4択：単語(prompt)+和訳(ja)に合う英語の定義を「打って」選ぶ。
 // options=[{display=定義, variants=[定義], answer}]（4択クイズと同じ形）
-export function makeDictPick(entries, distractorPool, count = DICT_TYPE_COUNT, optionCount = 4) {
+export function makeDictPick(
+  entries,
+  distractorPool,
+  count = DICT_TYPE_COUNT,
+  optionCount = 4,
+  { rng = Math.random } = {},
+) {
   const items = []
   for (let i = 0; i < count; i++) {
     const e = entries[i % entries.length]
@@ -53,8 +66,8 @@ export function makeDictPick(entries, distractorPool, count = DICT_TYPE_COUNT, o
     const others = distractorPool.filter(
       (p) => p.word !== e.word && !p.def.startsWith(aDef) && !aDef.startsWith(p.def),
     )
-    const distractors = [...others].sort(() => Math.random() - 0.5).slice(0, optionCount - 1)
-    const opts = [e, ...distractors].sort(() => Math.random() - 0.5)
+    const distractors = [...others].sort(() => rng() - 0.5).slice(0, optionCount - 1)
+    const opts = [e, ...distractors].sort(() => rng() - 0.5)
     items.push({
       prompt: e.word,
       ja: e.ja,
