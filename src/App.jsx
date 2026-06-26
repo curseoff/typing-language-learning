@@ -277,6 +277,10 @@ export default function App() {
       if (p === 'result') previewResult()
       else if (p === 'play') startGame() // 単語例文プレイ（フロー表示）
       else if (p === 'story') setPhase('story')
+      else if (p === 'story-choice') {
+        setStoryStart({ stage: 'choice' }) // 物語の選択肢場面（段組みフロー確認用）
+        setPhase('story')
+      }
     }, 0)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
