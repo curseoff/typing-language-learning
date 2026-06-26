@@ -9,13 +9,17 @@ import {
   makeDictQuiz,
   makeDictPick,
 } from '../domain/dictionary/dictset.js'
+import { mulberry32 } from '../domain/rng.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 
-export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
-  const build = () =>
-    kind === 'pick'
-      ? makeDictPick(buildDictSet(dict, level, theme, DICT_TYPE_COUNT), levelEntries(dict, level))
-      : makeDictQuiz(buildDictSet(dict, level, theme, DICT_QUIZ_COUNT), levelEntries(dict, level))
+export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit }) {
+  // seed があれば決定的な問題列・選択肢を再現（リプレイ）。無ければ domain 既定の Math.random。
+  const build = useCallback(() => {
+    const opts = seed != null ? { rng: mulberry32(seed) } : {}
+    return kind === 'pick'
+      ? makeDictPick(buildDictSet(dict, level, theme, DICT_TYPE_COUNT, opts), levelEntries(dict, level), DICT_TYPE_COUNT, 4, opts)
+      : makeDictQuiz(buildDictSet(dict, level, theme, DICT_QUIZ_COUNT, opts), levelEntries(dict, level), DICT_QUIZ_COUNT, 4, opts)
+  }, [dict, level, theme, kind, seed])
   const [questions, setQuestions] = useState(build)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
@@ -47,8 +51,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dict, level, theme, kind])
+  }, [build])
 
   useEffect(() => {
     if (finished) return
@@ -68,6 +71,8 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
       const total = questions.length
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
       const record = {
+        source: 'dict', // リプレイの分岐用（App.replay）
+        seed, // 同じ問題列を再現するためのシード（リプレイ用）
         level,
         theme,
         mode: kind,
@@ -83,7 +88,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, kind, questions.length, startTime],
+    [level, theme, kind, seed, questions.length, startTime],
   )
 
   const commit = useCallback((option) => {

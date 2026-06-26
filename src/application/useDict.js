@@ -3,13 +3,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DICT_TYPE_COUNT, buildDictSet } from '../domain/dictionary/dictset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
+import { mulberry32 } from '../domain/rng.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
-export function useDict({ dict, level, theme, mode, onExit }) {
-  const [entries, setEntries] = useState(() => buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
+export function useDict({ dict, level, theme, mode, seed, onExit }) {
+  // seed があれば決定的な問題列を再現（リプレイ）。無ければ Math.random。
+  const build = useCallback(
+    () => buildDictSet(dict, level, theme, DICT_TYPE_COUNT, seed != null ? { rng: mulberry32(seed) } : {}),
+    [dict, level, theme, seed],
+  )
+  const [entries, setEntries] = useState(build)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
@@ -33,7 +39,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
-    setEntries(buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
+    setEntries(build())
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -43,7 +49,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
-  }, [dict, level, theme])
+  }, [build])
 
   useEffect(() => {
     if (finished) return
@@ -67,6 +73,8 @@ export function useDict({ dict, level, theme, mode, onExit }) {
       const elapsedMs = endTime - startTime
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
+        source: 'dict', // リプレイの分岐用（App.replay）
+        seed, // 同じ問題列を再現するためのシード（リプレイ用）
         level,
         theme,
         mode,
@@ -83,7 +91,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, entries.length, startTime],
+    [level, theme, mode, seed, entries.length, startTime],
   )
 
   useEffect(() => {
