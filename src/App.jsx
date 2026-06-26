@@ -6,7 +6,7 @@ import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionar
 import { TOUCH_LEVELS } from './content/keyboard.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
-import { loadRecords, saveRecord } from './infrastructure/recordsRepository.js'
+import { loadRecords, saveRecord } from './application/records.js'
 import { useMarathon } from './application/useMarathon.js'
 import Ready from './ui/ready/Ready.jsx'
 import MarathonView from './ui/marathon/MarathonView.jsx'
