@@ -23,7 +23,7 @@
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
 - **修正したら毎回コミットまで自分で行う**（コミット案の提示で止めない）。push/PR は上記のとおり指示があるときだけ。
-- **AI（私）のコミットは専用の署名コマンドで打つ**（author/committer=AI名義・**ローカル鍵署名で1Password非依存**・Verified付き）。離席で 1Password がロックしても失敗しない。コマンドと理由は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
+- **AI（私・coder等）のコミットは `scripts/ai-commit.sh -m "…"` で打つ**（AI名義・**ローカル鍵署名で1Password非依存**・Verified付き。識別子はローカル `git config ai.*` から読むので個人情報を書かない）。初回設定・詳細は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
 
 ## コンテンツ規約（src/content）
 - 単語/英英/文章を足したら **`npm run validate`**（または `npm run check`）で必ず検証。

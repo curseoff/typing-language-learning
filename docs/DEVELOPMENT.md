@@ -121,21 +121,30 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 
 ## Git コミット（AI署名）
 
-AI（Claude）が打つコミットは、人間のコミットと**署名・名義を分離**する。離席で 1Password がロックしても失敗しないよう、**1Password非依存のローカル署名鍵**を使う。
+AI（Claude＝司令塔・coder 等）が打つコミットは、人間のコミットと**署名・名義を分離**する。離席で 1Password がロックしても失敗しないよう、**1Password非依存のローカル署名鍵**を使う。**ヘルパ `scripts/ai-commit.sh`** を使えば AI（サブエージェント含む）が個人情報を書かずに署名コミットできる。
 
+### 使い方（毎回）
+```bash
+git add <変更>            # 先にステージ
+scripts/ai-commit.sh -m "簡潔な日本語・辞書形のメッセージ"
+```
+push はしない（push/PR は本人指示で司令塔が行う）。
+
+### 初回だけのローカル設定（`.git/config` に保存・**コミットされない**）
 ```bash
 # <氏名>=本人名 / <検証済みメール>=GitHubで検証済みの本人メール / <author用メール>=その +ai 別名（例 name+ai@…）
-GIT_COMMITTER_NAME="<氏名> (AI)" GIT_COMMITTER_EMAIL="<検証済みメール>" \
-git -c gpg.ssh.program=ssh-keygen -c user.signingkey=~/.ssh/ai-signing.pub \
-  commit --author="<氏名> (AI) <author用メール>" -m "..."
+git config ai.name           "<氏名> (AI)"
+git config ai.committerEmail "<検証済みメール>"      # ← Verified の要件
+git config ai.authorEmail    "<author用メール>"      # +ai 別名
+git config ai.signingKey     "~/.ssh/ai-signing.pub" # SSH 署名公開鍵
 ```
 
-- **author = `<氏名> (AI) <author用メール(+ai別名)>`**（AI が書いた）、**committer = `<氏名> (AI) <検証済みメール>`**（名前は `(AI)`、メールは検証済み）。
+- **author = `<氏名> (AI) <+ai別名>`**（AI が書いた）、**committer = `<氏名> (AI) <検証済みメール>`**（名前は `(AI)`、メールは検証済み）。
 - **committer のメールが検証済み**であることが GitHub の **Verified** の要件。author 側は `+ai` 別名でよい。
-- 実値（本人の氏名・メール）はローカルの git 設定／コミットメタデータにのみ置き、ドキュメントには直書きしない。
+- 実値（本人の氏名・メール）は**ローカル git 設定（`ai.*`）にのみ**置き、ヘルパ/ドキュメントには直書きしない。
 - 署名鍵 `~/.ssh/ai-signing` はパスフレーズなし。公開鍵は GitHub に **Signing key** として登録済み（Authentication key だと Verified にならない）。
-- グローバル/リポジトリの git 設定は変更しない（上書きは `-c` でその場限り）。人間（本人）の `git commit` は従来どおり本人名義・1Password 署名。
-- 失敗時（`1Password: failed to fill whole buffer` 等）は、本人コミットなら 1Password のロック解除を待つ。
+- ヘルパは `-c` でその場限りに署名設定を上書きするだけ。グローバル/リポジトリの git 設定は変更しない。人間（本人）の `git commit` は従来どおり本人名義・1Password 署名。
+- `ai.*` 未設定なら `scripts/ai-commit.sh` はエラーで止まり、初回設定を促す。
 
 ## Electron（任意・各自ビルド）
 
