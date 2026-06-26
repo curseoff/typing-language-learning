@@ -96,6 +96,8 @@ export function useStory({ mode, start, onExit }) {
     const elapsedMs = startedAt ? endTime - startedAt : 0
     const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
     const record = {
+      source: 'story', // リプレイの分岐用（App.replay）。物語は決定的なので seed は不要。
+      mode, // 再挑戦を同じ入力モードで始めるために保存
       ending: n.ending,
       endLabel: n.endLabel,
       speed,
@@ -108,7 +110,7 @@ export function useStory({ mode, start, onExit }) {
     }
     setResult(record)
     setRecords(saveStoryRecord(record))
-  }, [])
+  }, [mode])
 
   useEffect(() => {
     const onKey = (e) => {
