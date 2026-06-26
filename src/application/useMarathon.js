@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TARGET_KEYS, buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
+import { mulberry32 } from '../domain/rng.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
@@ -20,7 +21,7 @@ export function useMarathon({ active, onFinish }) {
   const segStartRef = useRef(null) // 現在の問題の開始時刻
   const segMistakesRef = useRef(0) // 現在の問題のミス数
   const segStatsRef = useRef([]) // 確定した問題ごとの記録
-  const ctxRef = useRef({ mode: 'both', rank: 1 }) // 開始時の mode/rank
+  const ctxRef = useRef({ mode: 'both', rank: 1 }) // 開始時の mode/rank/source/seed
   const trackerRef = useRef(newTracker()) // 問題ごとの累積記録（文単位）
 
   // 経過時間の更新
@@ -30,9 +31,11 @@ export function useMarathon({ active, onFinish }) {
     return () => clearInterval(id)
   }, [active])
 
-  const start = useCallback((mode, rank, source, pool) => {
-    ctxRef.current = { mode, rank, source }
-    setSegments(buildPassage(mode, pool))
+  const start = useCallback((mode, rank, source, pool, seed) => {
+    ctxRef.current = { mode, rank, source, seed }
+    // seed があれば決定的な問題列を再現（リプレイ）。無ければ Math.random で通常出題。
+    const opts = seed != null ? { rng: mulberry32(seed) } : {}
+    setSegments(buildPassage(mode, pool, opts))
     setSegIndex(0)
     setSegInput('')
     setCompleted([])
@@ -51,11 +54,12 @@ export function useMarathon({ active, onFinish }) {
     (keys, totalMistakes, endTime, startedAt) => {
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
-      const { mode, rank, source } = ctxRef.current
+      const { mode, rank, source, seed } = ctxRef.current
       const record = {
         mode,
         rank,
         source,
+        seed, // 同じ問題列を再現するためのシード（リプレイ用）
         speed,
         keys,
         mistakes: totalMistakes,
