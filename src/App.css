@@ -1309,21 +1309,28 @@ kbd {
   font-size: 11px;
   color: var(--muted);
 }
-.choice-list {
-  margin: 0;
-  padding-left: 22px;
-}
-.choice-list li {
-  padding: 7px 0;
-  border-bottom: 1px solid #334155;
+/* 場面の直後に差し込む「選んだ選択肢」行（問題ごとの記録に統合） */
+.seg-stats tr.choice-row td {
+  padding: 6px 8px 6px 26px;
+  background: rgba(148, 163, 184, 0.06);
   line-height: 1.4;
 }
-.choice-list .choice-ja {
-  display: block;
-  font-size: 14px;
+.choice-tag {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
 }
-.choice-list .choice-en {
+.seg-stats .choice-row .choice-ja {
+  font-size: 14px;
+  color: var(--text);
+}
+.seg-stats .choice-row .choice-en {
   display: block;
+  margin-top: 2px;
+  margin-left: 0;
   font-size: 13px;
   color: var(--muted);
 }

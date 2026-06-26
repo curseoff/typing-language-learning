@@ -185,10 +185,16 @@ export function useStory({ mode, start, onExit }) {
         setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {
-          // 選んだ選択肢を記録（後で結果ページに表示）
+          // 選んだ選択肢を記録（後で結果ページに表示）。
+          // afterSeg＝この選択をした時点の場面数。選択は「ノード本文を打ち終えた直後」に
+          // 起きるので、segStats の現在件数がそのまま「この選択を差し込む場面位置」になる。
           choicesRef.current = [
             ...choicesRef.current,
-            { en: node.choices[idx].en, ja: node.choices[idx].ja },
+            {
+              en: node.choices[idx].en,
+              ja: node.choices[idx].ja,
+              afterSeg: segTrackerRef.current.list.length,
+            },
           ]
           setStage('text')
           reset()
