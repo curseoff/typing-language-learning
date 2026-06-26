@@ -15,6 +15,10 @@ import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
+import { ReplayProvider } from './ui/result/ReplayContext.jsx'
+
+// 問題列再現用のシードを1つ生成（0..2^32-1）。生成は UI 側で行い domain を純粋に保つ。
+const makeSeed = () => Math.floor(Math.random() * 0x100000000)
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
 const MODE_KEYS = MODES.map((m) => m.key)
@@ -75,12 +79,35 @@ export default function App() {
     elapsedSec,
   } = useMarathon({ active: phase === 'playing', onFinish })
 
-  const startGame = useCallback(async () => {
-    // 対象レベルの例文だけ遅延読み込みしてから開始（初回バンドルに全例文を含めない）
-    const pool = await loadWsentLevel(wsentLevel)
-    startMarathon(mode, wsentLevel, 'wsent', pool)
-    setPhase('playing')
-  }, [startMarathon, mode, wsentLevel])
+  // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
+  // リプレイは記録の値＋seed を直接渡すために必須。
+  const startWsent = useCallback(
+    async (level, modeKey, seed) => {
+      // 対象レベルの例文だけ遅延読み込みしてから開始（初回バンドルに全例文を含めない）
+      const pool = await loadWsentLevel(level)
+      startMarathon(modeKey, level, 'wsent', pool, seed)
+      setPhase('playing')
+    },
+    [startMarathon],
+  )
+
+  // 通常プレイ／結果からの「もう一度」：現在の選択で新しい seed を切って開始
+  const startGame = useCallback(() => {
+    return startWsent(wsentLevel, mode, makeSeed())
+  }, [startWsent, wsentLevel, mode])
+
+  // リプレイ：記録と全く同じ問題列で再挑戦（seed も記録のものを使う）。
+  // 戻った時の整合のため UI state も記録に合わせて set しつつ、開始は明示引数で行う（stale 回避）。
+  const replay = useCallback(
+    (record) => {
+      if (record.source !== 'wsent' || record.seed == null) return // フェーズ1は wsent のみ
+      setGameType('wsent')
+      setMode(record.mode)
+      setWsentLevel(record.rank)
+      startWsent(record.rank, record.mode, record.seed)
+    },
+    [startWsent],
+  )
 
   const start = useCallback(() => {
     if (gameType === 'words') {
@@ -160,6 +187,7 @@ export default function App() {
       mode,
       rank: wsentLevel,
       source: 'wsent',
+      seed: 12345, // リプレイボタン確認用の固定シード
       speed: 480,
       keys: TARGET_KEYS,
       mistakes: 7,
@@ -196,6 +224,7 @@ export default function App() {
   }, [])
 
   return (
+    <ReplayProvider onReplay={replay}>
     <div className="app">
       <h1>英文・和文タイピング</h1>
 
@@ -305,5 +334,6 @@ export default function App() {
 
       {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
     </div>
+    </ReplayProvider>
   )
 }

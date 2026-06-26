@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { modeLabel } from '../../content/modes.js'
 import SegStatsTable from './SegStatsTable.jsx'
+import { useReplay } from './ReplayContext.jsx'
 
 export default function RecordDetail({
   list,
@@ -15,6 +16,7 @@ export default function RecordDetail({
   onClose,
 }) {
   const [cur, setCur] = useState(initial) // { record, position }
+  const onReplay = useReplay()
   useEffect(() => {
     // キャプチャ段階で処理し伝播を止める＝下のページの Esc ハンドラより先に閉じる
     const onKey = (e) => {
@@ -97,6 +99,16 @@ export default function RecordDetail({
         </div>
 
         <div className="ending-actions">
+          {/* seed がある記録だけ「同じ問題列」を再現できる（旧記録には出さない＝後方互換） */}
+          {onReplay && r.seed != null && (
+            <button
+              className="btn-primary"
+              onClick={() => onReplay(r)}
+              title="この記録と同じ問題列で再挑戦"
+            >
+              もう一度チャレンジ
+            </button>
+          )}
           <button className="story-exit" onClick={onClose}>
             閉じる
           </button>
