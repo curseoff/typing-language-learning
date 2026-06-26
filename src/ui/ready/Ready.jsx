@@ -7,10 +7,13 @@ import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../
 import { TOUCH_LEVELS } from '../../content/keyboard.js'
 import { STORY } from '../../content/story.js'
 import { recKey } from '../../domain/records/ranking.js'
-import { loadWordRecords, wordRecKey } from '../../infrastructure/wordsRepository.js'
-import { loadStoryRecords } from '../../infrastructure/storyRepository.js'
-import { loadDictRecords, dictRecKey } from '../../infrastructure/dictRepository.js'
-import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
+import {
+  loadStoryRecords,
+  loadItemStats,
+  wordRanking,
+  dictRanking,
+  storyStatId,
+} from '../../application/records.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import ItemList from './ItemList.jsx'
@@ -305,7 +308,7 @@ export default function Ready({
             <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
           ) : (
             <WordRecords
-              list={loadWordRecords()[wordRecKey(wordLevel, wordTheme, wordMode)]}
+              list={wordRanking(wordLevel, wordTheme, wordMode)}
               isQuiz={wordMode.startsWith('quiz')}
               rankText={`単語 ${dictLevelLabel(wordLevel)} ${wordTheme}`}
             />
@@ -371,7 +374,7 @@ export default function Ready({
             <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
           ) : (
             <WordRecords
-              list={loadDictRecords()[dictRecKey(dictLevel, dictTheme, dictMode)]}
+              list={dictRanking(dictLevel, dictTheme, dictMode)}
               isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
               rankText={`英英 ${dictLevelLabel(dictLevel)} ${dictTheme}`}
             />
@@ -503,7 +506,7 @@ function StoryScenes({ mode }) {
   return (
     <ol className="browse-list">
       {Object.entries(STORY.nodes).map(([id, n]) => {
-        const s = stats[itemId('story', mode, id)]
+        const s = stats[storyStatId(mode, id)]
         return (
           <li key={id} className="browse-item">
             {s ? (
