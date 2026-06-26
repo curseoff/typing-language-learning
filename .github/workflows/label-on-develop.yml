@@ -1,0 +1,39 @@
+name: on-develop ラベル付与
+
+# PR が develop にマージされたら、その PR 本文/タイトルの close キーワード（Closes/Fixes/Resolves #N）
+# を検出し、該当 Issue に `on-develop` ラベルを付ける。
+# 目的：master 到達で auto-close する前段の「develop に乗った（リリース待ち）」状態を可視化する。
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  label:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: close 参照 Issue に on-develop を付与
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          # close キーワード（close/closes/closed, fix/fixes/fixed, resolve/resolves/resolved）+ #N を抽出
+          nums=$(printf '%s\n%s' "$TITLE" "$BODY" \
+            | grep -ioE '(clos|fix|resolv)[a-z]*[:[:space:]]+#[0-9]+' \
+            | grep -oE '[0-9]+' | sort -u)
+          if [ -z "$nums" ]; then
+            echo "close 参照なし。付与スキップ。"
+            exit 0
+          fi
+          for n in $nums; do
+            echo "Issue #$n に on-develop を付与"
+            gh issue edit "$n" --repo "$REPO" --add-label "on-develop" \
+              || echo "  #$n への付与に失敗（クローズ済み/ラベル無し等）。スキップ。"
+          done
