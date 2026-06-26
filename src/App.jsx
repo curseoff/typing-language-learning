@@ -42,6 +42,7 @@ export default function App() {
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
+  const [storyNonce, setStoryNonce] = useState(0) // リプレイで物語を強制再マウントするための一意キー
   const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
   const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
   const [wordMode, setWordMode] = useState('en') // both | en | ja | quiz-en | quiz-ja
@@ -123,6 +124,7 @@ export default function App() {
   const startStory = useCallback((modeKey) => {
     if (modeKey != null) setMode(modeKey)
     setStoryStart(null)
+    setStoryNonce((n) => n + 1) // phase が既に story でも StoryView を再マウントして再スタートさせる
     setPhase('story')
   }, [])
 
@@ -363,7 +365,7 @@ export default function App() {
 
       {phase === 'story' && (
         <StoryView
-          key={storyStart?.stage ?? 'start'}
+          key={`${storyStart?.stage ?? 'start'}-${storyNonce}`}
           mode={mode}
           modeLabel={modeLabel(mode)}
           start={storyStart}
