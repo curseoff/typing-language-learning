@@ -11,6 +11,7 @@
 
 ## Git / PR ワークフロー
 - ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
+  - **マージ済みブランチは消す**：PR が develop（または master）にマージされたら、**リモートは GitHub の auto-delete で自動削除**される。**ローカルブランチも `git branch -D` で削除**し、`git fetch origin --prune` で追跡を掃除すること。例外として `issue-assets`（画像ホスティング・PRマージしない）と保留中の `feature/srs-review`(#85) は残す。
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
   - develop マージ時には **`on-develop` ラベルが自動付与**される（`.github/workflows/label-on-develop.yml` が PR の Closes/Fixes/Resolves #N を検出）＝「develop に乗った（リリース待ち）」の目印。master 到達で auto-close。だから feature→develop PR にも必ず `Closes #N` を書くこと。
