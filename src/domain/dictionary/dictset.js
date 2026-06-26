@@ -38,7 +38,13 @@ export function makeDictQuiz(
     const others = distractorPool.filter(
       (p) => p.word !== e.word && !p.word.startsWith(e.word) && !e.word.startsWith(p.word),
     )
-    const distractors = [...others].sort(() => rng() - 0.5).slice(0, optionCount - 1)
+    // 誤答同士の前方一致も避ける（どの選択肢を打っても一意に確定するため）。
+    const distractors = []
+    for (const p of [...others].sort(() => rng() - 0.5)) {
+      if (distractors.length >= optionCount - 1) break
+      if (distractors.some((d) => p.word.startsWith(d.word) || d.word.startsWith(p.word))) continue
+      distractors.push(p)
+    }
     const opts = [e, ...distractors].sort(() => rng() - 0.5)
     items.push({
       prompt: e.def,
@@ -66,7 +72,13 @@ export function makeDictPick(
     const others = distractorPool.filter(
       (p) => p.word !== e.word && !p.def.startsWith(aDef) && !aDef.startsWith(p.def),
     )
-    const distractors = [...others].sort(() => rng() - 0.5).slice(0, optionCount - 1)
+    // 誤答同士の前方一致も避ける（どの選択肢を打っても一意に確定するため）。
+    const distractors = []
+    for (const p of [...others].sort(() => rng() - 0.5)) {
+      if (distractors.length >= optionCount - 1) break
+      if (distractors.some((d) => p.def.startsWith(d.def) || d.def.startsWith(p.def))) continue
+      distractors.push(p)
+    }
     const opts = [e, ...distractors].sort(() => rng() - 0.5)
     items.push({
       prompt: e.word,

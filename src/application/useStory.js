@@ -1,7 +1,7 @@
 // 物語の状態機械（ノード遷移・分岐・エンド・計測）。
 // StoryView 内で呼ぶ前提（物語フェーズの間だけマウントされる）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { STORY } from '../content/story.js'
+import { storyById } from '../content/stories/index.js'
 import { buildUnits, choiceSeg, segMatches, typingLang } from '../domain/typing/units.js'
 import { firstChoiceNodeId } from '../domain/story/navigation.js'
 import { score } from '../domain/marathon/scoring.js'
@@ -15,20 +15,21 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
-export function useStory({ mode, start, onExit }) {
-  const nodes = STORY.nodes
+export function useStory({ mode, storyId, start, onExit }) {
+  const story = storyById(storyId)
+  const nodes = story.nodes
   // Devジャンプ: start.stage==='choice' なら最初の選択肢ノードから開始
   const init =
     start?.stage === 'choice'
-      ? { id: firstChoiceNodeId(nodes) ?? STORY.start, stage: 'choice' }
-      : { id: STORY.start, stage: 'text' }
+      ? { id: firstChoiceNodeId(nodes) ?? story.start, stage: 'choice' }
+      : { id: story.start, stage: 'text' }
   const [nodeId, setNodeId] = useState(init.id)
   const [stage, setStage] = useState(init.stage) // text | choice | ending
   const [unitIndex, setUnitIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
-  const [found, setFound] = useState(loadFound)
-  const [records, setRecords] = useState(loadStoryRecords) // 記録ランキング
+  const [found, setFound] = useState(() => loadFound(storyId))
+  const [records, setRecords] = useState(() => loadStoryRecords(storyId)) // 記録ランキング
   const [result, setResult] = useState(null) // 今回のプレイ結果
   // 計測（物語を通しての累計）
   const [typedKeys, setTypedKeys] = useState(0)
@@ -57,7 +58,7 @@ export function useStory({ mode, start, onExit }) {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
     choicesRef.current = []
-    setNodeId(STORY.start)
+    setNodeId(story.start)
     setStage('text')
     reset()
     setTypedKeys(0)
@@ -65,7 +66,7 @@ export function useStory({ mode, start, onExit }) {
     setNow(0)
     setResult(null)
     setStartTime(null)
-  }, [])
+  }, [story])
 
   // 経過時間の更新（エンディング中は止める）
   useEffect(() => {
@@ -91,7 +92,7 @@ export function useStory({ mode, start, onExit }) {
     setFound((prev) => {
       if (prev.includes(n.ending)) return prev
       const upd = [...prev, n.ending]
-      saveFound(upd)
+      saveFound(storyId, upd)
       return upd
     })
     // 今回の記録を作成・保存（速い順ランキング）
@@ -100,6 +101,7 @@ export function useStory({ mode, start, onExit }) {
     const record = {
       source: 'story', // リプレイの分岐用（App.replay）。物語は決定的なので seed は不要。
       mode, // 再挑戦を同じ入力モードで始めるために保存
+      storyId, // どの物語の記録か（リプレイで同じ物語を復元するため）
       ending: n.ending,
       endLabel: n.endLabel,
       speed,
@@ -112,8 +114,8 @@ export function useStory({ mode, start, onExit }) {
       date: new Date().toLocaleString('ja-JP'),
     }
     setResult(record)
-    setRecords(saveStoryRecord(record))
-  }, [mode])
+    setRecords(saveStoryRecord(storyId, record))
+  }, [mode, storyId])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -148,7 +150,7 @@ export function useStory({ mode, start, onExit }) {
         setStartTime((p) => p ?? _t)
         setHasError(false)
         segMark(segTrackerRef.current, _t) // この行の最初の打鍵時刻
-        trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 場面ごと×モード別
+        trackKey(trackerRef.current, itemId('story', mode, `${storyId}/${nodeId}`)) // 場面ごと×モード別
         setTypedKeys((k) => k + 1)
         if (seg.variants.includes(candidate)) {
           // 行（ユニット）1件の完了を「問題ごとの記録」に積む
@@ -181,7 +183,7 @@ export function useStory({ mode, start, onExit }) {
         const _t = performance.now()
         setStartTime((p) => p ?? _t)
         setHasError(false)
-        trackKey(trackerRef.current, itemId('story', mode, nodeId)) // 選択肢も現在の場面に集約
+        trackKey(trackerRef.current, itemId('story', mode, `${storyId}/${nodeId}`)) // 選択肢も現在の場面に集約
         setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {
@@ -206,7 +208,7 @@ export function useStory({ mode, start, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [stage, node, nodeId, mode, units, unitIndex, choiceSegs, input, typedKeys, mistakes, startTime, onExit, restart, enterEnding])
+  }, [stage, node, nodeId, storyId, mode, units, unitIndex, choiceSegs, input, typedKeys, mistakes, startTime, onExit, restart, enterEnding])
 
   return {
     nodes,
