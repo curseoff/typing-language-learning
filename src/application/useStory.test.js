@@ -41,7 +41,33 @@ describe('useStory（物語・結合）', () => {
     expect(rec.mode).toBe('en')
     expect(rec.ending).toBeTruthy()
     expect(rec.segStats.length).toBeGreaterThan(0)
+    // 選んだ選択肢が順番に記録される（分岐を辿るので 1 件以上）
+    expect(rec.choices.length).toBeGreaterThan(0)
+    rec.choices.forEach((c) => {
+      expect(typeof c.en).toBe('string')
+      expect(typeof c.ja).toBe('string')
+      // afterSeg＝この選択をした時点の場面数。場面数の範囲に収まり、
+      // 場面数を超えない（選択は本文を打ち終えた直後に起きるため）。
+      expect(typeof c.afterSeg).toBe('number')
+      expect(c.afterSeg).toBeGreaterThan(0)
+      expect(c.afterSeg).toBeLessThanOrEqual(rec.segStats.length)
+    })
+    // afterSeg は選んだ順に単調非減少（時系列で前から後ろへ進む）
+    const afters = rec.choices.map((c) => c.afterSeg)
+    expect(afters).toEqual([...afters].sort((a, b) => a - b))
   }, 20000)
+
+  it('リプレイ（再スタート）後の新記録にも choices が入る', () => {
+    const { result } = renderHook(() =>
+      useStory({ mode: 'en', start: null, onExit: () => {} }),
+    )
+    playToEnding(result)
+    act(() => result.current.restart()) // 再挑戦
+    playToEnding(result)
+    const recs = loadStoryRecords()
+    expect(recs.length).toBe(2)
+    recs.forEach((rec) => expect(rec.choices.length).toBeGreaterThan(0))
+  }, 30000)
 
   it('物語は決定的：同じ選択を辿れば同じ場面（問題列）を再現する', () => {
     const a = renderHook(() => useStory({ mode: 'en', start: null, onExit: () => {} }))

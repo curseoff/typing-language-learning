@@ -61,7 +61,9 @@ export default function RecordDetail({
         </div>
         <div className="result-date">{r.date}</div>
 
-        {r.segStats && <SegStatsTable segStats={r.segStats} />}
+        {/* 場面（segStats）と、その場面で選んだ選択肢（choices）を時系列で統合表示。
+            choices は物語の新記録のみ持つ（旧記録・他モードは無し＝後方互換）。 */}
+        {r.segStats && <SegStatsTable segStats={r.segStats} choices={r.choices} />}
 
         <div className="records">
           <h3>
