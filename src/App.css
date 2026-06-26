@@ -1309,6 +1309,24 @@ kbd {
   font-size: 11px;
   color: var(--muted);
 }
+.choice-list {
+  margin: 0;
+  padding-left: 22px;
+}
+.choice-list li {
+  padding: 7px 0;
+  border-bottom: 1px solid #334155;
+  line-height: 1.4;
+}
+.choice-list .choice-ja {
+  display: block;
+  font-size: 14px;
+}
+.choice-list .choice-en {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
 
 /* ---- records ---- */
 .records {

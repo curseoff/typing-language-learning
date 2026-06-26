@@ -37,6 +37,7 @@ export function useStory({ mode, start, onExit }) {
   const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 場面ごとの累積記録（ノード単位×モード別）
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録（行=ユニット単位）
+  const choicesRef = useRef([]) // 今回プレイで選んだ選択肢（選んだ順に { en, ja }）
 
   const node = nodes[nodeId]
   const lang = typingLang(mode)
@@ -55,6 +56,7 @@ export function useStory({ mode, start, onExit }) {
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
+    choicesRef.current = []
     setNodeId(STORY.start)
     setStage('text')
     reset()
@@ -106,6 +108,7 @@ export function useStory({ mode, start, onExit }) {
       accuracy,
       seconds,
       segStats: segTrackerRef.current.list,
+      choices: choicesRef.current, // プレイ中に選んだ選択肢（選んだ順）
       date: new Date().toLocaleString('ja-JP'),
     }
     setResult(record)
@@ -182,6 +185,11 @@ export function useStory({ mode, start, onExit }) {
         setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {
+          // 選んだ選択肢を記録（後で結果ページに表示）
+          choicesRef.current = [
+            ...choicesRef.current,
+            { en: node.choices[idx].en, ja: node.choices[idx].ja },
+          ]
           setStage('text')
           reset()
           setNodeId(node.choices[idx].next)

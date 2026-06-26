@@ -61,6 +61,21 @@ export default function RecordDetail({
         </div>
         <div className="result-date">{r.date}</div>
 
+        {/* 物語の新記録のみ（旧記録・他モードには choices が無い＝後方互換） */}
+        {r.choices?.length > 0 && (
+          <div className="seg-stats story-choices">
+            <h3>選んだ選択肢</h3>
+            <ol className="choice-list">
+              {r.choices.map((c, i) => (
+                <li key={i}>
+                  <span className="choice-ja">{c.ja}</span>
+                  {c.en && <span className="choice-en">{c.en}</span>}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         {r.segStats && <SegStatsTable segStats={r.segStats} />}
 
         <div className="records">
