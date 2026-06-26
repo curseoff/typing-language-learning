@@ -14,22 +14,65 @@ const typeKey = (key) =>
 describe('useDict（英英入力・結合）', () => {
   beforeEach(() => localStorage.clear())
 
-  it('日本語入力モードで完走し record と segStats を保存する', () => {
-    const { result } = renderHook(() =>
-      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', onExit: () => {} }),
-    )
+  const drain = (h) => {
     let n = 0
-    while (!result.current.finished && n < 3000) {
-      const seg = result.current.seg
+    while (!h.result.current.finished && n < 3000) {
+      const seg = h.result.current.seg
       if (!seg) break
-      typeKey(seg.canonical[result.current.input.length])
+      typeKey(seg.canonical[h.result.current.input.length])
       n++
     }
-    expect(result.current.finished).toBe(true)
+  }
+
+  it('日本語入力モードで完走し record と segStats を保存する', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', onExit: () => {} }),
+    )
+    drain(h)
+    expect(h.result.current.finished).toBe(true)
     const rec = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')][0]
     expect(rec.mistakes).toBe(0)
     expect(rec.segStats.length).toBeGreaterThan(0)
     expect(rec.segStats.length).toBe(rec.words)
+  }, 20000)
+
+  it('通常プレイ（seed 未指定）でも record に有効な seed が入る＝記録から再挑戦できる', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', onExit: () => {} }),
+    )
+    drain(h)
+    const rec = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')][0]
+    expect(rec.seed).toEqual(expect.any(Number))
+    expect(rec.source).toBe('dict')
+  }, 20000)
+
+  it('restart は新しい seed を切り直して別の見出し語列にする', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', onExit: () => {} }),
+    )
+    drain(h)
+    const first = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')][0].seed
+    act(() => h.result.current.restart())
+    drain(h)
+    const seeds = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')].map((r) => r.seed)
+    expect(seeds).toContain(first)
+    expect(new Set(seeds).size).toBe(2)
+  }, 20000)
+
+  it('同じ seed なら restart 後も含め同一の見出し語列を再現（リプレイ＝記録 seed で復元）', () => {
+    const seed = 135790
+    const opts = { dict: DICT, level: 1, theme: 'すべて', mode: 'ja', seed, onExit: () => {} }
+    const a = renderHook(() => useDict(opts))
+    drain(a)
+    const recA = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')][0]
+    // 別フックを同じ seed で起こすと同一の見出し語列が復元される
+    const b = renderHook(() => useDict(opts))
+    drain(b)
+    const recs = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')]
+    const labelsB = recs[0].segStats.map((s) => s.label) // 最新（b）の列
+    const labelsA = recA.segStats.map((s) => s.label)
+    expect(labelsB).toEqual(labelsA)
+    expect(recs[0].seed).toBe(seed)
   }, 20000)
 
   it('同じ seed なら同じ見出し語列を再現し、record に seed が入る（リプレイ）', () => {

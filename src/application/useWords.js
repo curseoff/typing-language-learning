@@ -10,13 +10,16 @@ import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsReposito
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { makeSeed } from './seed.js'
 
 export function useWords({ allWords, level, theme, mode, seed, onExit }) {
-  // seed があれば決定的な問題列を再現（リプレイ）。同じ seed なら restart も同じ列になる。
-  // seed 無し（フック単体や旧経路）は Math.random で従来どおりランダム出題。
+  // 「今プレイ中の問題列」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
+  // restart のたびに新しい seed を切り直す（＝View 内「もう一度」は別の問題列）。
+  // この seed を record に必ず保存することで、通常プレイの記録も再現可能になる。
+  const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
   const buildPassage = useCallback(
-    () => buildWordPassage(allWords, level, theme, mode, seed != null ? { rng: mulberry32(seed) } : {}),
-    [allWords, level, theme, mode, seed],
+    () => buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(sessionSeed) }),
+    [allWords, level, theme, mode, sessionSeed],
   )
   const [words, setWords] = useState(buildPassage)
   const [segIndex, setSegIndex] = useState(0)
@@ -44,7 +47,10 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
-    setWords(buildPassage())
+    // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
+    const next = makeSeed()
+    setSessionSeed(next)
+    setWords(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(next) }))
     setSegIndex(0)
     setInput('')
     setCompleted([])
@@ -55,7 +61,7 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
-  }, [buildPassage])
+  }, [allWords, level, theme, mode])
 
   useEffect(() => {
     if (finished) return
@@ -80,7 +86,7 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
         source: 'word', // リプレイの分岐用（App.replay）
-        seed, // 同じ問題列を再現するためのシード（リプレイ用）
+        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
         level,
         theme,
         mode,
@@ -96,7 +102,7 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, seed],
+    [level, theme, mode, sessionSeed],
   )
 
   useEffect(() => {

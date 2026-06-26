@@ -32,6 +32,22 @@ describe('useDictQuiz（英英4択・結合）', () => {
     expect(rec.segStats.every((s) => s.correct === true)).toBe(true)
   })
 
+  it('通常プレイ（seed 未指定）でも record に有効な seed が入る＝記録から再挑戦できる', () => {
+    const { result } = renderHook(() =>
+      useDictQuiz({ dict: DICT, level: 1, theme: 'すべて', kind: 'quiz', onExit: () => {} }),
+    )
+    let guard = 0
+    while (!result.current.finished && guard < 100) {
+      const correct = result.current.question.options.find((o) => o.answer)
+      ;[...correct.variants[0]].forEach(typeKey)
+      typeKey('Enter')
+      guard++
+    }
+    const rec = loadDictRecords()[dictRecKey(1, 'すべて', 'quiz')][0]
+    expect(rec.seed).toEqual(expect.any(Number))
+    expect(rec.source).toBe('dict')
+  })
+
   it('同じ seed なら同じ出題・選択肢を再現し、record に seed が入る（リプレイ）', () => {
     const seed = 369121
     const opts = { dict: DICT, level: 1, theme: 'すべて', kind: 'quiz', seed, onExit: () => {} }

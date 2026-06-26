@@ -16,9 +16,7 @@ import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
-
-// 問題列再現用のシードを1つ生成（0..2^32-1）。生成は UI 側で行い domain を純粋に保つ。
-const makeSeed = () => Math.floor(Math.random() * 0x100000000)
+import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
 const MODE_KEYS = MODES.map((m) => m.key)
@@ -164,10 +162,11 @@ export default function App() {
   const start = useCallback(() => {
     if (gameType === 'words') {
       // 単語データ（約1.6MB）を遅延読み込みしてから単語モードへ。
-      // 通常プレイは seed なし（=View 内 restart も毎回ランダム＝従来挙動）。リプレイ時だけ seed を渡す。
+      // 通常プレイは seed を渡さない（=フックが新規 seed を内部生成して record に保存＝記録から再挑戦可能）。
+      // View 内 restart も毎回新しい seed＝別の問題列になる。リプレイ時だけ記録の seed を渡す。
       startWords(wordLevel, wordTheme, wordMode, null)
     } else if (gameType === 'dict') {
-      // 英英データを遅延読み込みしてから英英モードへ（通常プレイは seed なし＝従来挙動）。
+      // 英英データを遅延読み込みしてから英英モードへ（通常プレイは seed を渡さず、フックが内部生成）。
       startDict(dictLevel, dictTheme, dictMode, null)
     } else if (gameType === 'touch') {
       setPhase('touch')

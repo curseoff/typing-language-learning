@@ -38,6 +38,22 @@ describe('useWordQuiz（4択・結合）', () => {
     expect(rec.segStats[0]).toHaveProperty('answer')
   })
 
+  it('通常プレイ（seed 未指定）でも record に有効な seed が入る＝記録から再挑戦できる', () => {
+    const { result } = renderHook(() =>
+      useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }),
+    )
+    let guard = 0
+    while (!result.current.finished && guard < 100) {
+      const q = result.current.question
+      typeStr(q.options.find((o) => o.answer).variants[0])
+      typeKey('Enter')
+      guard++
+    }
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
+    expect(rec.seed).toEqual(expect.any(Number))
+    expect(rec.source).toBe('word')
+  })
+
   it('不正解の選択肢を打つと、その設問の segStats.correct が false になる', () => {
     const { result } = renderHook(() =>
       useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }),

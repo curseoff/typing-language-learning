@@ -11,16 +11,22 @@ import {
 } from '../domain/dictionary/dictset.js'
 import { mulberry32 } from '../domain/rng.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
+import { makeSeed } from './seed.js'
 
 export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit }) {
-  // seed があれば決定的な問題列・選択肢を再現（リプレイ）。無ければ domain 既定の Math.random。
-  const build = useCallback(() => {
-    const opts = seed != null ? { rng: mulberry32(seed) } : {}
-    return kind === 'pick'
-      ? makeDictPick(buildDictSet(dict, level, theme, DICT_TYPE_COUNT, opts), levelEntries(dict, level), DICT_TYPE_COUNT, 4, opts)
-      : makeDictQuiz(buildDictSet(dict, level, theme, DICT_QUIZ_COUNT, opts), levelEntries(dict, level), DICT_QUIZ_COUNT, 4, opts)
-  }, [dict, level, theme, kind, seed])
-  const [questions, setQuestions] = useState(build)
+  // 「今プレイ中の問題列・選択肢」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
+  // restart のたびに切り直し、record には必ずこの seed を保存して再現可能にする。
+  const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
+  const buildWith = useCallback(
+    (s) => {
+      const opts = { rng: mulberry32(s) }
+      return kind === 'pick'
+        ? makeDictPick(buildDictSet(dict, level, theme, DICT_TYPE_COUNT, opts), levelEntries(dict, level), DICT_TYPE_COUNT, 4, opts)
+        : makeDictQuiz(buildDictSet(dict, level, theme, DICT_QUIZ_COUNT, opts), levelEntries(dict, level), DICT_QUIZ_COUNT, 4, opts)
+    },
+    [dict, level, theme, kind],
+  )
+  const [questions, setQuestions] = useState(() => buildWith(sessionSeed))
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
@@ -40,7 +46,10 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
   const restart = useCallback(() => {
     segStatsRef.current = []
     perQMissRef.current = 0
-    setQuestions(build())
+    // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
+    const next = makeSeed()
+    setSessionSeed(next)
+    setQuestions(buildWith(next))
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -51,7 +60,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
     setFinished(false)
     setResult(null)
     setStartTime(null)
-  }, [build])
+  }, [buildWith])
 
   useEffect(() => {
     if (finished) return
@@ -72,7 +81,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
       const record = {
         source: 'dict', // リプレイの分岐用（App.replay）
-        seed, // 同じ問題列を再現するためのシード（リプレイ用）
+        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
         level,
         theme,
         mode: kind,
@@ -88,7 +97,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
       setResult(record)
       setFinished(true)
     },
-    [level, theme, kind, seed, questions.length, startTime],
+    [level, theme, kind, sessionSeed, questions.length, startTime],
   )
 
   const commit = useCallback((option) => {
