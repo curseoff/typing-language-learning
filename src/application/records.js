@@ -34,7 +34,7 @@ export function itemStatId(type, mode, key) {
   return itemId(prefix, mode, key)
 }
 
-// 物語の場面ごとの id（story:mode:nodeId）。
-export function storyStatId(mode, nodeId) {
-  return itemId('story', mode, nodeId)
+// 物語の場面ごとの id（story:mode:storyId/nodeId）。物語別に分けて衝突を防ぐ。
+export function storyStatId(mode, storyId, nodeId) {
+  return itemId('story', mode, `${storyId}/${nodeId}`)
 }

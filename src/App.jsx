@@ -3,6 +3,7 @@ import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, loadWords } from './content/words.js'
 import { loadWsentLevel } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
+import { DEFAULT_STORY_ID } from './content/stories/index.js'
 import { TOUCH_LEVELS } from './content/keyboard.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
@@ -41,6 +42,7 @@ export default function App() {
   const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
+  const [storyId, setStoryId] = useState(DEFAULT_STORY_ID) // 選択中の物語(travel | climbing …)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [storyNonce, setStoryNonce] = useState(0) // リプレイで物語を強制再マウントするための一意キー
   const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
@@ -121,8 +123,9 @@ export default function App() {
   }, [])
 
   // 物語を開始する（最初の場面から）。物語は決定的なので seed 不要。
-  const startStory = useCallback((modeKey) => {
+  const startStory = useCallback((modeKey, sid) => {
     if (modeKey != null) setMode(modeKey)
+    if (sid != null) setStoryId(sid)
     setStoryStart(null)
     setStoryNonce((n) => n + 1) // phase が既に story でも StoryView を再マウントして再スタートさせる
     setPhase('story')
@@ -152,7 +155,7 @@ export default function App() {
           return
         case 'story':
           setGameType('story')
-          startStory(record.mode) // 物語は固定ナラティブ＝同じ開始から再スタート
+          startStory(record.mode, record.storyId) // 物語は固定ナラティブ＝同じ物語・開始から再スタート
           return
         default:
           return
@@ -173,7 +176,7 @@ export default function App() {
     } else if (gameType === 'touch') {
       setPhase('touch')
     } else if (gameType === 'story') {
-      startStory()
+      startStory(mode, storyId)
     } else {
       startGame()
     }
@@ -183,6 +186,8 @@ export default function App() {
     startWords,
     startDict,
     startStory,
+    mode,
+    storyId,
     wordLevel,
     wordTheme,
     wordMode,
@@ -309,6 +314,8 @@ export default function App() {
           onTypeChange={setGameType}
           mode={mode}
           onModeChange={setMode}
+          storyId={storyId}
+          onStoryIdChange={setStoryId}
           wsentLevel={wsentLevel}
           onWsentLevelChange={setWsentLevel}
           wordLevel={wordLevel}
@@ -369,9 +376,10 @@ export default function App() {
 
       {phase === 'story' && (
         <StoryView
-          key={`${storyStart?.stage ?? 'start'}-${storyNonce}`}
+          key={`${storyId}-${storyStart?.stage ?? 'start'}-${storyNonce}`}
           mode={mode}
           modeLabel={modeLabel(mode)}
+          storyId={storyId}
           start={storyStart}
           onExit={() => setPhase('ready')}
         />

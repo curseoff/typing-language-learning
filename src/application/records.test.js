@@ -21,8 +21,9 @@ describe('application/records（記録ファサード）', () => {
     expect(itemStatId('words', 'en', 'reserve')).toBe('w:en:reserve')
   })
 
-  it('storyStatId は story:mode:nodeId 形式', () => {
-    expect(storyStatId('ja', 'start')).toBe('story:ja:start')
+  it('storyStatId は story:mode:storyId/nodeId 形式（物語別）', () => {
+    expect(storyStatId('ja', 'travel', 'arrival')).toBe('story:ja:travel/arrival')
+    expect(storyStatId('en', 'climbing', 'arrive')).toBe('story:en:climbing/arrive')
   })
 
   it('wordRanking は保存済みランキングを条件キーで引く', () => {
@@ -44,7 +45,7 @@ describe('application/records（記録ファサード）', () => {
   })
 
   it('未保存時は空を返す（read のファサードが落ちない）', () => {
-    expect(loadStoryRecords()).toEqual([])
+    expect(loadStoryRecords('travel')).toEqual([])
     expect(loadItemStats()).toEqual({})
   })
 
