@@ -32,6 +32,9 @@ export default function RecordDetail({
 
   const r = cur.record
   const quiz = r.correct != null
+  // 「もう一度チャレンジ」を出せる記録か。seed があれば同じ問題列を再現でき、
+  // 物語は決定的（固定ナラティブ）なので seed 無しでも同じ開始から再挑戦できる。
+  const replayable = r.seed != null || r.source === 'story'
 
   return (
     <div className="record-page">
@@ -99,8 +102,8 @@ export default function RecordDetail({
         </div>
 
         <div className="ending-actions">
-          {/* seed がある記録だけ「同じ問題列」を再現できる（旧記録には出さない＝後方互換） */}
-          {onReplay && r.seed != null && (
+          {/* リプレイ可能な記録だけ表示（旧記録＝seed無し・source無しには出さない＝後方互換） */}
+          {onReplay && replayable && (
             <button
               className="btn-primary"
               onClick={() => onReplay(r)}

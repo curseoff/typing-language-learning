@@ -47,10 +47,12 @@ export default function App() {
   const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
   const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
   const [wordMode, setWordMode] = useState('en') // both | en | ja | quiz-en | quiz-ja
+  const [wordSeed, setWordSeed] = useState(null) // 単語の問題列シード（リプレイ再現用）
   const [wordsData, setWordsData] = useState(null) // 単語データ（遅延読み込み）
   const [dictLevel, setDictLevel] = useState(DICT_AVAILABLE_LEVELS[0] ?? 1) // 英英のレベル
   const [dictTheme, setDictTheme] = useState('すべて') // 英英のテーマ
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
+  const [dictSeed, setDictSeed] = useState(null) // 英英の問題列シード（リプレイ再現用）
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [records, setRecords] = useState(loadRecords())
@@ -96,41 +98,97 @@ export default function App() {
     return startWsent(wsentLevel, mode, makeSeed())
   }, [startWsent, wsentLevel, mode])
 
+  // 明示引数で単語モードを開始する（seed を指定して同じ問題列を再現できる）。
+  // WordsView 側のフックが seed を受け取り出題を決定する（key に seed を含めて再マウント）。
+  const startWords = useCallback(async (level, theme, modeKey, seed) => {
+    setWordLevel(level)
+    setWordTheme(theme)
+    setWordMode(modeKey)
+    setWordSeed(seed)
+    const w = await loadWords()
+    setWordsData(w)
+    setPhase('words')
+  }, [])
+
+  // 明示引数で英英モードを開始する（seed を指定して同じ問題列を再現できる）。
+  const startDict = useCallback(async (level, theme, modeKey, seed) => {
+    setDictLevel(level)
+    setDictTheme(theme)
+    setDictMode(modeKey)
+    setDictSeed(seed)
+    const d = await loadDict()
+    setDictData(d)
+    setPhase('dict')
+  }, [])
+
+  // 物語を開始する（最初の場面から）。物語は決定的なので seed 不要。
+  const startStory = useCallback((modeKey) => {
+    if (modeKey != null) setMode(modeKey)
+    setStoryStart(null)
+    setPhase('story')
+  }, [])
+
   // リプレイ：記録と全く同じ問題列で再挑戦（seed も記録のものを使う）。
   // 戻った時の整合のため UI state も記録に合わせて set しつつ、開始は明示引数で行う（stale 回避）。
   const replay = useCallback(
     (record) => {
-      if (record.source !== 'wsent' || record.seed == null) return // フェーズ1は wsent のみ
-      setGameType('wsent')
-      setMode(record.mode)
-      setWsentLevel(record.rank)
-      startWsent(record.rank, record.mode, record.seed)
+      switch (record.source) {
+        case 'wsent':
+          if (record.seed == null) return
+          setGameType('wsent')
+          setMode(record.mode)
+          setWsentLevel(record.rank)
+          startWsent(record.rank, record.mode, record.seed)
+          return
+        case 'word':
+          if (record.seed == null) return
+          setGameType('words')
+          startWords(record.level, record.theme, record.mode, record.seed)
+          return
+        case 'dict':
+          if (record.seed == null) return
+          setGameType('dict')
+          startDict(record.level, record.theme, record.mode, record.seed)
+          return
+        case 'story':
+          setGameType('story')
+          startStory(record.mode) // 物語は固定ナラティブ＝同じ開始から再スタート
+          return
+        default:
+          return
+      }
     },
-    [startWsent],
+    [startWsent, startWords, startDict, startStory],
   )
 
   const start = useCallback(() => {
     if (gameType === 'words') {
-      // 単語データ（約1.6MB）を遅延読み込みしてから単語モードへ
-      loadWords().then((w) => {
-        setWordsData(w)
-        setPhase('words')
-      })
+      // 単語データ（約1.6MB）を遅延読み込みしてから単語モードへ。
+      // 通常プレイは seed なし（=View 内 restart も毎回ランダム＝従来挙動）。リプレイ時だけ seed を渡す。
+      startWords(wordLevel, wordTheme, wordMode, null)
     } else if (gameType === 'dict') {
-      // 英英データを遅延読み込みしてから英英モードへ
-      loadDict().then((d) => {
-        setDictData(d)
-        setPhase('dict')
-      })
+      // 英英データを遅延読み込みしてから英英モードへ（通常プレイは seed なし＝従来挙動）。
+      startDict(dictLevel, dictTheme, dictMode, null)
     } else if (gameType === 'touch') {
       setPhase('touch')
     } else if (gameType === 'story') {
-      setStoryStart(null)
-      setPhase('story')
+      startStory()
     } else {
       startGame()
     }
-  }, [gameType, startGame])
+  }, [
+    gameType,
+    startGame,
+    startWords,
+    startDict,
+    startStory,
+    wordLevel,
+    wordTheme,
+    wordMode,
+    dictLevel,
+    dictTheme,
+    dictMode,
+  ])
 
   // Tab=種類、↑↓=レベル、←→=モード、Enter=スタート/もう一度、Esc=トップへ戻る
   useEffect(() => {
@@ -278,11 +336,12 @@ export default function App() {
 
       {phase === 'words' && (
         <WordsView
-          key={`${wordLevel}-${wordTheme}-${wordMode}`}
+          key={`${wordLevel}-${wordTheme}-${wordMode}-${wordSeed}`}
           words={wordsData}
           level={wordLevel}
           theme={wordTheme}
           mode={wordMode}
+          seed={wordSeed}
           levelLabel={`W${wordLevel} ${WORD_LEVELS.find((l) => l.level === wordLevel)?.label ?? ''}`}
           modeLabel={wordModeLabel(wordMode)}
           onExit={() => setPhase('ready')}
@@ -291,11 +350,12 @@ export default function App() {
 
       {phase === 'dict' && (
         <DictView
-          key={`${dictLevel}-${dictTheme}-${dictMode}`}
+          key={`${dictLevel}-${dictTheme}-${dictMode}-${dictSeed}`}
           dict={dictData}
           level={dictLevel}
           theme={dictTheme}
           mode={dictMode}
+          seed={dictSeed}
           levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
           modeLabel={dictModeLabel(dictMode)}
           onExit={() => setPhase('ready')}
