@@ -34,4 +34,33 @@ describe('useMarathon（単語例文・結合）', () => {
     expect(segStats.length).toBeGreaterThan(0)
     expect(segStats[0]).toHaveProperty('speed')
   }, 20000)
+
+  it('seed を渡すと同じ問題列を再現し record に seed が入る（リプレイ）', () => {
+    const pool = WORD_SENTENCES.filter((s) => s.level === 1)
+    const seed = 424242
+
+    const a = renderHook(() => useMarathon({ active: true, onFinish: vi.fn() }))
+    act(() => a.result.current.start('en', 1, 'wsent', pool, seed))
+    const b = renderHook(() => useMarathon({ active: true, onFinish: vi.fn() }))
+    act(() => b.result.current.start('en', 1, 'wsent', pool, seed))
+
+    // 同じ seed なら出題セグメント列が一致する
+    const labelsA = a.result.current.segments.map((s) => s.canonical)
+    const labelsB = b.result.current.segments.map((s) => s.canonical)
+    expect(labelsA).toEqual(labelsB)
+    expect(labelsA.length).toBeGreaterThan(0)
+
+    // 完走させて record.seed が記録されることを確認
+    const onFinish = vi.fn()
+    const { result } = renderHook(() => useMarathon({ active: true, onFinish }))
+    act(() => result.current.start('en', 1, 'wsent', pool, seed))
+    let n = 0
+    while (!onFinish.mock.calls.length && n < 2000) {
+      const seg = result.current.segments[result.current.segIndex]
+      if (!seg) break
+      typeKey(seg.canonical[result.current.segInput.length])
+      n++
+    }
+    expect(onFinish.mock.calls[0][0].seed).toBe(seed)
+  }, 20000)
 })

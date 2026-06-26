@@ -7,22 +7,22 @@ import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 
-export default function DictView({ dict, level, theme, mode, levelLabel, modeLabel, onExit }) {
+export default function DictView({ dict, level, theme, mode, seed, levelLabel, modeLabel, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
       <span className="meta-badge mode">英英 / {modeLabel} / {theme}</span>
     </div>
   )
-  if (mode === 'quiz') return <QuizView dict={dict} level={level} theme={theme} meta={meta} onExit={onExit} />
-  if (mode === 'pick') return <PickView dict={dict} level={level} theme={theme} meta={meta} onExit={onExit} />
-  return <TypeView dict={dict} level={level} theme={theme} mode={mode} meta={meta} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView dict={dict} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
+  if (mode === 'pick') return <PickView dict={dict} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
+  return <TypeView dict={dict} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
 }
 
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
-function PickView({ dict, level, theme, meta, onExit }) {
-  const q = useDictQuiz({ dict, level, theme, kind: 'pick', onExit })
+function PickView({ dict, level, theme, seed, meta, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, onExit })
 
   return (
     <div className="game">
@@ -83,8 +83,8 @@ function PickView({ dict, level, theme, meta, onExit }) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）
-function TypeView({ dict, level, theme, mode, meta, onExit }) {
-  const d = useDict({ dict, level, theme, mode, onExit })
+function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
+  const d = useDict({ dict, level, theme, mode, seed, onExit })
   const seg = d.seg
   const isEn = mode === 'en'
   const jaProgress = isEn ? 0 : kanjiDone(seg, d.input)
@@ -135,8 +135,8 @@ function TypeView({ dict, level, theme, mode, meta, onExit }) {
 }
 
 // 4択（定義→英単語をタイプ/クリック）
-function QuizView({ dict, level, theme, meta, onExit }) {
-  const q = useDictQuiz({ dict, level, theme, onExit })
+function QuizView({ dict, level, theme, seed, meta, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, seed, onExit })
 
   return (
     <div className="game">

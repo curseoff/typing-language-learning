@@ -3,13 +3,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DICT_TYPE_COUNT, buildDictSet } from '../domain/dictionary/dictset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
+import { mulberry32 } from '../domain/rng.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { makeSeed } from './seed.js'
 
-export function useDict({ dict, level, theme, mode, onExit }) {
-  const [entries, setEntries] = useState(() => buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
+export function useDict({ dict, level, theme, mode, seed, onExit }) {
+  // 「今プレイ中の見出し語列」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
+  // restart のたびに切り直し、record には必ずこの seed を保存して再現可能にする。
+  const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
+  const build = useCallback(
+    () => buildDictSet(dict, level, theme, DICT_TYPE_COUNT, { rng: mulberry32(sessionSeed) }),
+    [dict, level, theme, sessionSeed],
+  )
+  const [entries, setEntries] = useState(build)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
@@ -33,7 +42,10 @@ export function useDict({ dict, level, theme, mode, onExit }) {
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
-    setEntries(buildDictSet(dict, level, theme, DICT_TYPE_COUNT))
+    // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
+    const next = makeSeed()
+    setSessionSeed(next)
+    setEntries(buildDictSet(dict, level, theme, DICT_TYPE_COUNT, { rng: mulberry32(next) }))
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -67,6 +79,8 @@ export function useDict({ dict, level, theme, mode, onExit }) {
       const elapsedMs = endTime - startTime
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
+        source: 'dict', // リプレイの分岐用（App.replay）
+        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
         level,
         theme,
         mode,
@@ -83,7 +97,7 @@ export function useDict({ dict, level, theme, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, entries.length, startTime],
+    [level, theme, mode, sessionSeed, entries.length, startTime],
   )
 
   useEffect(() => {
