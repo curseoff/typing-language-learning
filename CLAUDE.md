@@ -13,6 +13,7 @@
 - ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
+  - develop マージ時には **`on-develop` ラベルが自動付与**される（`.github/workflows/label-on-develop.yml` が PR の Closes/Fixes/Resolves #N を検出）＝「develop に乗った（リリース待ち）」の目印。master 到達で auto-close。だから feature→develop PR にも必ず `Closes #N` を書くこと。
 - 何かを「完了」と言う前に必ず **`npm run check`**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**）を通す。**`check` が通れば CI も通る**。素早く回したい時は `npm run check:fast`（coverage の代わりに test）。
 - **push 前フック**（`.githooks/pre-push`）が `check` を強制（CI赤の混入防止）。急ぐ時のみ `git push --no-verify`。**master/develop はブランチ保護で CI 緑必須**（赤ではマージ不可）。
 - UI目視は **`npm run shots:play`**（dev 相手に `?preview=result|play|story` を撮影＝プレイ中/結果/記録を手動プレイ無しで確認）。リリースは **`npm run release -- <patch|minor|major>`**（本人実行：自己点検→版上げ→check→PR→マージ→Release→デプロイ）。
