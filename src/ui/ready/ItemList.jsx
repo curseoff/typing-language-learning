@@ -1,13 +1,8 @@
 // 収録一覧（現在の選択条件＝種類×レベル×テーマ×モードの問題を、問題ごとの記録つきで表示）。
-import { loadItemStats, itemId } from '../../infrastructure/itemStatsRepository.js'
+import { loadItemStats, itemStatId } from '../../application/records.js'
 
 // 記録は入力モードのみ（4択は対象外）。type と mode から id を作る。
-const idOf = (type, mode, it) =>
-  type === 'dict'
-    ? itemId('d', mode, it.word)
-    : type === 'marathon'
-      ? itemId('s', mode, it.en)
-      : itemId('w', mode, it.en)
+const idOf = (type, mode, it) => itemStatId(type, mode, type === 'dict' ? it.word : it.en)
 
 export default function ItemList({ items, type, mode }) {
   const stats = loadItemStats()
