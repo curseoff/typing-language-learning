@@ -1,6 +1,6 @@
 // 物語モードの画面（プレゼンテーション）。状態は useStory から受け取る。
 import { useStory } from '../../application/useStory.js'
-import { STORY } from '../../content/story.js'
+import { storyById } from '../../content/stories/index.js'
 import { lookahead } from '../../domain/story/navigation.js'
 import { storyFlowProgress } from '../../domain/story/flowProgress.js'
 import { segMatches } from '../../domain/typing/units.js'
@@ -42,7 +42,7 @@ function ActiveSegment({ seg, input, hasError }) {
 }
 
 // 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）
-function StoryRecords({ list, highlight }) {
+function StoryRecords({ list, highlight, rankText }) {
   const { open, modal } = useRecordDetail()
   if (!list || list.length === 0) return null
   return (
@@ -67,7 +67,7 @@ function StoryRecords({ list, highlight }) {
             <tr
               key={i}
               className={`row-click ${highlight && r.date === highlight ? 'me' : ''}`}
-              onClick={() => open(r, i + 1, { rankText: '物語', list, hasEnding: true })}
+              onClick={() => open(r, i + 1, { rankText, list, hasEnding: true })}
               title="クリックで記録の詳細"
             >
               <td>{i + 1}</td>
@@ -85,7 +85,8 @@ function StoryRecords({ list, highlight }) {
   )
 }
 
-export default function StoryView({ mode, modeLabel, start, onExit }) {
+export default function StoryView({ mode, modeLabel, storyId, start, onExit }) {
+  const story = storyById(storyId)
   const {
     nodes,
     node,
@@ -104,7 +105,7 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
     result,
     records,
     restart,
-  } = useStory({ mode, start, onExit })
+  } = useStory({ mode, storyId, start, onExit })
 
   // バー＝現在の行（または入力中の選択肢）の進捗
   let barTarget = ''
@@ -131,11 +132,11 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
   return (
     <div className="story">
       <div className="play-meta">
-        <span className="meta-badge rank">{STORY.title}</span>
+        <span className="meta-badge rank">{story.title}</span>
         <span className="meta-badge mode">{modeLabel}</span>
       </div>
       <div className="story-found-line">
-        発見エンド {found.length} / {STORY.endingCount}
+        発見エンド {found.length} / {story.endingCount}
       </div>
 
       {stage === 'ending' ? (
@@ -164,7 +165,7 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
             <kbd>Enter</kbd> 最初から / <kbd>Esc</kbd> トップ
           </p>
           <SegStatsTable segStats={result?.segStats} />
-          <StoryRecords list={records} highlight={result?.date} />
+          <StoryRecords list={records} highlight={result?.date} rankText={story.title} />
         </div>
       ) : (
         <>

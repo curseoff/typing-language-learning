@@ -56,6 +56,14 @@ describe('App スモーク', () => {
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L1/), { timeout: 8000 })
   })
 
+  it('物語タブでクライミングを選んで開始するとそのタイトルのバッジが出る', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '物語')
+    fireEvent.click(within(container).getByText('クライミング', { exact: false }))
+    start()
+    await waitFor(() => expect(badgeText(container)).toMatch(/クライミング/), { timeout: 8000 })
+  })
+
   it('レベル選択で別レベルを選べる：単語例文 L2', async () => {
     const { container } = render(<App />)
     clickTab(container, '単語例文')

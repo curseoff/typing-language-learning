@@ -5,7 +5,7 @@ import { WSENT_COUNTS, loadWsentLevel } from '../../content/wordSentences/index.
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { TOUCH_LEVELS } from '../../content/keyboard.js'
-import { STORY } from '../../content/story.js'
+import { STORIES, storyById } from '../../content/stories/index.js'
 import { recKey } from '../../domain/records/ranking.js'
 import {
   loadStoryRecords,
@@ -117,11 +117,63 @@ function BottomTabs({ value, onChange }) {
   )
 }
 
+// 物語タブ：物語の選択カード＋モード＋記録/一覧。
+function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, bottomTab, setBottomTab }) {
+  const story = storyById(storyId)
+  return (
+    <>
+      <SectionLabel>物語</SectionLabel>
+      <div className="story-select">
+        {STORIES.map((s) => (
+          <button
+            key={s.id}
+            className={`story-card ${storyId === s.id ? 'active' : ''}`}
+            onClick={() => onStoryIdChange(s.id)}
+          >
+            <span className="story-card-title">📖 {s.title}</span>
+            <span className="story-card-sub">
+              {Object.keys(s.nodes).length} 場面 / {s.endingCount} エンド
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <SectionLabel>モード</SectionLabel>
+      <div className="mode-select">
+        {[...new Set(MODES.map((m) => m.group))].map((g) => (
+          <div className="mode-group" key={g}>
+            <div className="mode-course">{g}</div>
+            <ModeButtons
+              modes={MODES.filter((m) => m.group === g)}
+              value={mode}
+              onChange={onModeChange}
+            />
+          </div>
+        ))}
+      </div>
+      <p className="mode-desc">「{modeLabel(mode)}」で物語を進め、選択肢で分岐します。</p>
+      <p className="pool-count">
+        この物語の収録: {Object.keys(story.nodes).length} 場面 / {story.endingCount} エンド
+      </p>
+
+      <StartRow onStart={onStart} />
+      <BottomTabs value={bottomTab} onChange={setBottomTab} />
+      {bottomTab === 'list' ? (
+        <StoryScenes story={story} mode={mode} />
+      ) : (
+        <StoryRecords list={loadStoryRecords(storyId)} rankText={story.title} />
+      )}
+    </>
+  )
+}
+
 export default function Ready({
   gameType,
   onTypeChange,
   mode,
   onModeChange,
+  storyId,
+  onStoryIdChange,
   wsentLevel,
   onWsentLevelChange,
   wordLevel,
@@ -218,34 +270,15 @@ export default function Ready({
 
       {/* ── 物語 ── */}
       {gameType === 'story' && (
-        <>
-          <div className="story-pick">📖 {STORY.title}（分岐・複数エンド）</div>
-          <SectionLabel>モード</SectionLabel>
-          <div className="mode-select">
-            {[...new Set(MODES.map((m) => m.group))].map((g) => (
-              <div className="mode-group" key={g}>
-                <div className="mode-course">{g}</div>
-                <ModeButtons
-                  modes={MODES.filter((m) => m.group === g)}
-                  value={mode}
-                  onChange={onModeChange}
-                />
-              </div>
-            ))}
-          </div>
-          <p className="mode-desc">「{modeLabel(mode)}」で物語を進め、選択肢で分岐します。</p>
-          <p className="pool-count">
-            この物語の収録: {Object.keys(STORY.nodes).length} 場面 / {STORY.endingCount} エンド
-          </p>
-
-          <StartRow onStart={onStart} />
-          <BottomTabs value={bottomTab} onChange={setBottomTab} />
-          {bottomTab === 'list' ? (
-            <StoryScenes mode={mode} />
-          ) : (
-            <StoryRecords list={loadStoryRecords()} />
-          )}
-        </>
+        <StorySection
+          storyId={storyId}
+          onStoryIdChange={onStoryIdChange}
+          mode={mode}
+          onModeChange={onModeChange}
+          onStart={onStart}
+          bottomTab={bottomTab}
+          setBottomTab={setBottomTab}
+        />
       )}
 
       {/* ── 単語 ── */}
@@ -501,12 +534,12 @@ function WordRecords({ list, isQuiz, rankText }) {
 
 // 物語の記録（速度・エンド）
 // 物語の場面一覧（入力した本文）。未プレイの場面は ？？？ で伏せる。
-function StoryScenes({ mode }) {
+function StoryScenes({ story, mode }) {
   const stats = loadItemStats()
   return (
     <ol className="browse-list">
-      {Object.entries(STORY.nodes).map(([id, n]) => {
-        const s = stats[storyStatId(mode, id)]
+      {Object.entries(story.nodes).map(([id, n]) => {
+        const s = stats[storyStatId(mode, story.id, id)]
         return (
           <li key={id} className="browse-item">
             {s ? (
@@ -528,7 +561,7 @@ function StoryScenes({ mode }) {
   )
 }
 
-function StoryRecords({ list }) {
+function StoryRecords({ list, rankText = '物語' }) {
   const rows = list || []
   const { open, modal } = useRecordDetail()
   return (
@@ -555,7 +588,7 @@ function StoryRecords({ list }) {
               <tr
                 key={i}
                 className="row-click"
-                onClick={() => open(r, i + 1, { rankText: '物語', list: rows, hasEnding: true })}
+                onClick={() => open(r, i + 1, { rankText, list: rows, hasEnding: true })}
                 title="クリックで記録の詳細"
               >
                 <td>{i + 1}</td>

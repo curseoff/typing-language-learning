@@ -32,13 +32,14 @@ describe('useStory（物語・結合）', () => {
 
   it('英語モードで完走し record に source=story と mode が入る', () => {
     const { result } = renderHook(() =>
-      useStory({ mode: 'en', start: null, onExit: () => {} }),
+      useStory({ mode: 'en', storyId: 'travel', start: null, onExit: () => {} }),
     )
     playToEnding(result)
     expect(result.current.stage).toBe('ending')
-    const rec = loadStoryRecords()[0]
+    const rec = loadStoryRecords('travel')[0]
     expect(rec.source).toBe('story')
     expect(rec.mode).toBe('en')
+    expect(rec.storyId).toBe('travel')
     expect(rec.ending).toBeTruthy()
     expect(rec.segStats.length).toBeGreaterThan(0)
     // 選んだ選択肢が順番に記録される（分岐を辿るので 1 件以上）
@@ -59,24 +60,38 @@ describe('useStory（物語・結合）', () => {
 
   it('リプレイ（再スタート）後の新記録にも choices が入る', () => {
     const { result } = renderHook(() =>
-      useStory({ mode: 'en', start: null, onExit: () => {} }),
+      useStory({ mode: 'en', storyId: 'travel', start: null, onExit: () => {} }),
     )
     playToEnding(result)
     act(() => result.current.restart()) // 再挑戦
     playToEnding(result)
-    const recs = loadStoryRecords()
+    const recs = loadStoryRecords('travel')
     expect(recs.length).toBe(2)
     recs.forEach((rec) => expect(rec.choices.length).toBeGreaterThan(0))
   }, 30000)
 
   it('物語は決定的：同じ選択を辿れば同じ場面（問題列）を再現する', () => {
-    const a = renderHook(() => useStory({ mode: 'en', start: null, onExit: () => {} }))
-    const b = renderHook(() => useStory({ mode: 'en', start: null, onExit: () => {} }))
+    const a = renderHook(() => useStory({ mode: 'en', storyId: 'travel', start: null, onExit: () => {} }))
+    const b = renderHook(() => useStory({ mode: 'en', storyId: 'travel', start: null, onExit: () => {} }))
     playToEnding(a.result)
     playToEnding(b.result)
-    const recs = loadStoryRecords()
+    const recs = loadStoryRecords('travel')
     const labelsA = recs[0].segStats.map((s) => s.label)
     const labelsB = recs[1].segStats.map((s) => s.label)
     expect(labelsA).toEqual(labelsB)
+  }, 20000)
+
+  it('climbing 物語も完走でき記録は travel と別キーに入る', () => {
+    const { result } = renderHook(() =>
+      useStory({ mode: 'en', storyId: 'climbing', start: null, onExit: () => {} }),
+    )
+    playToEnding(result)
+    expect(result.current.stage).toBe('ending')
+    const climbingRecs = loadStoryRecords('climbing')
+    expect(climbingRecs.length).toBe(1)
+    expect(climbingRecs[0].storyId).toBe('climbing')
+    expect(climbingRecs[0].ending).toBeTruthy()
+    // travel 側には記録が混ざらない
+    expect(loadStoryRecords('travel')).toEqual([])
   }, 20000)
 })
