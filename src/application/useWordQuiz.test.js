@@ -57,4 +57,31 @@ describe('useWordQuiz（4択・結合）', () => {
     expect(rec.segStats[0].correct).toBe(false)
     expect(rec.correct).toBe(rec.words - 1)
   })
+
+  it('同じ seed なら同じ出題・選択肢を再現し、record に seed が入る（リプレイ）', () => {
+    const seed = 135790
+    const opts = { words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', seed, onExit: () => {} }
+    const a = renderHook(() => useWordQuiz(opts))
+    const b = renderHook(() => useWordQuiz(opts))
+    // 出題列（prompt）と各問の選択肢表示が一致する
+    const sigA = a.result.current
+    const sigB = b.result.current
+    expect(sigA.question.prompt).toBe(sigB.question.prompt)
+    expect(sigA.question.options.map((o) => o.display)).toEqual(
+      sigB.question.options.map((o) => o.display),
+    )
+
+    const { result } = renderHook(() => useWordQuiz(opts))
+    let guard = 0
+    while (!result.current.finished && guard < 100) {
+      const q = result.current.question
+      const correct = q.options.find((o) => o.answer)
+      typeStr(correct.variants[0])
+      typeKey('Enter')
+      guard++
+    }
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
+    expect(rec.seed).toBe(seed)
+    expect(rec.source).toBe('word')
+  })
 })

@@ -47,4 +47,28 @@ describe('useWords（単語入力・結合）', () => {
     expect(result.current.mistakes).toBe(before + 1)
     expect(result.current.hasError).toBe(true)
   })
+
+  it('同じ seed なら同じ単語列を再現し、record に seed が入る（リプレイ）', () => {
+    const seed = 987654
+    const opts = { allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', seed, onExit: () => {} }
+    const a = renderHook(() => useWords(opts))
+    const b = renderHook(() => useWords(opts))
+    const labelsA = a.result.current.segments.map((s) => s.canonical)
+    const labelsB = b.result.current.segments.map((s) => s.canonical)
+    expect(labelsA).toEqual(labelsB)
+    expect(labelsA.length).toBeGreaterThan(0)
+
+    // 完走して record.seed が記録されることを確認
+    const { result } = renderHook(() => useWords(opts))
+    let n = 0
+    while (!result.current.finished && n < 2000) {
+      const seg = result.current.segments[result.current.segIndex]
+      if (!seg) break
+      typeKey(seg.canonical[result.current.segInput.length])
+      n++
+    }
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0]
+    expect(rec.seed).toBe(seed)
+    expect(rec.source).toBe('word')
+  }, 20000)
 })

@@ -2,12 +2,16 @@
 // dir='en'(英語訳: 和訳→英単語) / 'ja'(日本語訳: 英単語→和訳をローマ字)
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
+import { mulberry32 } from '../domain/rng.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 
-export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
-  const [questions, setQuestions] = useState(() =>
-    makeQuiz(buildWordSet(words, level, theme), levelWords(words, level), dir),
-  )
+export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
+  // seed があれば決定的な問題列・選択肢を再現（リプレイ）。無ければ domain 既定の Math.random。
+  const build = useCallback(() => {
+    const opts = seed != null ? { rng: mulberry32(seed) } : {}
+    return makeQuiz(buildWordSet(words, level, theme, WORD_COUNT, opts), levelWords(words, level), dir, 4, opts)
+  }, [words, level, theme, dir, seed])
+  const [questions, setQuestions] = useState(build)
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
@@ -27,7 +31,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
   const restart = useCallback(() => {
     segStatsRef.current = []
     perQMissRef.current = 0
-    setQuestions(makeQuiz(buildWordSet(words, level, theme), levelWords(words, level), dir))
+    setQuestions(build())
     setIndex(0)
     setInput('')
     setHasError(false)
@@ -38,7 +42,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
-  }, [words, level, theme, dir])
+  }, [build])
 
   useEffect(() => {
     if (finished) return
@@ -58,6 +62,8 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
       const total = questions.length
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
       const record = {
+        source: 'word', // リプレイの分岐用（App.replay）
+        seed, // 同じ問題列を再現するためのシード（リプレイ用）
         level,
         theme,
         mode,
@@ -73,7 +79,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, questions.length, startTime],
+    [level, theme, mode, seed, questions.length, startTime],
   )
 
   const commit = useCallback(

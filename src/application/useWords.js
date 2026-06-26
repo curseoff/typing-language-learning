@@ -5,13 +5,20 @@ import { buildWordPassage } from '../domain/words/wordset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { TARGET_KEYS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
+import { mulberry32 } from '../domain/rng.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
-export function useWords({ allWords, level, theme, mode, onExit }) {
-  const [words, setWords] = useState(() => buildWordPassage(allWords, level, theme, mode))
+export function useWords({ allWords, level, theme, mode, seed, onExit }) {
+  // seed があれば決定的な問題列を再現（リプレイ）。同じ seed なら restart も同じ列になる。
+  // seed 無し（フック単体や旧経路）は Math.random で従来どおりランダム出題。
+  const buildPassage = useCallback(
+    () => buildWordPassage(allWords, level, theme, mode, seed != null ? { rng: mulberry32(seed) } : {}),
+    [allWords, level, theme, mode, seed],
+  )
+  const [words, setWords] = useState(buildPassage)
   const [segIndex, setSegIndex] = useState(0)
   const [input, setInput] = useState('')
   const [completed, setCompleted] = useState([])
@@ -37,7 +44,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
     segTrackerRef.current = newSegTracker()
-    setWords(buildWordPassage(allWords, level, theme, mode))
+    setWords(buildPassage())
     setSegIndex(0)
     setInput('')
     setCompleted([])
@@ -48,7 +55,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
-  }, [allWords, level, theme, mode])
+  }, [buildPassage])
 
   useEffect(() => {
     if (finished) return
@@ -72,6 +79,8 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
+        source: 'word', // リプレイの分岐用（App.replay）
+        seed, // 同じ問題列を再現するためのシード（リプレイ用）
         level,
         theme,
         mode,
@@ -87,7 +96,7 @@ export function useWords({ allWords, level, theme, mode, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode],
+    [level, theme, mode, seed],
   )
 
   useEffect(() => {
