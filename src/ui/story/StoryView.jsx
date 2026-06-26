@@ -196,7 +196,11 @@ export default function StoryView({ mode, modeLabel, start, onExit }) {
             </div>
           )}
 
-          <ActiveSegment seg={units[unitIndex]} input={input} hasError={hasError} />
+          {/* 翻訳モードは Flow が出ないので入力欄が必要。非翻訳（en/ja/both）は Flow が
+              入力進捗を兼ねるため、重複するモノスペース入力欄は出さない。 */}
+          {isTranslate && (
+            <ActiveSegment seg={units[unitIndex]} input={input} hasError={hasError} />
+          )}
 
           {stage === 'choice' && (
             <div className="story-choices">
