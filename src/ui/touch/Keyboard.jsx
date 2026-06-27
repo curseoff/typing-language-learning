@@ -22,6 +22,7 @@ function KeyCap({ k, target, hasError }) {
   if (HOME_KEYS.includes(k)) cls += ' home'
   if (BUMP_KEYS.includes(k)) cls += ' bump'
   if (isDisplayOnly) cls += ' display-only'
+  if (legend.mainTop) cls += ' main-top'
   if (isTarget) cls += hasError ? ' target err' : ' target'
 
   // 主たる刻印（英字は大文字、その他はキーの記号そのまま）

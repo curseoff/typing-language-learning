@@ -44,7 +44,7 @@ export const KEY_LEGENDS = {
   o: { kana: 'ら' },
   p: { kana: 'せ' },
   '@': { kana: '゛', shift: '`' },
-  '[': { kana: '゜', shift: '{' },
+  '[': { kana: '゜', shift: '{', kanaSmall: '「' },
   // ホーム段
   a: { kana: 'ち' },
   s: { kana: 'と' },
@@ -57,7 +57,7 @@ export const KEY_LEGENDS = {
   l: { kana: 'り' },
   ';': { kana: 'れ', shift: '+' },
   ':': { kana: 'け', shift: '*' },
-  ']': { kana: 'む', shift: '}' },
+  ']': { kana: 'む', shift: '}', kanaSmall: '」' },
   // 下段
   z: { kana: 'つ', kanaSmall: 'っ' },
   x: { kana: 'さ' },
@@ -66,10 +66,10 @@ export const KEY_LEGENDS = {
   b: { kana: 'こ' },
   n: { kana: 'み' },
   m: { kana: 'も' },
-  ',': { kana: 'ね', shift: '<' },
-  '.': { kana: 'る', shift: '>' },
+  ',': { kana: 'ね', shift: '<', kanaSmall: '、' },
+  '.': { kana: 'る', shift: '>', kanaSmall: '。' },
   '/': { kana: 'め', shift: '?', kanaSmall: '・' },
-  _: { kana: 'ろ', shift: '' },
+  _: { kana: 'ろ', shift: '', mainTop: true },
 }
 
 // 各行の左端オフセット（スタガード＝段差）。実機 JIS の段差に寄せる（単位 px）。

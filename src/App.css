@@ -194,6 +194,12 @@ h1 {
   font-size: 15px;
   line-height: 1;
 }
+/* 主たる文字を上中央に置くキー（_ など） */
+.kb-key.main-top .kb-main {
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+}
 /* シフト記号（上・中央） */
 .kb-shift {
   position: absolute;
