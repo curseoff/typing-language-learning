@@ -1112,6 +1112,13 @@ h1 {
   font-weight: 800;
   margin: 0 0 12px;
 }
+/* 説明4択：回答後に見出し語の真下へ出す単語の和訳 */
+.dict-head-ja {
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  margin: -6px 0 0;
+}
 .dict-def {
   font-size: 20px;
   font-weight: 700;
