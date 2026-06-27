@@ -1,6 +1,7 @@
 // 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 / 英語・日本語入力 を振り分ける。
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
+import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { dictRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel } from '../shared/index.js'
 import TopFlow from '../marathon/TopFlow.jsx'
@@ -99,28 +100,28 @@ function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: '語数', value: `${d.index} / ${d.total}` },
+              { label: 'タイピング数', value: `${d.typedKeys} / ${TARGET_KEYS}` },
               { label: '速度', value: `${d.liveSpeed} 打/分` },
               { label: 'ミス', value: d.mistakes },
               { label: '時間', value: `${d.elapsedSec} 秒` },
             ]}
-            progress={d.index / d.total}
+            progress={d.typedKeys / TARGET_KEYS}
           />
-          {d.entry?.word && (
+          {d.word && (
             <p className="seg-word">
-              単語 <strong>{d.entry.word}</strong>
-              {gloss?.[d.entry.word] && <span className="seg-word-ja">（{gloss[d.entry.word]}）</span>}
+              単語 <strong>{d.word}</strong>
+              {gloss?.[d.word] && <span className="seg-word-ja">（{gloss[d.word]}）</span>}
             </p>
           )}
           <TopFlow
             segments={d.segments}
             segIndex={d.segIndex}
-            segInput={d.input}
+            segInput={d.segInput}
             hasError={d.hasError}
             ticker
           />
           <p className="hint">
-            {typeHint(mode, d.seg?.type)}正しく打つまで次に進めません。
+            {typeHint(mode, d.segments[d.segIndex]?.type)}正しく打つまで次に進めません。
             <kbd>Esc</kbd> で中断。
           </p>
         </>
