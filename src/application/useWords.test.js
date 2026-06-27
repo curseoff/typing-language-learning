@@ -1,41 +1,55 @@
 // @vitest-environment jsdom
-// 単語入力モードの結合テスト。canonical を打鍵して1パッセージ完走させ、
+// 単語入力モードの結合テスト。canonical を打鍵してから60秒経過をシミュレートして finish させ、
 // record と問題ごとの記録(segStats=各語の速度/ミス) を確認する。
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWords } from './useWords.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { WORDS } from '../content/wordsAll.js'
 import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
+
+beforeEach(() => {
+  localStorage.clear()
+  vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
+})
+afterEach(() => vi.useRealTimers())
 
 const typeKey = (key) =>
   act(() => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key }))
   })
 
-describe('useWords（単語入力・結合）', () => {
-  beforeEach(() => localStorage.clear())
+// 最初の打鍵から60秒経過させて finish を発火させる。
+const runOutClock = () => {
+  act(() => vi.advanceTimersByTime(TIME_LIMIT_MS + 200))
+  act(() => vi.runOnlyPendingTimers())
+}
 
-  const drain = (result) => {
-    let n = 0
-    while (!result.current.finished && n < 2000) {
-      const seg = result.current.segments[result.current.segIndex]
-      if (!seg) break
-      typeKey(seg.canonical[result.current.segInput.length]) // canonical を1文字ずつ
-      n++
-    }
+// n 文字ぶん canonical を打つ（時間制なので完走はしない）。
+// 各打鍵の間に少し時間を進め、語ごとの speed が 0 にならないようにする。
+const typeSome = (result, n) => {
+  for (let i = 0; i < n; i++) {
+    const seg = result.current.segments[result.current.segIndex]
+    if (!seg) break
+    typeKey(seg.canonical[result.current.segInput.length])
+    act(() => vi.advanceTimersByTime(10))
   }
+}
 
-  it('英語モードで完走し、record と segStats を保存する', () => {
+describe('useWords（単語入力・結合）', () => {
+  it('英語モードで打鍵後、60秒で finish し record と segStats を保存する', () => {
     const { result } = renderHook(() =>
       useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', onExit: () => {} }),
     )
-    drain(result)
+    typeSome(result, 60)
+    runOutClock()
     expect(result.current.finished).toBe(true)
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0]
     expect(rec.keys).toBeGreaterThan(0)
     expect(rec.mistakes).toBe(0) // 正打のみ
     expect(rec.accuracy).toBe(100)
     expect(rec.speed).toBeGreaterThan(0)
+    expect(rec.seconds).toBeCloseTo(60, 0)
     expect(rec.segStats.length).toBeGreaterThan(0)
     expect(rec.segStats[0]).toMatchObject({ type: 'en' })
     expect(rec.segStats[0].speed).toBeGreaterThan(0)
@@ -45,7 +59,8 @@ describe('useWords（単語入力・結合）', () => {
     const { result } = renderHook(() =>
       useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', onExit: () => {} }),
     )
-    drain(result)
+    typeSome(result, 30)
+    runOutClock()
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0]
     expect(rec.seed).toEqual(expect.any(Number)) // null ではなく有効な seed
     expect(rec.source).toBe('word')
@@ -55,10 +70,12 @@ describe('useWords（単語入力・結合）', () => {
     const { result } = renderHook(() =>
       useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', onExit: () => {} }),
     )
-    drain(result)
+    typeSome(result, 30)
+    runOutClock()
     const first = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0].seed
     act(() => result.current.restart())
-    drain(result)
+    typeSome(result, 30)
+    runOutClock()
     const seeds = loadWordRecords()[wordRecKey(1, 'すべて', 'en')].map((r) => r.seed)
     expect(seeds).toContain(first)
     // 2件の seed が別物（=別の問題列）であること
@@ -86,9 +103,10 @@ describe('useWords（単語入力・結合）', () => {
     expect(labelsA).toEqual(labelsB)
     expect(labelsA.length).toBeGreaterThan(0)
 
-    // 完走して record.seed が記録されることを確認
+    // 打鍵→60秒で record.seed が記録されることを確認
     const { result } = renderHook(() => useWords(opts))
-    drain(result)
+    typeSome(result, 30)
+    runOutClock()
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0]
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('word')
