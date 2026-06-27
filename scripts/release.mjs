@@ -34,7 +34,7 @@ if (sh('git rev-parse HEAD') !== sh('git rev-parse origin/develop')) die('ロー
 
 // 2) 秘密情報・個人情報の自己点検（develop..master の追加分）
 log('自己点検（秘密情報・個人情報）…')
-// 生成データ（語彙・例文・グロッサリ＝教育コンテンツ）は語彙語(secret/token/password 等)が
+// 生成データ（語彙・例文・グロッサリ＝教育コンテンツ）は英単語の見出し語が
 // 正規表現を誤検知するので自己点検から除外する。秘密情報はソース側に入るため検出に影響しない。
 const diff = sh(
   "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/L*.js'",
