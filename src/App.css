@@ -165,7 +165,10 @@ h1 {
   flex-direction: column;
   gap: 6px;
   align-items: flex-start; /* スタガードは左端オフセットで表現するので左寄せ */
-  margin: 18px auto;
+  margin: 8px auto;
+  /* 押下時の枠(outline)や沈み込み(transform)がはみ出してもクリップ／スクロールバーを生まないよう内側に余白を確保。
+     overflow-x:auto は overflow-y も auto 化して上下左右をクリップするため、この余白で枠と沈み込み分を箱内に収める。 */
+  padding: 10px;
   width: fit-content;
   max-width: 100%;
   overflow-x: auto;
