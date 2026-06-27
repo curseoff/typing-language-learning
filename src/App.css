@@ -176,7 +176,7 @@ h1 {
 }
 /* 左手・右手の担当の境目（最初の右手キー）に広めの間隔を空けて視覚化する */
 .kb-key.hand-split {
-  margin-left: 16px;
+  margin-left: 8px;
 }
 .kb-key {
   position: relative;
