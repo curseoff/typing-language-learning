@@ -37,7 +37,7 @@ log('自己点検（秘密情報・個人情報）…')
 // 生成データ（語彙・例文・グロッサリ＝教育コンテンツ）は英単語の見出し語が
 // 正規表現を誤検知するので自己点検から除外する。秘密情報はソース側に入るため検出に影響しない。
 const diff = sh(
-  "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/L*.js'",
+  "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/*.js'",
 )
 const added = diff.split('\n').filter((l) => l.startsWith('+'))
 const bad = /(api[_-]?key|secret|token|password|private[_-]?key|BEGIN [A-Z ]+PRIVATE KEY|\/Users\/[a-z]+\/|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/i
