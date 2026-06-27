@@ -2,7 +2,7 @@
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
-import { kanjiDone } from '../../domain/typing/progress.js'
+import { kanjiDone, kanaConsumed } from '../../domain/typing/progress.js'
 import { Chars, RubyChars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
@@ -128,6 +128,7 @@ function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
                     done={jaProgress}
                     cursor={jaProgress}
                     hasError={d.hasError}
+                    kanaDone={kanaConsumed(seg.kana, d.input)}
                   />
                 </div>
               </>
