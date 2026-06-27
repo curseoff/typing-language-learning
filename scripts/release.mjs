@@ -83,7 +83,12 @@ gh(['pr', 'merge', prNum, '--merge'])
 sh('git fetch origin --quiet')
 const masterSha = sh('git rev-parse origin/master')
 sh(`git push origin ${masterSha}:refs/heads/develop`)
-sh(`git push origin --delete ${rel}`)
+// リリースブランチ削除（GitHub の auto-delete で既に消えている場合があるので best-effort）
+try {
+  sh(`git push origin --delete ${rel}`, { stdio: 'pipe' })
+} catch {
+  log(`${rel} は既に削除済み（auto-delete）`)
+}
 sh(`git reset --hard origin/develop`, { stdio: 'pipe' })
 
 // 9) GitHub Release
