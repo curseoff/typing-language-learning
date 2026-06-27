@@ -1,6 +1,6 @@
 // 英英辞典の出題生成（レベル×テーマで絞り込み）。
 // 英英データ(dict)は遅延読み込みのため呼び出し側から渡す（純関数）。
-export const DICT_TYPE_COUNT = 12 // 入力モードの出題数（定義文を打つ）
+export const DICT_TYPE_COUNT = 12 // 説明文4択(pick)の問題数
 export const DICT_QUIZ_COUNT = 20 // 4択の問題数
 
 function pool(dict, level, theme) {
