@@ -46,11 +46,11 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
             {q.picked !== null && gloss?.[q.question.prompt] && (
               <p className="dict-head-ja">{gloss[q.question.prompt]}</p>
             )}
-            {q.picked !== null && <p className="dict-ref">{q.question.ja}</p>}
             <div className={`word-input ${q.hasError ? 'error' : ''}`}>
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}
             </div>
+            {q.picked !== null && <p className="dict-ref">{q.question.ja}</p>}
           </div>
           <div className="pick-options">
             {q.question.options.map((opt, i) => {
