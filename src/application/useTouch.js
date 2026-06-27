@@ -57,8 +57,9 @@ export function useTouch({ level, onExit }) {
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
       const k = e.key.toLowerCase()
-      setPressed((p) => ({ key: k, tick: p.tick + 1 })) // 押したキーを沈み込ませる
-      if (e.key.toLowerCase() === target) {
+      const ok = k === target
+      setPressed((p) => ({ key: k, tick: p.tick + 1, ok })) // 押したキーを沈み込ませる（ok=正解なら緑枠）
+      if (ok) {
         const _t = performance.now()
         setStartTime((p) => p ?? _t)
         setHasError(false)

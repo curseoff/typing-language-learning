@@ -13,7 +13,7 @@ import {
 // 数字段・記号キーは英字キーと違って main が大きい一文字でないため、刻印の出し分けに使う。
 const ALPHA = /^[a-z]$/
 
-function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey, isPressed }) {
+function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey, isPressed, isCorrect }) {
   const legend = KEY_LEGENDS[k] ?? {}
   const isTarget = k === target
   const isDisplayOnly = DISPLAY_ONLY_KEYS.includes(k)
@@ -24,7 +24,7 @@ function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey, isPresse
   if (isDisplayOnly) cls += ' display-only'
   if (legend.mainTop) cls += ' main-top'
   if (handSplit) cls += ' hand-split'
-  if (isPressed) cls += ' pressed' // 押したキーの沈み込みアニメ
+  if (isPressed) cls += isCorrect ? ' pressed correct' : ' pressed' // 押下アニメ＋正解は緑枠フラッシュ
   // 打つキーのハイライト（やさしいのみ。むずかしいは非表示＝白い枠を出さない）
   if (isTarget && showTarget) cls += ' target'
   // ミス時は「押した（誤った）キー」の枠を光らせる（正解キーは光らせない）
@@ -70,6 +70,7 @@ export default function Keyboard({
                 showTarget={showTarget}
                 wrongKey={wrongKey}
                 isPressed={isPressed}
+                isCorrect={isPressed && pressed.ok}
               />
             )
           })}

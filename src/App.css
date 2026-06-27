@@ -281,6 +281,20 @@ h1 {
 .kb-key.pressed {
   animation: kb-press 130ms ease-out;
 }
+/* 正解のキーを押せた瞬間：緑の枠を一瞬光らせる */
+@keyframes kb-correct {
+  0% {
+    box-shadow: 0 0 0 3px var(--green);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0);
+  }
+}
+.kb-key.correct {
+  animation:
+    kb-press 130ms ease-out,
+    kb-correct 360ms ease-out;
+}
 /* 指ごとの色（左右ミラー＝同じ指は左右同色）。keyboard.js の FINGER_COLOR と同値を保つ。 */
 .fg-lp,
 .fg-rp {
