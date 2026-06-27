@@ -1,9 +1,11 @@
 // 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 を振り分ける。
+import { useMemo } from 'react'
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
-import { kanjiDone, kanaConsumed } from '../../domain/typing/progress.js'
-import { Chars, RubyChars, StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { buildUnits } from '../../domain/typing/units.js'
+import { StatsRow, QuizOptionLabel } from '../shared/index.js'
+import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 
@@ -86,11 +88,19 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）
+// 単語例文（マラソン）の英語/日本語入力と同じ TopFlow（ティッカー表示）で描画する。
 function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, onExit })
-  const seg = d.seg
   const isEn = mode === 'en'
-  const jaProgress = isEn ? 0 : kanjiDone(seg, d.input)
+  // 全エントリを TopFlow 用のセグメント列に変換（定義=en, 和訳=ja, 読み=kana）。
+  const segments = useMemo(
+    () =>
+      d.entries.map((e, i) => ({
+        ...buildUnits({ word: e.word, en: e.def, ja: e.ja, kana: e.kana }, mode)[0],
+        sentenceIndex: i,
+      })),
+    [d.entries, mode],
+  )
 
   return (
     <div className="game">
@@ -108,33 +118,19 @@ function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
             ]}
             progress={d.index / d.total}
           />
-          <div className="word-card">
-            <div className="word-dir">{isEn ? '定義（英語）を入力' : '和訳を入力（ローマ字）'}</div>
-            <p className="dict-head">{d.entry.word}</p>
-            {gloss?.[d.entry.word] && <p className="dict-head-ja">{gloss[d.entry.word]}</p>}
-            {isEn ? (
-              <>
-                <div className="dict-type">
-                  <Chars text={seg.en} done={d.input.length} cursor={d.input.length} hasError={d.hasError} />
-                </div>
-                <p className="dict-ref">{d.entry.ja}</p>
-              </>
-            ) : (
-              <>
-                <p className="dict-ref">{seg.en}</p>
-                <div className="dict-type">
-                  <RubyChars
-                    ja={seg.ja}
-                    kana={seg.kana}
-                    done={jaProgress}
-                    cursor={jaProgress}
-                    hasError={d.hasError}
-                    kanaDone={kanaConsumed(seg.kana, d.input)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+          {d.entry?.word && (
+            <p className="seg-word">
+              単語 <strong>{d.entry.word}</strong>
+              {gloss?.[d.entry.word] && <span className="seg-word-ja">（{gloss[d.entry.word]}）</span>}
+            </p>
+          )}
+          <TopFlow
+            segments={segments}
+            segIndex={d.index}
+            segInput={d.input}
+            hasError={d.hasError}
+            ticker
+          />
           <p className="hint">
             見出し語の{isEn ? '英語の定義' : '和訳'}を入力。正しく打つまで次に進めません。
             <kbd>Esc</kbd> で中断。

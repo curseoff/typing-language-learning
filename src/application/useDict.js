@@ -157,6 +157,7 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
 
   return {
     entry,
+    entries,
     seg,
     index,
     input,
