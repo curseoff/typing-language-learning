@@ -76,6 +76,6 @@ export function useTouch({ level, onExit }) {
     elapsedSec,
     finished,
     restart,
-    upcoming: targets.slice(index + 1, index + 9),
+    targets,
   }
 }
