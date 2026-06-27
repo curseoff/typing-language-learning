@@ -37,7 +37,10 @@ log('自己点検（秘密情報・個人情報）…')
 const diff = sh('git diff origin/master..origin/develop')
 const added = diff.split('\n').filter((l) => l.startsWith('+'))
 const bad = /(api[_-]?key|secret|token|password|private[_-]?key|BEGIN [A-Z ]+PRIVATE KEY|\/Users\/[a-z]+\/|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/i
-const hits = added.filter((l) => bad.test(l) && !/key=\{|key:|\bsecret\b.*\bnone\b/i.test(l))
+// 誤検知の除外：JSX の key= 等、`env -u GITHUB_TOKEN gh`（このリポジトリの定番イディオム＝環境変数名であって秘密値ではない）など。
+// 環境変数名そのものは除外する一方、後ろに代入記号と値が続く形は除外しない（実漏えいは引き続き検出）。
+const ok = /key=\{|key:|\bsecret\b.*\bnone\b|env -u GITHUB_TOKEN|GITHUB_TOKEN(?![=:])/i
+const hits = added.filter((l) => bad.test(l) && !ok.test(l))
 if (hits.length) {
   console.error('\x1b[33m⚠ 要確認の行:\x1b[0m')
   hits.slice(0, 20).forEach((l) => console.error('  ' + l))

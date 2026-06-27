@@ -1,7 +1,7 @@
 {
   "name": "typing-language-learning",
   "private": true,
-  "version": "0.15.5",
+  "version": "0.15.6",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
