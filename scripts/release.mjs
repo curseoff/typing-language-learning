@@ -11,7 +11,7 @@
 import { execSync, execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
-const sh = (cmd, opts = {}) => execSync(cmd, { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'], ...opts }).trim()
+const sh = (cmd, opts = {}) => (execSync(cmd, { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'], ...opts }) ?? '').trim()
 const ghEnv = { ...process.env }
 delete ghEnv.GITHUB_TOKEN
 const gh = (args) => execFileSync('gh', args, { encoding: 'utf8', env: ghEnv }).trim()

@@ -46,23 +46,29 @@ export default function TouchView({ level, levelLabel, onExit }) {
             <div className="progress-fill" style={{ width: `${(t.index / t.total) * 100}%` }} />
           </div>
 
-          <p className="touch-prompt">
-            <span className={`touch-key fg-${FINGER[t.target]} ${t.hasError ? 'err' : ''}`}>
-              {t.target.toUpperCase()}
-            </span>
-            のキーを打ちましょう
-          </p>
+          <div className="touch-strip">
+            <div
+              className="strip-track"
+              style={{ transform: `translateX(${-Math.max(0, t.index - 3) * 42}px)` }}
+            >
+              {t.targets.map((k, i) => {
+                const cur = i === t.index
+                const cls =
+                  'strip-key' +
+                  (i < t.index ? ' done' : '') +
+                  (cur ? ` current fg-${FINGER[k]}${t.hasError ? ' err' : ''}` : '')
+                return (
+                  <span key={i} className={cls}>
+                    {k.toUpperCase()}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+
           <p className="touch-finger">使う指：{FINGER_LABEL[FINGER[t.target]]}</p>
 
           <Keyboard target={t.target} hasError={t.hasError} />
-
-          <div className="touch-queue">
-            {t.upcoming.map((k, i) => (
-              <span key={i} className="touch-next">
-                {k.toUpperCase()}
-              </span>
-            ))}
-          </div>
 
           <p className="hint">
             ハイライトされたキーを、対応する指で打ちます（画面を見ずに打てるように）。

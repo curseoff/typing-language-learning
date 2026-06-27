@@ -109,54 +109,57 @@ h1 {
   color: var(--muted);
   margin-bottom: 6px;
 }
-.touch-prompt {
-  text-align: center;
-  font-size: 18px;
-  margin-top: 12px;
-}
-.touch-key {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
-  font-size: 30px;
-  font-weight: 800;
-  color: #0b1220;
-  margin-right: 10px;
-  vertical-align: middle;
-}
-.touch-key.err {
-  outline: 3px solid var(--red);
-}
 .touch-finger {
   text-align: center;
   color: var(--muted);
   font-size: 13px;
   margin-top: 4px;
 }
-.touch-queue {
+.touch-strip {
+  width: 372px;
+  height: 52px;
+  margin: 14px auto 0;
+  overflow: hidden;
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
+  align-items: center;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 4%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 4%, #000 86%, transparent);
 }
-.touch-next {
-  width: 30px;
-  height: 30px;
+.strip-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 160ms ease;
+  will-change: transform;
+}
+.strip-key {
+  flex: none;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 7px;
   background: var(--panel-2);
   color: var(--muted);
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
 }
-.touch-next:first-child {
-  color: var(--text);
-  border: 1px solid var(--accent);
+.strip-key.done {
+  opacity: 0.4;
+}
+.strip-key.current {
+  transform: scale(1.28);
+  color: #0b1220;
+  font-weight: 800;
+}
+.strip-key.current.err {
+  outline: 3px solid var(--red);
 }
 
 /* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */
@@ -173,6 +176,10 @@ h1 {
 .kb-row {
   display: flex;
   gap: 6px; /* キー間ギャップ */
+}
+/* 左手・右手の担当の境目（最初の右手キー）に広めの間隔を空けて視覚化する */
+.kb-key.hand-split {
+  margin-left: 8px;
 }
 .kb-key {
   position: relative;
@@ -250,10 +257,6 @@ h1 {
   line-height: 1;
   pointer-events: none;
 }
-/* 表示専用キー（打鍵対象外の右側記号キー）はやや沈ませる */
-.kb-key.display-only {
-  opacity: 0.78;
-}
 .kb-key.target {
   outline: 3px solid var(--text);
   filter: brightness(1.12);
@@ -262,30 +265,22 @@ h1 {
 .kb-key.target.err {
   outline-color: var(--red);
 }
-/* 指ごとの色 */
-.fg-lp {
-  background: #fda4af;
-}
-.fg-lr {
-  background: #fdba74;
-}
-.fg-lm {
-  background: #fde047;
-}
-.fg-li {
-  background: #86efac;
-}
-.fg-ri {
-  background: #67e8f9;
-}
-.fg-rm {
-  background: #93c5fd;
-}
-.fg-rr {
-  background: #c4b5fd;
-}
+/* 指ごとの色（左右ミラー＝同じ指は左右同色）。keyboard.js の FINGER_COLOR と同値を保つ。 */
+.fg-lp,
 .fg-rp {
-  background: #f0abfc;
+  background: #e9e4a4; /* 小指 */
+}
+.fg-lr,
+.fg-rr {
+  background: #6fb1a2; /* 薬指 */
+}
+.fg-lm,
+.fg-rm {
+  background: #f3a8b0; /* 中指 */
+}
+.fg-li,
+.fg-ri {
+  background: #a9dde3; /* 人差し指 */
 }
 
 /* 下部トグル（記録ランキング / 収録一覧） */

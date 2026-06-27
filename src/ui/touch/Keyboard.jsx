@@ -13,7 +13,7 @@ import {
 // 数字段・記号キーは英字キーと違って main が大きい一文字でないため、刻印の出し分けに使う。
 const ALPHA = /^[a-z]$/
 
-function KeyCap({ k, target, hasError }) {
+function KeyCap({ k, target, hasError, handSplit }) {
   const legend = KEY_LEGENDS[k] ?? {}
   const isTarget = k === target
   const isDisplayOnly = DISPLAY_ONLY_KEYS.includes(k)
@@ -23,6 +23,7 @@ function KeyCap({ k, target, hasError }) {
   if (BUMP_KEYS.includes(k)) cls += ' bump'
   if (isDisplayOnly) cls += ' display-only'
   if (legend.mainTop) cls += ' main-top'
+  if (handSplit) cls += ' hand-split'
   if (isTarget) cls += hasError ? ' target err' : ' target'
 
   // 主たる刻印（英字は大文字、その他はキーの記号そのまま）
@@ -43,9 +44,20 @@ export default function Keyboard({ target, hasError }) {
     <div className="kb">
       {KEY_ROWS.map((row, r) => (
         <div key={r} className="kb-row" style={{ marginLeft: ROW_OFFSET[r] ?? 0 }}>
-          {row.map((k) => (
-            <KeyCap key={k} k={k} target={target} hasError={hasError} />
-          ))}
+          {row.map((k, i) => {
+            // 左手(l*)→右手(r*)に切り替わる最初の右手キーにギャップを入れ、左右の担当を視覚化
+            const isRight = (FINGER[k] || '').startsWith('r')
+            const prevRight = i > 0 ? (FINGER[row[i - 1]] || '').startsWith('r') : false
+            return (
+              <KeyCap
+                key={k}
+                k={k}
+                target={target}
+                hasError={hasError}
+                handSplit={isRight && !prevRight}
+              />
+            )
+          })}
         </div>
       ))}
     </div>
