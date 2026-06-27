@@ -22,6 +22,13 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 4. **push / PR / リリースはしない**。それらは司令塔が本人の明示指示で行う。あなたは「変更ファイル・要点・コミットハッシュ・check 結果」を司令塔に**報告**して終わる。
 - push 前フック（`.githooks/pre-push`）が `check` を強制する。コミットはするが push はしないこと。
 
+## TDD（ロジック/バグ修正は Red→Green→Refactor の Green 担当）
+- domain/application の**ロジック**と**バグ修正**は、先に **test-author** が「失敗するテスト（Red）」を書く。あなたの仕事は**それを通す最小実装（Green）→ refactor（緑維持）**。
+- **test-author が書いた仕様テストを編集・削除しない**。通すのは**本体コード側**で行う。テストに不備（仕様の誤り・環境問題・偽の赤）があると判断したら、**勝手に直さず司令塔に申告**して指示を仰ぐ。
+- 手順：①赤を再現確認（`npx vitest run <該当>`）→ ②通す最小実装 → ③`npm run check` で**全緑**→ ④必要ならリファクタ（緑維持）。
+- コミットは **Green を独立コミット**に（Red と分ける＝履歴で TDD が見える）。メッセージ例：`Green: <何を満たしたか>`。
+- 見た目・CSS・教材データなど **TDD 対象外**の変更は従来どおり（テスト先行は不要、`check`/スクショ/`validate` で確認）。
+
 ## このリポジトリのハマりどころ（既知の地雷）
 - **かな読み→ローマ字**が入力判定の核（`domain/romaji` / `domain/typing/progress`）。`kanaConsumed` は過去に指数的で重く、線形化済み。読み・ルビ系を触ったら **160k 件規模の差分テスト**が緑か必ず確認。
 - **ルビ整列**は `rubyParts` / `alignJaToKana`。入力中の着色は「漢字＝漢字単位(`done`)／ふりがな＝かな単位(`kanaDone`=`kanaConsumed`)」。`rubyParts` の各部は `kanaFrom` を持つ。
