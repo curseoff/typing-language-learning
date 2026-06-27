@@ -247,7 +247,6 @@ export default function Ready({
           <SectionLabel>レベル</SectionLabel>
           <div className="rank-select">
             <div className="rank-group">
-              <div className="rank-course">語レベル</div>
               <div className="rank-btns">
                 {WORD_LEVELS.map((l) => (
                   <button
