@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
-// 4択クイズ（単語）の結合テスト。打鍵をシミュレートして1プレイ完走させ、
+// 4択クイズ（単語）の結合テスト。打鍵で何問か解いてから60秒経過をシミュレートして finish させ、
 // 記録(record)と問題ごとの記録(segStats)が正しく保存されることを確認する。
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWordQuiz } from './useWordQuiz.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { WORDS } from '../content/wordsAll.js'
 import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
+
+beforeEach(() => {
+  localStorage.clear()
+  vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
+})
+afterEach(() => vi.useRealTimers())
 
 const typeKey = (key) =>
   act(() => {
@@ -13,25 +20,38 @@ const typeKey = (key) =>
   })
 const typeStr = (s) => [...s].forEach(typeKey)
 
-describe('useWordQuiz（4択・結合）', () => {
-  beforeEach(() => localStorage.clear())
+const runOutClock = () => {
+  act(() => vi.advanceTimersByTime(TIME_LIMIT_MS + 200))
+  act(() => vi.runOnlyPendingTimers())
+}
 
-  it('全問、正解の選択肢を打って完走し、record と segStats(全問正解) を保存する', () => {
+// n 問だけ pickChoice(question)→正解を打って Enter で進める。
+const solve = (result, n, pickChoice) => {
+  for (let i = 0; i < n; i++) {
+    if (result.current.finished) break
+    const q = result.current.question
+    const opt = pickChoice(q, i)
+    typeStr(opt.variants[0])
+    typeKey('Enter')
+    act(() => vi.advanceTimersByTime(50))
+  }
+}
+
+const correctOf = (q) => q.options.find((o) => o.answer)
+
+describe('useWordQuiz（4択・60秒・結合）', () => {
+  it('正解を打って数問解き、60秒で finish。record と segStats(全問正解) を保存する', () => {
     const { result } = renderHook(() =>
       useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }),
     )
-    let guard = 0
-    while (!result.current.finished && guard < 100) {
-      const q = result.current.question
-      const correct = q.options.find((o) => o.answer)
-      typeStr(correct.variants[0]) // 正解の英単語を打つ→確定
-      typeKey('Enter') // 次へ
-      guard++
-    }
+    solve(result, 8, correctOf)
+    runOutClock()
     expect(result.current.finished).toBe(true)
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
+    expect(rec.keys).toBeGreaterThan(0) // タイピング数が主指標
     expect(rec.correct).toBe(rec.words) // 全問正解
     expect(rec.accuracy).toBe(100)
+    expect(rec.seconds).toBeCloseTo(60, 0)
     expect(rec.segStats).toHaveLength(rec.words)
     expect(rec.segStats.every((s) => s.correct === true)).toBe(true)
     expect(rec.segStats[0]).toHaveProperty('label')
@@ -42,13 +62,8 @@ describe('useWordQuiz（4択・結合）', () => {
     const { result } = renderHook(() =>
       useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }),
     )
-    let guard = 0
-    while (!result.current.finished && guard < 100) {
-      const q = result.current.question
-      typeStr(q.options.find((o) => o.answer).variants[0])
-      typeKey('Enter')
-      guard++
-    }
+    solve(result, 5, correctOf)
+    runOutClock()
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
     expect(rec.seed).toEqual(expect.any(Number))
     expect(rec.source).toBe('word')
@@ -58,17 +73,9 @@ describe('useWordQuiz（4択・結合）', () => {
     const { result } = renderHook(() =>
       useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }),
     )
-    // 1問目だけわざと不正解、以降は正解で完走
-    let first = true
-    let guard = 0
-    while (!result.current.finished && guard < 100) {
-      const q = result.current.question
-      const opt = first ? q.options.find((o) => !o.answer) : q.options.find((o) => o.answer)
-      typeStr(opt.variants[0])
-      typeKey('Enter')
-      first = false
-      guard++
-    }
+    // 1問目だけわざと不正解、以降は正解
+    solve(result, 6, (q, i) => (i === 0 ? q.options.find((o) => !o.answer) : correctOf(q)))
+    runOutClock()
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
     expect(rec.segStats[0].correct).toBe(false)
     expect(rec.correct).toBe(rec.words - 1)
@@ -88,14 +95,8 @@ describe('useWordQuiz（4択・結合）', () => {
     )
 
     const { result } = renderHook(() => useWordQuiz(opts))
-    let guard = 0
-    while (!result.current.finished && guard < 100) {
-      const q = result.current.question
-      const correct = q.options.find((o) => o.answer)
-      typeStr(correct.variants[0])
-      typeKey('Enter')
-      guard++
-    }
+    solve(result, 5, correctOf)
+    runOutClock()
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('word')
