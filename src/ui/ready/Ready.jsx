@@ -6,7 +6,7 @@ import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords } from '..
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from '../../content/keyboard.js'
 import { STORIES, storyById } from '../../content/stories/index.js'
-import { recKey } from '../../domain/records/ranking.js'
+import { recKey, MAX_RECORDS } from '../../domain/records/ranking.js'
 import {
   loadStoryRecords,
   loadItemStats,
@@ -557,6 +557,12 @@ export default function Ready({
           </p>
 
           <StartRow onStart={onStart} />
+          <TouchRecords
+            list={records[recKey(touchMode, touchLevel, 'touch')]}
+            rankText={`${TOUCH_LEVELS.find((l) => l.key === touchLevel)?.label ?? touchLevel} ・ ${
+              TOUCH_MODES.find((m) => m.key === touchMode)?.label ?? touchMode
+            }`}
+          />
         </>
       )}
     </div>
@@ -602,6 +608,46 @@ function wordModeDesc(key) {
     default:
       return '和訳を見て英単語を入力。600文字で終了。'
   }
+}
+
+// タッチタイピングの記録（速い順）。クリック詳細は持たない簡易テーブル。
+function TouchRecords({ list, rankText }) {
+  const rows = list || []
+  return (
+    <div className="records">
+      <h3>
+        記録ランキング
+        {rankText && <span className="records-mode">{rankText}</span>}
+        <span className="records-sub">（速い順・最大{MAX_RECORDS}件）</span>
+      </h3>
+      {rows.length === 0 ? (
+        <p className="no-records">まだ記録がありません。</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>速度</th>
+              <th>正確率</th>
+              <th>時間</th>
+              <th>日時</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i}>
+                <td>{i + 1}</td>
+                <td className="speed">{r.speed} 打/分</td>
+                <td>{r.accuracy}%</td>
+                <td>{r.seconds}秒</td>
+                <td className="date">{r.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
 }
 
 // 単語の記録（入力=速度、4択=正解数）。行クリックで詳細。
