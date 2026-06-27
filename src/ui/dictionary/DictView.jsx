@@ -1,7 +1,6 @@
 // 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 / 英語・日本語入力 を振り分ける。
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
-import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { dictRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel } from '../shared/index.js'
 import TopFlow from '../marathon/TopFlow.jsx'
@@ -34,12 +33,12 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: '問題', value: `${q.index} / ${q.total}` },
+              { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} 秒` },
+              { label: '時間', value: `${q.elapsedSec} / 60秒` },
             ]}
-            progress={q.index / q.total}
+            progress={Math.min(1, q.elapsedSec / 60)}
           />
           <div className="word-card">
             <div className="word-dir">単語に合う説明文を入力</div>
@@ -100,12 +99,12 @@ function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: 'タイピング数', value: `${d.typedKeys} / ${TARGET_KEYS}` },
+              { label: 'タイピング数', value: `${d.typedKeys}` },
               { label: '速度', value: `${d.liveSpeed} 打/分` },
               { label: 'ミス', value: d.mistakes },
-              { label: '時間', value: `${d.elapsedSec} 秒` },
+              { label: '時間', value: `${d.elapsedSec} / 60秒` },
             ]}
-            progress={d.typedKeys / TARGET_KEYS}
+            progress={Math.min(1, d.elapsedSec / 60)}
           />
           {d.word && (
             <p className="seg-word">
@@ -153,12 +152,12 @@ function QuizView({ dict, gloss, level, theme, seed, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: '問題', value: `${q.index} / ${q.total}` },
+              { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} 秒` },
+              { label: '時間', value: `${q.elapsedSec} / 60秒` },
             ]}
-            progress={q.index / q.total}
+            progress={Math.min(1, q.elapsedSec / 60)}
           />
           <div className="word-card">
             <div className="word-dir">定義に合う英単語を入力</div>
@@ -210,33 +209,25 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
   return (
     <div className="result">
       <h2>記録</h2>
+      <div className="result-main">
+        <div className="result-speed">{result.keys ?? 0}</div>
+        <div className="result-unit">タイピング数</div>
+      </div>
       {isQuiz ? (
-        <>
-          <div className="result-main">
-            <div className="result-speed">
-              {result.correct}/{result.words}
-            </div>
-            <div className="result-unit">正解</div>
-          </div>
-          <div className="result-sub">
-            <span>正確率 {result.accuracy}%</span>
-            <span>{result.seconds} 秒</span>
-          </div>
-        </>
+        <div className="result-sub">
+          <span>速度 {result.speed} 打/分</span>
+          <span>正解 {result.correct}/{result.words}</span>
+          <span>正確率 {result.accuracy}%</span>
+          <span>{result.seconds} 秒</span>
+        </div>
       ) : (
-        <>
-          <div className="result-main">
-            <div className="result-speed">{result.speed}</div>
-            <div className="result-unit">打/分</div>
-          </div>
-          <div className="result-sub">
-            <span>{result.words} 語</span>
-            <span>{result.keys} 打</span>
-            <span>{result.seconds} 秒</span>
-            <span>ミス {result.mistakes}</span>
-            <span>正確率 {result.accuracy}%</span>
-          </div>
-        </>
+        <div className="result-sub">
+          <span>速度 {result.speed} 打/分</span>
+          <span>{result.words} 語</span>
+          <span>ミス {result.mistakes}</span>
+          <span>正確率 {result.accuracy}%</span>
+          <span>{result.seconds} 秒</span>
+        </div>
       )}
       <div className="ending-actions">
         <button className="btn-primary" onClick={onRetry}>
@@ -260,7 +251,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>{isQuiz ? '正解' : '速度'}</th>
+                <th>タイピング数</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -275,7 +266,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>
-                  <td className="speed">{isQuiz ? `${r.correct}/${r.words}` : `${r.speed} 打/分`}</td>
+                  <td className="speed">{r.keys ?? 0}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

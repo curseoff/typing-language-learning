@@ -18,12 +18,14 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
     if (saved.current) return
     saved.current = true
     const seconds = t.elapsedSec
-    const speed = seconds > 0 ? Math.round((t.total / seconds) * 60) : 0
-    const accuracy = Math.round((t.total / (t.total + t.mistakes)) * 100)
+    const keys = t.typedKeys // 正しく打ったキー数＝タイピング数（主指標）
+    const speed = seconds > 0 ? Math.round((keys / seconds) * 60) : 0
+    const accuracy = keys + t.mistakes > 0 ? Math.round((keys / (keys + t.mistakes)) * 100) : 100
     onRecord?.({
       source: 'touch',
       mode,
       rank: level,
+      keys,
       speed,
       mistakes: t.mistakes,
       accuracy,
@@ -45,10 +47,13 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
       {t.finished ? (
         <div className="result">
           <h2>完了！</h2>
+          <div className="result-main">
+            <div className="result-speed">{t.typedKeys}</div>
+            <div className="result-unit">タイピング数</div>
+          </div>
           <div className="result-sub">
-            <span>{t.total} 打</span>
             <span>ミス {t.mistakes}</span>
-            <span>{t.elapsedSec} 秒</span>
+            <span>{t.elapsedSec} / 60秒</span>
           </div>
           <div className="ending-actions">
             <button className="btn-primary" onClick={t.restart}>
@@ -65,14 +70,12 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
       ) : (
         <>
           <div className="touch-bar">
-            <span>
-              打鍵 {t.index} / {t.total}
-            </span>
+            <span>タイピング数 {t.typedKeys}</span>
             <span>ミス {t.mistakes}</span>
-            <span>{t.elapsedSec} 秒</span>
+            <span>{t.elapsedSec} / 60秒</span>
           </div>
           <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(t.index / t.total) * 100}%` }} />
+            <div className="progress-fill" style={{ width: `${Math.min(100, (t.elapsedSec / 60) * 100)}%` }} />
           </div>
 
           <div className="touch-strip">

@@ -308,7 +308,7 @@ export default function Ready({
               </div>
             ))}
           </div>
-          <p className="mode-desc">{modeDesc(mode)} 単語を使った例文を打ちます。600文字で終了します。</p>
+          <p className="mode-desc">{modeDesc(mode)} 単語を使った例文を打ちます。60秒で終了します。</p>
           <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0} 文</p>
 
           <StartRow onStart={onStart} />
@@ -577,8 +577,8 @@ export default function Ready({
           </div>
           <p className="mode-desc">
             {touchMode === 'hard'
-              ? '打つキーはハイライトされません。位置を思い出してブラインドタッチ。ミスすると押したキーが光ります。40打で終了。'
-              : '打つキーが画面のキーボードでハイライトされます。指の位置を覚えて練習。ミスすると押したキーが光ります。40打で終了。'}
+              ? '打つキーはハイライトされません。位置を思い出してブラインドタッチ。ミスすると押したキーが光ります。60秒で終了。'
+              : '打つキーが画面のキーボードでハイライトされます。指の位置を覚えて練習。ミスすると押したキーが光ります。60秒で終了。'}
           </p>
 
           <StartRow onStart={onStart} />
@@ -599,13 +599,13 @@ function dictModeDesc(key) {
     case 'both':
       return '1語ごとに見出し語の英語の定義→その和訳を続けて入力。'
     case 'pick':
-      return '英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ（12問）。'
+      return '英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ。60秒で終了。'
     case 'en':
       return '見出し語の英語の定義を入力（和訳は参考表示）。'
     case 'ja':
       return '見出し語の和訳をローマ字で入力（英語の定義は参考）。'
     default:
-      return '英語の定義を読んで、4つの英単語から正解を入力（4択・20問）。回答後に和訳を表示。'
+      return '英語の定義を読んで、4つの英単語から正解を入力（4択）。回答後に和訳を表示。60秒で終了。'
   }
 }
 
@@ -625,15 +625,15 @@ function StartRow({ onStart }) {
 function wordModeDesc(key) {
   switch (key) {
     case 'quiz-en':
-      return '和訳を見て、4つの英単語から正解を入力（4択）。30問で終了。'
+      return '和訳を見て、4つの英単語から正解を入力（4択）。60秒で終了。'
     case 'quiz-ja':
-      return '英単語を見て、4つの和訳から正解をローマ字入力（4択）。30問で終了。'
+      return '英単語を見て、4つの和訳から正解をローマ字入力（4択）。60秒で終了。'
     case 'ja':
-      return '英単語を見て和訳をローマ字入力。600文字で終了。'
+      return '英単語を見て和訳をローマ字入力。60秒で終了。'
     case 'both':
-      return '1語ごとに英語→その和訳を入力。600文字で終了。'
+      return '1語ごとに英語→その和訳を入力。60秒で終了。'
     default:
-      return '和訳を見て英単語を入力。600文字で終了。'
+      return '和訳を見て英単語を入力。60秒で終了。'
   }
 }
 
@@ -645,7 +645,7 @@ function TouchRecords({ list, rankText }) {
       <h3>
         記録ランキング
         {rankText && <span className="records-mode">{rankText}</span>}
-        <span className="records-sub">（速い順・最大{MAX_RECORDS}件）</span>
+        <span className="records-sub">（タイピング数順・最大{MAX_RECORDS}件）</span>
       </h3>
       {rows.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>
@@ -654,7 +654,7 @@ function TouchRecords({ list, rankText }) {
           <thead>
             <tr>
               <th>#</th>
-              <th>速度</th>
+              <th>タイピング数</th>
               <th>正確率</th>
               <th>時間</th>
               <th>日時</th>
@@ -664,7 +664,7 @@ function TouchRecords({ list, rankText }) {
             {rows.map((r, i) => (
               <tr key={i}>
                 <td>{i + 1}</td>
-                <td className="speed">{r.speed} 打/分</td>
+                <td className="speed">{r.keys ?? 0}</td>
                 <td>{r.accuracy}%</td>
                 <td>{r.seconds}秒</td>
                 <td className="date">{r.date}</td>
@@ -684,7 +684,7 @@ function WordRecords({ list, isQuiz, rankText }) {
   return (
     <div className="records">
       <h3>
-        記録ランキング<span className="records-sub">（最大15件）</span>
+        記録ランキング<span className="records-sub">（タイピング数順・最大15件）</span>
       </h3>
       {rows.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>
@@ -693,7 +693,7 @@ function WordRecords({ list, isQuiz, rankText }) {
           <thead>
             <tr>
               <th>#</th>
-              <th>{isQuiz ? '正解' : '速度'}</th>
+              <th>タイピング数</th>
               <th>正確率</th>
               <th>時間</th>
               <th>日時</th>
@@ -708,7 +708,7 @@ function WordRecords({ list, isQuiz, rankText }) {
                 title="クリックで記録の詳細"
               >
                 <td>{i + 1}</td>
-                <td className="speed">{isQuiz ? `${r.correct}/${r.words}` : `${r.speed} 打/分`}</td>
+                <td className="speed">{r.keys ?? 0}</td>
                 <td>{r.accuracy}%</td>
                 <td>{r.seconds}秒</td>
                 <td className="date">{r.date}</td>
