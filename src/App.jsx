@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords, loadWordGloss } from './content/words.js'
-import { loadWsentLevel } from './content/wordSentences/index.js'
+import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
@@ -48,6 +48,7 @@ export default function App() {
   const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
+  const [wsentTheme, setWsentTheme] = useState('すべて') // 単語例文のテーマフィルタ
   const [wsentGloss, setWsentGloss] = useState(null) // 単語例文の英→和グロッサリ(プレイ中の和訳併記用)
   const [storyId, setStoryId] = useState(DEFAULT_STORY_ID) // 選択中の物語(travel | climbing …)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
@@ -110,11 +111,12 @@ export default function App() {
         return [
           type,
           { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
+          { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: setWsentTheme },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
           bottom,
         ]
     }
-  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, bottomTab])
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, wsentTheme, bottomTab])
 
   // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
   const safeFocus = Math.min(focusRow, rows.length - 1)
@@ -154,12 +156,19 @@ export default function App() {
   // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
   // リプレイは記録の値＋seed を直接渡すために必須。
   const startWsent = useCallback(
-    async (level, modeKey, seed) => {
+    async (level, theme, modeKey, seed) => {
       // 対象レベルの例文だけ遅延読み込みしてから開始（初回バンドルに全例文を含めない）
-      // グロッサリ（英→和）も並行ロードし、プレイ中の和訳併記に使う
-      const [pool, gloss] = await Promise.all([loadWsentLevel(level), loadWordGloss()])
+      // グロッサリ（英→和）とテーママップも並行ロード（テーマで収録を絞る／プレイ中の和訳併記）
+      const [pool, gloss, themes] = await Promise.all([
+        loadWsentLevel(level),
+        loadWordGloss(),
+        loadWsentThemes(),
+      ])
       setWsentGloss(gloss)
-      startMarathon(modeKey, level, 'wsent', pool, seed)
+      // テーマ指定時は見出し語の theme が一致する例文だけに絞る（'すべて'は全件）
+      const themeMap = themes[level] ?? {}
+      const filtered = theme === 'すべて' ? pool : pool.filter((s) => themeMap[s.word] === theme)
+      startMarathon(modeKey, level, 'wsent', filtered, seed)
       setPhase('playing')
     },
     [startMarathon],
@@ -167,8 +176,8 @@ export default function App() {
 
   // 通常プレイ／結果からの「もう一度」：現在の選択で新しい seed を切って開始
   const startGame = useCallback(() => {
-    return startWsent(wsentLevel, mode, makeSeed())
-  }, [startWsent, wsentLevel, mode])
+    return startWsent(wsentLevel, wsentTheme, mode, makeSeed())
+  }, [startWsent, wsentLevel, wsentTheme, mode])
 
   // 明示引数で単語モードを開始する（seed を指定して同じ問題列を再現できる）。
   // WordsView 側のフックが seed を受け取り出題を決定する（key に seed を含めて再マウント）。
@@ -209,13 +218,16 @@ export default function App() {
   const replay = useCallback(
     (record) => {
       switch (record.source) {
-        case 'wsent':
+        case 'wsent': {
           if (record.seed == null) return
+          const theme = record.theme ?? 'すべて' // 旧記録（theme無し）は全件で再現
           setGameType('wsent')
           setMode(record.mode)
           setWsentLevel(record.rank)
-          startWsent(record.rank, record.mode, record.seed)
+          setWsentTheme(theme)
+          startWsent(record.rank, theme, record.mode, record.seed)
           return
+        }
         case 'word':
           if (record.seed == null) return
           setGameType('words')
@@ -313,6 +325,7 @@ export default function App() {
     const mock = {
       mode,
       rank: wsentLevel,
+      theme: wsentTheme,
       source: 'wsent',
       seed: 12345, // リプレイボタン確認用の固定シード
       speed: 480,
@@ -333,7 +346,7 @@ export default function App() {
       [recKey(mode, wsentLevel, 'wsent')]: [{ ...mock, speed: 520, date: '過去の記録' }, mock],
     }))
     setPhase('result')
-  }, [mode, wsentLevel])
+  }, [mode, wsentLevel, wsentTheme])
 
   // 開発時だけ：?preview=result|play|story でその画面を即表示（スクショ自動化用。本番ビルドには無効）
   // マウント時1回だけ実行する（依存配列を空にして再実行で取り消されないようにする）。
@@ -387,6 +400,8 @@ export default function App() {
           onStoryIdChange={setStoryId}
           wsentLevel={wsentLevel}
           onWsentLevelChange={setWsentLevel}
+          wsentTheme={wsentTheme}
+          onWsentThemeChange={setWsentTheme}
           wordLevel={wordLevel}
           wordTheme={wordTheme}
           wordMode={wordMode}

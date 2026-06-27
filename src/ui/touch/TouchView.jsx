@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { useTouch } from '../../application/useTouch.js'
 import { FINGER, FINGER_LABEL } from '../../content/keyboard.js'
+import { StatsRow } from '../shared/index.js'
 import Keyboard from './Keyboard.jsx'
 
 export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord, onExit }) {
@@ -18,12 +19,14 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
     if (saved.current) return
     saved.current = true
     const seconds = t.elapsedSec
-    const speed = seconds > 0 ? Math.round((t.total / seconds) * 60) : 0
-    const accuracy = Math.round((t.total / (t.total + t.mistakes)) * 100)
+    const keys = t.typedKeys // 正しく打ったキー数＝タイピング数（主指標）
+    const speed = seconds > 0 ? Math.round((keys / seconds) * 60) : 0
+    const accuracy = keys + t.mistakes > 0 ? Math.round((keys / (keys + t.mistakes)) * 100) : 100
     onRecord?.({
       source: 'touch',
       mode,
       rank: level,
+      keys,
       speed,
       mistakes: t.mistakes,
       accuracy,
@@ -45,10 +48,13 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
       {t.finished ? (
         <div className="result">
           <h2>完了！</h2>
+          <div className="result-main">
+            <div className="result-speed">{t.typedKeys}</div>
+            <div className="result-unit">タイピング数</div>
+          </div>
           <div className="result-sub">
-            <span>{t.total} 打</span>
             <span>ミス {t.mistakes}</span>
-            <span>{t.elapsedSec} 秒</span>
+            <span>{t.elapsedSec} / 60秒</span>
           </div>
           <div className="ending-actions">
             <button className="btn-primary" onClick={t.restart}>
@@ -64,16 +70,15 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
         </div>
       ) : (
         <>
-          <div className="touch-bar">
-            <span>
-              打鍵 {t.index} / {t.total}
-            </span>
-            <span>ミス {t.mistakes}</span>
-            <span>{t.elapsedSec} 秒</span>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(t.index / t.total) * 100}%` }} />
-          </div>
+          <StatsRow
+            stats={[
+              { label: 'タイピング数', value: `${t.typedKeys}` },
+              { label: '速度', value: `${t.liveSpeed} 打/分` },
+              { label: 'ミス', value: t.mistakes },
+              { label: '時間', value: `${t.elapsedSec} / 60秒` },
+            ]}
+            progress={Math.min(1, t.elapsedSec / 60)}
+          />
 
           <div className="touch-strip">
             <div

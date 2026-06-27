@@ -11,7 +11,6 @@ export default function RecordDetail({
   initial,
   rankText,
   modeKey,
-  isQuiz,
   hasEnding,
   onClose,
 }) {
@@ -32,6 +31,8 @@ export default function RecordDetail({
 
   const r = cur.record
   const quiz = r.correct != null
+  // 物語(story)以外は全モードでタイピング数(keys)を主指標にする（60秒固定）。
+  const isStory = hasEnding || r.source === 'story'
   // 「もう一度チャレンジ」を出せる記録か。seed があれば同じ問題列を再現でき、
   // 物語は決定的（固定ナラティブ）なので seed 無しでも同じ開始から再挑戦できる。
   const replayable = r.seed != null || r.source === 'story'
@@ -49,14 +50,15 @@ export default function RecordDetail({
           {modeKey && <> ／ {modeLabel(modeKey)}</>}
         </div>
         <div className="result-main">
-          <div className="result-speed">{quiz ? `${r.correct}/${r.words}` : r.speed}</div>
-          <div className="result-unit">{quiz ? '正解' : '打/分'}</div>
+          <div className="result-speed">{isStory ? r.speed : (r.keys ?? 0)}</div>
+          <div className="result-unit">{isStory ? '打/分' : 'タイピング数'}</div>
         </div>
         <div className="result-sub">
-          {!quiz && r.keys != null && <span>{r.keys} 打</span>}
-          {r.seconds != null && <span>{r.seconds} 秒</span>}
+          {!isStory && r.speed != null && <span>速度 {r.speed} 打/分</span>}
+          {quiz && r.correct != null && <span>正解 {r.correct}/{r.words}</span>}
           {r.mistakes != null && <span>ミス {r.mistakes}</span>}
           {r.accuracy != null && <span>正確率 {r.accuracy}%</span>}
+          {r.seconds != null && <span>{r.seconds} 秒</span>}
           {r.endLabel && <span>エンド: {r.endLabel}</span>}
         </div>
         <div className="result-date">{r.date}</div>
@@ -74,7 +76,7 @@ export default function RecordDetail({
             <thead>
               <tr>
                 <th>#</th>
-                <th>{isQuiz ? '正解' : '速度'}</th>
+                <th>{isStory ? '速度' : 'タイピング数'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 {hasEnding && <th>エンド</th>}
@@ -91,7 +93,7 @@ export default function RecordDetail({
                 >
                   <td>{i + 1}</td>
                   <td className="speed">
-                    {isQuiz ? `${rr.correct}/${rr.words}` : `${rr.speed} 打/分`}
+                    {isStory ? `${rr.speed} 打/分` : (rr.keys ?? 0)}
                   </td>
                   <td>{rr.accuracy}%</td>
                   <td>{rr.seconds}秒</td>

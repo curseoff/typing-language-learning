@@ -1,7 +1,8 @@
 // 英英辞典の入力モード（英語入力=定義文を打つ / 日本語入力=和訳を打つ / both=英→日）。
-// 単語例文（マラソン）と同じ「600打で終了」方式。記録は dict 記録（DictResult）を維持する。
+// 単語例文（マラソン）と同じ「最初の打鍵から60秒で終了」方式。問題が尽きたら継ぎ足してループする。
+// 記録は dict 記録（DictResult）を維持する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { TARGET_KEYS, buildPassage } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS, buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
 import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
@@ -41,6 +42,10 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
   const [records, setRecords] = useState(() => loadDictRecords())
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
+  const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
+  const timeUpRef = useRef(false) // 時間切れ処理を一度だけ行うガード
+  const keysRef = useRef(0) // 時間切れ finish 用の最新打鍵数
+  const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
@@ -60,6 +65,10 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
     setStartTime(null)
     setFinished(false)
     setResult(null)
+    finishedRef.current = false
+    timeUpRef.current = false
+    keysRef.current = 0
+    mistakesRef.current = 0
   }, [buildSegments])
 
   useEffect(() => {
@@ -81,6 +90,8 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
+      if (finishedRef.current) return
+      finishedRef.current = true
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const list = segTrackerRef.current.list
@@ -124,6 +135,7 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
       }
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
+      if (finishedRef.current) return
 
       const seg = segments[segIndex]
       if (!seg) return
@@ -131,36 +143,37 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
 
       if (seg.variants.some((v) => v.startsWith(candidate))) {
         const t = performance.now()
-        const startedAt = startTime ?? t // この打鍵で開始した場合も正しい開始時刻を使う
         setStartTime((p) => p ?? t)
         setHasError(false)
         segMark(segTrackerRef.current, t) // この問題の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('d', mode, seg.word)) // 見出し語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
+        keysRef.current = newKeys
 
         const completesSeg = seg.variants.includes(candidate)
-        const reachedGoal = newKeys >= TARGET_KEYS
 
-        // 問題が終わった(完了 or 600到達で打ち切り)ら「問題ごとの記録」に積む
-        if (completesSeg || reachedGoal) {
+        // 問題が完了したら「問題ごとの記録」に積む（未完は60秒 finish 側で partial 記録）
+        if (completesSeg) {
           segPush(segTrackerRef.current, {
             type: seg.type,
             label: seg.word,
             keys: candidate.length,
             t,
-            partial: !completesSeg,
+            partial: false,
             sentenceIndex: seg.sentenceIndex,
           })
-        }
-
-        if (reachedGoal) {
-          flushTracker(trackerRef.current)
-          finish(newKeys, mistakes, t, startedAt)
-          return
-        }
-
-        if (completesSeg) {
+          // 問題を打ち尽くしたら継ぎ足してループ（sentenceIndex は衝突しないようオフセット）。
+          if (segIndex + 1 >= segments.length) {
+            setSegments((prev) => {
+              const offset = prev.length ? prev[prev.length - 1].sentenceIndex + 1 : 0
+              const more = buildSegments(makeSeed()).map((s) => ({
+                ...s,
+                sentenceIndex: s.sentenceIndex + offset,
+              }))
+              return [...prev, ...more]
+            })
+          }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
@@ -168,19 +181,45 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
           setSegInput(candidate)
         }
       } else {
-        setMistakes((m) => m + 1)
+        setMistakes((m) => {
+          mistakesRef.current = m + 1
+          return m + 1
+        })
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
         setHasError(true)
       }
     },
-    [finished, segments, segIndex, segInput, typedKeys, mistakes, mode, startTime, onExit, restart, finish],
+    [finished, segments, segIndex, segInput, typedKeys, mode, buildSegments, onExit, restart],
   )
 
   useEffect(() => {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [handleKey])
+
+  // 最初の打鍵から60秒で終了（キー入力が無くても時間で finish）。
+  // 現在入力中の問題があれば partial として記録に積んでから finish。
+  useEffect(() => {
+    if (finished || startTime === null || timeUpRef.current) return
+    if (now - startTime < TIME_LIMIT_MS) return
+    timeUpRef.current = true // partial 記録と finish 予約は一度だけ
+    const t = startTime + TIME_LIMIT_MS
+    const seg = segments[segIndex]
+    if (seg && segInput.length > 0) {
+      segPush(segTrackerRef.current, {
+        type: seg.type,
+        label: seg.word,
+        keys: segInput.length,
+        t,
+        partial: true,
+        sentenceIndex: seg.sentenceIndex,
+      })
+    }
+    flushTracker(trackerRef.current)
+    // effect 内の同期 setState は次tickへ遅延（cascading renders 回避）。
+    setTimeout(() => finish(keysRef.current, mistakesRef.current, t, startTime), 0)
+  }, [finished, now, startTime, segments, segIndex, segInput, finish])
 
   return {
     segments,
@@ -192,7 +231,6 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
     mistakes,
     liveSpeed,
     elapsedSec,
-    total: TARGET_KEYS,
     word: segments[segIndex]?.word, // 現在セグの見出し語
     finished,
     result,

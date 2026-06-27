@@ -1,7 +1,9 @@
-// 単語の4択クイズの状態機械。選択肢を「打って」選ぶ。30問で終了。
+// 単語の4択クイズの状態機械。選択肢を「打って」選ぶ。最初の打鍵から60秒で終了。
+// 問題が尽きたら再シャッフルで継ぎ足し、60秒の間ずっと出題する。スコアはタイピング数(typedKeys)。
 // dir='en'(英語訳: 和訳→英単語) / 'ja'(日本語訳: 英単語→和訳をローマ字)
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { mulberry32 } from '../domain/rng.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
 import { makeSeed } from './seed.js'
@@ -24,6 +26,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
   const [picked, setPicked] = useState(null) // 確定した選択肢(option) or null
   const [correct, setCorrect] = useState(0)
   const [mistakes, setMistakes] = useState(0) // タイプミス
+  const [typedKeys, setTypedKeys] = useState(0) // タイピング数（選択肢を打った文字数の合計）
   const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
@@ -31,6 +34,11 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
   const [startTime, setStartTime] = useState(null)
   const segStatsRef = useRef([]) // 今回プレイの問題ごとの記録（設問の正誤）
   const perQMissRef = useRef(0) // 現在の設問のタイプミス数
+  const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
+  const timeUpRef = useRef(false) // 時間切れ処理を一度だけ行うガード
+  const keysRef = useRef(0) // 時間切れ finish 用の最新タイピング数
+  const correctRef = useRef(0) // 時間切れ finish 用の最新正解数
+  const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
 
   const q = questions[index]
 
@@ -47,10 +55,16 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
     setPicked(null)
     setCorrect(0)
     setMistakes(0)
+    setTypedKeys(0)
     setNow(0)
     setFinished(false)
     setResult(null)
     setStartTime(null)
+    finishedRef.current = false
+    timeUpRef.current = false
+    keysRef.current = 0
+    correctRef.current = 0
+    mistakesRef.current = 0
   }, [buildWith])
 
   useEffect(() => {
@@ -66,16 +80,22 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
   }, [now, started, startTime])
 
   const finish = useCallback(
-    (correctCount, totalMistakes, endTime) => {
-      const seconds = Math.round((endTime - startTime) / 100) / 10
-      const total = questions.length
+    (keys, correctCount, totalMistakes, endTime, startedAt) => {
+      if (finishedRef.current) return
+      finishedRef.current = true
+      const seconds = Math.round((endTime - startedAt) / 100) / 10
+      const total = segStatsRef.current.length // 60秒で完答した設問数
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
+      const minutes = (endTime - startedAt) / 60000
+      const speed = minutes > 0 ? Math.round(keys / minutes) : 0
       const record = {
         source: 'word', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
         level,
         theme,
         mode,
+        keys, // タイピング数（主指標）
+        speed,
         correct: correctCount,
         words: total,
         mistakes: totalMistakes,
@@ -88,15 +108,16 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, sessionSeed, questions.length, startTime],
+    [level, theme, mode, sessionSeed],
   )
 
   const commit = useCallback(
-    (option) => {
+    (option, typed = 0) => {
       const _t = performance.now()
       setStartTime((p) => p ?? _t)
       setPicked(option)
-      if (option.answer) setCorrect((c) => c + 1)
+      if (typed > 0) setTypedKeys((k) => (keysRef.current = k + typed)) // 打って選んだ分のタイピング数
+      if (option.answer) setCorrect((c) => (correctRef.current = c + 1))
     },
     [],
   )
@@ -125,15 +146,15 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
       },
     ]
     perQMissRef.current = 0
+    // 60秒制：問題が尽きたら再シャッフルで継ぎ足し、ずっと出題し続ける。
     if (index >= questions.length - 1) {
-      finish(correct, mistakes, performance.now())
-    } else {
-      setIndex((i) => i + 1)
-      setInput('')
-      setPicked(null)
-      setHasError(false)
+      setQuestions((prev) => [...prev, ...buildWith(makeSeed())])
     }
-  }, [picked, index, questions, finish, correct, mistakes])
+    setIndex((i) => i + 1)
+    setInput('')
+    setPicked(null)
+    setHasError(false)
+  }, [picked, index, questions, buildWith])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -173,9 +194,9 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
         setHasError(false)
         setInput(candidate)
         const hit = q.options.find((o) => o.variants.includes(candidate))
-        if (hit) commit(hit)
+        if (hit) commit(hit, candidate.length) // 打って選んだ＝candidate長をタイピング数に加算
       } else {
-        setMistakes((m) => m + 1)
+        setMistakes((m) => (mistakesRef.current = m + 1))
         perQMissRef.current += 1
         setHasError(true)
       }
@@ -183,6 +204,18 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [finished, picked, q, input, advance, restart, onExit, commit])
+
+  // 最初の打鍵から60秒で終了（操作が無くても時間で finish）。
+  // effect 内の同期 setState は次tickへ遅延（cascading renders 回避）。
+  useEffect(() => {
+    if (finished || startTime === null || timeUpRef.current) return
+    if (now - startTime < TIME_LIMIT_MS) return
+    timeUpRef.current = true
+    setTimeout(
+      () => finish(keysRef.current, correctRef.current, mistakesRef.current, startTime + TIME_LIMIT_MS, startTime),
+      0,
+    )
+  }, [finished, now, startTime, finish])
 
   return {
     question: q,
@@ -192,11 +225,11 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
     picked,
     correct,
     mistakes,
+    typedKeys,
     elapsedSec,
     finished,
     result,
     records,
-    total: WORD_COUNT,
     pick,
     advance,
     restart,

@@ -1,9 +1,9 @@
-// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。600文字で終了（マラソンと同じ）。
-// both は1語ごとに英語→その日本語を続けて入力する。
+// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。最初の打鍵から60秒で終了。
+// both は1語ごとに英語→その日本語を続けて入力する。語が尽きたら継ぎ足してループする。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildWordPassage } from '../domain/words/wordset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
-import { TARGET_KEYS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
 import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
@@ -35,6 +35,10 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
   const [startTime, setStartTime] = useState(null)
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
+  const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
+  const timeUpRef = useRef(false) // 時間切れ処理を一度だけ行うガード
+  const keysRef = useRef(0) // 時間切れ finish 用の最新打鍵数
+  const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
 
   // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
   const segments = useMemo(
@@ -42,7 +46,8 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     [words, mode],
   )
   const seg = segments[segIndex]
-  const progress = Math.min(1, typedKeys / TARGET_KEYS)
+  // 進捗バーは経過時間（0→60秒）で表す
+  const progress = Math.min(1, startTime !== null && now ? (now - startTime) / TIME_LIMIT_MS : 0)
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
@@ -61,6 +66,10 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     setFinished(false)
     setResult(null)
     setStartTime(null)
+    finishedRef.current = false
+    timeUpRef.current = false
+    keysRef.current = 0
+    mistakesRef.current = 0
   }, [allWords, level, theme, mode])
 
   useEffect(() => {
@@ -82,6 +91,8 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
+      if (finishedRef.current) return
+      finishedRef.current = true
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const record = {
@@ -121,43 +132,35 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
       }
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
-      if (!seg) return
+      if (!seg || finishedRef.current) return
 
       const candidate = input + e.key
       if (segMatches(seg, candidate)) {
         const t = performance.now()
-        const startedAt = startTime ?? t // この打鍵で開始した場合も正しい開始時刻を使う
         setStartTime((p) => p ?? t)
         setHasError(false)
         segMark(segTrackerRef.current, t) // この語の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('w', mode, seg.en)) // 単語ごと×モード別
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
+        keysRef.current = newKeys
 
         const completesSeg = seg.variants.includes(candidate)
-        const reachedGoal = newKeys >= TARGET_KEYS
-        // 語の完了 or 打ち切りで「問題ごとの記録」を1件積む
-        if (completesSeg || reachedGoal) {
+        // 語の完了で「問題ごとの記録」を1件積む（未完は60秒 finish 側で処理）
+        if (completesSeg) {
           segPush(segTrackerRef.current, {
             type: seg.type,
             label: seg.type === 'en' ? seg.en : seg.ja,
             keys: candidate.length,
             t,
-            partial: !completesSeg,
+            partial: false,
           })
-        }
-
-        if (reachedGoal) {
-          flushTracker(trackerRef.current)
-          finish(newKeys, mistakes, t, startedAt)
-          return
-        }
-        if (completesSeg) {
-          // 単語を打ち尽くした場合は終了（600未満でも詰まないように）
+          // 語を打ち尽くしたら同じ seed で継ぎ足してループ（60秒の間ずっと続ける）。
           if (segIndex + 1 >= segments.length) {
-            flushTracker(trackerRef.current)
-            finish(newKeys, mistakes, t, startedAt)
-            return
+            setWords((prev) => [
+              ...prev,
+              ...buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(makeSeed()) }),
+            ])
           }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
@@ -166,7 +169,10 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
           setInput(candidate)
         }
       } else {
-        setMistakes((m) => m + 1)
+        setMistakes((m) => {
+          mistakesRef.current = m + 1
+          return m + 1
+        })
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
         setHasError(true)
@@ -174,7 +180,28 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, typedKeys, mistakes, mode, startTime, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, mode, allWords, level, theme, onExit, restart, finish])
+
+  // 最初の打鍵から60秒で終了（キー入力が無くても時間で finish）。
+  // 現在入力中の語があれば partial として記録に積んでから finish。
+  useEffect(() => {
+    if (finished || startTime === null || timeUpRef.current) return
+    if (now - startTime < TIME_LIMIT_MS) return
+    timeUpRef.current = true // partial 記録と finish 予約は一度だけ
+    const t = startTime + TIME_LIMIT_MS
+    if (seg && input.length > 0) {
+      segPush(segTrackerRef.current, {
+        type: seg.type,
+        label: seg.type === 'en' ? seg.en : seg.ja,
+        keys: input.length,
+        t,
+        partial: true,
+      })
+    }
+    flushTracker(trackerRef.current)
+    // effect 内の同期 setState（finish→setRecords/setResult/setFinished）は次tickへ遅延。
+    setTimeout(() => finish(keysRef.current, mistakesRef.current, t, startTime), 0)
+  }, [finished, now, startTime, seg, input, finish])
 
   return {
     segments,
@@ -187,7 +214,6 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     liveSpeed,
     elapsedSec,
     progress,
-    target: TARGET_KEYS,
     finished,
     result,
     records,

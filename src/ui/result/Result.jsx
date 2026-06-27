@@ -13,14 +13,14 @@ export default function Result({ result, records, segStats, onRetry }) {
         {rankText} ／ {modeLabel(result.mode)}
       </div>
       <div className="result-main">
-        <div className="result-speed">{result.speed}</div>
-        <div className="result-unit">打/分</div>
+        <div className="result-speed">{result.keys ?? 0}</div>
+        <div className="result-unit">タイピング数</div>
       </div>
       <div className="result-sub">
-        <span>{result.keys} 打</span>
-        <span>{result.seconds} 秒</span>
+        <span>速度 {result.speed} 打/分</span>
         <span>ミス {result.mistakes}</span>
         <span>正確率 {result.accuracy}%</span>
+        <span>{result.seconds} 秒</span>
       </div>
       <button className="btn-primary" onClick={onRetry}>
         もう一度

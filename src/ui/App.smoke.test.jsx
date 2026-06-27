@@ -2,9 +2,10 @@
 // App のスモークテスト：各モードが「白画面」にならず、開始してプレイ画面が描画されることを自動確認。
 // 手作業で全タブをクリックして回る動作確認を肩代わりする。
 // ※ 単語例文(wsent)はレベル別の例文を遅延 import してから開始するため、waitFor で非同期に待つ。
-import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, fireEvent, cleanup, within, waitFor, act } from '@testing-library/react'
 import App from '../App.jsx'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 
 const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
 
@@ -72,6 +73,27 @@ describe('App スモーク', () => {
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
   })
 
+  it('単語例文でテーマ「日常」を選んで開始してもプレイ画面になる（絞り込み）', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '単語例文')
+    // テーマ行の「日常」ボタン（種類タブ外）をクリック
+    fireEvent.click(within(container).getByRole('button', { name: '日常' }))
+    start()
+    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L1/), { timeout: 8000 })
+  })
+
+  it('単語例文でテーマを変えると収録件数の表示が変わる', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '単語例文')
+    const poolText = () =>
+      [...container.querySelectorAll('.pool-count')].map((n) => n.textContent).join(' ')
+    await waitFor(() => expect(poolText()).toMatch(/収録: \d+ 文/))
+    const allText = poolText()
+    fireEvent.click(within(container).getByRole('button', { name: 'ビジネス' }))
+    await waitFor(() => expect(poolText()).not.toBe(allText))
+    expect(poolText()).toMatch(/収録: \d+ 文/)
+  })
+
   it('↑↓で行フォーカス、←→で行内の選択が動く', () => {
     const { container } = render(<App />)
     const tabs = container.querySelector('.type-tabs')
@@ -90,20 +112,32 @@ describe('App スモーク', () => {
     expect(tabs.querySelector('.type-tab.sel-focus').textContent).not.toBe(before)
   })
 
-  it('タッチタイピングを完走すると記録ランキングに保存される', () => {
-    const { container } = render(<App />)
-    clickTab(container, 'タッチタイピング')
-    start()
-    // 現在ターゲット（ストリップの現在キー）を読み、正しいキーを送って完走する
-    for (let i = 0; i < 60; i++) {
-      if (container.querySelector('.result')) break
-      const cur = container.querySelector('.strip-key.current')
-      if (!cur) break
-      fireEvent.keyDown(window, { key: cur.textContent.trim().toLowerCase() })
+  it('タッチタイピングを数打したあと60秒で完了し記録ランキングに保存される', () => {
+    // 60秒制：時間経過をシミュレートして完了させるため、このテストだけ fake timer を使う。
+    vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
+    try {
+      const { container } = render(<App />)
+      clickTab(container, 'タッチタイピング')
+      start()
+      // 現在ターゲット（ストリップの現在キー）を読み、正しいキーを何打か送る
+      for (let i = 0; i < 20; i++) {
+        if (container.querySelector('.result')) break
+        const cur = container.querySelector('.strip-key.current')
+        if (!cur) break
+        act(() => {
+          fireEvent.keyDown(window, { key: cur.textContent.trim().toLowerCase() })
+        })
+        act(() => vi.advanceTimersByTime(10))
+      }
+      // 最初の打鍵から60秒経過で完了
+      act(() => vi.advanceTimersByTime(TIME_LIMIT_MS + 200))
+      act(() => vi.runOnlyPendingTimers())
+      expect(container.querySelector('.result')).not.toBeNull() // 完了画面
+      // home/easy のキーに記録が積まれている
+      const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
+      expect(recs['easy__touchhome']?.length ?? 0).toBeGreaterThan(0)
+    } finally {
+      vi.useRealTimers()
     }
-    expect(container.querySelector('.result')).not.toBeNull() // 完了画面
-    // home/easy のキーに記録が積まれている
-    const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
-    expect(recs['easy__touchhome']?.length ?? 0).toBeGreaterThan(0)
   })
 })
