@@ -7,14 +7,14 @@ import { Chars, StatsRow, QuizOptionLabel } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 
-export default function DictView({ dict, level, theme, mode, seed, levelLabel, modeLabel, onExit }) {
+export default function DictView({ dict, gloss, level, theme, mode, seed, levelLabel, modeLabel, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
       <span className="meta-badge mode">英英 / {modeLabel} / {theme}</span>
     </div>
   )
-  if (mode === 'quiz') return <QuizView dict={dict} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
   if (mode === 'pick') return <PickView dict={dict} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
   return <TypeView dict={dict} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
 }
@@ -135,8 +135,11 @@ function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
 }
 
 // 4択（定義→英単語をタイプ/クリック）
-function QuizView({ dict, level, theme, seed, meta, onExit }) {
+function QuizView({ dict, gloss, level, theme, seed, meta, onExit }) {
   const q = useDictQuiz({ dict, level, theme, seed, onExit })
+  // 回答後、選んだ語（型 or クリック）の和訳をグロッサリから引いて見出し下に出す
+  const pickedWord = q.input || q.picked?.display
+  const pickedJa = q.picked !== null && pickedWord ? gloss?.[pickedWord] : null
 
   return (
     <div className="game">
@@ -162,6 +165,7 @@ function QuizView({ dict, level, theme, seed, meta, onExit }) {
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}
             </div>
+            {pickedJa && <p className="word-input-ja">{pickedJa}</p>}
           </div>
           <div className="quiz-options">
             {q.question.options.map((opt, i) => {

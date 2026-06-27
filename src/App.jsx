@@ -62,6 +62,7 @@ export default function App() {
   const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
   const [dictSeed, setDictSeed] = useState(null) // 英英の問題列シード（リプレイ再現用）
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
+  const [dictGloss, setDictGloss] = useState(null) // 英英の英→和グロッサリ(回答後の単語和訳表示用)
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
@@ -187,8 +188,10 @@ export default function App() {
     setDictTheme(theme)
     setDictMode(modeKey)
     setDictSeed(seed)
-    const d = await loadDict()
+    // 英英データと英→和グロッサリを並行ロード（クイズ回答後に選んだ語の和訳を見出し下に出す）
+    const [d, gloss] = await Promise.all([loadDict(), loadWordGloss()])
     setDictData(d)
+    setDictGloss(gloss)
     setPhase('dict')
   }, [])
 
@@ -439,6 +442,7 @@ export default function App() {
         <DictView
           key={`${dictLevel}-${dictTheme}-${dictMode}-${dictSeed}`}
           dict={dictData}
+          gloss={dictGloss}
           level={dictLevel}
           theme={dictTheme}
           mode={dictMode}

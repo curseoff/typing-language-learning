@@ -1070,6 +1070,13 @@ h1 {
   font-size: 40px;
   letter-spacing: 0.06em;
 }
+/* 4択クイズの回答後、選んだ語の和訳を見出しのすぐ下に控えめに併記 */
+.word-input-ja {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  margin: 4px 0 0;
+}
 
 /* 次の候補（先読み） */
 .word-next {
