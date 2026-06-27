@@ -94,6 +94,16 @@ export const FINGER = {
   '-': 'rp', '^': 'rp', '¥': 'rp', '@': 'rp', '[': 'rp', ':': 'rp', ']': 'rp', _: 'rp',
 }
 
+// 指ごとの色（左右ミラー＝同じ指は左右同色）。キーの背景・手のイラストで共有。
+// CSS の .fg-* と必ず同じ値にすること（キー側は className、手側はこの値を fill に使う）。
+export const FINGER_COLOR = {
+  lp: '#e9e4a4', rp: '#e9e4a4', // 小指：薄い黄
+  lr: '#6fb1a2', rr: '#6fb1a2', // 薬指：緑青
+  lm: '#f3a8b0', rm: '#f3a8b0', // 中指：ピンク
+  li: '#a9dde3', ri: '#a9dde3', // 人差し指：水色
+  thumb: '#bcc873', // 親指：オリーブ（スペース）
+}
+
 export const FINGER_LABEL = {
   lp: '左 小指',
   lr: '左 薬指',
