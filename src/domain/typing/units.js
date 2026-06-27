@@ -18,7 +18,7 @@ function withWordKana(words, ja, kana) {
 }
 
 function enSeg(item, translate) {
-  return { type: 'en', en: item.en, ja: item.ja, kana: item.kana, variants: [item.en], canonical: item.en, translate }
+  return { type: 'en', en: item.en, ja: item.ja, kana: item.kana, word: item.word, variants: [item.en], canonical: item.en, translate }
 }
 function jaSeg(item, translate) {
   return {
@@ -26,6 +26,7 @@ function jaSeg(item, translate) {
     en: item.en,
     ja: item.ja,
     kana: item.kana,
+    word: item.word,
     variants: romajiVariants(item.kana),
     canonical: toRomaji(item.kana),
     translate,

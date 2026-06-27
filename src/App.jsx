@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
-import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords } from './content/words.js'
+import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords, loadWordGloss } from './content/words.js'
 import { loadWsentLevel } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
@@ -48,6 +48,7 @@ export default function App() {
   const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
+  const [wsentGloss, setWsentGloss] = useState(null) // 単語例文の英→和グロッサリ(プレイ中の和訳併記用)
   const [storyId, setStoryId] = useState(DEFAULT_STORY_ID) // 選択中の物語(travel | climbing …)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [storyNonce, setStoryNonce] = useState(0) // リプレイで物語を強制再マウントするための一意キー
@@ -154,7 +155,9 @@ export default function App() {
   const startWsent = useCallback(
     async (level, modeKey, seed) => {
       // 対象レベルの例文だけ遅延読み込みしてから開始（初回バンドルに全例文を含めない）
-      const pool = await loadWsentLevel(level)
+      // グロッサリ（英→和）も並行ロードし、プレイ中の和訳併記に使う
+      const [pool, gloss] = await Promise.all([loadWsentLevel(level), loadWordGloss()])
+      setWsentGloss(gloss)
       startMarathon(modeKey, level, 'wsent', pool, seed)
       setPhase('playing')
     },
@@ -461,6 +464,7 @@ export default function App() {
         <MarathonView
           mode={mode}
           rankText={`単語例文 L${wsentLevel}`}
+          gloss={wsentGloss}
           segments={segments}
           segIndex={segIndex}
           segInput={segInput}

@@ -641,6 +641,22 @@ h1 {
   color: #06283d;
   background: var(--accent);
 }
+/* 問題文のすぐ上に出す「対応単語」ラベル */
+.seg-word {
+  text-align: center;
+  margin: 14px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.seg-word strong {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 15px;
+}
+.seg-word-ja {
+  color: var(--muted);
+  font-size: 13px;
+}
 
 .stats {
   display: grid;
