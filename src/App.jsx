@@ -64,6 +64,7 @@ export default function App() {
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
+  const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -71,12 +72,15 @@ export default function App() {
   // TOP画面の行（セクション）構成。↑↓で行移動、←→で行内の選択移動。種類によって行が変わる。
   const rows = useMemo(() => {
     const type = { id: 'type', options: TYPE_KEYS, value: gameType, set: setGameType }
+    // 下部トグル（記録ランキング/収録一覧）。タッチ以外の種類に付く。
+    const bottom = { id: 'bottom', options: ['records', 'list'], value: bottomTab, set: setBottomTab }
     switch (gameType) {
       case 'story':
         return [
           type,
           { id: 'story', options: STORY_IDS, value: storyId, set: setStoryId },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          bottom,
         ]
       case 'words':
         return [
@@ -84,6 +88,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wordLevel, set: setWordLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wordTheme, set: setWordTheme },
           { id: 'mode', options: WORD_MODE_KEYS, value: wordMode, set: setWordMode },
+          bottom,
         ]
       case 'dict':
         return [
@@ -91,6 +96,7 @@ export default function App() {
           { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: setDictLevel },
           { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: setDictTheme },
           { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
+          bottom,
         ]
       case 'touch':
         return [
@@ -103,9 +109,10 @@ export default function App() {
           type,
           { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          bottom,
         ]
     }
-  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel])
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, bottomTab])
 
   // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
   const safeFocus = Math.min(focusRow, rows.length - 1)
@@ -276,10 +283,10 @@ export default function App() {
       if (phase !== 'ready') return
 
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        // 行（セクション）の移動：種類 → 物語/レベル → テーマ → モード …
+        // 行（セクション）の移動。一番下まで行ったら先頭へ（上下でループ）。
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
-        setFocusRow((f) => clamp(f + dir, 0, rows.length - 1))
+        setFocusRow((safeFocus + dir + rows.length) % rows.length)
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         // フォーカス中の行内で選択を移動
         e.preventDefault()
@@ -389,6 +396,8 @@ export default function App() {
           onTouchModeChange={setTouchMode}
           focusSection={focusSection}
           onFocusSection={focusSectionById}
+          bottomTab={bottomTab}
+          onBottomTabChange={setBottomTab}
           onStart={start}
           records={records}
         />

@@ -536,7 +536,8 @@ h1 {
 .type-tab.sel-focus,
 .story-card.sel-focus,
 .rank-btn.sel-focus,
-.mode-btn.sel-focus {
+.mode-btn.sel-focus,
+.bottom-tab.sel-focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   background: var(--panel-2);
@@ -545,7 +546,8 @@ h1 {
 .type-tab.sel,
 .story-card.sel,
 .rank-btn.sel,
-.mode-btn.sel {
+.mode-btn.sel,
+.bottom-tab.sel {
   border-color: var(--accent);
   background: var(--accent);
   color: #06283d;

@@ -101,7 +101,7 @@ function DictList({ level, theme, mode }) {
 }
 
 // 下部の「記録ランキング / 収録一覧」切り替え
-function BottomTabs({ value, onChange }) {
+function BottomTabs({ value, onChange, focused }) {
   return (
     <div className="bottom-tabs">
       {[
@@ -110,7 +110,7 @@ function BottomTabs({ value, onChange }) {
       ].map(([k, label]) => (
         <button
           key={k}
-          className={`bottom-tab ${value === k ? 'active' : ''}`}
+          className={`bottom-tab ${selCls(value === k, focused)}`}
           onClick={() => onChange(k)}
         >
           {label}
@@ -121,7 +121,7 @@ function BottomTabs({ value, onChange }) {
 }
 
 // 物語タブ：物語の選択カード＋モード＋記録/一覧。
-function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, bottomTab, setBottomTab, focusSection, onFocusSection }) {
+function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, bottomTab, onBottomTabChange, focusSection, onFocusSection }) {
   const story = storyById(storyId)
   return (
     <>
@@ -167,7 +167,14 @@ function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, b
       </p>
 
       <StartRow onStart={onStart} />
-      <BottomTabs value={bottomTab} onChange={setBottomTab} />
+      <BottomTabs
+        value={bottomTab}
+        focused={focusSection === 'bottom'}
+        onChange={(k) => {
+          onBottomTabChange(k)
+          onFocusSection('bottom')
+        }}
+      />
       {bottomTab === 'list' ? (
         <StoryScenes story={story} mode={mode} />
       ) : (
@@ -204,10 +211,11 @@ export default function Ready({
   onTouchModeChange,
   focusSection,
   onFocusSection,
+  bottomTab,
+  onBottomTabChange,
   onStart,
   records,
 }) {
-  const [bottomTab, setBottomTab] = useState('records') // records | list
 
   return (
     <div className="ready">
@@ -279,7 +287,14 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]} 文</p>
 
           <StartRow onStart={onStart} />
-          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          <BottomTabs
+            value={bottomTab}
+            focused={focusSection === 'bottom'}
+            onChange={(k) => {
+              onBottomTabChange(k)
+              onFocusSection('bottom')
+            }}
+          />
           {bottomTab === 'list' ? (
             <WsentList level={wsentLevel} mode={mode} />
           ) : (
@@ -301,7 +316,7 @@ export default function Ready({
           onModeChange={onModeChange}
           onStart={onStart}
           bottomTab={bottomTab}
-          setBottomTab={setBottomTab}
+          onBottomTabChange={onBottomTabChange}
           focusSection={focusSection}
           onFocusSection={onFocusSection}
         />
@@ -384,7 +399,14 @@ export default function Ready({
           </p>
 
           <StartRow onStart={onStart} />
-          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          <BottomTabs
+            value={bottomTab}
+            focused={focusSection === 'bottom'}
+            onChange={(k) => {
+              onBottomTabChange(k)
+              onFocusSection('bottom')
+            }}
+          />
           {bottomTab === 'list' ? (
             <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
           ) : (
@@ -472,7 +494,14 @@ export default function Ready({
           <p className="pool-count">この条件の収録: {DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語</p>
 
           <StartRow onStart={onStart} />
-          <BottomTabs value={bottomTab} onChange={setBottomTab} />
+          <BottomTabs
+            value={bottomTab}
+            focused={focusSection === 'bottom'}
+            onChange={(k) => {
+              onBottomTabChange(k)
+              onFocusSection('bottom')
+            }}
+          />
           {bottomTab === 'list' ? (
             <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
           ) : (
