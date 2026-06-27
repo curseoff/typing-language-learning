@@ -10,6 +10,7 @@ export function useTouch({ level, onExit }) {
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
   const [wrongKey, setWrongKey] = useState(null) // 直近にミスタイプしたキー（押したキー）
+  const [pressed, setPressed] = useState({ key: null, tick: 0 }) // 直近に押したキー（沈み込みアニメ用。tickで連打も再発火）
   const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
   const [startTime, setStartTime] = useState(null)
@@ -22,6 +23,7 @@ export function useTouch({ level, onExit }) {
     setMistakes(0)
     setHasError(false)
     setWrongKey(null)
+    setPressed({ key: null, tick: 0 })
     setNow(0)
     setFinished(false)
     setStartTime(null)
@@ -54,6 +56,8 @@ export function useTouch({ level, onExit }) {
       }
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
       e.preventDefault()
+      const k = e.key.toLowerCase()
+      setPressed((p) => ({ key: k, tick: p.tick + 1 })) // 押したキーを沈み込ませる
       if (e.key.toLowerCase() === target) {
         const _t = performance.now()
         setStartTime((p) => p ?? _t)
@@ -78,6 +82,7 @@ export function useTouch({ level, onExit }) {
     mistakes,
     hasError,
     wrongKey,
+    pressed,
     elapsedSec,
     finished,
     restart,

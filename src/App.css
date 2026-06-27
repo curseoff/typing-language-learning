@@ -265,6 +265,22 @@ h1 {
   filter: brightness(1.12);
   transform: translateY(-2px);
 }
+/* 押したキーの沈み込みアニメ（物理キーが押し込まれる感じ） */
+@keyframes kb-press {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(5px) scale(0.95);
+    filter: brightness(0.82);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+.kb-key.pressed {
+  animation: kb-press 130ms ease-out;
+}
 /* 指ごとの色（左右ミラー＝同じ指は左右同色）。keyboard.js の FINGER_COLOR と同値を保つ。 */
 .fg-lp,
 .fg-rp {

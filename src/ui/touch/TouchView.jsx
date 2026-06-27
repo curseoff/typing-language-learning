@@ -68,7 +68,13 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onExit }
 
           <p className="touch-finger">使う指：{FINGER_LABEL[FINGER[t.target]]}</p>
 
-          <Keyboard target={t.target} hasError={t.hasError} showTarget={showTarget} wrongKey={t.wrongKey} />
+          <Keyboard
+            target={t.target}
+            hasError={t.hasError}
+            showTarget={showTarget}
+            wrongKey={t.wrongKey}
+            pressed={t.pressed}
+          />
 
           <p className="hint">
             ハイライトされたキーを、対応する指で打ちます（画面を見ずに打てるように）。
