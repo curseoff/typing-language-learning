@@ -281,13 +281,13 @@ h1 {
 .kb-key.pressed {
   animation: kb-press 130ms ease-out;
 }
-/* 正解のキーを押せた瞬間：緑の枠を一瞬光らせる */
+/* 正解のキーを押せた瞬間：緑の枠を一瞬光らせる（outline 使用＝元のキーの影を消さない） */
 @keyframes kb-correct {
   0% {
-    box-shadow: 0 0 0 3px var(--green);
+    outline: 3px solid var(--green);
   }
   100% {
-    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0);
+    outline: 3px solid rgba(74, 222, 128, 0);
   }
 }
 .kb-key.correct {
