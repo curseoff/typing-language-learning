@@ -24,7 +24,7 @@ export default defineConfig({
       include: ['src/**/*.{js,jsx}'],
       exclude: ['src/**/*.test.{js,jsx}', 'src/content/**', 'src/test/**', 'src/main.jsx'],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
-      thresholds: { statements: 73, branches: 55, functions: 72, lines: 74.5 },
+      thresholds: { statements: 74.9, branches: 58.5, functions: 73.9, lines: 75.7 },
     },
   },
 })

@@ -1,9 +1,10 @@
-// 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 を振り分ける。
+// 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 / 英語・日本語入力 を振り分ける。
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
+import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { dictRecKey } from '../../application/records.js'
-import { kanjiDone, kanaConsumed } from '../../domain/typing/progress.js'
-import { Chars, RubyChars, StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel } from '../shared/index.js'
+import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 
@@ -16,7 +17,7 @@ export default function DictView({ dict, gloss, level, theme, mode, seed, levelL
   )
   if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
   if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
-  return <TypeView dict={dict} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
+  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
 }
 
 
@@ -86,11 +87,9 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）
-function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
+// 単語例文（マラソン）の英語/日本語入力と同じ TopFlow（ティッカー表示）で描画する。
+function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, onExit })
-  const seg = d.seg
-  const isEn = mode === 'en'
-  const jaProgress = isEn ? 0 : kanjiDone(seg, d.input)
 
   return (
     <div className="game">
@@ -101,47 +100,41 @@ function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
         <>
           <StatsRow
             stats={[
-              { label: '語数', value: `${d.index} / ${d.total}` },
+              { label: 'タイピング数', value: `${d.typedKeys} / ${TARGET_KEYS}` },
               { label: '速度', value: `${d.liveSpeed} 打/分` },
               { label: 'ミス', value: d.mistakes },
               { label: '時間', value: `${d.elapsedSec} 秒` },
             ]}
-            progress={d.index / d.total}
+            progress={d.typedKeys / TARGET_KEYS}
           />
-          <div className="word-card">
-            <div className="word-dir">{isEn ? '定義（英語）を入力' : '和訳を入力（ローマ字）'}</div>
-            <p className="dict-head">{d.entry.word}</p>
-            {isEn ? (
-              <>
-                <div className="dict-type">
-                  <Chars text={seg.en} done={d.input.length} cursor={d.input.length} hasError={d.hasError} />
-                </div>
-                <p className="dict-ref">{d.entry.ja}</p>
-              </>
-            ) : (
-              <>
-                <p className="dict-ref">{seg.en}</p>
-                <div className="dict-type">
-                  <RubyChars
-                    ja={seg.ja}
-                    kana={seg.kana}
-                    done={jaProgress}
-                    cursor={jaProgress}
-                    hasError={d.hasError}
-                    kanaDone={kanaConsumed(seg.kana, d.input)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+          {d.word && (
+            <p className="seg-word">
+              単語 <strong>{d.word}</strong>
+              {gloss?.[d.word] && <span className="seg-word-ja">（{gloss[d.word]}）</span>}
+            </p>
+          )}
+          <TopFlow
+            segments={d.segments}
+            segIndex={d.segIndex}
+            segInput={d.segInput}
+            hasError={d.hasError}
+            ticker
+          />
           <p className="hint">
-            見出し語の{isEn ? '英語の定義' : '和訳'}を入力。正しく打つまで次に進めません。
+            {typeHint(mode, d.segments[d.segIndex]?.type)}正しく打つまで次に進めません。
             <kbd>Esc</kbd> で中断。
           </p>
         </>
       )}
     </div>
   )
+}
+
+// 入力中のヒント文言。both は今打っているセグ(en/ja)に応じて切り替える。
+function typeHint(mode, segType) {
+  const t = mode === 'both' ? segType : mode
+  if (t === 'ja') return '見出し語の和訳を入力。'
+  return '見出し語の英語の定義を入力。'
 }
 
 // 4択（定義→英単語をタイプ/クリック）
