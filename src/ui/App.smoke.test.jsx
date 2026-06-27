@@ -72,6 +72,27 @@ describe('App スモーク', () => {
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
   })
 
+  it('単語例文でテーマ「日常」を選んで開始してもプレイ画面になる（絞り込み）', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '単語例文')
+    // テーマ行の「日常」ボタン（種類タブ外）をクリック
+    fireEvent.click(within(container).getByRole('button', { name: '日常' }))
+    start()
+    await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L1/), { timeout: 8000 })
+  })
+
+  it('単語例文でテーマを変えると収録件数の表示が変わる', async () => {
+    const { container } = render(<App />)
+    clickTab(container, '単語例文')
+    const poolText = () =>
+      [...container.querySelectorAll('.pool-count')].map((n) => n.textContent).join(' ')
+    await waitFor(() => expect(poolText()).toMatch(/収録: \d+ 文/))
+    const allText = poolText()
+    fireEvent.click(within(container).getByRole('button', { name: 'ビジネス' }))
+    await waitFor(() => expect(poolText()).not.toBe(allText))
+    expect(poolText()).toMatch(/収録: \d+ 文/)
+  })
+
   it('↑↓で行フォーカス、←→で行内の選択が動く', () => {
     const { container } = render(<App />)
     const tabs = container.querySelector('.type-tabs')
