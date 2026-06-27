@@ -159,32 +159,90 @@ h1 {
   border: 1px solid var(--accent);
 }
 
-/* キーボード表示 */
+/* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */
 .kb {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  align-items: center;
-  margin: 18px 0;
+  align-items: flex-start; /* スタガードは左端オフセットで表現するので左寄せ */
+  margin: 18px auto;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .kb-row {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* キー間ギャップ */
 }
 .kb-key {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  width: 46px;
+  height: 46px;
   border-radius: 8px;
-  font-weight: 700;
-  font-size: 15px;
   color: #0b1220;
   background: #cbd5e1;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+  flex: none;
 }
+/* 主たる英字／数字（左上に大きめ） */
+.kb-main {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+}
+/* シフト記号（上段・小さく） */
+.kb-shift {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.72;
+  line-height: 1;
+}
+/* JIS かな（右下、カタカナ） */
+.kb-kana {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.85;
+  line-height: 1;
+}
+/* 小書きかな（実機 JIS ではシフト側＝左下に来る） */
+.kb-kana-small {
+  position: absolute;
+  left: 5px;
+  bottom: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  opacity: 0.7;
+  line-height: 1;
+}
+/* ホームポジション（運指の基準＝下バー） */
 .kb-key.home {
-  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.4);
+}
+/* F/J の突起（中黒）。実機のホームポジション・バーに相当 */
+.kb-key.bump::after {
+  content: '・';
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  font-size: 14px;
+  font-weight: 900;
+  color: rgba(11, 18, 32, 0.85);
+  line-height: 1;
+  pointer-events: none;
+}
+/* 表示専用キー（打鍵対象外の右側記号キー）はやや沈ませる */
+.kb-key.display-only {
+  opacity: 0.78;
 }
 .kb-key.target {
   outline: 3px solid var(--text);
