@@ -13,7 +13,8 @@ export function segMiss(tr) {
 }
 
 // セグメント完了（または打ち切り partial=true）で1件積む。keys=その語/文の打鍵数、t=完了時刻。
-export function segPush(tr, { type, label, keys, t, partial = false }) {
+// sentenceIndex を渡すと「何文目か」を記録に残す（英英 both で文数を数えるのに使う）。
+export function segPush(tr, { type, label, keys, t, partial = false, sentenceIndex }) {
   const ms = tr.start != null ? t - tr.start : 0
   tr.list.push({
     no: tr.list.length + 1,
@@ -24,6 +25,7 @@ export function segPush(tr, { type, label, keys, t, partial = false }) {
     seconds: Math.round(ms / 100) / 10,
     speed: ms > 0 ? Math.round(keys / (ms / 60000)) : 0,
     partial,
+    ...(sentenceIndex != null ? { sentenceIndex } : {}),
   })
   tr.start = null
   tr.mistakes = 0
