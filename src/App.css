@@ -158,9 +158,6 @@ h1 {
   color: #0b1220;
   font-weight: 800;
 }
-.strip-key.current.err {
-  outline: 3px solid var(--red);
-}
 
 /* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */
 .kb {
@@ -262,8 +259,41 @@ h1 {
   filter: brightness(1.12);
   transform: translateY(-2px);
 }
-.kb-key.target.err {
-  outline-color: var(--red);
+/* ミス時に「押した（誤った）キー」の枠を赤く光らせる */
+.kb-key.wrong {
+  outline: 3px solid var(--red);
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+}
+/* 押したキーの沈み込みアニメ（物理キーが押し込まれる感じ） */
+@keyframes kb-press {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(5px) scale(0.95);
+    filter: brightness(0.82);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+.kb-key.pressed {
+  animation: kb-press 130ms ease-out;
+}
+/* 正解のキーを押せた瞬間：緑の枠を一瞬光らせる（outline 使用＝元のキーの影を消さない） */
+@keyframes kb-correct {
+  0% {
+    outline: 3px solid var(--green);
+  }
+  100% {
+    outline: 3px solid rgba(74, 222, 128, 0);
+  }
+}
+.kb-key.correct {
+  animation:
+    kb-press 130ms ease-out,
+    kb-correct 360ms ease-out;
 }
 /* 指ごとの色（左右ミラー＝同じ指は左右同色）。keyboard.js の FINGER_COLOR と同値を保つ。 */
 .fg-lp,
