@@ -34,7 +34,11 @@ if (sh('git rev-parse HEAD') !== sh('git rev-parse origin/develop')) die('ロー
 
 // 2) 秘密情報・個人情報の自己点検（develop..master の追加分）
 log('自己点検（秘密情報・個人情報）…')
-const diff = sh('git diff origin/master..origin/develop')
+// 生成データ（語彙・例文・グロッサリ＝教育コンテンツ）は語彙語(secret/token/password 等)が
+// 正規表現を誤検知するので自己点検から除外する。秘密情報はソース側に入るため検出に影響しない。
+const diff = sh(
+  "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/L*.js'",
+)
 const added = diff.split('\n').filter((l) => l.startsWith('+'))
 const bad = /(api[_-]?key|secret|token|password|private[_-]?key|BEGIN [A-Z ]+PRIVATE KEY|\/Users\/[a-z]+\/|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/i
 // 誤検知の除外：JSX の key= 等、`env -u GITHUB_TOKEN gh`（このリポジトリの定番イディオム＝環境変数名であって秘密値ではない）など。
