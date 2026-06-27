@@ -14,6 +14,7 @@
     "coverage": "vitest run --coverage",
     "validate": "node scripts/validate-sentences.mjs",
     "add-words": "node scripts/add-words.mjs",
+    "gen-gloss": "node scripts/gen-gloss.mjs",
     "gen-sentences": "node scripts/gen-sentences.mjs",
     "merge-sentences": "node scripts/merge-sentences.mjs",
     "gen-dict": "node scripts/gen-dict.mjs",
