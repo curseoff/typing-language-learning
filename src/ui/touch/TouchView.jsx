@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { useTouch } from '../../application/useTouch.js'
 import { FINGER, FINGER_LABEL } from '../../content/keyboard.js'
+import { StatsRow } from '../shared/index.js'
 import Keyboard from './Keyboard.jsx'
 
 export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord, onExit }) {
@@ -69,14 +70,15 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
         </div>
       ) : (
         <>
-          <div className="touch-bar">
-            <span>タイピング数 {t.typedKeys}</span>
-            <span>ミス {t.mistakes}</span>
-            <span>{t.elapsedSec} / 60秒</span>
-          </div>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${Math.min(100, (t.elapsedSec / 60) * 100)}%` }} />
-          </div>
+          <StatsRow
+            stats={[
+              { label: 'タイピング数', value: `${t.typedKeys}` },
+              { label: '速度', value: `${t.liveSpeed} 打/分` },
+              { label: 'ミス', value: t.mistakes },
+              { label: '時間', value: `${t.elapsedSec} / 60秒` },
+            ]}
+            progress={Math.min(1, t.elapsedSec / 60)}
+          />
 
           <div className="touch-strip">
             <div

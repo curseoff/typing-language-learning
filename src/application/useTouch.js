@@ -40,6 +40,11 @@ export function useTouch({ level, onExit }) {
     () => (startTime && now ? Math.round((now - startTime) / 100) / 10 : 0),
     [now, startTime],
   )
+  const liveSpeed = useMemo(() => {
+    if (!startTime || !now) return 0
+    const min = (now - startTime) / 60000
+    return min > 0 ? Math.round(index / min) : 0
+  }, [now, startTime, index])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -97,6 +102,7 @@ export function useTouch({ level, onExit }) {
     wrongKey,
     pressed,
     elapsedSec,
+    liveSpeed,
     finished,
     restart,
     targets,
