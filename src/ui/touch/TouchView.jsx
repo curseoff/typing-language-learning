@@ -2,7 +2,6 @@
 import { useTouch } from '../../application/useTouch.js'
 import { FINGER, FINGER_LABEL } from '../../content/keyboard.js'
 import Keyboard from './Keyboard.jsx'
-import Hands from './Hands.jsx'
 
 export default function TouchView({ level, levelLabel, onExit }) {
   const t = useTouch({ level, onExit })
@@ -66,8 +65,6 @@ export default function TouchView({ level, levelLabel, onExit }) {
           <p className="touch-finger">使う指：{FINGER_LABEL[FINGER[t.target]]}</p>
 
           <Keyboard target={t.target} hasError={t.hasError} />
-
-          <Hands activeFinger={FINGER[t.target]} />
 
           <p className="hint">
             ハイライトされたキーを、対応する指で打ちます（画面を見ずに打てるように）。

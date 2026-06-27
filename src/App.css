@@ -150,13 +150,6 @@ h1 {
 .strip-key.current.err {
   outline: 3px solid var(--red);
 }
-.touch-hands {
-  display: block;
-  width: 100%;
-  max-width: 640px;
-  height: auto;
-  margin: 8px auto 0;
-}
 
 /* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */
 .kb {
