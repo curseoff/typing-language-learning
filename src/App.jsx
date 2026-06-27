@@ -168,7 +168,7 @@ export default function App() {
       // テーマ指定時は見出し語の theme が一致する例文だけに絞る（'すべて'は全件）
       const themeMap = themes[level] ?? {}
       const filtered = theme === 'すべて' ? pool : pool.filter((s) => themeMap[s.word] === theme)
-      startMarathon(modeKey, level, 'wsent', filtered, seed)
+      startMarathon(modeKey, level, 'wsent', filtered, seed, theme)
       setPhase('playing')
     },
     [startMarathon],
@@ -343,7 +343,7 @@ export default function App() {
     ])
     setRecords((prev) => ({
       ...prev,
-      [recKey(mode, wsentLevel, 'wsent')]: [{ ...mock, speed: 520, date: '過去の記録' }, mock],
+      [recKey(mode, wsentLevel, 'wsent', wsentTheme)]: [{ ...mock, speed: 520, date: '過去の記録' }, mock],
     }))
     setPhase('result')
   }, [mode, wsentLevel, wsentTheme])

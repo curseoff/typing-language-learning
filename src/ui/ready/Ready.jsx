@@ -324,9 +324,9 @@ export default function Ready({
             <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} />
           ) : (
             <RecordsTable
-              records={records[recKey(mode, wsentLevel, 'wsent')]}
+              records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme)]}
               modeKey={mode}
-              rankText={`単語例文 L${wsentLevel}`}
+              rankText={`単語例文 L${wsentLevel} / ${wsentTheme}`}
             />
           )}
         </>

@@ -5,7 +5,7 @@ import RecordsTable from './RecordsTable.jsx'
 import SegStatsTable from './SegStatsTable.jsx'
 
 export default function Result({ result, records, segStats, onRetry }) {
-  const rankText = `単語例文 L${result.rank}`
+  const rankText = `単語例文 L${result.rank} / ${result.theme ?? 'すべて'}`
   return (
     <div className="result">
       <h2>記録</h2>
@@ -30,7 +30,7 @@ export default function Result({ result, records, segStats, onRetry }) {
       </p>
       <SegStatsTable segStats={segStats} />
       <RecordsTable
-        records={records[recKey(result.mode, result.rank, result.source)]}
+        records={records[recKey(result.mode, result.rank, result.source, result.theme)]}
         modeKey={result.mode}
         rankText={rankText}
         highlight={result.date}

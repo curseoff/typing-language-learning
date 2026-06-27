@@ -6,6 +6,16 @@ describe('ranking', () => {
     expect(recKey('both', 3)).toBe('both__r3')
   })
 
+  it('recKey は source 別・theme 別にキーを分ける（テーマ未指定は据え置き）', () => {
+    expect(recKey('both', 1, 'wsent')).toBe('both__wsent1')
+    expect(recKey('both', 1, 'wsent', 'すべて')).toBe('both__wsent1__すべて')
+    expect(recKey('both', 1, 'wsent', '日常')).toBe('both__wsent1__日常')
+    // テーマ違いは別キー＝別ランキング
+    expect(recKey('both', 1, 'wsent', '旅行')).not.toBe(recKey('both', 1, 'wsent', 'すべて'))
+    // タッチ等（theme 無し）はキー据え置きで後方互換
+    expect(recKey('home', 1, 'touch')).toBe('home__touch1')
+  })
+
   it('タイピング数(keys)の多い順に並べ、最大件数で切る', () => {
     const list = rankInsert([{ keys: 300 }, { keys: 500 }], { keys: 400 })
     expect(list.map((r) => r.keys)).toEqual([500, 400, 300])
