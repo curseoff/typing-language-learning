@@ -1,7 +1,7 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
 import { useState, useEffect } from 'react'
 import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
-import { WSENT_COUNTS, loadWsentLevel } from '../../content/wordSentences/index.js'
+import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from '../../content/keyboard.js'
@@ -55,19 +55,23 @@ function SectionLabel({ children }) {
   return <div className="section-label">{children}</div>
 }
 
-// 単語例文の収録一覧。レベルの例文を遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
-// 読み込んだ結果は対象レベルと一緒に持ち、レベルが変わった直後は「読み込み中…」を表示する。
-function WsentList({ level, mode }) {
-  const [loaded, setLoaded] = useState(null) // { level, items }
+// 単語例文の収録一覧。レベルの例文＋テーママップを遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
+// 読み込んだ結果は対象レベルと一緒に持ち、レベルが変わった直後は「読み込み中…」を表示する。テーマで絞り込む。
+function WsentList({ level, theme, mode }) {
+  const [loaded, setLoaded] = useState(null) // { level, items, themes }
   useEffect(() => {
     let alive = true
-    loadWsentLevel(level).then((arr) => alive && setLoaded({ level, items: arr }))
+    Promise.all([loadWsentLevel(level), loadWsentThemes()]).then(
+      ([arr, themes]) => alive && setLoaded({ level, items: arr, themes: themes[level] ?? {} }),
+    )
     return () => {
       alive = false
     }
   }, [level])
   if (!loaded || loaded.level !== level) return <p className="pool-count">読み込み中…</p>
-  return <ItemList items={loaded.items} type="marathon" mode={mode} />
+  const items =
+    theme === 'すべて' ? loaded.items : loaded.items.filter((s) => loaded.themes[s.word] === theme)
+  return <ItemList items={items} type="marathon" mode={mode} />
 }
 
 // 単語の収録一覧。単語データを遅延読み込みしてレベル×テーマで絞る。
@@ -193,6 +197,8 @@ export default function Ready({
   onStoryIdChange,
   wsentLevel,
   onWsentLevelChange,
+  wsentTheme,
+  onWsentThemeChange,
   wordLevel,
   wordTheme,
   wordMode,
@@ -265,6 +271,26 @@ export default function Ready({
             </div>
           </div>
 
+          <SectionLabel>テーマ</SectionLabel>
+          <div className="mode-select">
+            <div className="mode-group">
+              <div className="mode-btns">
+                {THEME_OPTIONS.map((t) => (
+                  <button
+                    key={t}
+                    className={`mode-btn ${selCls(wsentTheme === t, focusSection === 'theme')}`}
+                    onClick={() => {
+                      onWsentThemeChange(t)
+                      onFocusSection('theme')
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <SectionLabel>モード</SectionLabel>
           <div className="mode-select">
             {[...new Set(MODES.map((m) => m.group))].map((g) => (
@@ -283,7 +309,7 @@ export default function Ready({
             ))}
           </div>
           <p className="mode-desc">{modeDesc(mode)} 単語を使った例文を打ちます。600文字で終了します。</p>
-          <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]} 文</p>
+          <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0} 文</p>
 
           <StartRow onStart={onStart} />
           <BottomTabs
@@ -295,7 +321,7 @@ export default function Ready({
             }}
           />
           {bottomTab === 'list' ? (
-            <WsentList level={wsentLevel} mode={mode} />
+            <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} />
           ) : (
             <RecordsTable
               records={records[recKey(mode, wsentLevel, 'wsent')]}
