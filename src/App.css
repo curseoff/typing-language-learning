@@ -641,6 +641,11 @@ h1 {
   color: #06283d;
   background: var(--accent);
 }
+.meta-badge.word {
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+}
 
 .stats {
   display: grid;
