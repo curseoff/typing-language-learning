@@ -23,7 +23,6 @@ export default function MarathonView({
       <div className="play-meta">
         <span className="meta-badge rank">{rankText}</span>
         <span className="meta-badge mode">{modeLabel(mode)}</span>
-        {currentSeg?.word && <span className="meta-badge word">単語 {currentSeg.word}</span>}
       </div>
 
       <StatsRow
@@ -35,6 +34,12 @@ export default function MarathonView({
         ]}
         progress={typedKeys / TARGET_KEYS}
       />
+
+      {currentSeg?.word && (
+        <p className="seg-word">
+          単語 <strong>{currentSeg.word}</strong>
+        </p>
+      )}
 
       {currentSeg?.translate ? (
         <TranslateView

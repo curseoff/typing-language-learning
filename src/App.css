@@ -641,10 +641,17 @@ h1 {
   color: #06283d;
   background: var(--accent);
 }
-.meta-badge.word {
+/* 問題文のすぐ上に出す「対応単語」ラベル */
+.seg-word {
+  text-align: center;
+  margin: 14px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.seg-word strong {
   color: var(--accent);
-  background: transparent;
-  border: 1px solid var(--accent);
+  font-weight: 800;
+  font-size: 15px;
 }
 
 .stats {
