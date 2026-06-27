@@ -9,6 +9,7 @@ export function useTouch({ level, onExit }) {
   const [index, setIndex] = useState(0)
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
+  const [wrongKey, setWrongKey] = useState(null) // 直近にミスタイプしたキー（押したキー）
   const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
   const [startTime, setStartTime] = useState(null)
@@ -20,6 +21,7 @@ export function useTouch({ level, onExit }) {
     setIndex(0)
     setMistakes(0)
     setHasError(false)
+    setWrongKey(null)
     setNow(0)
     setFinished(false)
     setStartTime(null)
@@ -56,11 +58,13 @@ export function useTouch({ level, onExit }) {
         const _t = performance.now()
         setStartTime((p) => p ?? _t)
         setHasError(false)
+        setWrongKey(null)
         if (index >= targets.length - 1) setFinished(true)
         else setIndex((i) => i + 1)
       } else {
         setMistakes((m) => m + 1)
         setHasError(true)
+        setWrongKey(e.key.toLowerCase()) // 押した（誤った）キーを記録して枠を光らせる
       }
     }
     window.addEventListener('keydown', onKey)
@@ -73,6 +77,7 @@ export function useTouch({ level, onExit }) {
     total: targets.length,
     mistakes,
     hasError,
+    wrongKey,
     elapsedSec,
     finished,
     restart,

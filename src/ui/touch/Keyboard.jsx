@@ -13,7 +13,7 @@ import {
 // 数字段・記号キーは英字キーと違って main が大きい一文字でないため、刻印の出し分けに使う。
 const ALPHA = /^[a-z]$/
 
-function KeyCap({ k, target, hasError, handSplit }) {
+function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey }) {
   const legend = KEY_LEGENDS[k] ?? {}
   const isTarget = k === target
   const isDisplayOnly = DISPLAY_ONLY_KEYS.includes(k)
@@ -24,7 +24,10 @@ function KeyCap({ k, target, hasError, handSplit }) {
   if (isDisplayOnly) cls += ' display-only'
   if (legend.mainTop) cls += ' main-top'
   if (handSplit) cls += ' hand-split'
-  if (isTarget) cls += hasError ? ' target err' : ' target'
+  // 打つキーのハイライト（やさしいのみ。むずかしいは非表示＝白い枠を出さない）
+  if (isTarget && showTarget) cls += ' target'
+  // ミス時は「押した（誤った）キー」の枠を光らせる（正解キーは光らせない）
+  if (hasError && k === wrongKey) cls += ' wrong'
 
   // 主たる刻印（英字は大文字、その他はキーの記号そのまま）
   const main = ALPHA.test(k) ? k.toUpperCase() : k
@@ -39,7 +42,7 @@ function KeyCap({ k, target, hasError, handSplit }) {
   )
 }
 
-export default function Keyboard({ target, hasError }) {
+export default function Keyboard({ target, hasError, showTarget = true, wrongKey = null }) {
   return (
     <div className="kb">
       {KEY_ROWS.map((row, r) => (
@@ -55,6 +58,8 @@ export default function Keyboard({ target, hasError }) {
                 target={target}
                 hasError={hasError}
                 handSplit={isRight && !prevRight}
+                showTarget={showTarget}
+                wrongKey={wrongKey}
               />
             )
           })}

@@ -158,9 +158,6 @@ h1 {
   color: #0b1220;
   font-weight: 800;
 }
-.strip-key.current.err {
-  outline: 3px solid var(--red);
-}
 
 /* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */
 .kb {
@@ -262,8 +259,11 @@ h1 {
   filter: brightness(1.12);
   transform: translateY(-2px);
 }
-.kb-key.target.err {
-  outline-color: var(--red);
+/* ミス時に「押した（誤った）キー」の枠を赤く光らせる */
+.kb-key.wrong {
+  outline: 3px solid var(--red);
+  filter: brightness(1.12);
+  transform: translateY(-2px);
 }
 /* 指ごとの色（左右ミラー＝同じ指は左右同色）。keyboard.js の FINGER_COLOR と同値を保つ。 */
 .fg-lp,

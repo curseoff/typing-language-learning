@@ -111,6 +111,12 @@ export const HOME_KEYS = ['a', 's', 'd', 'f', 'j', 'k', 'l', ';']
 // F/J の突起（実機のホームポジション・バー）を中黒「・」で表すキー
 export const BUMP_KEYS = ['f', 'j']
 
+// 練習モード。easy=打つキーをキーボード上でハイライト、hard=ハイライトなし（位置を思い出す）。
+export const TOUCH_MODES = [
+  { key: 'easy', label: 'やさしい' },
+  { key: 'hard', label: 'むずかしい' },
+]
+
 // 練習レベル（打鍵対象のキー集合）
 export const TOUCH_LEVELS = [
   { key: 'home', label: 'ホームポジション', keys: ['a', 's', 'd', 'f', 'j', 'k', 'l', ';'] },

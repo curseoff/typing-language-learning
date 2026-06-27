@@ -4,7 +4,7 @@ import { MODES, modeDesc, modeLabel } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
-import { TOUCH_LEVELS } from '../../content/keyboard.js'
+import { TOUCH_LEVELS, TOUCH_MODES } from '../../content/keyboard.js'
 import { STORIES, storyById } from '../../content/stories/index.js'
 import { recKey } from '../../domain/records/ranking.js'
 import {
@@ -190,6 +190,8 @@ export default function Ready({
   onDictModeChange,
   touchLevel,
   onTouchLevelChange,
+  touchMode,
+  onTouchModeChange,
   onStart,
   records,
 }) {
@@ -434,8 +436,16 @@ export default function Ready({
               </div>
             </div>
           </div>
+          <SectionLabel>モード</SectionLabel>
+          <div className="mode-select">
+            <div className="mode-group">
+              <ModeButtons modes={TOUCH_MODES} value={touchMode} onChange={onTouchModeChange} />
+            </div>
+          </div>
           <p className="mode-desc">
-            画面のキーボードを見ながら、指の位置を覚えてブラインドタッチを練習。40打で終了。
+            {touchMode === 'hard'
+              ? '打つキーはハイライトされません。位置を思い出してブラインドタッチ。ミスすると押したキーが光ります。40打で終了。'
+              : '打つキーが画面のキーボードでハイライトされます。指の位置を覚えて練習。ミスすると押したキーが光ります。40打で終了。'}
           </p>
 
           <StartRow onStart={onStart} />

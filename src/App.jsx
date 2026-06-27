@@ -4,7 +4,7 @@ import { WORD_LEVELS, WORD_MODES, loadWords } from './content/words.js'
 import { loadWsentLevel } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID } from './content/stories/index.js'
-import { TOUCH_LEVELS } from './content/keyboard.js'
+import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './application/records.js'
@@ -24,9 +24,11 @@ const MODE_KEYS = MODES.map((m) => m.key)
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
 const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
 const TOUCH_LEVEL_KEYS = TOUCH_LEVELS.map((l) => l.key)
+const TOUCH_MODE_KEYS = TOUCH_MODES.map((m) => m.key)
 const wordModeLabel = (key) => WORD_MODES.find((m) => m.key === key)?.label ?? key
 const dictModeLabel = (key) => DICT_MODES.find((m) => m.key === key)?.label ?? key
 const touchLevelLabel = (key) => TOUCH_LEVELS.find((l) => l.key === key)?.label ?? key
+const touchModeLabel = (key) => TOUCH_MODES.find((m) => m.key === key)?.label ?? key
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 const cycle = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr.length]
 
@@ -56,6 +58,7 @@ export default function App() {
   const [dictSeed, setDictSeed] = useState(null) // 英英の問題列シード（リプレイ再現用）
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
+  const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -228,9 +231,8 @@ export default function App() {
         const dir = e.key === 'ArrowRight' ? 1 : -1
         if (gameType === 'words') setWordMode((p) => cycle(WORD_MODE_KEYS, p, dir))
         else if (gameType === 'dict') setDictMode((p) => cycle(DICT_MODE_KEYS, p, dir))
-        else if (gameType === 'touch') {
-          /* タッチタイピングはモードなし */
-        } else setMode((p) => cycle(MODE_KEYS, p, dir))
+        else if (gameType === 'touch') setTouchMode((p) => cycle(TOUCH_MODE_KEYS, p, dir))
+        else setMode((p) => cycle(MODE_KEYS, p, dir))
       } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         // レベル切り替え（文章=R1..6、単語=W1..4、英英=利用可能レベル、タッチ、物語=なし）
         e.preventDefault()
@@ -281,7 +283,12 @@ export default function App() {
     const id = setTimeout(() => {
       if (p === 'result') previewResult()
       else if (p === 'play') startGame() // 単語例文プレイ（フロー表示）
-      else if (p === 'touch') { setGameType('touch'); setPhase('touch') } // タッチ即プレイ（キーボード確認用）
+      else if (p === 'touch') {
+        // タッチ即プレイ（キーボード確認用）。?mode=hard でむずかしいを確認できる。
+        setGameType('touch')
+        setTouchMode(new URLSearchParams(location.search).get('mode') === 'hard' ? 'hard' : 'easy')
+        setPhase('touch')
+      }
       else if (p === 'story') setPhase('story')
       else if (p === 'story-choice') {
         setStoryStart({ stage: 'choice' }) // 物語の選択肢場面（段組みフロー確認用）
@@ -333,6 +340,8 @@ export default function App() {
           onDictModeChange={setDictMode}
           touchLevel={touchLevel}
           onTouchLevelChange={setTouchLevel}
+          touchMode={touchMode}
+          onTouchModeChange={setTouchMode}
           onStart={start}
           records={records}
         />
@@ -340,9 +349,11 @@ export default function App() {
 
       {phase === 'touch' && (
         <TouchView
-          key={touchLevel}
+          key={`${touchLevel}-${touchMode}`}
           level={touchLevel}
           levelLabel={touchLevelLabel(touchLevel)}
+          mode={touchMode}
+          modeLabel={touchModeLabel(touchMode)}
           onExit={() => setPhase('ready')}
         />
       )}
