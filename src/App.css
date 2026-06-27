@@ -109,40 +109,22 @@ h1 {
   color: var(--muted);
   margin-bottom: 6px;
 }
-.touch-prompt {
-  text-align: center;
-  font-size: 18px;
-  margin-top: 12px;
-}
-.touch-key {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
-  font-size: 30px;
-  font-weight: 800;
-  color: #0b1220;
-  margin-right: 10px;
-  vertical-align: middle;
-}
-.touch-key.err {
-  outline: 3px solid var(--red);
-}
 .touch-finger {
   text-align: center;
   color: var(--muted);
   font-size: 13px;
   margin-top: 4px;
 }
-.touch-queue {
+.touch-strip {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   margin-top: 16px;
+  min-height: 44px;
 }
-.touch-next {
+.strip-key {
+  flex: none;
   width: 30px;
   height: 30px;
   display: flex;
@@ -154,9 +136,19 @@ h1 {
   font-weight: 700;
   font-size: 14px;
 }
-.touch-next:first-child {
-  color: var(--text);
-  border: 1px solid var(--accent);
+.strip-key.done {
+  opacity: 0.45;
+}
+.strip-key.current {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0b1220;
+}
+.strip-key.current.err {
+  outline: 3px solid var(--red);
 }
 
 /* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */

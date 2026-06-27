@@ -46,15 +46,17 @@ export default function TouchView({ level, levelLabel, onExit }) {
             <div className="progress-fill" style={{ width: `${(t.index / t.total) * 100}%` }} />
           </div>
 
-          <p className="touch-prompt">
-            <span className={`touch-key fg-${FINGER[t.target]} ${t.hasError ? 'err' : ''}`}>
+          <div className="touch-strip">
+            {t.done.slice(-3).map((k, i) => (
+              <span key={`d${i}`} className="strip-key done">
+                {k.toUpperCase()}
+              </span>
+            ))}
+            <span className={`strip-key current fg-${FINGER[t.target]} ${t.hasError ? 'err' : ''}`}>
               {t.target.toUpperCase()}
             </span>
-            のキーを打ちましょう
-          </p>
-          <div className="touch-queue">
-            {t.upcoming.map((k, i) => (
-              <span key={i} className="touch-next">
+            {t.upcoming.slice(0, 8 - Math.min(3, t.done.length)).map((k, i) => (
+              <span key={`u${i}`} className="strip-key">
                 {k.toUpperCase()}
               </span>
             ))}
