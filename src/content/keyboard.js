@@ -68,7 +68,7 @@ export const KEY_LEGENDS = {
   m: { kana: 'モ' },
   ',': { kana: 'ネ', shift: '<' },
   '.': { kana: 'ル', shift: '>' },
-  '/': { kana: '・', shift: '?' },
+  '/': { kana: 'メ', shift: '?', kanaSmall: '・' },
   _: { kana: 'ロ', shift: '' },
 }
 
