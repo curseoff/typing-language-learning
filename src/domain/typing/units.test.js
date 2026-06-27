@@ -23,6 +23,55 @@ describe('buildUnits', () => {
   })
 })
 
+describe('buildUnits の word 付与（単語例文の対応単語）', () => {
+  // 単語例文（マラソン）の item: word がその例文の見出し単語
+  const wordItem = {
+    level: 1,
+    word: 'above',
+    en: 'The clouds are above the mountain.',
+    ja: '雲は山の上にあります。',
+    kana: 'くもはやまのうえにあります。',
+    jaWords: ['雲', 'は', '山', 'の', '上', 'に', 'あり', 'ます'],
+  }
+
+  it("en の各セグメントが word を持ち、item.word に等しい", () => {
+    const segs = buildUnits(wordItem, 'en')
+    expect(segs.every((s) => s.word === 'above')).toBe(true)
+  })
+
+  it("ja の各セグメントが word を持ち、item.word に等しい", () => {
+    const segs = buildUnits(wordItem, 'ja')
+    expect(segs.every((s) => s.word === 'above')).toBe(true)
+  })
+
+  it("both は2セグメントとも word を持ち、item.word に等しい", () => {
+    const segs = buildUnits(wordItem, 'both')
+    expect(segs).toHaveLength(2)
+    expect(segs.every((s) => s.word === 'above')).toBe(true)
+  })
+
+  it("en-tr の各セグメントが word を持ち、item.word に等しい", () => {
+    const segs = buildUnits(wordItem, 'en-tr', { rng: mulberry32(7) })
+    expect(segs.every((s) => s.word === 'above')).toBe(true)
+  })
+
+  it("ja-tr の各セグメントが word を持ち、item.word に等しい", () => {
+    const segs = buildUnits(wordItem, 'ja-tr', { rng: mulberry32(7) })
+    expect(segs.every((s) => s.word === 'above')).toBe(true)
+  })
+
+  it("後方互換: word が無い item ではセグメントの word は undefined（他フィールドは不変）", () => {
+    // item には word が無い
+    expect(item.word).toBeUndefined()
+    for (const mode of ['en', 'ja', 'both', 'en-tr', 'ja-tr']) {
+      const segs = buildUnits(item, mode, { rng: mulberry32(7) })
+      expect(segs.every((s) => s.word === undefined)).toBe(true)
+    }
+    // 既存挙動（variants 等）は壊さない
+    expect(buildUnits(item, 'en')[0].variants).toContain('reserve')
+  })
+})
+
 describe('segMatches', () => {
   it('途中入力の前方一致を判定する', () => {
     const seg = buildUnits(item, 'ja')[0]
