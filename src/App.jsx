@@ -133,6 +133,9 @@ export default function App() {
     setSegStats(stats)
     setPhase('result')
   }, [])
+  // タッチタイピングの記録を保存（結果画面には遷移せず記録だけ追加）
+  const onTouchRecord = useCallback((rec) => setRecords(saveRecord(rec)), [])
+
   const {
     start: startMarathon,
     segments,
@@ -410,6 +413,7 @@ export default function App() {
           levelLabel={touchLevelLabel(touchLevel)}
           mode={touchMode}
           modeLabel={touchModeLabel(touchMode)}
+          onRecord={onTouchRecord}
           onExit={() => setPhase('ready')}
         />
       )}

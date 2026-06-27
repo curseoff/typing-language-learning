@@ -89,4 +89,21 @@ describe('App スモーク', () => {
     fireEvent.keyDown(window, { key: 'ArrowRight' })
     expect(tabs.querySelector('.type-tab.sel-focus').textContent).not.toBe(before)
   })
+
+  it('タッチタイピングを完走すると記録ランキングに保存される', () => {
+    const { container } = render(<App />)
+    clickTab(container, 'タッチタイピング')
+    start()
+    // 現在ターゲット（ストリップの現在キー）を読み、正しいキーを送って完走する
+    for (let i = 0; i < 60; i++) {
+      if (container.querySelector('.result')) break
+      const cur = container.querySelector('.strip-key.current')
+      if (!cur) break
+      fireEvent.keyDown(window, { key: cur.textContent.trim().toLowerCase() })
+    }
+    expect(container.querySelector('.result')).not.toBeNull() // 完了画面
+    // home/easy のキーに記録が積まれている
+    const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
+    expect(recs['easy__touchhome']?.length ?? 0).toBeGreaterThan(0)
+  })
 })
