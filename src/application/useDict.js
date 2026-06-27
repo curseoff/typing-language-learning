@@ -20,6 +20,7 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
   )
   const [entries, setEntries] = useState(build)
   const [index, setIndex] = useState(0)
+  const [subIndex, setSubIndex] = useState(0) // エントリ内のセグメント位置（both は en→ja の0/1）
   const [input, setInput] = useState('')
   const [hasError, setHasError] = useState(false)
   const [typedKeys, setTypedKeys] = useState(0)
@@ -33,11 +34,24 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
 
   const entry = entries[index]
-  // 定義(en=def)/和訳(ja) を buildUnits 用に渡してセグメント化
-  const seg = useMemo(
-    () => buildUnits({ en: entry.def, ja: entry.ja, kana: entry.kana }, mode)[0],
-    [entry, mode],
+  // エントリ1件のセグメント列（en/ja=1件、both=[enSeg, jaSeg] の2件）。
+  const segsOf = useCallback(
+    (e) => buildUnits({ word: e.word, en: e.def, ja: e.ja, kana: e.kana }, mode),
+    [mode],
   )
+  // 全エントリのフラットなセグメント列。同一エントリ由来のセグは同じ sentenceIndex を持つ。
+  const segments = useMemo(
+    () => entries.flatMap((e, i) => segsOf(e).map((s) => ({ ...s, sentenceIndex: i }))),
+    [entries, segsOf],
+  )
+  // 現在エントリのセグ列と現在のサブセグ。
+  const entrySegs = useMemo(() => segsOf(entry), [segsOf, entry])
+  // 現在セグのフラット位置（このエントリより前のセグ数 + subIndex）。
+  const segIndex = useMemo(
+    () => entries.slice(0, index).reduce((n, e) => n + segsOf(e).length, 0) + subIndex,
+    [entries, index, subIndex, segsOf],
+  )
+  const seg = entrySegs[subIndex]
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
@@ -47,6 +61,7 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
     setSessionSeed(next)
     setEntries(buildDictSet(dict, level, theme, DICT_TYPE_COUNT, { rng: mulberry32(next) }))
     setIndex(0)
+    setSubIndex(0)
     setInput('')
     setHasError(false)
     setTypedKeys(0)
@@ -127,18 +142,23 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
         const newKeys = typedKeys + 1
         setTypedKeys(newKeys)
         if (seg.variants.includes(candidate)) {
-          // 見出し語1件の完了を「問題ごとの記録」に積む
+          // セグメント1件の完了を「問題ごとの記録」に積む（both は en/ja の2件）
           segPush(segTrackerRef.current, {
             type: seg.type,
             label: entry.word,
             keys: candidate.length,
             t,
           })
-          if (index >= entries.length - 1) {
+          if (subIndex < entrySegs.length - 1) {
+            // 同エントリの次セグへ（both: en→ja）
+            setSubIndex((s) => s + 1)
+            setInput('')
+          } else if (index >= entries.length - 1) {
             flushTracker(trackerRef.current)
             finish(newKeys, mistakes, t)
           } else {
             setIndex((i) => i + 1)
+            setSubIndex(0)
             setInput('')
           }
         } else {
@@ -153,13 +173,16 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, entry, index, entries.length, input, typedKeys, mistakes, mode, onExit, restart, finish])
+  }, [finished, seg, entry, index, subIndex, entrySegs.length, entries.length, input, typedKeys, mistakes, mode, onExit, restart, finish])
 
   return {
     entry,
     entries,
+    segments,
+    segIndex,
     seg,
     index,
+    subIndex,
     input,
     hasError,
     typedKeys,

@@ -1,9 +1,7 @@
-// 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 を振り分ける。
-import { useMemo } from 'react'
+// 英英辞典の画面。単語4択 / 説明4択 / 英語入力 / 日本語入力 / 英語・日本語入力 を振り分ける。
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
-import { buildUnits } from '../../domain/typing/units.js'
 import { StatsRow, QuizOptionLabel } from '../shared/index.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
@@ -91,16 +89,6 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
 // 単語例文（マラソン）の英語/日本語入力と同じ TopFlow（ティッカー表示）で描画する。
 function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, onExit })
-  const isEn = mode === 'en'
-  // 全エントリを TopFlow 用のセグメント列に変換（定義=en, 和訳=ja, 読み=kana）。
-  const segments = useMemo(
-    () =>
-      d.entries.map((e, i) => ({
-        ...buildUnits({ word: e.word, en: e.def, ja: e.ja, kana: e.kana }, mode)[0],
-        sentenceIndex: i,
-      })),
-    [d.entries, mode],
-  )
 
   return (
     <div className="game">
@@ -125,20 +113,27 @@ function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
             </p>
           )}
           <TopFlow
-            segments={segments}
-            segIndex={d.index}
+            segments={d.segments}
+            segIndex={d.segIndex}
             segInput={d.input}
             hasError={d.hasError}
             ticker
           />
           <p className="hint">
-            見出し語の{isEn ? '英語の定義' : '和訳'}を入力。正しく打つまで次に進めません。
+            {typeHint(mode, d.seg?.type)}正しく打つまで次に進めません。
             <kbd>Esc</kbd> で中断。
           </p>
         </>
       )}
     </div>
   )
+}
+
+// 入力中のヒント文言。both は今打っているセグ(en/ja)に応じて切り替える。
+function typeHint(mode, segType) {
+  const t = mode === 'both' ? segType : mode
+  if (t === 'ja') return '見出し語の和訳を入力。'
+  return '見出し語の英語の定義を入力。'
 }
 
 // 4択（定義→英単語をタイプ/クリック）

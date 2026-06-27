@@ -29,7 +29,7 @@ const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 const WORD_INPUT = WORD_MODES.filter((m) => !m.key.startsWith('quiz'))
 const WORD_QUIZ = WORD_MODES.filter((m) => m.key.startsWith('quiz'))
 const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz' || m.key === 'pick')
-const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'en' || m.key === 'ja')
+const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'both' || m.key === 'en' || m.key === 'ja')
 const dictLevelLabel = (lv) => WORD_LEVELS.find((l) => l.level === lv)?.label ?? ''
 
 // 選択状態のクラス。フォーカス行の選択＝青枠(sel-focus)、非フォーカス行の選択＝青背景(sel)。
@@ -571,6 +571,8 @@ export default function Ready({
 
 function dictModeDesc(key) {
   switch (key) {
+    case 'both':
+      return '1語ごとに見出し語の英語の定義→その和訳を続けて入力。'
     case 'pick':
       return '英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ（12問）。'
     case 'en':

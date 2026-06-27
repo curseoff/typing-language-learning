@@ -36,6 +36,30 @@ describe('useDict（英英入力・結合）', () => {
     expect(rec.segStats.length).toBe(rec.words)
   }, 20000)
 
+  it('英語・日本語(both)モードで1エントリ en→ja の順に打って完走する', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'both', onExit: () => {} }),
+    )
+    // 各エントリの先頭セグは en、2つ目は ja。打ち進めると en→ja→次エントリの en … と切り替わる。
+    const types = []
+    let n = 0
+    while (!h.result.current.finished && n < 5000) {
+      const seg = h.result.current.seg
+      if (!seg) break
+      if (h.result.current.input.length === 0) types.push(seg.type)
+      typeKey(seg.canonical[h.result.current.input.length])
+      n++
+    }
+    expect(h.result.current.finished).toBe(true)
+    // セグ列は en,ja,en,ja,… の繰り返し（エントリ数×2）
+    expect(types.slice(0, 4)).toEqual(['en', 'ja', 'en', 'ja'])
+    const rec = loadDictRecords()[dictRecKey(1, 'すべて', 'both')][0]
+    expect(rec.mistakes).toBe(0)
+    // both は1エントリにつき en/ja の2件を segStats に積む
+    expect(rec.segStats.length).toBe(rec.words * 2)
+    expect(rec.segStats.map((s) => s.type).slice(0, 2)).toEqual(['en', 'ja'])
+  }, 20000)
+
   it('通常プレイ（seed 未指定）でも record に有効な seed が入る＝記録から再挑戦できる', () => {
     const h = renderHook(() =>
       useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', onExit: () => {} }),
