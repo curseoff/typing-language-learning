@@ -13,7 +13,7 @@ import {
 // 数字段・記号キーは英字キーと違って main が大きい一文字でないため、刻印の出し分けに使う。
 const ALPHA = /^[a-z]$/
 
-function KeyCap({ k, target, hasError, handSplit }) {
+function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey, isPressed, isCorrect }) {
   const legend = KEY_LEGENDS[k] ?? {}
   const isTarget = k === target
   const isDisplayOnly = DISPLAY_ONLY_KEYS.includes(k)
@@ -24,7 +24,11 @@ function KeyCap({ k, target, hasError, handSplit }) {
   if (isDisplayOnly) cls += ' display-only'
   if (legend.mainTop) cls += ' main-top'
   if (handSplit) cls += ' hand-split'
-  if (isTarget) cls += hasError ? ' target err' : ' target'
+  if (isPressed) cls += isCorrect ? ' pressed correct' : ' pressed' // 押下アニメ＋正解は緑枠フラッシュ
+  // 打つキーのハイライト（やさしいのみ。むずかしいは非表示＝白い枠を出さない）
+  if (isTarget && showTarget) cls += ' target'
+  // ミス時は「押した（誤った）キー」の枠を光らせる（正解キーは光らせない）
+  if (hasError && k === wrongKey) cls += ' wrong'
 
   // 主たる刻印（英字は大文字、その他はキーの記号そのまま）
   const main = ALPHA.test(k) ? k.toUpperCase() : k
@@ -39,7 +43,13 @@ function KeyCap({ k, target, hasError, handSplit }) {
   )
 }
 
-export default function Keyboard({ target, hasError }) {
+export default function Keyboard({
+  target,
+  hasError,
+  showTarget = true,
+  wrongKey = null,
+  pressed = { key: null, tick: 0 },
+}) {
   return (
     <div className="kb">
       {KEY_ROWS.map((row, r) => (
@@ -48,13 +58,19 @@ export default function Keyboard({ target, hasError }) {
             // 左手(l*)→右手(r*)に切り替わる最初の右手キーにギャップを入れ、左右の担当を視覚化
             const isRight = (FINGER[k] || '').startsWith('r')
             const prevRight = i > 0 ? (FINGER[row[i - 1]] || '').startsWith('r') : false
+            const isPressed = k === pressed.key
             return (
               <KeyCap
-                key={k}
+                // 押したキーは tick を key に含めて再マウントし、連打でもアニメを再発火させる
+                key={isPressed ? `${k}#${pressed.tick}` : k}
                 k={k}
                 target={target}
                 hasError={hasError}
                 handSplit={isRight && !prevRight}
+                showTarget={showTarget}
+                wrongKey={wrongKey}
+                isPressed={isPressed}
+                isCorrect={isPressed && pressed.ok}
               />
             )
           })}

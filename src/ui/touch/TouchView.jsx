@@ -3,14 +3,16 @@ import { useTouch } from '../../application/useTouch.js'
 import { FINGER, FINGER_LABEL } from '../../content/keyboard.js'
 import Keyboard from './Keyboard.jsx'
 
-export default function TouchView({ level, levelLabel, onExit }) {
+export default function TouchView({ level, levelLabel, mode, modeLabel, onExit }) {
   const t = useTouch({ level, onExit })
+  const showTarget = mode !== 'hard' // むずかしいは打つキーをハイライトしない
 
   return (
     <div className="game">
       <div className="play-meta">
         <span className="meta-badge rank">タッチタイピング</span>
         <span className="meta-badge mode">{levelLabel}</span>
+        {modeLabel ? <span className="meta-badge mode">{modeLabel}</span> : null}
       </div>
 
       {t.finished ? (
@@ -54,9 +56,7 @@ export default function TouchView({ level, levelLabel, onExit }) {
               {t.targets.map((k, i) => {
                 const cur = i === t.index
                 const cls =
-                  'strip-key' +
-                  (i < t.index ? ' done' : '') +
-                  (cur ? ` current fg-${FINGER[k]}${t.hasError ? ' err' : ''}` : '')
+                  'strip-key' + (i < t.index ? ' done' : '') + (cur ? ` current fg-${FINGER[k]}` : '')
                 return (
                   <span key={i} className={cls}>
                     {k.toUpperCase()}
@@ -68,7 +68,13 @@ export default function TouchView({ level, levelLabel, onExit }) {
 
           <p className="touch-finger">使う指：{FINGER_LABEL[FINGER[t.target]]}</p>
 
-          <Keyboard target={t.target} hasError={t.hasError} />
+          <Keyboard
+            target={t.target}
+            hasError={t.hasError}
+            showTarget={showTarget}
+            wrongKey={t.wrongKey}
+            pressed={t.pressed}
+          />
 
           <p className="hint">
             ハイライトされたキーを、対応する指で打ちます（画面を見ずに打てるように）。
