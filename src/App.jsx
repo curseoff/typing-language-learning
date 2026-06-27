@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
-import { WORD_LEVELS, WORD_MODES, loadWords } from './content/words.js'
+import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords } from './content/words.js'
 import { loadWsentLevel } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
-import { DEFAULT_STORY_ID } from './content/stories/index.js'
+import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
@@ -30,7 +30,11 @@ const dictModeLabel = (key) => DICT_MODES.find((m) => m.key === key)?.label ?? k
 const touchLevelLabel = (key) => TOUCH_LEVELS.find((l) => l.key === key)?.label ?? key
 const touchModeLabel = (key) => TOUCH_MODES.find((m) => m.key === key)?.label ?? key
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
-const cycle = (arr, cur, dir) => arr[(arr.indexOf(cur) + dir + arr.length) % arr.length]
+// 行内の選択移動（端で止まる＝ラップしない）
+const step = (options, value, dir) => options[clamp(options.indexOf(value) + dir, 0, options.length - 1)]
+const STORY_IDS = STORIES.map((s) => s.id)
+const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
+const LEVEL_VALUES = WORD_LEVELS.map((l) => l.level)
 
 // 初期タブ（?tab=wsent 等のディープリンク。スクショ撮影や共有リンクに使える）
 const initialTab = (() => {
@@ -59,9 +63,66 @@ export default function App() {
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
+  const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
+  const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
+
+  // TOP画面の行（セクション）構成。↑↓で行移動、←→で行内の選択移動。種類によって行が変わる。
+  const rows = useMemo(() => {
+    const type = { id: 'type', options: TYPE_KEYS, value: gameType, set: setGameType }
+    // 下部トグル（記録ランキング/収録一覧）。タッチ以外の種類に付く。
+    const bottom = { id: 'bottom', options: ['records', 'list'], value: bottomTab, set: setBottomTab }
+    switch (gameType) {
+      case 'story':
+        return [
+          type,
+          { id: 'story', options: STORY_IDS, value: storyId, set: setStoryId },
+          { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          bottom,
+        ]
+      case 'words':
+        return [
+          type,
+          { id: 'level', options: LEVEL_VALUES, value: wordLevel, set: setWordLevel },
+          { id: 'theme', options: THEME_OPTIONS, value: wordTheme, set: setWordTheme },
+          { id: 'mode', options: WORD_MODE_KEYS, value: wordMode, set: setWordMode },
+          bottom,
+        ]
+      case 'dict':
+        return [
+          type,
+          { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: setDictLevel },
+          { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: setDictTheme },
+          { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
+          bottom,
+        ]
+      case 'touch':
+        return [
+          type,
+          { id: 'level', options: TOUCH_LEVEL_KEYS, value: touchLevel, set: setTouchLevel },
+          { id: 'mode', options: TOUCH_MODE_KEYS, value: touchMode, set: setTouchMode },
+        ]
+      default: // wsent
+        return [
+          type,
+          { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
+          { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          bottom,
+        ]
+    }
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, bottomTab])
+
+  // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
+  const safeFocus = Math.min(focusRow, rows.length - 1)
+  const focusSection = rows[safeFocus].id
+
+  // セクションをクリックしたらその行へフォーカス（マウス操作でも青枠が追従）
+  const focusSectionById = useCallback(
+    (id) => setFocusRow(Math.max(0, rows.findIndex((r) => r.id === id))),
+    [rows],
+  )
 
   // マラソンのゲームセッション
   const onFinish = useCallback((record, stats) => {
@@ -221,31 +282,22 @@ export default function App() {
       }
       if (phase !== 'ready') return
 
-      if (e.key === 'Tab') {
-        // 種類タブの切り替え（文章 → 物語 → 単語）
-        e.preventDefault()
-        setGameType((prev) => cycle(TYPE_KEYS, prev, e.shiftKey ? -1 : 1))
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-        // モード切り替え（単語は wordMode、それ以外は mode）
-        e.preventDefault()
-        const dir = e.key === 'ArrowRight' ? 1 : -1
-        if (gameType === 'words') setWordMode((p) => cycle(WORD_MODE_KEYS, p, dir))
-        else if (gameType === 'dict') setDictMode((p) => cycle(DICT_MODE_KEYS, p, dir))
-        else if (gameType === 'touch') setTouchMode((p) => cycle(TOUCH_MODE_KEYS, p, dir))
-        else setMode((p) => cycle(MODE_KEYS, p, dir))
-      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        // レベル切り替え（文章=R1..6、単語=W1..4、英英=利用可能レベル、タッチ、物語=なし）
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        // 行（セクション）の移動。一番下まで行ったら先頭へ（上下でループ）。
         e.preventDefault()
         const dir = e.key === 'ArrowDown' ? 1 : -1
-        if (gameType === 'wsent') setWsentLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
-        else if (gameType === 'words') setWordLevel((l) => clamp(l + dir, 1, WORD_LEVELS.length))
-        else if (gameType === 'dict') setDictLevel((l) => cycle(DICT_AVAILABLE_LEVELS, l, dir))
-        else if (gameType === 'touch') setTouchLevel((l) => cycle(TOUCH_LEVEL_KEYS, l, dir))
+        setFocusRow((safeFocus + dir + rows.length) % rows.length)
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // フォーカス中の行内で選択を移動
+        e.preventDefault()
+        const dir = e.key === 'ArrowRight' ? 1 : -1
+        const row = rows[safeFocus]
+        row.set(step(row.options, row.value, dir))
       }
     }
     window.addEventListener('keydown', onNav)
     return () => window.removeEventListener('keydown', onNav)
-  }, [phase, start, startGame, gameType])
+  }, [phase, start, startGame, rows, safeFocus])
 
   // 開発時だけ：結果画面をダミーデータで即プレビュー（本番ビルドには含まれない）
   const previewResult = useCallback(() => {
@@ -342,6 +394,10 @@ export default function App() {
           onTouchLevelChange={setTouchLevel}
           touchMode={touchMode}
           onTouchModeChange={setTouchMode}
+          focusSection={focusSection}
+          onFocusSection={focusSectionById}
+          bottomTab={bottomTab}
+          onBottomTabChange={setBottomTab}
           onStart={start}
           records={records}
         />

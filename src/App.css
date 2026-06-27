@@ -530,6 +530,33 @@ h1 {
   background: var(--accent);
   border-color: var(--accent);
 }
+
+/* ── TOP画面の選択状態（↑↓=行移動 / ←→=行内の選択移動） ──
+   フォーカス中の行の選択＝青枠（塗らない）／非フォーカス行の選択＝青背景（塗る） */
+.type-tab.sel-focus,
+.story-card.sel-focus,
+.rank-btn.sel-focus,
+.mode-btn.sel-focus,
+.bottom-tab.sel-focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  background: var(--panel-2);
+  color: var(--text);
+}
+.type-tab.sel,
+.story-card.sel,
+.rank-btn.sel,
+.mode-btn.sel,
+.bottom-tab.sel {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #06283d;
+}
+.type-tab.sel .type-sub,
+.story-card.sel .story-card-sub {
+  color: #06283d;
+  opacity: 0.85;
+}
 .mode-desc {
   text-align: center;
   color: var(--muted);

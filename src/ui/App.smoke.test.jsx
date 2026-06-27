@@ -71,4 +71,22 @@ describe('App スモーク', () => {
     start()
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
   })
+
+  it('↑↓で行フォーカス、←→で行内の選択が動く', () => {
+    const { container } = render(<App />)
+    const tabs = container.querySelector('.type-tabs')
+    // 初期は種類行フォーカス＝種類タブが青枠(sel-focus)
+    expect(tabs.querySelector('.type-tab.sel-focus')).not.toBeNull()
+    // ↓：フォーカスが下の行へ → 種類の選択は青背景(sel)に変わる
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(tabs.querySelector('.type-tab.sel-focus')).toBeNull()
+    expect(tabs.querySelector('.type-tab.sel')).not.toBeNull()
+    // ↑：種類行へ戻る
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    expect(tabs.querySelector('.type-tab.sel-focus')).not.toBeNull()
+    // ←→：種類行内で選択（種類タブ）が移動する
+    const before = tabs.querySelector('.type-tab.sel-focus').textContent
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(tabs.querySelector('.type-tab.sel-focus').textContent).not.toBe(before)
+  })
 })
