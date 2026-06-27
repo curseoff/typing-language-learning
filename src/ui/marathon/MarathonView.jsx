@@ -8,6 +8,7 @@ import TranslateView from './TranslateView.jsx'
 export default function MarathonView({
   mode,
   rankText,
+  gloss,
   segments,
   segIndex,
   segInput,
@@ -38,6 +39,9 @@ export default function MarathonView({
       {currentSeg?.word && (
         <p className="seg-word">
           単語 <strong>{currentSeg.word}</strong>
+          {gloss?.[currentSeg.word] && (
+            <span className="seg-word-ja">（{gloss[currentSeg.word]}）</span>
+          )}
         </p>
       )}
 

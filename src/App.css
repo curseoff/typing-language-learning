@@ -653,6 +653,10 @@ h1 {
   font-weight: 800;
   font-size: 15px;
 }
+.seg-word-ja {
+  color: var(--muted);
+  font-size: 13px;
+}
 
 .stats {
   display: grid;
