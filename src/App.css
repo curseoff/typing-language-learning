@@ -257,10 +257,6 @@ h1 {
   line-height: 1;
   pointer-events: none;
 }
-/* 表示専用キー（打鍵対象外の右側記号キー）はやや沈ませる */
-.kb-key.display-only {
-  opacity: 0.78;
-}
 .kb-key.target {
   outline: 3px solid var(--text);
   filter: brightness(1.12);
