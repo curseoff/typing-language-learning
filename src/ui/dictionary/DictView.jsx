@@ -16,7 +16,7 @@ export default function DictView({ dict, gloss, level, theme, mode, seed, levelL
   )
   if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
   if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
-  return <TypeView dict={dict} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
+  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
 }
 
 
@@ -86,7 +86,7 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）
-function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
+function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, onExit })
   const seg = d.seg
   const isEn = mode === 'en'
@@ -111,6 +111,7 @@ function TypeView({ dict, level, theme, mode, seed, meta, onExit }) {
           <div className="word-card">
             <div className="word-dir">{isEn ? '定義（英語）を入力' : '和訳を入力（ローマ字）'}</div>
             <p className="dict-head">{d.entry.word}</p>
+            {gloss?.[d.entry.word] && <p className="dict-head-ja">{gloss[d.entry.word]}</p>}
             {isEn ? (
               <>
                 <div className="dict-type">
