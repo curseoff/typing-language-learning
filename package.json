@@ -1,7 +1,7 @@
 {
   "name": "typing-language-learning",
   "private": true,
-  "version": "0.15.9",
+  "version": "0.15.10",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -17,6 +17,7 @@
     "gen-gloss": "node scripts/gen-gloss.mjs",
     "gen-sentences": "node scripts/gen-sentences.mjs",
     "merge-sentences": "node scripts/merge-sentences.mjs",
+    "gen-wsent-theme": "node scripts/gen-wsent-theme.mjs",
     "gen-dict": "node scripts/gen-dict.mjs",
     "merge-dict": "node scripts/merge-dict.mjs",
     "check-readings": "node scripts/check-readings.mjs",

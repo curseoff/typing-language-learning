@@ -131,25 +131,22 @@ if (write) {
   const merged = [...WORD_SENTENCES, ...ok]
   const uniq = new Map(merged.map((s) => [s.word, s]))
   const list = [...uniq.values()].sort((a, b) => a.level - b.level || a.word.localeCompare(b.word))
-  // レベル別ファイル（遅延読み込み用）を再生成し、index の件数も更新する
+  // レベル別ファイル（遅延読み込み用）を再生成する
   const dirUrl = (p) => new URL(`../src/content/wordSentences/${p}`, import.meta.url)
-  const counts = {}
   for (const lv of [1, 2, 3, 4]) {
     const arr = list.filter((s) => s.level === lv)
-    counts[lv] = arr.length
     writeFileSync(
       dirUrl(`L${lv}.js`),
       `// 単語例文 L${lv}（自動分割。生成は scripts/gen-sentences→merge-sentences）。\nexport default [\n${arr.map(line).join('\n')}\n]\n`,
     )
   }
-  writeFileSync(
-    dirUrl('index.js'),
-    '// 単語例文の遅延読み込み。初回バンドルに全例文を含めないよう、レベル別に分割し動的importする。\n' +
-      '// アプリ側はこの index 経由でアクセス（静的に全件 import しないこと）。Node ツールは ./all.js を使う。\n' +
-      `export const WSENT_COUNTS = ${JSON.stringify(counts)}\n` +
-      "const loaders = { 1: () => import('./L1.js'), 2: () => import('./L2.js'), 3: () => import('./L3.js'), 4: () => import('./L4.js') }\n" +
-      'export const loadWsentLevel = (level) => loaders[level]().then((m) => m.default)\n',
-  )
+  // index の WSENT_COUNTS（level×theme）と theme.js を更新（語の増減でテーマ件数も変わるため再生成）。
+  await import('child_process')
+    .then(({ execFileSync }) =>
+      execFileSync('node', [new URL('./gen-wsent-theme.mjs', import.meta.url).pathname], {
+        stdio: 'inherit',
+      }),
+    )
   console.log(`\n✓ wordSentences/L1..L4.js を更新。合計 ${list.length}件。続けて: npm run check`)
 }
 

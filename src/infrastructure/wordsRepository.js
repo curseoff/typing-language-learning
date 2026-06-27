@@ -20,11 +20,8 @@ export function saveWordRecord(record) {
   const all = loadWordRecords()
   const key = wordRecKey(record.level, record.theme, record.mode)
   const list = [...(all[key] || []), record]
-  if (record.mode.startsWith('quiz')) {
-    list.sort((a, b) => b.correct - a.correct || a.seconds - b.seconds) // 正解多い→速い
-  } else {
-    list.sort((a, b) => b.speed - a.speed) // 速い順
-  }
+  // 全モードでタイピング数(keys)の多い順に統一（60秒固定なので keys が成績）。同数はミスの少ない順。
+  list.sort((a, b) => (b.keys ?? 0) - (a.keys ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0))
   all[key] = list.slice(0, MAX_RECORDS)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
   return all

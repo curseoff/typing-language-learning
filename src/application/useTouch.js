@@ -1,12 +1,13 @@
-// タッチタイピング練習の状態機械（記録は保存しない）。
+// タッチタイピング練習の状態機械（最初の打鍵から60秒で終了。ドリルが尽きたら継ぎ足す）。
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildDrill } from '../domain/touch/drill.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { TOUCH_LEVELS } from '../content/keyboard.js'
 
 export function useTouch({ level, onExit }) {
   const keys = (TOUCH_LEVELS.find((l) => l.key === level) ?? TOUCH_LEVELS[0]).keys
   const [targets, setTargets] = useState(() => buildDrill(keys))
-  const [index, setIndex] = useState(0)
+  const [index, setIndex] = useState(0) // 正しく打ったキー数＝タイピング数
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
   const [wrongKey, setWrongKey] = useState(null) // 直近にミスタイプしたキー（押したキー）
@@ -39,6 +40,11 @@ export function useTouch({ level, onExit }) {
     () => (startTime && now ? Math.round((now - startTime) / 100) / 10 : 0),
     [now, startTime],
   )
+  const liveSpeed = useMemo(() => {
+    if (!startTime || !now) return 0
+    const min = (now - startTime) / 60000
+    return min > 0 ? Math.round(index / min) : 0
+  }, [now, startTime, index])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -64,8 +70,9 @@ export function useTouch({ level, onExit }) {
         setStartTime((p) => p ?? _t)
         setHasError(false)
         setWrongKey(null)
-        if (index >= targets.length - 1) setFinished(true)
-        else setIndex((i) => i + 1)
+        // ドリルが尽きたら継ぎ足してループ（60秒の間ずっと打ち続ける）。
+        if (index >= targets.length - 1) setTargets((prev) => [...prev, ...buildDrill(keys)])
+        setIndex((i) => i + 1)
       } else {
         setMistakes((m) => m + 1)
         setHasError(true)
@@ -74,17 +81,28 @@ export function useTouch({ level, onExit }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, target, index, targets.length, onExit, restart])
+  }, [finished, target, index, targets.length, keys, onExit, restart])
+
+  // 最初の打鍵から60秒で終了（キー入力が無くても時間で finish）。
+  // effect 内の同期 setState は cascading renders を招くため setTimeout(…,0) で遅延する。
+  useEffect(() => {
+    if (finished || startTime === null) return
+    if (now - startTime < TIME_LIMIT_MS) return
+    const id = setTimeout(() => setFinished(true), 0)
+    return () => clearTimeout(id)
+  }, [finished, now, startTime])
 
   return {
     target,
     index,
+    typedKeys: index, // タイピング数（正しく打ったキー数）
     total: targets.length,
     mistakes,
     hasError,
     wrongKey,
     pressed,
     elapsedSec,
+    liveSpeed,
     finished,
     restart,
     targets,

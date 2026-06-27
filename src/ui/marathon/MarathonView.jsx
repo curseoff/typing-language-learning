@@ -1,6 +1,5 @@
 // マラソンのプレイ画面（バッジ・ステータス・本文・ヒントを合成）。
 import { modeLabel } from '../../content/modes.js'
-import { TARGET_KEYS } from '../../domain/marathon/passage.js'
 import { StatsRow } from '../shared/index.js'
 import TopFlow from './TopFlow.jsx'
 import TranslateView from './TranslateView.jsx'
@@ -28,12 +27,12 @@ export default function MarathonView({
 
       <StatsRow
         stats={[
-          { label: 'タイピング数', value: `${typedKeys} / ${TARGET_KEYS}` },
+          { label: 'タイピング数', value: `${typedKeys}` },
           { label: '速度', value: `${liveSpeed} 打/分` },
           { label: 'ミス', value: mistakes },
-          { label: '時間', value: `${elapsedSec} 秒` },
+          { label: '時間', value: `${elapsedSec} / 60秒` },
         ]}
-        progress={typedKeys / TARGET_KEYS}
+        progress={Math.min(1, elapsedSec / 60)}
       />
 
       {currentSeg?.word && (

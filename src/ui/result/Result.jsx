@@ -5,7 +5,7 @@ import RecordsTable from './RecordsTable.jsx'
 import SegStatsTable from './SegStatsTable.jsx'
 
 export default function Result({ result, records, segStats, onRetry }) {
-  const rankText = `単語例文 L${result.rank}`
+  const rankText = `単語例文 L${result.rank} / ${result.theme ?? 'すべて'}`
   return (
     <div className="result">
       <h2>記録</h2>
@@ -13,14 +13,14 @@ export default function Result({ result, records, segStats, onRetry }) {
         {rankText} ／ {modeLabel(result.mode)}
       </div>
       <div className="result-main">
-        <div className="result-speed">{result.speed}</div>
-        <div className="result-unit">打/分</div>
+        <div className="result-speed">{result.keys ?? 0}</div>
+        <div className="result-unit">タイピング数</div>
       </div>
       <div className="result-sub">
-        <span>{result.keys} 打</span>
-        <span>{result.seconds} 秒</span>
+        <span>速度 {result.speed} 打/分</span>
         <span>ミス {result.mistakes}</span>
         <span>正確率 {result.accuracy}%</span>
+        <span>{result.seconds} 秒</span>
       </div>
       <button className="btn-primary" onClick={onRetry}>
         もう一度
@@ -30,7 +30,7 @@ export default function Result({ result, records, segStats, onRetry }) {
       </p>
       <SegStatsTable segStats={segStats} />
       <RecordsTable
-        records={records[recKey(result.mode, result.rank, result.source)]}
+        records={records[recKey(result.mode, result.rank, result.source, result.theme)]}
         modeKey={result.mode}
         rankText={rankText}
         highlight={result.date}

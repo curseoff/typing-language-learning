@@ -2,7 +2,7 @@
 // 単語データ(words)は遅延読み込みのため呼び出し側から渡す（純関数）。
 import { romajiVariants } from '../romaji/romaji.js'
 import { buildUnits } from '../typing/units.js'
-import { TARGET_KEYS } from '../marathon/passage.js'
+import { PASSAGE_KEYS } from '../marathon/passage.js'
 
 export const WORD_COUNT = 30 // 4択クイズの問題数
 
@@ -25,15 +25,15 @@ export function buildWordSet(words, level, theme, count = WORD_COUNT, { rng = Ma
 // 1セグメントを打つのに最低限必要なキー数（最短の綴り）
 const minKeys = (seg) => Math.min(...seg.variants.map((v) => v.length))
 
-// 入力モード用：最短の綴りで打っても TARGET_KEYS(600) を超えるよう語を並べる（足りなければ循環）。
-// canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても600前に打ち尽くさない。
-export function buildWordPassage(words, level, theme, mode, { rng = Math.random } = {}) {
+// 入力モード用：最短の綴りで打っても target(既定 PASSAGE_KEYS=2000) を超えるよう語を並べる（足りなければ循環）。
+// canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても60秒の間に打ち尽くさない。
+export function buildWordPassage(words, level, theme, mode, { rng = Math.random, target = PASSAGE_KEYS } = {}) {
   const pool = levelThemePool(words, level, theme)
   const shuffled = [...pool].sort(() => rng() - 0.5)
   const out = []
   let chars = 0
   let i = 0
-  while (chars < TARGET_KEYS + 30 && i < 4000) {
+  while (chars < target + 30 && i < 8000) {
     const w = shuffled[i % shuffled.length]
     out.push(w)
     chars += buildUnits(w, mode).reduce((s, seg) => s + minKeys(seg), 0)
