@@ -18,7 +18,8 @@ export function Chars({ text, done, cursor = -1, hasError = false, over = false 
 }
 
 // 漢字runに <ruby> でふりがなを付けつつ、Chars と同じ打鍵色分けをする。
-export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over = false }) {
+// kanaDone を渡すと、ふりがな(rt)も「入力済みのかな」を done 色（緑）にする（未指定なら素のまま＝従来挙動）。
+export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over = false, kanaDone = null }) {
   const charSpan = (ch, gi) => {
     let cls = 'ch'
     if (gi < done) cls += ' done'
@@ -30,11 +31,19 @@ export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over 
       </span>
     )
   }
+  const rt = (p) =>
+    kanaDone == null
+      ? p.ruby
+      : [...p.ruby].map((rc, j) => (
+          <span key={j} className={p.kanaFrom + j < kanaDone ? 'ch done' : 'ch'}>
+            {rc}
+          </span>
+        ))
   return rubyParts(ja, kana).map((p, pi) =>
     p.ruby ? (
       <ruby key={pi}>
         {p.chars.map((ch, j) => charSpan(ch, p.from + j))}
-        <rt>{p.ruby}</rt>
+        <rt>{rt(p)}</rt>
       </ruby>
     ) : (
       <Fragment key={pi}>{p.chars.map((ch, j) => charSpan(ch, p.from + j))}</Fragment>
