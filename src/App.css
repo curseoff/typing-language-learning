@@ -194,31 +194,34 @@ h1 {
   font-size: 15px;
   line-height: 1;
 }
-/* シフト記号（左上・小さく） */
+/* シフト記号（上・中央） */
 .kb-shift {
   position: absolute;
   top: 3px;
-  left: 6px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 10px;
   font-weight: 700;
   opacity: 0.72;
   line-height: 1;
 }
-/* JIS かな（右下） */
+/* JIS かな（下・中央） */
 .kb-kana {
   position: absolute;
-  right: 5px;
   bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 11px;
   font-weight: 700;
   opacity: 0.85;
   line-height: 1;
 }
-/* 小書きかな（実機 JIS では右上に来る） */
+/* 小書きかな（右・中央） */
 .kb-kana-small {
   position: absolute;
-  top: 4px;
+  top: 50%;
   right: 5px;
+  transform: translateY(-50%);
   font-size: 9px;
   font-weight: 700;
   opacity: 0.7;
@@ -228,13 +231,13 @@ h1 {
 .kb-key.home {
   box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.4);
 }
-/* F/J の突起（中黒）。実機のホームポジション・バーに相当 */
+/* F/J の突起（中黒）。実機のホームポジション・バーに相当。キー中央に置く（下中央のカナと重ねない） */
 .kb-key.bump::after {
   content: '・';
   position: absolute;
   left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   font-size: 14px;
   font-weight: 900;
   color: rgba(11, 18, 32, 0.85);
