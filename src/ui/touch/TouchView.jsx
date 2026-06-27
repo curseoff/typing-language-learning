@@ -1,11 +1,38 @@
 // タッチタイピング練習の画面。打つべきキー・使う指・キーボードを表示。
+import { useEffect, useRef } from 'react'
 import { useTouch } from '../../application/useTouch.js'
 import { FINGER, FINGER_LABEL } from '../../content/keyboard.js'
 import Keyboard from './Keyboard.jsx'
 
-export default function TouchView({ level, levelLabel, mode, modeLabel, onExit }) {
+export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord, onExit }) {
   const t = useTouch({ level, onExit })
   const showTarget = mode !== 'hard' // むずかしいは打つキーをハイライトしない
+
+  // 完了時に記録を1回だけ保存（速い順ランキングに積む）。restart で再び保存できるようリセット。
+  const saved = useRef(false)
+  useEffect(() => {
+    if (!t.finished) {
+      saved.current = false
+      return
+    }
+    if (saved.current) return
+    saved.current = true
+    const seconds = t.elapsedSec
+    const speed = seconds > 0 ? Math.round((t.total / seconds) * 60) : 0
+    const accuracy = Math.round((t.total / (t.total + t.mistakes)) * 100)
+    onRecord?.({
+      source: 'touch',
+      mode,
+      rank: level,
+      speed,
+      mistakes: t.mistakes,
+      accuracy,
+      seconds,
+      date: new Date().toLocaleString('ja-JP'),
+    })
+    // 完了フラグ立ち上がりで保存。値は当該レンダーのものを使う。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t.finished])
 
   return (
     <div className="game">

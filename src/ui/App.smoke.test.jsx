@@ -71,4 +71,39 @@ describe('App スモーク', () => {
     start()
     await waitFor(() => expect(badgeText(container)).toMatch(/単語例文 L2/), { timeout: 8000 })
   })
+
+  it('↑↓で行フォーカス、←→で行内の選択が動く', () => {
+    const { container } = render(<App />)
+    const tabs = container.querySelector('.type-tabs')
+    // 初期は種類行フォーカス＝種類タブが青枠(sel-focus)
+    expect(tabs.querySelector('.type-tab.sel-focus')).not.toBeNull()
+    // ↓：フォーカスが下の行へ → 種類の選択は青背景(sel)に変わる
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(tabs.querySelector('.type-tab.sel-focus')).toBeNull()
+    expect(tabs.querySelector('.type-tab.sel')).not.toBeNull()
+    // ↑：種類行へ戻る
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    expect(tabs.querySelector('.type-tab.sel-focus')).not.toBeNull()
+    // ←→：種類行内で選択（種類タブ）が移動する
+    const before = tabs.querySelector('.type-tab.sel-focus').textContent
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(tabs.querySelector('.type-tab.sel-focus').textContent).not.toBe(before)
+  })
+
+  it('タッチタイピングを完走すると記録ランキングに保存される', () => {
+    const { container } = render(<App />)
+    clickTab(container, 'タッチタイピング')
+    start()
+    // 現在ターゲット（ストリップの現在キー）を読み、正しいキーを送って完走する
+    for (let i = 0; i < 60; i++) {
+      if (container.querySelector('.result')) break
+      const cur = container.querySelector('.strip-key.current')
+      if (!cur) break
+      fireEvent.keyDown(window, { key: cur.textContent.trim().toLowerCase() })
+    }
+    expect(container.querySelector('.result')).not.toBeNull() // 完了画面
+    // home/easy のキーに記録が積まれている
+    const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
+    expect(recs['easy__touchhome']?.length ?? 0).toBeGreaterThan(0)
+  })
 })
