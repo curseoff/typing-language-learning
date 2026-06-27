@@ -47,19 +47,23 @@ export default function TouchView({ level, levelLabel, onExit }) {
           </div>
 
           <div className="touch-strip">
-            {t.done.slice(-3).map((k, i) => (
-              <span key={`d${i}`} className="strip-key done">
-                {k.toUpperCase()}
-              </span>
-            ))}
-            <span className={`strip-key current fg-${FINGER[t.target]} ${t.hasError ? 'err' : ''}`}>
-              {t.target.toUpperCase()}
-            </span>
-            {t.upcoming.slice(0, 8 - Math.min(3, t.done.length)).map((k, i) => (
-              <span key={`u${i}`} className="strip-key">
-                {k.toUpperCase()}
-              </span>
-            ))}
+            <div
+              className="strip-track"
+              style={{ transform: `translateX(${-Math.max(0, t.index - 3) * 42}px)` }}
+            >
+              {t.targets.map((k, i) => {
+                const cur = i === t.index
+                const cls =
+                  'strip-key' +
+                  (i < t.index ? ' done' : '') +
+                  (cur ? ` current fg-${FINGER[k]}${t.hasError ? ' err' : ''}` : '')
+                return (
+                  <span key={i} className={cls}>
+                    {k.toUpperCase()}
+                  </span>
+                )
+              })}
+            </div>
           </div>
 
           <p className="touch-finger">使う指：{FINGER_LABEL[FINGER[t.target]]}</p>
