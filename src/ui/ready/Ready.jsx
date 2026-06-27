@@ -32,13 +32,16 @@ const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz' || m.key === 'pick')
 const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'en' || m.key === 'ja')
 const dictLevelLabel = (lv) => WORD_LEVELS.find((l) => l.level === lv)?.label ?? ''
 
-function ModeButtons({ modes, value, onChange }) {
+// 選択状態のクラス。フォーカス行の選択＝青枠(sel-focus)、非フォーカス行の選択＝青背景(sel)。
+const selCls = (selected, focused) => (selected ? (focused ? 'sel-focus' : 'sel') : '')
+
+function ModeButtons({ modes, value, onChange, focused }) {
   return (
     <div className="mode-btns">
       {modes.map((m) => (
         <button
           key={m.key}
-          className={`mode-btn ${value === m.key ? 'active' : ''}`}
+          className={`mode-btn ${selCls(value === m.key, focused)}`}
           onClick={() => onChange(m.key)}
         >
           {m.label}
@@ -118,7 +121,7 @@ function BottomTabs({ value, onChange }) {
 }
 
 // 物語タブ：物語の選択カード＋モード＋記録/一覧。
-function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, bottomTab, setBottomTab }) {
+function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, bottomTab, setBottomTab, focusSection, onFocusSection }) {
   const story = storyById(storyId)
   return (
     <>
@@ -127,8 +130,11 @@ function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, b
         {STORIES.map((s) => (
           <button
             key={s.id}
-            className={`story-card ${storyId === s.id ? 'active' : ''}`}
-            onClick={() => onStoryIdChange(s.id)}
+            className={`story-card ${selCls(storyId === s.id, focusSection === 'story')}`}
+            onClick={() => {
+              onStoryIdChange(s.id)
+              onFocusSection('story')
+            }}
           >
             <span className="story-card-title">📖 {s.title}</span>
             <span className="story-card-sub">
@@ -146,7 +152,11 @@ function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, b
             <ModeButtons
               modes={MODES.filter((m) => m.group === g)}
               value={mode}
-              onChange={onModeChange}
+              focused={focusSection === 'mode'}
+              onChange={(k) => {
+                onModeChange(k)
+                onFocusSection('mode')
+              }}
             />
           </div>
         ))}
@@ -192,6 +202,8 @@ export default function Ready({
   onTouchLevelChange,
   touchMode,
   onTouchModeChange,
+  focusSection,
+  onFocusSection,
   onStart,
   records,
 }) {
@@ -208,8 +220,11 @@ export default function Ready({
         {GAME_TYPES.map((t) => (
           <button
             key={t.key}
-            className={`type-tab ${gameType === t.key ? 'active' : ''}`}
-            onClick={() => onTypeChange(t.key)}
+            className={`type-tab ${selCls(gameType === t.key, focusSection === 'type')}`}
+            onClick={() => {
+              onTypeChange(t.key)
+              onFocusSection('type')
+            }}
           >
             <span className="type-icon">{t.icon}</span>
             <span className="type-label">{t.label}</span>
@@ -229,8 +244,11 @@ export default function Ready({
                 {WORD_LEVELS.map((l) => (
                   <button
                     key={l.level}
-                    className={`rank-btn ${wsentLevel === l.level ? 'active' : ''}`}
-                    onClick={() => onWsentLevelChange(l.level)}
+                    className={`rank-btn ${selCls(wsentLevel === l.level, focusSection === 'level')}`}
+                    onClick={() => {
+                      onWsentLevelChange(l.level)
+                      onFocusSection('level')
+                    }}
                   >
                     <span className="rank-no">L{l.level}</span>
                     {l.label}
@@ -248,7 +266,11 @@ export default function Ready({
                 <ModeButtons
                   modes={MODES.filter((m) => m.group === g)}
                   value={mode}
-                  onChange={onModeChange}
+                  focused={focusSection === 'mode'}
+                  onChange={(k) => {
+                    onModeChange(k)
+                    onFocusSection('mode')
+                  }}
                 />
               </div>
             ))}
@@ -280,6 +302,8 @@ export default function Ready({
           onStart={onStart}
           bottomTab={bottomTab}
           setBottomTab={setBottomTab}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
         />
       )}
 
@@ -293,8 +317,11 @@ export default function Ready({
                 {WORD_LEVELS.map((l) => (
                   <button
                     key={l.level}
-                    className={`rank-btn ${wordLevel === l.level ? 'active' : ''}`}
-                    onClick={() => onWordLevelChange(l.level)}
+                    className={`rank-btn ${selCls(wordLevel === l.level, focusSection === 'level')}`}
+                    onClick={() => {
+                      onWordLevelChange(l.level)
+                      onFocusSection('level')
+                    }}
                   >
                     <span className="rank-no">W{l.level}</span>
                     {l.label}
@@ -311,8 +338,11 @@ export default function Ready({
                 {THEME_OPTIONS.map((t) => (
                   <button
                     key={t}
-                    className={`mode-btn ${wordTheme === t ? 'active' : ''}`}
-                    onClick={() => onThemeChange(t)}
+                    className={`mode-btn ${selCls(wordTheme === t, focusSection === 'theme')}`}
+                    onClick={() => {
+                      onThemeChange(t)
+                      onFocusSection('theme')
+                    }}
                   >
                     {t}
                   </button>
@@ -325,11 +355,27 @@ export default function Ready({
           <div className="mode-select">
             <div className="mode-group">
               <div className="mode-course">入力</div>
-              <ModeButtons modes={WORD_INPUT} value={wordMode} onChange={onWordModeChange} />
+              <ModeButtons
+                modes={WORD_INPUT}
+                value={wordMode}
+                focused={focusSection === 'mode'}
+                onChange={(k) => {
+                  onWordModeChange(k)
+                  onFocusSection('mode')
+                }}
+              />
             </div>
             <div className="mode-group">
               <div className="mode-course">4択クイズ</div>
-              <ModeButtons modes={WORD_QUIZ} value={wordMode} onChange={onWordModeChange} />
+              <ModeButtons
+                modes={WORD_QUIZ}
+                value={wordMode}
+                focused={focusSection === 'mode'}
+                onChange={(k) => {
+                  onWordModeChange(k)
+                  onFocusSection('mode')
+                }}
+              />
             </div>
           </div>
           <p className="mode-desc">{wordModeDesc(wordMode)}</p>
@@ -361,8 +407,11 @@ export default function Ready({
                 {DICT_AVAILABLE_LEVELS.map((lv) => (
                   <button
                     key={lv}
-                    className={`rank-btn ${dictLevel === lv ? 'active' : ''}`}
-                    onClick={() => onDictLevelChange(lv)}
+                    className={`rank-btn ${selCls(dictLevel === lv, focusSection === 'level')}`}
+                    onClick={() => {
+                      onDictLevelChange(lv)
+                      onFocusSection('level')
+                    }}
                   >
                     <span className="rank-no">L{lv}</span>
                     {dictLevelLabel(lv)}
@@ -379,8 +428,11 @@ export default function Ready({
                 {THEME_OPTIONS.map((t) => (
                   <button
                     key={t}
-                    className={`mode-btn ${dictTheme === t ? 'active' : ''}`}
-                    onClick={() => onDictThemeChange(t)}
+                    className={`mode-btn ${selCls(dictTheme === t, focusSection === 'theme')}`}
+                    onClick={() => {
+                      onDictThemeChange(t)
+                      onFocusSection('theme')
+                    }}
                   >
                     {t}
                   </button>
@@ -393,11 +445,27 @@ export default function Ready({
           <div className="mode-select">
             <div className="mode-group">
               <div className="mode-course">4択</div>
-              <ModeButtons modes={DICT_QUIZ} value={dictMode} onChange={onDictModeChange} />
+              <ModeButtons
+                modes={DICT_QUIZ}
+                value={dictMode}
+                focused={focusSection === 'mode'}
+                onChange={(k) => {
+                  onDictModeChange(k)
+                  onFocusSection('mode')
+                }}
+              />
             </div>
             <div className="mode-group">
               <div className="mode-course">入力</div>
-              <ModeButtons modes={DICT_INPUT} value={dictMode} onChange={onDictModeChange} />
+              <ModeButtons
+                modes={DICT_INPUT}
+                value={dictMode}
+                focused={focusSection === 'mode'}
+                onChange={(k) => {
+                  onDictModeChange(k)
+                  onFocusSection('mode')
+                }}
+              />
             </div>
           </div>
           <p className="mode-desc">{dictModeDesc(dictMode)}</p>
@@ -427,8 +495,11 @@ export default function Ready({
                 {TOUCH_LEVELS.map((l) => (
                   <button
                     key={l.key}
-                    className={`rank-btn ${touchLevel === l.key ? 'active' : ''}`}
-                    onClick={() => onTouchLevelChange(l.key)}
+                    className={`rank-btn ${selCls(touchLevel === l.key, focusSection === 'level')}`}
+                    onClick={() => {
+                      onTouchLevelChange(l.key)
+                      onFocusSection('level')
+                    }}
                   >
                     {l.label}
                   </button>
@@ -439,7 +510,15 @@ export default function Ready({
           <SectionLabel>モード</SectionLabel>
           <div className="mode-select">
             <div className="mode-group">
-              <ModeButtons modes={TOUCH_MODES} value={touchMode} onChange={onTouchModeChange} />
+              <ModeButtons
+                modes={TOUCH_MODES}
+                value={touchMode}
+                focused={focusSection === 'mode'}
+                onChange={(k) => {
+                  onTouchModeChange(k)
+                  onFocusSection('mode')
+                }}
+              />
             </div>
           </div>
           <p className="mode-desc">
@@ -475,8 +554,7 @@ function StartRow({ onStart }) {
         スタート
       </button>
       <p className="key-hint">
-        <kbd>Tab</kbd> 種類 / <kbd>↑</kbd> <kbd>↓</kbd> レベル / <kbd>←</kbd> <kbd>→</kbd> モード /{' '}
-        <kbd>Enter</kbd> スタート
+        <kbd>↑</kbd> <kbd>↓</kbd> 項目 / <kbd>←</kbd> <kbd>→</kbd> 選択 / <kbd>Enter</kbd> スタート
       </p>
     </>
   )
