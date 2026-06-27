@@ -466,9 +466,9 @@ export default function Ready({
           <SectionLabel>モード</SectionLabel>
           <div className="mode-select">
             <div className="mode-group">
-              <div className="mode-course">4択</div>
+              <div className="mode-course">入力</div>
               <ModeButtons
-                modes={DICT_QUIZ}
+                modes={DICT_INPUT}
                 value={dictMode}
                 focused={focusSection === 'mode'}
                 onChange={(k) => {
@@ -478,9 +478,9 @@ export default function Ready({
               />
             </div>
             <div className="mode-group">
-              <div className="mode-course">入力</div>
+              <div className="mode-course">4択</div>
               <ModeButtons
-                modes={DICT_INPUT}
+                modes={DICT_QUIZ}
                 value={dictMode}
                 focused={focusSection === 'mode'}
                 onChange={(k) => {

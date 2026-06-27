@@ -8,11 +8,12 @@ export { WORD_LEVELS as DICT_LEVELS, WORD_THEMES as DICT_THEMES }
 // 英英辞典のモード
 // quiz＝定義を読んで単語を当てる4択 / pick＝単語に合う説明文を選んで入力
 // en＝定義文を打つ / ja＝和訳を打つ
+// 並び順は TOP のモード表示・←→操作と一致させる（入力 → 4択）。
 export const DICT_MODES = [
-  { key: 'quiz', label: '単語4択' },
-  { key: 'pick', label: '説明4択' },
   { key: 'en', label: '英語入力' },
   { key: 'ja', label: '日本語入力' },
+  { key: 'quiz', label: '単語4択' },
+  { key: 'pick', label: '説明4択' },
 ]
 
 // 英英データは大きいので遅延 import（初回バンドルに含めない）。
