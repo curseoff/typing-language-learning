@@ -37,8 +37,8 @@ export function useMarathon({ active, onFinish }) {
     return () => clearInterval(id)
   }, [active])
 
-  const start = useCallback((mode, rank, source, pool, seed) => {
-    ctxRef.current = { mode, rank, source, seed }
+  const start = useCallback((mode, rank, source, pool, seed, theme) => {
+    ctxRef.current = { mode, rank, source, seed, theme }
     // seed があれば決定的な問題列を再現（リプレイ）。無ければ Math.random で通常出題。
     const opts = seed != null ? { rng: mulberry32(seed) } : {}
     setSegments(buildPassage(mode, pool, opts))
@@ -67,11 +67,13 @@ export function useMarathon({ active, onFinish }) {
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
-      const { mode, rank, source, seed } = ctxRef.current
+      const { mode, rank, source, seed, theme } = ctxRef.current
       const record = {
         mode,
         rank,
         source,
+        theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
+
         seed, // 同じ問題列を再現するためのシード（リプレイ用）
         speed,
         keys,
