@@ -9,6 +9,15 @@ import {
   loadItemStats,
   loadRecords,
   saveRecord,
+  loadDictRecords,
+  saveDictRecord,
+  dictRecKey,
+  loadWordRecords,
+  saveWordRecord,
+  wordRecKey,
+  saveStoryRecord,
+  saveFound,
+  loadFound,
 } from './records.js'
 import { recKey } from '../domain/records/ranking.js'
 
@@ -57,5 +66,26 @@ describe('application/records（記録ファサード）', () => {
     expect(all[key]).toContainEqual(expect.objectContaining({ wpm: 50 }))
     // 再エクスポートは infrastructure と同一実体なので読み戻せる
     expect(loadRecords()[key]).toContainEqual(expect.objectContaining({ wpm: 50 }))
+  })
+
+  it('saveDictRecord で保存した dict 記録を loadDictRecords で読み戻せる（facade 経由 round-trip）', () => {
+    saveDictRecord({ level: 1, theme: 'すべて', mode: 'quiz', keys: 10 })
+    expect(loadDictRecords()[dictRecKey(1, 'すべて', 'quiz')]).toContainEqual(
+      expect.objectContaining({ keys: 10 }),
+    )
+  })
+
+  it('saveWordRecord で保存した word 記録を loadWordRecords で読み戻せる（facade 経由 round-trip）', () => {
+    saveWordRecord({ level: 2, theme: 'すべて', mode: 'en', keys: 20 })
+    expect(loadWordRecords()[wordRecKey(2, 'すべて', 'en')]).toContainEqual(
+      expect.objectContaining({ keys: 20 }),
+    )
+  })
+
+  it('saveFound/saveStoryRecord で保存した物語の記録を facade 経由で読み戻せる', () => {
+    saveFound('travel', ['a'])
+    expect(loadFound('travel')).toEqual(['a'])
+    saveStoryRecord('travel', { keys: 5 })
+    expect(loadStoryRecords('travel')).toContainEqual(expect.objectContaining({ keys: 5 }))
   })
 })

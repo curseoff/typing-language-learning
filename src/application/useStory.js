@@ -10,7 +10,7 @@ import {
   saveFound,
   loadStoryRecords,
   saveStoryRecord,
-} from '../infrastructure/storyRepository.js'
+} from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'

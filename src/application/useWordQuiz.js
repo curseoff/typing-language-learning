@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { mulberry32 } from '../domain/rng.js'
-import { loadWordRecords, saveWordRecord } from '../infrastructure/wordsRepository.js'
+import { loadWordRecords, saveWordRecord } from './records.js'
 import { makeSeed } from './seed.js'
 
 export function useWordQuiz({ words, level, theme, dir, mode, seed, onExit }) {
