@@ -24,7 +24,9 @@ export default defineConfig({
       include: ['src/**/*.{js,jsx}'],
       exclude: ['src/**/*.test.{js,jsx}', 'src/content/**', 'src/test/**', 'src/main.jsx'],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
-      thresholds: { statements: 76.8, branches: 59.5, functions: 75.3, lines: 77.6 },
+      // 60秒タイマーの重複ロジック（被覆済み）を useCountdownTimer に集約・削除したため、
+      // 分母が縮み率が微減（抽出した hook 自体は 100% 被覆）。実測直下へ追従。
+      thresholds: { statements: 76.3, branches: 58.2, functions: 74.4, lines: 77.3 },
     },
   },
 })
