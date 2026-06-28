@@ -10,7 +10,10 @@ export function useCountdownTimer({ active, startTime, onTimeout }) {
   const [now, setNow] = useState(0)
   const firedRef = useRef(false) // onTimeout を一度だけ発火するガード
   const onTimeoutRef = useRef(onTimeout)
-  onTimeoutRef.current = onTimeout // 最新の onTimeout を参照（依存配列に入れない）
+  // 最新の onTimeout を ref に同期（依存配列に入れない＝毎レンダー作り直される関数で effect を再実行しない）
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout
+  })
 
   useEffect(() => {
     if (!active) return
