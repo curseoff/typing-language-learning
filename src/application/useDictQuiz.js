@@ -12,7 +12,7 @@ import {
 } from '../domain/dictionary/dictset.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { mulberry32 } from '../domain/rng.js'
-import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
+import { loadDictRecords, saveDictRecord } from './records.js'
 import { makeSeed } from './seed.js'
 
 export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit }) {
