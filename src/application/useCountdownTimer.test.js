@@ -39,7 +39,14 @@ describe('useCountdownTimer（カウントダウン共通フック）', () => {
     const startTime = 5000
     renderHook(() => useCountdownTimer({ active: true, startTime, onTimeout }))
 
-    runOutClock()
+    // 発火条件は相対基点（now - startTime >= TIME_LIMIT_MS）。
+    // performance.now は 0 起点なので startTime 分も足して進める。
+    act(() => {
+      vi.advanceTimersByTime(startTime + TIME_LIMIT_MS + 200)
+    })
+    act(() => {
+      vi.runOnlyPendingTimers()
+    })
 
     expect(onTimeout).toHaveBeenCalledTimes(1)
     expect(onTimeout).toHaveBeenCalledWith(startTime + TIME_LIMIT_MS, startTime)
