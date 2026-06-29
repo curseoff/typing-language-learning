@@ -1,9 +1,10 @@
 // マラソンのゲームセッション（状態機械）。
 // active=このモードが表示中か / onFinish(record, segStats)=最初の打鍵から60秒で呼ぶ。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { TIME_LIMIT_MS, buildPassage } from '../domain/marathon/passage.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
+import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 
@@ -15,7 +16,6 @@ export function useMarathon({ active, onFinish }) {
   const [typedKeys, setTypedKeys] = useState(0) // 正しく打った総文字数
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
-  const [now, setNow] = useState(0)
   const [startTime, setStartTime] = useState(null)
 
   const segStartRef = useRef(null) // 現在の問題の開始時刻
@@ -24,18 +24,10 @@ export function useMarathon({ active, onFinish }) {
   const ctxRef = useRef({ mode: 'both', rank: 1 }) // 開始時の mode/rank/source/seed
   const trackerRef = useRef(newTracker()) // 問題ごとの累積記録（文単位）
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const timeUpRef = useRef(false) // 時間切れ処理（partial 記録＋finish 予約）を一度だけ行うガード
   // 時間切れ finish 用に最新の打鍵数/ミス/開始時刻を effect から参照する
   const keysRef = useRef(0)
   const mistakesRef = useRef(0)
   const startTimeRef = useRef(null)
-
-  // 経過時間の更新
-  useEffect(() => {
-    if (!active) return
-    const id = setInterval(() => setNow(performance.now()), 100)
-    return () => clearInterval(id)
-  }, [active])
 
   const start = useCallback((mode, rank, source, pool, seed, theme) => {
     ctxRef.current = { mode, rank, source, seed, theme }
@@ -48,14 +40,12 @@ export function useMarathon({ active, onFinish }) {
     setTypedKeys(0)
     setMistakes(0)
     setHasError(false)
-    setNow(0)
     setStartTime(null)
     segStartRef.current = null
     segMistakesRef.current = 0
     segStatsRef.current = []
     trackerRef.current = newTracker()
     finishedRef.current = false
-    timeUpRef.current = false
     keysRef.current = 0
     mistakesRef.current = 0
     startTimeRef.current = null
@@ -156,11 +146,8 @@ export function useMarathon({ active, onFinish }) {
 
   // 最初の正しい打鍵から60秒で終了（キー入力が無くても時間で finish）。
   // 未完セグは partial として segStats に積んでから onFinish を呼ぶ。
-  useEffect(() => {
-    if (!active || startTime === null || timeUpRef.current) return
-    if (now - startTime < TIME_LIMIT_MS) return
-    timeUpRef.current = true // partial 記録と finish 予約は一度だけ
-    const t = startTime + TIME_LIMIT_MS
+  const onTimeout = (endTime, startedAt) => {
+    const t = endTime
     const seg = segments[segIndex]
     if (seg && segInput.length > 0 && segStartRef.current !== null) {
       const ms = t - segStartRef.current
@@ -179,20 +166,9 @@ export function useMarathon({ active, onFinish }) {
       ]
     }
     flushTracker(trackerRef.current)
-    // effect 内の同期 setState（finish→onFinish 経由の setState）は次tickへ遅延。
-    setTimeout(() => finish(keysRef.current, mistakesRef.current, t, startTime), 0)
-  }, [active, now, startTime, segments, segIndex, segInput, finish])
-
-  const started = startTime !== null
-  const liveSpeed = useMemo(() => {
-    if (!started || now === 0) return 0
-    const minutes = (now - startTime) / 60000
-    return minutes > 0 ? Math.round(typedKeys / minutes) : 0
-  }, [now, typedKeys, started, startTime])
-  const elapsedSec = useMemo(() => {
-    if (!started || now === 0) return 0
-    return Math.round((now - startTime) / 100) / 10
-  }, [now, started, startTime])
+    finish(keysRef.current, mistakesRef.current, t, startedAt)
+  }
+  const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({ active, startTime, onTimeout })
 
   return {
     start,
@@ -203,7 +179,7 @@ export function useMarathon({ active, onFinish }) {
     hasError,
     typedKeys,
     mistakes,
-    liveSpeed,
+    liveSpeed: speedFor(typedKeys),
     elapsedSec,
   }
 }
