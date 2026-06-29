@@ -59,28 +59,31 @@
 - `word`: 見出し語（英小文字・重複不可）
 - `def`: やさしい英語の定義（句読点なし・英小文字と空白のみ）
 - `ja`/`kana`: 定義の和訳とその読み（**単語の訳ではなく「定義文」の訳とその読み**）
-- `level` / `theme`: 単語と同じ区分
+- `level`: 単語と同じ区分
+- `theme`: **任意**（無テーマ＝`theme: null` 可）。単語が theme を持つなら継承して一致させる。無テーマのエントリは「すべて」にだけ現れる
 
 ### 英英は単語のサブセットにする（ルール）
 
 - **`word` は必ず単語（`words.js`）に存在する語にする**（英英 ⊆ 単語）。単語に無い語の英英は作らない。
-- **`level` / `theme` は単語側に合わせる**（食い違わせない）。
+- **`level` は単語側に合わせる**（食い違わせない）。**`theme` は任意**：単語が theme を持つ場合だけ一致を要求し、無ければ `theme: null` でよい。
 - 新規英英は **既存単語の中から見出し語を選んで** 定義を書く。どの単語に英英を付けるか（カバレッジ）は別途方針で決める（まず頻出＝L1〜L3 から、等）。
-- `validate` はこの不変条件（`word ∈ words.en`／level・theme一致）を検査する。違反すると失敗する。
+- `validate` はこの不変条件（`word ∈ words.en`／level一致／theme は存在時のみ一致）を検査する。違反すると失敗する。
 
 ### 英英の遅延読み込み・大量生成
 
 - **遅延読み込み**：英英データ（2千件超・約400KB）は `content/dictionaryData.js` に分離し動的 import。アプリは `dictionary.js` の `loadDict()`＋件数表 `DICT_COUNTS`／`DICT_AVAILABLE_LEVELS` を使う（**静的に全件 import しない**＝初回バンドルに載る）。Node ツールは `dictionaryAll.js`（全件）を使う。
-- **大量追加パイプライン**（単語例文と同じ流儀）：
+- **大量追加パイプライン（wn-ja 取込み＝Claude ゼロ）**：英定義(`def`)・日本語定義(`ja`)を **日本語WordNet(wn-ja)** から機械的に引いて作る。生成 AI を使わず、整形と選定だけで `out-NN.json` を量産する。
   ```bash
-  npm run gen-dict -- --count 2000 --chunks 20   # 未作成の頻出語を選定・分割（/tmp/dictgen/chunk-NN.json）
-  #   → 各 chunk をエージェントに読ませ out-NN.json（{word, def, ja, kana, level, theme}）を生成
-  npm run merge-dict                              # 構造検証（word∈words / def=[a-z ] / level・theme一致 / kana消費）
-  npm run check-readings -- --dir /tmp/dictgen    # 読み点検候補 rev-*.json（kuroshiro・誤検出多）
-  #   → 各 rev を点検エージェントへ → revfix-*.json（真の誤りだけ）
-  npm run merge-dict -- --write                   # revfix 適用＋ dictionaryData.js 再生成＋メタ更新
+  node scripts/gen-dict-wnja.mjs --count 300 --chunks 6   # wn-ja の topsense.tsv から def/ja を整形・選定（kana は出さない）
+  #   → /tmp/dictgen/out-NN.json（{word, def, ja, level, theme}）
+  npm run merge-dict                                       # kana を自動生成（kuroshiro）＋構造検証（word∈words / def=[a-z ] / level一致 / kana消費）
+  #   → NG が出たら gen 側の整形/フィルタを調整して再生成（out-redo*.json でも上書き可）
+  npm run merge-dict -- --write                            # dictionaryData.js 再生成＋メタ更新
   npm run check
   ```
+  - **由来**：`def` は Princeton WordNet、`ja` は日本語WordNet の語義から派生（帰属はルート `NOTICE`）。`topsense.tsv` は wn-ja の SQLite から「語ごとの最頻語義の英/日定義」を抜いた TSV（作り方の SQL は `scripts/gen-dict-wnja.mjs` 冒頭コメント。DB 本体はリポジトリに入れない）。
+  - **kana は手で書かない**：`merge-dict` が `ja` から自動生成する（`kana` 既存は上書きしない）。読みが壊れる語（算用数字・難読漢字など）は gen 側フィルタで残差へ回すか、生成後に NG として除外する。
+  - **theme** は単語から継承し、無ければ確信度の高い旅行/ビジネスのみ付与・それ以外は `null`（無テーマ）。
 
 ## 物語（`content/story.js`）
 
