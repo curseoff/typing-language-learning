@@ -55,8 +55,13 @@ function cleanDef(s) {
   d = d.replace(/\([^)]*\)/g, ' ').toLowerCase().replace(/[-/]/g, ' ').replace(/[^a-z ]+/g, ' ')
   return d.replace(/\s+/g, ' ').trim()
 }
+// 算用数字（半角/全角）は読みのローマ字化を壊すので漢数字へ寄せる（二つ→ふたつ 等が読めるように）。
+const DIGIT_KANJI = { 0: '〇', 1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '七', 8: '八', 9: '九' }
+const toKanjiNum = (s) => s.replace(/[0-9０-９]/g, (d) => DIGIT_KANJI[d.charCodeAt(0) > 0xff ? d.charCodeAt(0) - 0xff10 : Number(d)])
+
 function cleanJa(s) {
   let j = (s || '').replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '') // 括弧除去
+  j = toKanjiNum(j) // 算用数字→漢数字
   j = j.split(/[；;]/)[0] // ；/; 以降を捨てる
   j = j.replace(/[、・]/g, '') // 読点「、」と中黒「・」を除去（中間も）
   j = j.replace(/[\s]+/g, '') // 空白（全角含む）を除去（読みのローマ字化を壊さない）
@@ -78,12 +83,13 @@ function classifyTheme(word, ja) {
 const DEF_OK = /^[a-z ]+$/
 const DEF_FRAG = / (or|of|and|the)$/ // 断片（接続詞・前置詞で宙ぶらりん）
 const JA_FRAG = /(あるいは|または|もしくは|ないし|および|かつ)$/
+const maxDef = Number(arg('maxdef', '90')) // def 文字数上限。網羅したいときは大きくする
 function reject(def, ja) {
   if (!DEF_OK.test(def)) return 'def書式'
-  if (def.length > 90) return 'def長すぎ'
+  if (def.length > maxDef) return 'def長すぎ'
   if (DEF_FRAG.test(def)) return 'def断片'
   if (!ja) return 'ja空'
-  if (/[0-9０-９]/.test(ja)) return 'ja数字' // 算用数字は読みのローマ字化を壊す
+  if (/[0-9０-９]/.test(ja)) return 'ja数字' // 算用数字が残れば（変換漏れ）除外
   if (JA_FRAG.test(ja)) return 'ja断片'
   return null
 }
