@@ -2,10 +2,11 @@
 // 単語例文（マラソン）と同じ「最初の打鍵から60秒で終了」方式。問題が尽きたら継ぎ足してループする。
 // 記録は dict 記録（DictResult）を維持する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { TIME_LIMIT_MS, buildPassage } from '../domain/marathon/passage.js'
+import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
-import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
+import { useCountdownTimer } from './useCountdownTimer.js'
+import { loadDictRecords, saveDictRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
@@ -35,7 +36,6 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
   const [hasError, setHasError] = useState(false)
-  const [now, setNow] = useState(0)
   const [startTime, setStartTime] = useState(null)
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
@@ -43,7 +43,6 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const timeUpRef = useRef(false) // 時間切れ処理を一度だけ行うガード
   const keysRef = useRef(0) // 時間切れ finish 用の最新打鍵数
   const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
 
@@ -61,32 +60,13 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
     setTypedKeys(0)
     setMistakes(0)
     setHasError(false)
-    setNow(0)
     setStartTime(null)
     setFinished(false)
     setResult(null)
     finishedRef.current = false
-    timeUpRef.current = false
     keysRef.current = 0
     mistakesRef.current = 0
   }, [buildSegments])
-
-  useEffect(() => {
-    if (finished) return
-    const id = setInterval(() => setNow(performance.now()), 100)
-    return () => clearInterval(id)
-  }, [finished])
-
-  const started = startTime !== null
-  const liveSpeed = useMemo(() => {
-    if (!started || now === 0) return 0
-    const min = (now - startTime) / 60000
-    return min > 0 ? Math.round(typedKeys / min) : 0
-  }, [now, typedKeys, started, startTime])
-  const elapsedSec = useMemo(() => {
-    if (!started || now === 0) return 0
-    return Math.round((now - startTime) / 100) / 10
-  }, [now, started, startTime])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -200,11 +180,8 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
 
   // 最初の打鍵から60秒で終了（キー入力が無くても時間で finish）。
   // 現在入力中の問題があれば partial として記録に積んでから finish。
-  useEffect(() => {
-    if (finished || startTime === null || timeUpRef.current) return
-    if (now - startTime < TIME_LIMIT_MS) return
-    timeUpRef.current = true // partial 記録と finish 予約は一度だけ
-    const t = startTime + TIME_LIMIT_MS
+  const onTimeout = (endTime, startedAt) => {
+    const t = endTime
     const seg = segments[segIndex]
     if (seg && segInput.length > 0) {
       segPush(segTrackerRef.current, {
@@ -217,9 +194,13 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
       })
     }
     flushTracker(trackerRef.current)
-    // effect 内の同期 setState は次tickへ遅延（cascading renders 回避）。
-    setTimeout(() => finish(keysRef.current, mistakesRef.current, t, startTime), 0)
-  }, [finished, now, startTime, segments, segIndex, segInput, finish])
+    finish(keysRef.current, mistakesRef.current, t, startedAt)
+  }
+  const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({
+    active: !finished,
+    startTime,
+    onTimeout,
+  })
 
   return {
     segments,
@@ -229,7 +210,7 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
     hasError,
     typedKeys,
     mistakes,
-    liveSpeed,
+    liveSpeed: speedFor(typedKeys),
     elapsedSec,
     word: segments[segIndex]?.word, // 現在セグの見出し語
     finished,

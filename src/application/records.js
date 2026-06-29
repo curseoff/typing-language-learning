@@ -1,14 +1,15 @@
-// 記録の取得・キー生成を application 層に集約するファサード。
-// UI(.jsx) は infrastructure を直接 import せず、ここ経由で記録を受け取る
-// （依存方向 ui → application → infrastructure を守るため）。挙動は infrastructure と同一。
-import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
-import { loadDictRecords, dictRecKey } from '../infrastructure/dictRepository.js'
-import { loadStoryRecords } from '../infrastructure/storyRepository.js'
+// 記録の読み・書き・キー生成を application 層に集約するファサード。
+// UI(.jsx) もフックも infrastructure を直接 import せず、ここ経由で記録を読み書きする
+// （依存方向 ui → application → infrastructure を守るため。infra 直 import は facade のみ）。挙動は infrastructure と同一。
+import { loadWordRecords, saveWordRecord, wordRecKey } from '../infrastructure/wordsRepository.js'
+import { loadDictRecords, saveDictRecord, dictRecKey } from '../infrastructure/dictRepository.js'
+import { loadStoryRecords, saveStoryRecord, saveFound, loadFound } from '../infrastructure/storyRepository.js'
 import { loadRecords, saveRecord } from '../infrastructure/recordsRepository.js'
 import { loadItemStats, itemId } from '../infrastructure/itemStatsRepository.js'
 
-// ── ランキング（モード別） ──
-export { loadWordRecords, loadDictRecords, loadStoryRecords }
+// ── ランキング（モード別）の読み書き ──
+export { loadWordRecords, saveWordRecord, loadDictRecords, saveDictRecord }
+export { loadStoryRecords, saveStoryRecord, saveFound, loadFound }
 
 // ── マラソンの記録 I/O（読み書き）。UI 合成層(App.jsx)の記録窓口をここに一本化 ──
 export { loadRecords, saveRecord }

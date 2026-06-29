@@ -1,7 +1,7 @@
 // 英英辞典の選択式（打って選ぶ）。最初の打鍵から60秒で終了。問題が尽きたら再シャッフルで継ぎ足す。
 // スコアはタイピング数(typedKeys)。
 // kind='quiz': 定義→英単語4択（回答後に和訳開示） / kind='pick': 単語+和訳→説明文4択
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   DICT_QUIZ_COUNT,
   DICT_TYPE_COUNT,
@@ -10,9 +10,9 @@ import {
   makeDictQuiz,
   makeDictPick,
 } from '../domain/dictionary/dictset.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { mulberry32 } from '../domain/rng.js'
-import { loadDictRecords, saveDictRecord } from '../infrastructure/dictRepository.js'
+import { useCountdownTimer } from './useCountdownTimer.js'
+import { loadDictRecords, saveDictRecord } from './records.js'
 import { makeSeed } from './seed.js'
 
 export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit }) {
@@ -36,7 +36,6 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
   const [correct, setCorrect] = useState(0)
   const [mistakes, setMistakes] = useState(0)
   const [typedKeys, setTypedKeys] = useState(0) // タイピング数（選択肢を打った文字数の合計）
-  const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
@@ -44,7 +43,6 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
   const segStatsRef = useRef([]) // 今回プレイの問題ごとの記録（設問の正誤）
   const perQMissRef = useRef(0)
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const timeUpRef = useRef(false) // 時間切れ処理を一度だけ行うガード
   const keysRef = useRef(0) // 時間切れ finish 用の最新タイピング数
   const correctRef = useRef(0) // 時間切れ finish 用の最新正解数
   const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
@@ -65,28 +63,14 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
     setCorrect(0)
     setMistakes(0)
     setTypedKeys(0)
-    setNow(0)
     setFinished(false)
     setResult(null)
     setStartTime(null)
     finishedRef.current = false
-    timeUpRef.current = false
     keysRef.current = 0
     correctRef.current = 0
     mistakesRef.current = 0
   }, [buildWith])
-
-  useEffect(() => {
-    if (finished) return
-    const id = setInterval(() => setNow(performance.now()), 100)
-    return () => clearInterval(id)
-  }, [finished])
-
-  const started = startTime !== null
-  const elapsedSec = useMemo(() => {
-    if (!started || now === 0) return 0
-    return Math.round((now - startTime) / 100) / 10
-  }, [now, started, startTime])
 
   const finish = useCallback(
     (keys, correctCount, totalMistakes, endTime, startedAt) => {
@@ -208,16 +192,9 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
   }, [finished, picked, q, input, advance, restart, onExit, commit])
 
   // 最初の打鍵から60秒で終了（操作が無くても時間で finish）。
-  // effect 内の同期 setState は次tickへ遅延（cascading renders 回避）。
-  useEffect(() => {
-    if (finished || startTime === null || timeUpRef.current) return
-    if (now - startTime < TIME_LIMIT_MS) return
-    timeUpRef.current = true
-    setTimeout(
-      () => finish(keysRef.current, correctRef.current, mistakesRef.current, startTime + TIME_LIMIT_MS, startTime),
-      0,
-    )
-  }, [finished, now, startTime, finish])
+  const onTimeout = (endTime, startedAt) =>
+    finish(keysRef.current, correctRef.current, mistakesRef.current, endTime, startedAt)
+  const { elapsedSec } = useCountdownTimer({ active: !finished, startTime, onTimeout })
 
   return {
     question: q,
