@@ -20,6 +20,6 @@ export const DICT_MODES = [
 // 英英データは大きいので遅延 import（初回バンドルに含めない）。
 // アプリ側は loadDict()／DICT_COUNTS／DICT_AVAILABLE_LEVELS を使う。Node ツールは ./dictionaryAll.js を使う。
 // DICT_COUNTS/DICT_AVAILABLE_LEVELS はビルド時に算出した値を静的に埋め込む（dictionaryData.js を import しない）。
-export const DICT_COUNTS = {"1":{"すべて":728,"日常":632,"旅行":59,"ビジネス":37},"2":{"すべて":1854,"日常":1538,"旅行":111,"ビジネス":205},"3":{"すべて":1286,"日常":1045,"旅行":110,"ビジネス":131},"4":{"すべて":11530,"日常":2889,"旅行":240,"ビジネス":502}}
+export const DICT_COUNTS = {"1":{"すべて":728,"日常":632,"旅行":59,"ビジネス":37},"2":{"すべて":1854,"日常":1538,"旅行":111,"ビジネス":205},"3":{"すべて":1286,"日常":1045,"旅行":110,"ビジネス":131},"4":{"すべて":12521,"日常":2902,"旅行":247,"ビジネス":524}}
 export const DICT_AVAILABLE_LEVELS = [1,2,3,4]
 export const loadDict = () => import('./dictionaryData.js').then((m) => m.default)
