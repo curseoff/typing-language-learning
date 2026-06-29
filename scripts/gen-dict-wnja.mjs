@@ -27,7 +27,7 @@
 //   ※ wnjpn.db（194MB）はリポジトリに入れない。
 //
 // 引数:
-//   --tsv <path>   既定 <SCR>/topsense.tsv
+//   --tsv <path>   topsense.tsv のパス。未指定なら環境変数 WNJA_TSV、無ければ tmp/wnja/topsense.tsv
 //   --count N      追加対象の上限（freq 昇順で先頭から）。既定 300
 //   --chunks M     out-NN.json への分割数。既定 6
 //   --dir <out>    出力先。既定 /tmp/dictgen
@@ -36,14 +36,13 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, rmSync, existsSync
 import { WORDS } from '../src/content/wordsAll.js'
 import { DICT } from '../src/content/dictionaryAll.js'
 
-const SCR =
-  '/private/tmp/claude-501/-Users-yamaguchi-development-curseoff-typing-language-learning/7f5bfaff-b0be-43b2-8d12-da2a068fbbce/scratchpad'
-
 const arg = (name, def) => {
   const i = process.argv.indexOf(`--${name}`)
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : def
 }
-const tsvPath = arg('tsv', `${SCR}/topsense.tsv`)
+// TSV のパスは --tsv → 環境変数 WNJA_TSV → リポ相対 tmp/wnja/topsense.tsv の順。
+// 絶対パスを直書きしない（PUBLIC リポに username 等を残さないため）。
+const tsvPath = arg('tsv', process.env.WNJA_TSV || 'tmp/wnja/topsense.tsv')
 const count = Number(arg('count', '300'))
 const chunks = Number(arg('chunks', '6'))
 const dir = arg('dir', '/tmp/dictgen')
@@ -90,6 +89,11 @@ function reject(def, ja) {
 }
 
 // ---- TSV 読み込み（lemma \t edef \t jdef、最初の語義のみ採用） ----
+if (!existsSync(tsvPath)) {
+  console.error(`TSV が見つかりません: ${tsvPath}`)
+  console.error('--tsv <path> か 環境変数 WNJA_TSV で指定してください（作り方は本ファイル冒頭の SQL を参照）。')
+  process.exit(1)
+}
 const tsv = new Map()
 for (const line of readFileSync(tsvPath, 'utf8').split('\n')) {
   if (!line) continue
