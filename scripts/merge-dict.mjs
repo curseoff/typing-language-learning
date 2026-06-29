@@ -32,7 +32,7 @@ function validate(d) {
     if (w.theme !== undefined && w.theme !== d.theme) e.push('theme不一致')
   }
   if (!d.def || !DEF_OK.test(d.def)) e.push('def書式')
-  if (!THEMES.has(d.theme)) e.push('theme不正')
+  if (d.theme != null && !THEMES.has(d.theme)) e.push('theme不正') // theme は任意（null 可）
   if (!d.ja) e.push('ja無し')
   if (TRAIL.test(d.ja || '')) e.push('和末尾記号') // 定義の訳は文末記号なし
   const r = toRomaji(d.kana || '')
@@ -43,9 +43,20 @@ function validate(d) {
 }
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'))
-const files = readdirSync(dir).filter((f) => /^out-\d\d\.json$/.test(f)).sort()
-let all = []
-for (const f of files) all.push(...readJson(`${dir}/${f}`))
+// out-NN.json と out-redo*.json の両方を読む（redo は再生成分）
+const files = readdirSync(dir).filter((f) => /^out-[\w-]+\.json$/.test(f)).sort()
+const raw = []
+for (const f of files) raw.push(...readJson(`${dir}/${f}`))
+
+// 重複除去：word キーの Map で後勝ち（読み順＝ファイル名順で後のもの＝out-redo* が元を上書き）。
+// 既存英英(DICT)にある word は除外。
+const existing = new Set(DICT.map((d) => d.word))
+const byWord = new Map()
+for (const d of raw) {
+  if (!d.word || existing.has(d.word)) continue
+  byWord.set(d.word, d) // 後勝ち（redo が元を上書き）
+}
+let all = [...byWord.values()]
 
 // 読み点検の修正(revfix-*.json: [{word, kana}])を適用
 const fixes = new Map()
@@ -55,14 +66,28 @@ for (const f of readdirSync(dir).filter((f) => /^revfix-\d+\.json$/.test(f))) {
 for (const d of all) if (fixes.has(d.word)) d.kana = fixes.get(d.word)
 if (fixes.size) console.log(`読み修正の適用: ${fixes.size}件（revfix-*.json）`)
 
-// 既存英英・入力内の重複 word を除去
-const existing = new Set(DICT.map((d) => d.word))
-const seen = new Set()
-all = all.filter((d) => {
-  if (!d.word || seen.has(d.word) || existing.has(d.word)) return false
-  seen.add(d.word)
-  return true
-})
+// kana 自動生成（未指定の語のみ。ja から kuroshiro でひらがな化）。kana 既存は上書きしない。
+let convert = null
+try {
+  const Kuroshiro = (await import('kuroshiro')).default
+  const KuromojiAnalyzer = (await import('kuroshiro-analyzer-kuromoji')).default
+  const K = Kuroshiro.default ?? Kuroshiro
+  const A = KuromojiAnalyzer.default ?? KuromojiAnalyzer
+  const ks = new K()
+  await ks.init(new A())
+  const toHira = (s) => s.replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
+  convert = async (ja) => toHira(await ks.convert(ja, { to: 'hiragana' }))
+} catch {
+  console.warn('⚠ kuroshiro を読み込めませんでした。kana 列を手動で埋めてください。')
+}
+let autoKana = 0
+for (const d of all) {
+  if (!d.kana && d.ja && convert) {
+    d.kana = await convert(d.ja)
+    autoKana++
+  }
+}
+if (autoKana) console.log(`読み自動生成: ${autoKana}件`)
 
 const ok = []
 const bad = []
@@ -85,8 +110,11 @@ if (write) {
     process.exit(1)
   }
   const esc = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-  const line = (d) =>
-    `  { word: '${esc(d.word)}', def: '${esc(d.def)}', ja: '${esc(d.ja)}', kana: '${esc(d.kana)}', level: ${d.level}, theme: '${esc(d.theme)}' },`
+  // theme は任意：null/未指定なら theme: null（クォート無し）、あれば従来通り
+  const line = (d) => {
+    const theme = d.theme == null ? 'null' : `'${esc(d.theme)}'`
+    return `  { word: '${esc(d.word)}', def: '${esc(d.def)}', ja: '${esc(d.ja)}', kana: '${esc(d.kana)}', level: ${d.level}, theme: ${theme} },`
+  }
   const merged = [...DICT, ...ok]
   const uniq = new Map(merged.map((d) => [d.word, d]))
   const list = [...uniq.values()]

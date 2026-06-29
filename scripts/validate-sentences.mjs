@@ -81,7 +81,7 @@ DICT.forEach((d, i) => {
   const err = (m) => errors.push(`${id}: ${m}`)
   const warn = (m) => warnings.push(`${id}: ${m}`)
 
-  for (const f of ['word', 'def', 'ja', 'kana', 'level', 'theme']) {
+  for (const f of ['word', 'def', 'ja', 'kana', 'level']) {
     if (d[f] === undefined || d[f] === null) err(`必須フィールド "${f}" がありません`)
   }
   if (!d.word || !d.def || !d.ja || !d.kana) return
@@ -91,7 +91,8 @@ DICT.forEach((d, i) => {
   if (seenDictWord.has(d.word)) err(`word が重複（#${seenDictWord.get(d.word) + 1} と同じ）`)
   else seenDictWord.set(d.word, i)
   if (!LEVEL_SET.has(d.level)) err(`不正な level: ${d.level}`)
-  if (!THEME_SET.has(d.theme)) err(`不正な theme: ${d.theme}`)
+  // theme は任意（無テーマ＝null 可）。存在する場合だけ妥当性を要求する
+  if (d.theme != null && !THEME_SET.has(d.theme)) err(`不正な theme: ${d.theme}`)
 
   // 英英 ⊆ 単語：word は単語に存在し、level/theme も一致させる
   const w = wordByEn.get(d.word)
