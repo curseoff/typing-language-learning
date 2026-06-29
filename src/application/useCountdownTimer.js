@@ -37,7 +37,7 @@ export function useCountdownTimer({ active, startTime, onTimeout }) {
 
   const started = startTime !== null
   const elapsedSec = useMemo(() => {
-    if (!started || now === 0) return 0
+    if (!started || now <= startTime) return 0
     return Math.round((now - startTime) / 100) / 10
   }, [started, now, startTime])
   const liveSpeed = useCallback(
