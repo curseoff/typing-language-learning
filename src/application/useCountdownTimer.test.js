@@ -140,4 +140,19 @@ describe('useCountdownTimer（カウントダウン共通フック）', () => {
     rerender({ active: true, startTime: null })
     expect(result.current.liveSpeed(50)).toBe(0)
   })
+
+  // 退行 #153: now（performance.now 刻み）が startTime（最初の打鍵時刻）より小さい
+  // 開始直後の瞬間に elapsedSec が負を返さないこと。
+  it('開始直後（now < startTime）でも elapsedSec が負にならない', () => {
+    // startTime を現在の now(=0) より大きく設定し、interval を数回発火させても now < startTime のままにする
+    const { result } = renderHook(() =>
+      useCountdownTimer({ active: true, startTime: 5000, onTimeout: vi.fn() }),
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(200) // 内部 now を ~200 にする（< startTime=5000）
+    })
+
+    expect(result.current.elapsedSec).toBeGreaterThanOrEqual(0)
+  })
 })
