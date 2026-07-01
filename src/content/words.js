@@ -34,7 +34,7 @@ export const loadWords = async (level) => {
   try {
     return await (await import('./contentDb.js')).queryWords(level)
   } catch (e) {
-    console.warn('[content] words の SQLite 読込に失敗→.js にフォールバック', e)
+    ;(await import('./contentFallback.js')).recordContentFallback('words', e)
     const all = (await import('./wordsData.js')).default
     return level != null ? all.filter((w) => w.level === level) : all
   }
@@ -45,7 +45,7 @@ export const loadWordGloss = async () => {
   try {
     return await (await import('./contentDb.js')).queryGloss()
   } catch (e) {
-    console.warn('[content] gloss の SQLite 読込に失敗→.js にフォールバック', e)
+    ;(await import('./contentFallback.js')).recordContentFallback('gloss', e)
     return (await import('./wordGlossData.js')).default
   }
 }
