@@ -49,3 +49,6 @@ out
 
 # テストカバレッジ出力
 coverage
+
+# 教材の生成物（正準ソースは content/*.ndjson。prebuild 等で自動生成する）
+/src/content/wordsData.js
