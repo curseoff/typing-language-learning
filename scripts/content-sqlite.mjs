@@ -5,12 +5,14 @@
 // ユーザーデータ（user.sqlite3）とは別ファイル＝混ぜない。必要時だけ ATTACH で JOIN。
 //
 // 実行: node scripts/content-sqlite.mjs   （npm run content:sqlite）
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { readNdjson } from './lib/ndjson.mjs'
 
 const u = (p) => new URL(p, import.meta.url)
-const OUT = u('../content.sqlite3')
+// public/ に置く＝dev/build で静的アセットとして配信され、アプリが fetch できる（生成物・gitignore）。
+mkdirSync(u('../public/'), { recursive: true })
+const OUT = u('../public/content.sqlite3')
 const SCHEMA_VERSION = 1
 
 const sqlite3 = await sqlite3InitModule()

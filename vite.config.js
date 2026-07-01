@@ -8,6 +8,9 @@ export default defineConfig({
   // Electron(file://)で読み込めるよう相対パスにする
   base: './',
   plugins: [react()],
+  // sqlite-wasm は事前バンドルすると .wasm の locate に失敗しがちなので最適化から除外。
+  // 教材コンテンツを content.sqlite3 から読む contentDb.js が動的 import する。
+  optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
   // package.json の version をビルド時に注入（TOPに表示）
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   test: {
