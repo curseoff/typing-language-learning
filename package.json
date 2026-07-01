@@ -46,6 +46,7 @@
     "dist:dir": "vite build && electron-builder --dir"
   },
   "dependencies": {
+    "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
