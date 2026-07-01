@@ -1,0 +1,14 @@
+{
+  "name": "英文・和文タイピング",
+  "short_name": "タイピング",
+  "description": "日本人のための英語タイピング教材（単語・英英辞典・例文・物語）",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
