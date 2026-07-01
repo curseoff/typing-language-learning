@@ -32,10 +32,14 @@ function db() {
   return dbPromise
 }
 
-// 単語（wordsData.js の default 相当）。null の freq/theme は省いて従来の形に合わせる。
-export async function queryWords() {
+// 単語（wordsData.js の default 相当）。level 指定でそのレベルだけ取得（テーマ絞りはドメイン側）。
+// テーマで絞らないのは、4択クイズが同レベル全テーマをディストラクタに使うため（levelWords）。
+// null の freq/theme は省いて従来の形に合わせる。
+export async function queryWords(level) {
   const d = await db()
-  return d.selectObjects('SELECT en, ja, kana, freq, level, theme FROM words').map((w) => ({
+  const where = level != null ? ' WHERE level = ?' : ''
+  const bind = level != null ? [level] : []
+  return d.selectObjects('SELECT en, ja, kana, freq, level, theme FROM words' + where, bind).map((w) => ({
     en: w.en,
     ja: w.ja,
     kana: w.kana,
@@ -45,10 +49,12 @@ export async function queryWords() {
   }))
 }
 
-// 英英（dictionaryData.js の default 相当）。theme は null 可（従来通り保持）。
-export async function queryDict() {
+// 英英（dictionaryData.js の default 相当）。level 指定でそのレベルだけ取得。theme は null 可（従来通り保持）。
+export async function queryDict(level) {
   const d = await db()
-  return d.selectObjects('SELECT word, def, ja, kana, level, theme FROM dict')
+  const where = level != null ? ' WHERE level = ?' : ''
+  const bind = level != null ? [level] : []
+  return d.selectObjects('SELECT word, def, ja, kana, level, theme FROM dict' + where, bind)
 }
 
 // 例文（wordSentences/L{level}.js の default 相当）。jaWords は JSON 文字列なので配列へ戻す。

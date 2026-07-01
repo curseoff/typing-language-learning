@@ -21,12 +21,13 @@ export const DICT_MODES = [
 // アプリ側は loadDict()／DICT_COUNTS／DICT_AVAILABLE_LEVELS を使う。Node ツールは ./dictionaryAll.js を使う。
 // DICT_COUNTS/DICT_AVAILABLE_LEVELS は dict 記録からの派生物で content-build が dictMeta.js を生成する（正準化）。
 export { DICT_COUNTS, DICT_AVAILABLE_LEVELS } from './dictMeta.js'
-// content.sqlite3（SQLite-WASM）から読む。失敗時は生成物 .js にフォールバック。
-export const loadDict = async () => {
+// content.sqlite3（SQLite-WASM）から指定レベルだけ読む。失敗時は生成物 .js を level で絞ってフォールバック。
+export const loadDict = async (level) => {
   try {
-    return await (await import('./contentDb.js')).queryDict()
+    return await (await import('./contentDb.js')).queryDict(level)
   } catch (e) {
     console.warn('[content] dict の SQLite 読込に失敗→.js にフォールバック', e)
-    return (await import('./dictionaryData.js')).default
+    const all = (await import('./dictionaryData.js')).default
+    return level != null ? all.filter((d) => d.level === level) : all
   }
 }
