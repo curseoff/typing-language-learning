@@ -64,3 +64,6 @@ coverage
 /src/content/wordSentences/wsentCounts.js
 /src/content/stories/travel.js
 /src/content/stories/climbing.js
+
+# 教材の SQLite 生成物（配布/クエリ用。正準ソースは content/*.ndjson。npm run content:sqlite で生成）
+/public/content.sqlite3

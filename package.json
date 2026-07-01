@@ -16,8 +16,9 @@
     "content:extract": "node scripts/content-extract.mjs",
     "content:build": "node scripts/content-build.mjs",
     "content:validate": "node scripts/content-validate.mjs",
-    "prebuild": "node scripts/content-build.mjs",
-    "predev": "node scripts/content-build.mjs",
+    "content:sqlite": "node scripts/content-sqlite.mjs",
+    "prebuild": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs",
+    "predev": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs",
     "prevalidate": "node scripts/content-build.mjs",
     "pretest": "node scripts/content-build.mjs",
     "precoverage": "node scripts/content-build.mjs",
@@ -45,6 +46,7 @@
     "dist:dir": "vite build && electron-builder --dir"
   },
   "dependencies": {
+    "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
