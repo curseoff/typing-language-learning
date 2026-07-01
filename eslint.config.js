@@ -17,6 +17,8 @@ export default [
       'src/content/dictionaryData.js',
       'src/content/wordGlossData.js',
       'src/content/wordSentences/L*.js',
+      'src/content/wordSentences/theme.js',
+      'src/content/wordSentences/wsentCounts.js',
       'src/content/stories/travel.js',
       'src/content/stories/climbing.js',
     ],

@@ -3,6 +3,8 @@
 // これらの生成物は gitignore 対象（prebuild/predev/prevalidate/pretest/precoverage で自動生成）。
 // 実行: node scripts/content-build.mjs
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { WORD_THEMES } from '../src/content/words.js'
+import { computeWsentMeta, renderThemeJs, renderWsentCountsJs } from './lib/wsentMeta.mjs'
 
 const u = (p) => new URL(p, import.meta.url)
 const GEN = '// 自動生成（scripts/content-build.mjs）。編集しない。'
@@ -46,9 +48,10 @@ buildArray('content/dict.ndjson', 'src/content/dictionaryData.js', 'content/dict
   console.log(`build → src/content/wordGlossData.js: ${pairs.length} 件`)
 }
 
-// ---- sentences（例文）: level ごとに L1..L4.js へ分割 ----
+// ---- sentences（例文）: level ごとに L1..L4.js へ分割＋theme.js/wsentCounts.js 派生生成 ----
 {
   const lines = readNdjson('content/sentences.ndjson')
+  const sentences = lines.map((l) => JSON.parse(l))
   const byLevel = new Map() // level -> string[]（NDJSON 行を順序維持で保持）
   for (const l of lines) {
     const lv = JSON.parse(l).level
@@ -61,6 +64,12 @@ buildArray('content/dict.ndjson', 'src/content/dictionaryData.js', 'content/dict
     writeFileSync(u(`../src/content/wordSentences/L${lv}.js`), out)
     console.log(`build → src/content/wordSentences/L${lv}.js: ${arr.length} 件`)
   }
+  // theme.js / wsentCounts.js は例文＋単語テーマからの派生物（word→theme は words.ndjson から引く）
+  const words = readNdjson('content/words.ndjson').map((l) => JSON.parse(l))
+  const { themeMap, counts } = computeWsentMeta(sentences, words, WORD_THEMES)
+  writeFileSync(u('../src/content/wordSentences/theme.js'), renderThemeJs(themeMap))
+  writeFileSync(u('../src/content/wordSentences/wsentCounts.js'), renderWsentCountsJs(counts))
+  console.log('build → src/content/wordSentences/{theme,wsentCounts}.js')
 }
 
 // ---- stories（ネスト文書）: content/stories/*.json → 名前付き export の .js ----

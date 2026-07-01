@@ -59,5 +59,7 @@ coverage
 /src/content/wordSentences/L2.js
 /src/content/wordSentences/L3.js
 /src/content/wordSentences/L4.js
+/src/content/wordSentences/theme.js
+/src/content/wordSentences/wsentCounts.js
 /src/content/stories/travel.js
 /src/content/stories/climbing.js
