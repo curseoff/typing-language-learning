@@ -26,7 +26,7 @@ export const loadDict = async (level) => {
   try {
     return await (await import('./contentDb.js')).queryDict(level)
   } catch (e) {
-    console.warn('[content] dict の SQLite 読込に失敗→.js にフォールバック', e)
+    ;(await import('./contentFallback.js')).recordContentFallback('dict', e)
     const all = (await import('./dictionaryData.js')).default
     return level != null ? all.filter((d) => d.level === level) : all
   }

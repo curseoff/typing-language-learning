@@ -8,7 +8,7 @@ export const loadWsentLevel = async (level) => {
   try {
     return await (await import('../contentDb.js')).querySentences(level)
   } catch (e) {
-    console.warn('[content] sentences の SQLite 読込に失敗→.js にフォールバック', e)
+    ;(await import('../contentFallback.js')).recordContentFallback('sentences', e)
     return (await loaders[level]()).default
   }
 }

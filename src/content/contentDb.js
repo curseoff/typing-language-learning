@@ -4,14 +4,42 @@
 // 返す配列/オブジェクトの形は従来の src/content/*.js と同一にして、hooks/UI を無改修に保つ。
 let dbPromise = null
 
+// SQLite ファイルのマジック "SQLite format 3\0"（先頭16バイト）。
+const SQLITE_MAGIC = [
+  0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
+]
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// バイト列が SQLite DB らしいか（truncated / 破損の早期検知）。
+function looksLikeSqlite(bytes) {
+  if (!bytes || bytes.byteLength < 512) return false
+  return SQLITE_MAGIC.every((b, i) => bytes[i] === b)
+}
+
+// content.sqlite3 を取得。瞬断・truncated に備えてリトライ（指数バックオフ）＋整合チェックする。
+async function fetchDbBytes(url, retries = 2) {
+  let lastErr
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const bytes = new Uint8Array(await res.arrayBuffer())
+      if (!looksLikeSqlite(bytes)) throw new Error(`不正な SQLite（${bytes.byteLength} bytes）`)
+      return bytes
+    } catch (e) {
+      lastErr = e
+      if (attempt < retries) await sleep(200 * 2 ** attempt) // 200ms → 400ms
+    }
+  }
+  throw lastErr
+}
+
 async function openDb() {
   const { default: sqlite3InitModule } = await import('@sqlite.org/sqlite-wasm')
   const sqlite3 = await sqlite3InitModule()
   // base 相対で解決（dev / GitHub Pages サブパス / Electron file:// のいずれでも可）。
   const url = new URL('content.sqlite3', document.baseURI).href
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`content.sqlite3 の取得に失敗: ${res.status}`)
-  const bytes = new Uint8Array(await res.arrayBuffer())
+  const bytes = await fetchDbBytes(url)
   const db = new sqlite3.oo1.DB()
   const p = sqlite3.wasm.allocFromTypedArray(bytes)
   const rc = sqlite3.capi.sqlite3_deserialize(

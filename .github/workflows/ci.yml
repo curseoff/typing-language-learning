@@ -35,6 +35,7 @@ jobs:
       - run: npm run lint
       - run: npm run validate
       - run: npm run build
+      - run: npm run check:content # content.sqlite3 が dist に同梱され正しい SQLite か
       - run: npm run check-bundle
       - run: npm run coverage # vitest run --coverage（全テスト＋閾値ゲート）
       - run: npm run audit # 本番(prod)依存に high 以上の脆弱性が無いことを保証
