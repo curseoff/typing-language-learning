@@ -13,6 +13,11 @@ const MANIFEST = './precache-manifest.json'
 
 self.addEventListener('install', (event) => {
   // shell 群は小さいので install をブロックして先読みする（取得失敗時も install は続行）。
+  // ここで skipWaiting() はしない：更新時は新 SW を waiting のまま待機させ、ユーザーが
+  // 更新トーストの「更新」を押した時（message: SKIP_WAITING）だけ切り替える。
+  //   → 「古い shell と新しい data の混在」や学習中の突然のリロード事故を防ぐ。
+  // 初回訪問（既存 controller が無い）は置き換える相手が居ないので waiting フェーズは発生せず、
+  // そのまま activate→clients.claim() で即制御される（＝初回オフライン起動は従来どおり維持）。
   event.waitUntil(
     (async () => {
       try {
@@ -22,9 +27,13 @@ self.addEventListener('install', (event) => {
       } catch {
         // manifest 取得やプリキャッシュに失敗しても起動を妨げない（従来の SWR で回復）。
       }
-      await self.skipWaiting()
     })(),
   )
+})
+
+// ページから SKIP_WAITING を受けたら待機中の新 SW を有効化する（更新トーストの「更新」押下で送られる）。
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
