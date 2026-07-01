@@ -19,6 +19,7 @@
     "content:sqlite": "node scripts/content-sqlite.mjs",
     "check:content": "node scripts/check-content-sqlite.mjs",
     "prebuild": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs",
+    "postbuild": "node scripts/gen-precache.mjs",
     "predev": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs",
     "prevalidate": "node scripts/content-build.mjs",
     "pretest": "node scripts/content-build.mjs",
