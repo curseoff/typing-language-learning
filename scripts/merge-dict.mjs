@@ -5,8 +5,9 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { WORDS } from '../src/content/wordsAll.js'
 import { DICT } from '../src/content/dictionaryAll.js'
-import { WORD_LEVELS, WORD_THEMES } from '../src/content/words.js'
+import { WORD_THEMES } from '../src/content/words.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 
 const arg = (name, def) => {
   const i = process.argv.indexOf(`--${name}`)
@@ -109,45 +110,20 @@ if (write) {
     console.error(`\n✖ NG が ${bad.length} 件。先に解消してから --write してください。`)
     process.exit(1)
   }
-  const esc = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-  // theme は任意：null/未指定なら theme: null（クォート無し）、あれば従来通り
-  const line = (d) => {
-    const theme = d.theme == null ? 'null' : `'${esc(d.theme)}'`
-    return `  { word: '${esc(d.word)}', def: '${esc(d.def)}', ja: '${esc(d.ja)}', kana: '${esc(d.kana)}', level: ${d.level}, theme: ${theme} },`
-  }
+  // 正準ソース content/dict.ndjson を再生成 → content-build が dictionaryData.js と
+  // dictMeta.js（DICT_COUNTS/DICT_AVAILABLE_LEVELS）を作り直す。
   const merged = [...DICT, ...ok]
   const uniq = new Map(merged.map((d) => [d.word, d]))
-  const list = [...uniq.values()]
-  // dictionaryData.js の DICT 配列だけ再生成（ヘッダ/default export は保持）
-  const dataPath = new URL('../src/content/dictionaryData.js', import.meta.url)
-  const dataSrc = readFileSync(dataPath, 'utf8')
-  const head = dataSrc.slice(0, dataSrc.indexOf('export default ['))
-  let body = ''
-  for (const l of WORD_LEVELS) {
-    const part = list.filter((d) => d.level === l.level).sort((a, b) => a.word.localeCompare(b.word))
-    if (!part.length) continue
-    body += `  // ---- L${l.level} ${l.label} ----\n${part.map(line).join('\n')}\n`
-  }
-  writeFileSync(dataPath, `${head}export default [\n${body}]\n`)
-
-  // dictionary.js の静的メタ（DICT_COUNTS/DICT_AVAILABLE_LEVELS）を再計算して埋め込む。
-  const counts = {}
-  for (const l of WORD_LEVELS) {
-    const c = { すべて: list.filter((d) => d.level === l.level).length }
-    for (const t of WORD_THEMES) c[t] = list.filter((d) => d.level === l.level && d.theme === t).length
-    counts[l.level] = c
-  }
-  const levels = [...new Set(list.map((d) => d.level))].sort((a, b) => a - b)
-  const metaPath = new URL('../src/content/dictionary.js', import.meta.url)
-  let metaSrc = readFileSync(metaPath, 'utf8')
-  metaSrc = metaSrc.replace(
-    /export const DICT_COUNTS = .*\n/,
-    `export const DICT_COUNTS = ${JSON.stringify(counts)}\n`,
-  )
-  metaSrc = metaSrc.replace(
-    /export const DICT_AVAILABLE_LEVELS = .*\n/,
-    `export const DICT_AVAILABLE_LEVELS = ${JSON.stringify(levels)}\n`,
-  )
-  writeFileSync(metaPath, metaSrc)
-  console.log(`\n✓ dictionaryData.js を再生成（合計 ${list.length}語）。dictionary.js のメタも更新。続けて: npm run check`)
+  const list = [...uniq.values()].sort((a, b) => a.level - b.level || a.word.localeCompare(b.word))
+  const clean = list.map((d) => ({
+    word: d.word,
+    def: d.def,
+    ja: d.ja,
+    kana: d.kana,
+    level: d.level,
+    theme: d.theme ?? null,
+  }))
+  writeNdjson(new URL('../content/dict.ndjson', import.meta.url), clean)
+  runContentBuild()
+  console.log(`\n✓ content/dict.ndjson を再生成（合計 ${list.length}語）し生成物・メタを更新。続けて: npm run check`)
 }

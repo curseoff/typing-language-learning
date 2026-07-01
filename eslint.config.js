@@ -5,7 +5,25 @@ import globals from 'globals'
 
 export default [
   // .claude/workflows は Workflow ランタイム専用DSL（トップレベル return 等）なので lint 対象外
-  { ignores: ['dist', 'release', 'node_modules', '.claude', 'coverage'] },
+  // 教材の生成物（content/*.ndjson・stories/*.json から生成）は lint 対象外
+  {
+    ignores: [
+      'dist',
+      'release',
+      'node_modules',
+      '.claude',
+      'coverage',
+      'src/content/wordsData.js',
+      'src/content/dictionaryData.js',
+      'src/content/dictMeta.js',
+      'src/content/wordGlossData.js',
+      'src/content/wordSentences/L*.js',
+      'src/content/wordSentences/theme.js',
+      'src/content/wordSentences/wsentCounts.js',
+      'src/content/stories/travel.js',
+      'src/content/stories/climbing.js',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],

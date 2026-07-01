@@ -49,3 +49,18 @@ out
 
 # テストカバレッジ出力
 coverage
+
+# 教材の生成物（正準ソースは content/*.ndjson・content/stories/*.json。
+# prebuild/predev/prevalidate/pretest/precoverage で自動生成する）
+/src/content/wordsData.js
+/src/content/dictionaryData.js
+/src/content/dictMeta.js
+/src/content/wordGlossData.js
+/src/content/wordSentences/L1.js
+/src/content/wordSentences/L2.js
+/src/content/wordSentences/L3.js
+/src/content/wordSentences/L4.js
+/src/content/wordSentences/theme.js
+/src/content/wordSentences/wsentCounts.js
+/src/content/stories/travel.js
+/src/content/stories/climbing.js

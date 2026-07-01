@@ -6,6 +6,25 @@
 - 読み（`kana`）は**ひらがな**で。ただし**カタカナ長音は「ー」**で表す（ケーキ＝けーき。エンジンが `-` キー入力に対応）。母音重ね（けえき）や脱落（けき）にしない。特殊拗音（チェ・ファ等）の読みには注意
 - 英語（`en` / `def`）はそのまま打鍵対象になります
 
+## 正準ソースは `content/*.ndjson`（`src/content/*.js` は生成物）
+
+大きな教材データは **`content/` 配下の NDJSON / JSON が唯一の正準ソース**です。アプリが読む `src/content/*.js` は**そこから生成されるアーティファクト**で、**gitignore 済み・ビルド時に自動生成**されます（直接編集しても上書きされます）。
+
+| 種類 | 正準ソース（git 管理・編集する） | 生成物（gitignore・触らない） |
+|---|---|---|
+| 単語 | `content/words.ndjson` | `src/content/wordsData.js` |
+| 英英 | `content/dict.ndjson` | `src/content/dictionaryData.js` |
+| グロス | `content/gloss.ndjson` | `src/content/wordGlossData.js` |
+| 例文 | `content/sentences.ndjson` | `wordSentences/L1..L4.js`＋`theme.js`＋`wsentCounts.js`（後2つは例文＋単語テーマからの派生） |
+| 物語 | `content/stories/<id>.json` | `src/content/stories/<id>.js` |
+
+- NDJSON＝**1行1レコードの JSON**。追記・行単位 diff・ストリーム処理に強い。物語だけネスト文書なので JSON。
+- 生成は **`npm run content:build`**。`prebuild`/`predev`/`prevalidate`/`pretest`/`precoverage` で自動実行されるので、`npm run dev`・`build`・`test`・`validate` はそのまま動く（クリーン clone / CI でも自己生成）。
+- 既存 `.js` からの一度きりの移行は **`npm run content:extract`**（無損失で NDJSON 化。既に実施済み）。
+- 生成物 `.js` を追加した場合は `.gitignore` と `eslint.config.js` の ignore にも登録すること（物語を増やしたとき等）。
+
+> ⚠️ `src/content/*Data.js` や `wordSentences/L*.js` を**手で編集しない**。編集は対応する `content/*.ndjson` に対して行い、`npm run content:build`（または上記フック）で反映する。
+
 ## コンテンツ間の関係（設計の核）
 
 単語を中心に、他のコンテンツは単語と結びつける：
@@ -115,11 +134,13 @@
 単語を大量に足すときは、**読みの自動生成＋重複/読みの事前チェック**を行うツールを使うと速く・安全です。
 
 ```bash
-# 検査のみ（words.js は変更しない）
+# 検査のみ（正準ソースは変更しない）
 npm run add-words candidates.tsv
-# OK の語を words.js 末尾に追記
+# OK の語を content/words.ndjson に追記し、生成物 .js を自動再生成
 npm run add-words candidates.tsv -- --write
 ```
+
+> **出力先は正準ソース `content/words.ndjson`**（旧 `words.js` 直書きから移行）。`--write` は NDJSON へ追記後に `content:build` を自動実行して `wordsData.js` 等を作り直す。`merge-dict`／`merge-sentences`／`gen-gloss` も同様に、それぞれ `content/dict.ndjson`／`content/sentences.ndjson`／`content/gloss.ndjson` を更新して生成物を再生成する。
 
 入力（TSV、1行1語・ヘッダ不要。`#` 始まりはコメント）:
 
@@ -168,7 +189,7 @@ npm run merge-sentences
 npm run check-readings
 #    → 各 rev-N.json を点検エージェントへ → revfix-N.json（真の誤りだけ）
 
-# 4) 読み修正を適用し wordSentences/L1..L4.js へ追記
+# 4) 読み修正を適用し content/sentences.ndjson を更新（L1..L4.js/theme.js/wsentCounts.js は自動再生成）
 npm run merge-sentences -- --write
 npm run check
 ```
@@ -182,6 +203,8 @@ npm run validate
 ```
 
 成功すると件数（文・単語・英英）と「✓ 検証OK」が表示されます。エラーがあると終了コード1で失敗します（CIでも実行されます）。
+
+`npm run validate` は内部で2段実行します：まず生成物 `.js` に対する **`validate-sentences`**（読み→ローマ字・重複・レベル/テーマ・文末記号・英英⊆単語・例文の語使用 などの意味検証）、続いて正準ソース NDJSON に対する **`content:validate`**（構造・型・`en` 一意・`level=bandOf(freq)` の早期ガード）。
 
 ## モード／レベルの定義
 
