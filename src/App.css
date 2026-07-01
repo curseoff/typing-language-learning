@@ -1632,3 +1632,55 @@ kbd {
 .seg-stats .q-answer {
   color: var(--muted);
 }
+
+/* ---- PWA 更新通知トースト（新しい版を検知したとき画面下部に控えめに出す） ---- */
+.update-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 200; /* dev-panel(100)・他の fixed(50) より前面 */
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.update-toast__msg {
+  font-size: 14px;
+}
+.update-toast__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.update-toast__update {
+  padding: 7px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #06283d;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.update-toast__update:hover {
+  filter: brightness(1.08);
+}
+.update-toast__later {
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.update-toast__later:hover {
+  color: var(--text);
+}

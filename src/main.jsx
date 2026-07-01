@@ -9,10 +9,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Service Worker 登録（本番ビルドのみ。dev では HMR 干渉を避けて無効）。
-// オフライン動作・瞬断耐性・再訪時の再DL回避のため content.sqlite3/wasm/シェルをキャッシュする。
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register(new URL('sw.js', document.baseURI).href).catch(() => {})
-  })
-}
+// Service Worker の登録と更新検知は UI 側の <UpdateToast /> が担う
+// （本番ビルドのみ。dev では HMR 干渉を避けて無効）。更新を検知したらトーストで告知し、
+// ユーザーが「更新」を押したタイミングで新 SW へ切り替える。詳細は
+// src/infrastructure/pwa/registerSW.js / src/ui/pwa/UpdateToast.jsx を参照。
