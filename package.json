@@ -16,6 +16,7 @@
     "content:extract": "node scripts/content-extract.mjs",
     "content:build": "node scripts/content-build.mjs",
     "content:validate": "node scripts/content-validate.mjs",
+    "content:sqlite": "node scripts/content-sqlite.mjs",
     "prebuild": "node scripts/content-build.mjs",
     "predev": "node scripts/content-build.mjs",
     "prevalidate": "node scripts/content-build.mjs",

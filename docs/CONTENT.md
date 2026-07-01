@@ -22,6 +22,7 @@
 - 生成は **`npm run content:build`**。`prebuild`/`predev`/`prevalidate`/`pretest`/`precoverage` で自動実行されるので、`npm run dev`・`build`・`test`・`validate` はそのまま動く（クリーン clone / CI でも自己生成）。
 - 既存 `.js` からの一度きりの移行は **`npm run content:extract`**（無損失で NDJSON 化。既に実施済み）。
 - 生成物 `.js` を追加した場合は `.gitignore` と `eslint.config.js` の ignore にも登録すること（物語を増やしたとき等）。
+- **配布/クエリ用の SQLite** も同じ正準ソースから作れる：`npm run content:sqlite` → `content.sqlite3`（関係スキーマ words/dict/sentences/gloss/stories＋level・theme 索引・生成物 gitignore）。アプリのランタイムは現状の `.js` 遅延ロードのままで、この DB はまだ実行時には読まない（ユーザーデータ `user.sqlite3` とは別ファイル）。
 
 > ⚠️ `src/content/*Data.js` や `wordSentences/L*.js` を**手で編集しない**。編集は対応する `content/*.ndjson` に対して行い、`npm run content:build`（または上記フック）で反映する。
 
