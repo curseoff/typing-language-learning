@@ -16,7 +16,11 @@ awk -F'|' '
   /^\| *20[0-9][0-9]-/ {
     ag = trim($3)
     if (ag ~ /司令塔|セットアップ/) next          # 主導役・設定行は除外
-    rec[ag] = trim($2) "\t" trim($5) "\t" trim($6) # 後勝ち＝最新の行で上書き
+    d = trim($2)                                  # 開始日時（ISO＝文字列比較で時系列一致）
+    if (!(ag in recd) || d >= recd[ag]) {         # 新しい開始日時を採用（同日タイは追記順で後勝ち＝旧行の慣習）
+      recd[ag] = d
+      rec[ag] = d "\t" trim($5) "\t" trim($6)
+    }
   }
   END { for (a in rec) print rec[a] "\t" a }       # date \t state \t note \t agent
 ' "$ledger" \
