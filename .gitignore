@@ -54,6 +54,7 @@ coverage
 # prebuild/predev/prevalidate/pretest/precoverage で自動生成する）
 /src/content/wordsData.js
 /src/content/dictionaryData.js
+/src/content/dictMeta.js
 /src/content/wordGlossData.js
 /src/content/wordSentences/L1.js
 /src/content/wordSentences/L2.js

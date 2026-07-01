@@ -1,16 +1,10 @@
-// 単語の英→和グロッサリを生成する（src/content/wordGlossData.js）。
+// 単語の英→和グロッサリの正準ソース content/gloss.ndjson を生成する。
 //   node scripts/gen-gloss.mjs
-// wordsAll.js の WORDS から { [en]: ja } の軽量辞書を作り、遅延 import 用に書き出す。
-// プレイ画面の「単語 word（和訳）」併記に使う（1.6M の単語データ全体を読まずに済む）。
-// 重複 en は最後の ja で上書き。生成物は遅延チャンクなので初回バンドルには含めない。
-import { writeFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+// wordsAll.js の WORDS から { en, ja } を作り NDJSON で書き出す（遅延 import 用の
+// wordGlossData.js は content-build が生成する）。重複 en は最後の ja で上書き。
 import { WORDS } from '../src/content/wordsAll.js'
 import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const OUT = join(__dirname, '../src/content/wordGlossData.js')
+import { writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 
 // en → ja（重複は最後の ja で上書き）
 const gloss = {}
@@ -18,12 +12,10 @@ for (const w of WORDS) {
   if (w?.en && w?.ja) gloss[w.en] = w.ja
 }
 
-const header =
-  '// 自動生成（scripts/gen-gloss.mjs）。編集しない。\n' +
-  '// 単語の英→和グロッサリ（プレイ画面の「単語 word（和訳）」併記用）。\n' +
-  '// 遅延 import 専用（words.js の loadWordGloss）。初回バンドルには含めない。\n'
-
-writeFileSync(OUT, header + 'export default ' + JSON.stringify(gloss) + '\n')
+const entries = Object.entries(gloss).map(([en, ja]) => ({ en, ja }))
+writeNdjson(new URL('../content/gloss.ndjson', import.meta.url), entries)
+runContentBuild()
+console.log(`✓ content/gloss.ndjson を再生成し wordGlossData.js を更新（${entries.length}件）`)
 
 // 単語例文で使う全 word にグロッサリがあるか簡易チェック（欠けは件数報告）。
 const used = new Set(WORD_SENTENCES.map((s) => s.word).filter(Boolean))

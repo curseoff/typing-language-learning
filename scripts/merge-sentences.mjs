@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { WORDS } from '../src/content/wordsAll.js'
 import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 
 const arg = (name, def) => {
   const i = process.argv.indexOf(`--${name}`)
@@ -125,29 +126,14 @@ if (write) {
     console.error(`\n✖ NG が ${bad.length} 件残っています。先に解消してから --write してください。`)
     process.exit(1)
   }
-  const esc = (s) => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-  const line = (s) =>
-    `  { level: ${s.level}, word: '${esc(s.word)}', en: '${esc(s.en)}', ja: '${esc(s.ja)}', kana: '${esc(s.kana)}', jaWords: [${s.jaWords.map((w) => `'${esc(w)}'`).join(', ')}] },`
+  // 正準ソース content/sentences.ndjson を再生成 → content-build が L1..L4.js と
+  // theme.js / wsentCounts.js（level×theme 件数）を作り直す。
   const merged = [...WORD_SENTENCES, ...ok]
   const uniq = new Map(merged.map((s) => [s.word, s]))
   const list = [...uniq.values()].sort((a, b) => a.level - b.level || a.word.localeCompare(b.word))
-  // レベル別ファイル（遅延読み込み用）を再生成する
-  const dirUrl = (p) => new URL(`../src/content/wordSentences/${p}`, import.meta.url)
-  for (const lv of [1, 2, 3, 4]) {
-    const arr = list.filter((s) => s.level === lv)
-    writeFileSync(
-      dirUrl(`L${lv}.js`),
-      `// 単語例文 L${lv}（自動分割。生成は scripts/gen-sentences→merge-sentences）。\nexport default [\n${arr.map(line).join('\n')}\n]\n`,
-    )
-  }
-  // index の WSENT_COUNTS（level×theme）と theme.js を更新（語の増減でテーマ件数も変わるため再生成）。
-  await import('child_process')
-    .then(({ execFileSync }) =>
-      execFileSync('node', [new URL('./gen-wsent-theme.mjs', import.meta.url).pathname], {
-        stdio: 'inherit',
-      }),
-    )
-  console.log(`\n✓ wordSentences/L1..L4.js を更新。合計 ${list.length}件。続けて: npm run check`)
+  writeNdjson(new URL('../content/sentences.ndjson', import.meta.url), list)
+  runContentBuild()
+  console.log(`\n✓ content/sentences.ndjson を更新（合計 ${list.length}件）し生成物を再生成。続けて: npm run check`)
 }
 
 process.exit(bad.length && !write ? 0 : 0)

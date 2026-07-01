@@ -134,11 +134,13 @@
 単語を大量に足すときは、**読みの自動生成＋重複/読みの事前チェック**を行うツールを使うと速く・安全です。
 
 ```bash
-# 検査のみ（words.js は変更しない）
+# 検査のみ（正準ソースは変更しない）
 npm run add-words candidates.tsv
-# OK の語を words.js 末尾に追記
+# OK の語を content/words.ndjson に追記し、生成物 .js を自動再生成
 npm run add-words candidates.tsv -- --write
 ```
+
+> **出力先は正準ソース `content/words.ndjson`**（旧 `words.js` 直書きから移行）。`--write` は NDJSON へ追記後に `content:build` を自動実行して `wordsData.js` 等を作り直す。`merge-dict`／`merge-sentences`／`gen-gloss` も同様に、それぞれ `content/dict.ndjson`／`content/sentences.ndjson`／`content/gloss.ndjson` を更新して生成物を再生成する。
 
 入力（TSV、1行1語・ヘッダ不要。`#` 始まりはコメント）:
 
@@ -187,7 +189,7 @@ npm run merge-sentences
 npm run check-readings
 #    → 各 rev-N.json を点検エージェントへ → revfix-N.json（真の誤りだけ）
 
-# 4) 読み修正を適用し wordSentences/L1..L4.js へ追記
+# 4) 読み修正を適用し content/sentences.ndjson を更新（L1..L4.js/theme.js/wsentCounts.js は自動再生成）
 npm run merge-sentences -- --write
 npm run check
 ```

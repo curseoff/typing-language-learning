@@ -3,8 +3,9 @@
 // これらの生成物は gitignore 対象（prebuild/predev/prevalidate/pretest/precoverage で自動生成）。
 // 実行: node scripts/content-build.mjs
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { WORD_THEMES } from '../src/content/words.js'
+import { WORD_LEVELS, WORD_THEMES } from '../src/content/words.js'
 import { computeWsentMeta, renderThemeJs, renderWsentCountsJs } from './lib/wsentMeta.mjs'
+import { computeDictMeta, renderDictMetaJs } from './lib/dictMeta.mjs'
 
 const u = (p) => new URL(p, import.meta.url)
 const GEN = '// 自動生成（scripts/content-build.mjs）。編集しない。'
@@ -35,6 +36,15 @@ function buildArray(ndjsonRel, outRel, sourceNote) {
 // ---- words / dict ----
 buildArray('content/words.ndjson', 'src/content/wordsData.js', 'content/words.ndjson')
 buildArray('content/dict.ndjson', 'src/content/dictionaryData.js', 'content/dict.ndjson')
+
+// dict のメタ（DICT_COUNTS / DICT_AVAILABLE_LEVELS）は dict 記録からの派生物。dictionary.js が re-export する。
+{
+  const dict = readNdjson('content/dict.ndjson').map((l) => JSON.parse(l))
+  const levels = WORD_LEVELS.map((l) => l.level)
+  const { counts, levels: available } = computeDictMeta(dict, WORD_THEMES, levels)
+  writeFileSync(u('../src/content/dictMeta.js'), renderDictMetaJs(counts, available))
+  console.log('build → src/content/dictMeta.js')
+}
 
 // ---- gloss（en→ja マップ）----
 {

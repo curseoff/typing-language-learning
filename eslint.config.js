@@ -15,6 +15,7 @@ export default [
       'coverage',
       'src/content/wordsData.js',
       'src/content/dictionaryData.js',
+      'src/content/dictMeta.js',
       'src/content/wordGlossData.js',
       'src/content/wordSentences/L*.js',
       'src/content/wordSentences/theme.js',
