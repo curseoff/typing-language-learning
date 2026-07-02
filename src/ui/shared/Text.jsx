@@ -57,8 +57,11 @@ export function RubyChars({ ja, kana, done, cursor = -1, hasError = false, over 
 // hasError時は今打つ文字(漢字=done位置 / ふりがな=kanaDone位置)を赤(.rerr)にする。
 export function RubyTyped({ ja, kana, done, kanaDone = 0, hasError = false }) {
   const cellCls = (i, end) => (i < end ? 'rdone' : i === end && hasError ? 'rerr' : '')
+  // 本体文字(漢字・かな)は基底クラス rch を付けて per-char 下線の対象にする。
+  // ふりがな(rt)は文字の上にあり下線と干渉するため rch を付けない（色分けのみ）。
+  const bodyCls = (i, end) => `rch ${cellCls(i, end)}`.trimEnd()
   const charSpan = (ch, gi) => (
-    <span key={gi} className={cellCls(gi, done)}>
+    <span key={gi} className={bodyCls(gi, done)}>
       {ch}
     </span>
   )
@@ -96,10 +99,11 @@ export function RubyText({ ja, kana }) {
 
 // 打った分だけ緑（.rdone）。間違えた時は今打つ文字(done位置)を赤(.rerr)に。
 export function Typed({ text, done, hasError = false }) {
+  // 基底クラス rch を全 span に付け、per-char 下線(.typing 配下でのみ表示)の対象にする。
   return [...text].map((ch, i) => {
-    let cls = ''
-    if (i < done) cls = 'rdone'
-    else if (i === done && hasError) cls = 'rerr'
+    let cls = 'rch'
+    if (i < done) cls += ' rdone'
+    else if (i === done && hasError) cls += ' rerr'
     return (
       <span key={i} className={cls}>
         {ch}

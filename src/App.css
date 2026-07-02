@@ -741,6 +741,28 @@ h1 {
   color: var(--green);
 }
 
+/* 打鍵に応じた per-char 下線: 入力対象の行(pairs / 単一言語 ticker)でのみ、
+   文字 span(.rch) の border-bottom を1文字ずつ色分けする。
+   未入力=中立(薄いアクセント) / 正解済み(.rdone)=緑 / 現在ミス(.rerr)=赤。
+   span は inline で隣接するため下線は連続して見える(スペースの span も引く)。
+   ふりがな(rt)は rch を付けないので下線は本体文字の下だけに出てルビと干渉しない。 */
+.flow-pair .pair-en.typing .rch,
+.flow-pair .pair-ja.typing .rch,
+.flow.ticker .flow-item.current.typing .rch {
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  padding-bottom: 2px;
+}
+.flow-pair .pair-en.typing .rch.rdone,
+.flow-pair .pair-ja.typing .rch.rdone,
+.flow.ticker .flow-item.current.typing .rch.rdone {
+  border-bottom-color: var(--green);
+}
+.flow-pair .pair-en.typing .rch.rerr,
+.flow-pair .pair-ja.typing .rch.rerr,
+.flow.ticker .flow-item.current.typing .rch.rerr {
+  border-bottom-color: var(--red);
+}
+
 /* ---- 上部: 英語/日本語を横に流す(現在の文が中央、進むと左へ) ---- */
 .flow {
   display: flex;
@@ -824,13 +846,8 @@ h1 {
   font-weight: 700;
   color: var(--gold);
 }
-/* 入力中の言語に下線を付けて「今どちらを打つか」を示す */
-.flow-pair .pair-en.typing,
-.flow-pair .pair-ja.typing {
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 4px;
-}
+/* 入力中の言語は per-char 下線(.rch の border-bottom)で「今どちらを打つか」＋打鍵結果を示す。
+   下線の色分けは末尾の「打鍵に応じた per-char 下線」ルールにまとめている。 */
 .flow-item.past,
 .flow-item.future {
   opacity: 0.3;
@@ -864,9 +881,6 @@ h1 {
 }
 .flow.ticker .flow-item.current.typing {
   border-color: var(--accent);
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 4px;
 }
 
 /* 物語モード: 長文は折り返す（横ティッカーをやめる） */
