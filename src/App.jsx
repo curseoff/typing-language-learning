@@ -18,6 +18,7 @@ import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.jsx'
+import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
 import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
@@ -504,6 +505,7 @@ export default function App() {
 
       {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
 
+      <OfflineBanner />
       <UpdateToast />
     </div>
     </ReplayProvider>
