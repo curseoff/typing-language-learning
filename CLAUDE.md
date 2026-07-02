@@ -11,6 +11,14 @@
 - **develop へマージしたら bug-watcher を起動**して、develop に取り込まれた未リリース分（`origin/master..origin/develop`）に不具合が無いか調査させる（`run_in_background:true` 推奨）。bug-watcher は確証のある不具合だけ `bug` ラベルで Issue 化し、解消されたら同じ Issue を更新・クローズする。
 - **TDD（テスト先行）＝ domain/application の「ロジック」と「バグ修正」に適用**。流れは **Red→Green→Refactor**：受け入れ条件（本人 or planner）→ **test-author** が失敗テスト(Red) → **coder** が通す最小実装(Green)→refactor。**coder は test-author の仕様テストを編集しない**（不備は司令塔に申告）。司令塔は「赤→緑」と「**coder の差分が `*.test.*` を触っていない**」を確認し、Red と Green をコミット分離する。**見た目・CSS・教材データは TDD 対象外**（従来どおり `check`/スクショ/`validate`）。
 
+## Issue 駆動開発（実質的な開発に適用）
+機能追加・修正・リファクタ・バグ修正など「作業」に適用。**typo・docs 微修・`tmp/agent-status.md` 台帳更新・自明なワンライナー等の小改変は除外**。
+- **着手前に GitHub Issue を書く**（無ければ作る）。目的と、**進捗を管理するチェック項目（`- [ ]`）** を作業単位に分解して用意する。着手前の Issue 作成は本ルールで常設許可（※通常の「Issue 作成は本人判断」より優先）。
+- **コミットのたびに、対応する Issue のチェックを更新**する（完了項目を `- [x]` に）。coder 等サブエージェントのコミットが着地したら**司令塔が反映**する（各コミットが Issue のどの項目かを対応づける）。
+- **コミットで Issue に無い作業を入れたら、Issue にその旨を追記**する（チェック項目を追加、またはコメントで記録）。Issue と実装の乖離を残さない。
+- **develop にマージされ、全チェック項目が完了したら Issue を Close** する（master 到達時の auto-close を待たない）。feature コミット単体（develop 未マージ）では閉じない＝早すぎる Close を避ける。
+- feature→develop / develop→master の PR 本文は従来どおり `Closes #N`（保険：master 到達での auto-close 用）。
+
 ## Git / PR ワークフロー
 - ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
   - **マージ済みブランチは消す**：PR が develop（または master）にマージされたら、**リモートは GitHub の auto-delete で自動削除**される。**ローカルブランチも `git branch -D` で削除**し、`git fetch origin --prune` で追跡を掃除すること。例外として `issue-assets`（画像ホスティング・PRマージしない）と保留中の `feature/srs-review`(#85) は残す。
