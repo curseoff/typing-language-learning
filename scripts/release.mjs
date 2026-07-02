@@ -11,7 +11,8 @@
 import { execSync, execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
-const sh = (cmd, opts = {}) => (execSync(cmd, { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'], ...opts }) ?? '').trim()
+// maxBuffer は既定 1MB だと巨大な git diff（教材 NDJSON 等）で ENOBUFS になるため広げる。
+const sh = (cmd, opts = {}) => (execSync(cmd, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['inherit', 'pipe', 'inherit'], ...opts }) ?? '').trim()
 const ghEnv = { ...process.env }
 delete ghEnv.GITHUB_TOKEN
 const gh = (args) => execFileSync('gh', args, { encoding: 'utf8', env: ghEnv }).trim()
@@ -34,10 +35,12 @@ if (sh('git rev-parse HEAD') !== sh('git rev-parse origin/develop')) die('ロー
 
 // 2) 秘密情報・個人情報の自己点検（develop..master の追加分）
 log('自己点検（秘密情報・個人情報）…')
-// 生成データ（語彙・例文・グロッサリ＝教育コンテンツ）は英単語の見出し語が
-// 正規表現を誤検知するので自己点検から除外する。秘密情報はソース側に入るため検出に影響しない。
+// 教材コンテンツ（語彙・英英・例文・グロッサリ・物語＝教育コンテンツ）は英単語の見出し語が
+// 正規表現を誤検知し、かつ巨大（NDJSON 数万行）で diff を膨張させるので自己点検から除外する。
+// 正準ソースの content/*.ndjson・content/stories/*.json と、生成物 src/content/*Data.js 等が対象。
+// 秘密情報はコード/設定側に入るため検出に影響しない。
 const diff = sh(
-  "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/*.js'",
+  "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/*.js' ':(exclude)content/*.ndjson' ':(exclude)content/stories/*.json'",
 )
 const added = diff.split('\n').filter((l) => l.startsWith('+'))
 const bad = /(api[_-]?key|secret|token|password|private[_-]?key|BEGIN [A-Z ]+PRIVATE KEY|\/Users\/[a-z]+\/|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/i
