@@ -12,13 +12,16 @@ export function computeTickerFade(boxes, trackWidth, { gap = 10, edge = 8 } = {}
     // 計測前などは従来相当のごく浅い右端フェードに退避。
     return { fadeStart: Math.max(0, trackWidth - edge), fadeEnd: trackWidth }
   }
-  // 右端をはみ出す最初の「部分的に見えている」語を探す＝これが入ってくる先読み語。
+  // 右端をはみ出す最初の「右から入ってくる先読み語」を探す。
+  // 現在アイテムは左端固定(left≤0)で、狭幅だと幅 > track になり右端も越えるが、
+  // これは「入ってくる語」ではない（#108: 誤検出すると fadeStart=0 で現在文が全幅で沈む）。
+  // よって left>0 かつ 右端が可視域を越える後続語だけを entering とみなす。
   let entering = null
   for (const b of boxes) {
     if (!b) continue
     const right = b.left + b.width
-    // 左端がビュー内にあり、右端が可視域を越える語。
-    if (b.left < trackWidth && right > trackWidth) {
+    // 左端がビュー内の正の位置にあり、右端が可視域を越える語。
+    if (b.left > 0 && b.left < trackWidth && right > trackWidth) {
       entering = b
       break
     }
