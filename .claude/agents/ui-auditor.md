@@ -16,6 +16,14 @@ tools: Read, Grep, Glob, Bash
 - 生成された PNG は **Read ツールで画像として開いて目視**する（崩れ・はみ出し・切れ・重なり・ルビ位置・コントラストを確認）。
 - それ以外の画面（プレイ中の各モード等）が必要なら、`?preview=` のトリガ（`src/App.jsx` の DEV 用 effect）や `?tab=` ディープリンクの範囲で確認する（無ければ「未確認」と明記）。
 
+## 状態を作る対話検証（puppeteer・shots:play で届かない状態はこちら）
+`shots:play` は静的画面しか撮れない。**打鍵途中・エラー中・オフライン・インストール導線など「状態を作らないと見えない UI」は puppeteer-core（`check:pwa`/`shots` と同じ依存・システム Chrome を再利用）で状態を再現して検証**する。`node` の一時スクリプトは **worktree/リポジトリ内に残さず** `/tmp` 等で実行し、終わったら消す。`npm run build` 後に `npx vite preview --port <4300番台> --strictPort` で配信し、`puppeteer.launch({headless:'new', executablePath: システムChrome})` で開く（本人の dev 5173 は触らない）。よく使う状態誘発と検証：
+- **プレイ画面/打鍵途中**：`単語`等のタブ→`スタート`を click →`page.keyboard.type()`（大文字・スペース込み。英字は大小区別）で途中まで正解入力→わざと誤打（数字`1`等）でエラー状態を作る。
+- **オフライン/取得失敗**：`page.setOfflineMode(true)`（＝offline イベント＋`navigator.onLine=false`）。教材取得失敗（フォールバック）は **`dist/content.sqlite3` を消して 404 を誘発**（SW を跨ぐので request interception より確実）。
+- **インストール導線**：合成 `beforeinstallprompt` を `page.evaluate`（`e.prompt=()=>{}` `e.userChoice=Promise.resolve(...)` を付けて `dispatchEvent`）。実 Chrome が自然発火することもある。
+- **採寸・ヒットテスト**：`getBoundingClientRect()` で重なり判定（2矩形の交差）、`document.elementFromPoint(cx,cy)?.closest('.target')` で「そのボタンが実際に押せるか（他要素に覆われていないか）」を確認。`getComputedStyle(el).borderBottomColor` 等で per-char の色トークン一致も検証できる。
+- 320/390/1200px など**複数幅**で採寸＋スクショし、狭幅の被り・見切れ・操作不能を根拠にする。
+
 ## 監査チェックリスト
 1. **レイアウト崩れ**：はみ出し／要素の重なり／枠が画面外に出る（長文の例文ボックス等）／折り返しの破綻／中央寄せズレ。
 2. **状態遷移前後の一貫性**：枠が「出現する」ことでガクつかないか（前後でサイズ/パディングが変わらないか）。現在語の強調・下線・青枠の付き方がモード間で揃っているか。
