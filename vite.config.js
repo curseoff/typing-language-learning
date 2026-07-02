@@ -35,8 +35,8 @@ export default defineConfig({
         'src/infrastructure/pwa/registerSW.js',
       ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
-      // オフライン検知（onlineStatus/useOnlineStatus/OfflineBanner）にテストを追加し微増。実測直下へ追従。
-      thresholds: { statements: 76.9, branches: 59.0, functions: 75.3, lines: 78.0 },
+      // 打鍵ミス効果音（sound/soundSettingsRepository/SoundToggle）にテストを追加し微増。実測直下へ追従。
+      thresholds: { statements: 77.4, branches: 60.2, functions: 75.6, lines: 78.4 },
     },
   },
 })

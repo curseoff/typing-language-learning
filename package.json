@@ -1,7 +1,7 @@
 {
   "name": "typing-language-learning",
   "private": true,
-  "version": "0.17.0",
+  "version": "0.18.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -18,9 +18,10 @@
     "content:validate": "node scripts/content-validate.mjs",
     "content:sqlite": "node scripts/content-sqlite.mjs",
     "check:content": "node scripts/check-content-sqlite.mjs",
-    "prebuild": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs",
+    "prebuild": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs && node scripts/gen-miss-sound.mjs",
     "postbuild": "node scripts/gen-precache.mjs",
-    "predev": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs",
+    "predev": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs && node scripts/gen-miss-sound.mjs",
+    "gen-miss-sound": "node scripts/gen-miss-sound.mjs",
     "prevalidate": "node scripts/content-build.mjs",
     "pretest": "node scripts/content-build.mjs",
     "precoverage": "node scripts/content-build.mjs",

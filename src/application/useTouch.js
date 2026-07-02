@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { buildDrill } from '../domain/touch/drill.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { TOUCH_LEVELS } from '../content/keyboard.js'
+import { playMiss } from '../infrastructure/sound.js'
 
 export function useTouch({ level, onExit }) {
   const keys = (TOUCH_LEVELS.find((l) => l.key === level) ?? TOUCH_LEVELS[0]).keys
@@ -63,6 +64,7 @@ export function useTouch({ level, onExit }) {
         setIndex((i) => i + 1)
       } else {
         setMistakes((m) => m + 1)
+        playMiss()
         setHasError(true)
         setWrongKey(e.key.toLowerCase()) // 押した（誤った）キーを記録して枠を光らせる
       }

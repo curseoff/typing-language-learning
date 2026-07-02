@@ -14,6 +14,7 @@ import {
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { playMiss } from '../infrastructure/sound.js'
 
 export function useStory({ mode, storyId, start, onExit }) {
   const story = storyById(storyId)
@@ -142,6 +143,7 @@ export function useStory({ mode, storyId, start, onExit }) {
           setMistakes((m) => m + 1)
           trackMiss(trackerRef.current)
           segMiss(segTrackerRef.current)
+          playMiss()
           setHasError(true)
           return
         }
@@ -177,6 +179,7 @@ export function useStory({ mode, storyId, start, onExit }) {
         if (!choiceSegs.some((s) => segMatches(s, candidate))) {
           setMistakes((m) => m + 1)
           trackMiss(trackerRef.current)
+          playMiss()
           setHasError(true)
           return
         }

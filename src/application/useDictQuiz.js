@@ -14,6 +14,7 @@ import { mulberry32 } from '../domain/rng.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.js'
 import { makeSeed } from './seed.js'
+import { playMiss } from '../infrastructure/sound.js'
 
 export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit }) {
   // 「今プレイ中の問題列・選択肢」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
@@ -184,6 +185,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
       } else {
         setMistakes((m) => (mistakesRef.current = m + 1))
         perQMissRef.current += 1
+        playMiss()
         setHasError(true)
       }
     }

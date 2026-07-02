@@ -741,6 +741,28 @@ h1 {
   color: var(--green);
 }
 
+/* 打鍵に応じた per-char 下線: 入力対象の行(pairs / 単一言語 ticker)でのみ、
+   文字 span(.rch) の border-bottom を1文字ずつ色分けする。
+   未入力=中立(薄いアクセント) / 正解済み(.rdone)=緑 / 現在ミス(.rerr)=赤。
+   span は inline で隣接するため下線は連続して見える(スペースの span も引く)。
+   ふりがな(rt)は rch を付けないので下線は本体文字の下だけに出てルビと干渉しない。 */
+.flow-pair .pair-en.typing .rch,
+.flow-pair .pair-ja.typing .rch,
+.flow.ticker .flow-item.current.typing .rch {
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  padding-bottom: 2px;
+}
+.flow-pair .pair-en.typing .rch.rdone,
+.flow-pair .pair-ja.typing .rch.rdone,
+.flow.ticker .flow-item.current.typing .rch.rdone {
+  border-bottom-color: var(--green);
+}
+.flow-pair .pair-en.typing .rch.rerr,
+.flow-pair .pair-ja.typing .rch.rerr,
+.flow.ticker .flow-item.current.typing .rch.rerr {
+  border-bottom-color: var(--red);
+}
+
 /* ---- 上部: 英語/日本語を横に流す(現在の文が中央、進むと左へ) ---- */
 .flow {
   display: flex;
@@ -824,13 +846,8 @@ h1 {
   font-weight: 700;
   color: var(--gold);
 }
-/* 入力中の言語に下線を付けて「今どちらを打つか」を示す */
-.flow-pair .pair-en.typing,
-.flow-pair .pair-ja.typing {
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 4px;
-}
+/* 入力中の言語は per-char 下線(.rch の border-bottom)で「今どちらを打つか」＋打鍵結果を示す。
+   下線の色分けは末尾の「打鍵に応じた per-char 下線」ルールにまとめている。 */
 .flow-item.past,
 .flow-item.future {
   opacity: 0.3;
@@ -864,9 +881,6 @@ h1 {
 }
 .flow.ticker .flow-item.current.typing {
   border-color: var(--accent);
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 4px;
 }
 
 /* 物語モード: 長文は折り返す（横ティッカーをやめる） */
@@ -1716,6 +1730,44 @@ kbd {
   flex: none;
 }
 
+/* 効果音のミュート切替ボタン。左上に控えめに固定表示（オフライン=上部中央／更新トースト=下部中央／
+   インストール=右下／フォールバック告知・DEVパネル=左下 と位置で棲み分け）。常時表示。 */
+.sound-toggle {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid #334155;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.sound-toggle:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.sound-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* ミュート中は状態が分かるよう控えめに赤みを差す */
+.sound-toggle[aria-pressed='true'] {
+  color: var(--red);
+}
+.sound-toggle__icon {
+  display: inline-flex;
+  line-height: 0;
+}
+
 /* 「アプリとして追加」ボタン。右下に控えめに固定表示（オフラインバナーは上部・更新トーストは
    下部中央なので位置で棲み分け）。beforeinstallprompt を捕捉できたときだけ描画される。 */
 .install-button {
@@ -1748,4 +1800,58 @@ kbd {
   color: var(--accent);
   font-size: 16px;
   line-height: 1;
+}
+
+/* 教材フォールバック告知。左下に控えめに固定表示（オフラインバナー=上部中央／更新トースト=下部中央／
+   インストール=右下 と位置で棲み分け）。教材の SQLite 読込失敗時だけ描画される。 */
+.content-fallback-notice {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 9px 12px 9px 16px;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.content-fallback-notice__msg {
+  line-height: 1.4;
+}
+.content-fallback-notice__close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.content-fallback-notice__close:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.content-fallback-notice__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* 狭幅（モバイル）では左下の告知が全幅近くに伸び、右下のインストールボタン（同 z-index=150 で
+   DOM 後勝ち＝前面）とヒットテストが衝突しボタンを押せなくなる。告知をインストールボタンの上へ
+   縦積みして物理的に重ならないようにする（告知はボタンより上なので全幅でも侵入せず、複数行に
+   伸びても bottom 固定で上方向へ伸びるだけ）。デスクトップ（>640px）は従来の左下配置のまま。 */
+@media (max-width: 640px) {
+  .content-fallback-notice {
+    bottom: 68px;
+  }
 }
