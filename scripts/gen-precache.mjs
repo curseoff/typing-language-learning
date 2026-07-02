@@ -4,12 +4,13 @@
 //   - shell 群 … 起動に必須の小さい資産（install で addAll → 初回からオフライン起動）
 //   - data 群  … content.sqlite3 / wasm / 語彙データ等の大物（activate 後に背景先読み）
 import { readdirSync, statSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { join, relative, sep } from 'node:path'
 
 const DIST = 'dist'
 
-// dist/ 配下を再帰的に走査し、ファイルの相対パス（posix 区切り）一覧を返す。
-function walk(dir) {
+// dist/ 配下を再帰的に走査し、ファイルの絶対（実）パス一覧を返す。
+export function walk(dir) {
   const out = []
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
@@ -19,52 +20,61 @@ function walk(dir) {
   return out
 }
 
-let files
-try {
-  files = walk(DIST)
-} catch {
-  console.error(`✖ ${DIST}/ が見つかりません。先に npm run build を実行してください。`)
-  process.exit(1)
-}
-
-// サイト絶対パス（先頭スラッシュ付き）へ。index.html は "/" に正規化する。
-function toSitePath(full) {
-  const rel = relative(DIST, full).split(sep).join('/')
-  if (rel === 'index.html') return '/'
-  return `/${rel}`
+// scope 相対パスへ正規化する。sw.js は scope ルート（本番なら /typing-language-learning/sw.js）に
+// 居るので、addAll に渡す URL を相対にすれば sw.js の位置基準で解決され、
+// GitHub Pages のサブパス配信でも localhost ルートでも正しく効く。
+//   - ルート絶対（先頭 /）だと本番でオリジン直下（/assets/... 等）へ化けて 404 → addAll 全体 reject。
+//   - index.html は './'、それ以外は先頭スラッシュ無しの相対パス（assets/xxx.js・icon.svg 等）。
+export function toSitePath(rel) {
+  if (rel === 'index.html') return './'
+  return rel
 }
 
 // キャッシュ対象外（SW 本体・自己参照・ソースマップ・OS 生成物）。
-function isExcluded(rel) {
+export function isExcluded(rel) {
   const base = rel.split('/').pop()
   return base === 'sw.js' || base === 'precache-manifest.json' || rel.endsWith('.map') || base === '.DS_Store'
 }
 
 // 大物（背景先読み）判定。ここに該当しないキャッシュ可能資産は shell とする。
-function isData(p) {
+// rel（先頭スラッシュ無しの相対パス）で判定するため、パス先頭の資産にも当たるよう (^|/) で錨止めする。
+export function isData(rel) {
   return (
-    /\/content\.sqlite3$/.test(p) ||
-    /\.wasm$/.test(p) ||
-    /\/assets\/L[1-4]-[^/]*\.js$/.test(p) ||
-    /\/assets\/wordsData-[^/]*\.js$/.test(p) ||
-    /\/assets\/dictionaryData-[^/]*\.js$/.test(p) ||
-    /\/assets\/wordGlossData-[^/]*\.js$/.test(p)
+    /(^|\/)content\.sqlite3$/.test(rel) ||
+    /\.wasm$/.test(rel) ||
+    /(^|\/)assets\/L[1-4]-[^/]*\.js$/.test(rel) ||
+    /(^|\/)assets\/wordsData-[^/]*\.js$/.test(rel) ||
+    /(^|\/)assets\/dictionaryData-[^/]*\.js$/.test(rel) ||
+    /(^|\/)assets\/wordGlossData-[^/]*\.js$/.test(rel)
   )
 }
 
-const shell = new Set()
-const data = new Set()
-for (const full of files) {
-  const rel = relative(DIST, full).split(sep).join('/')
-  if (isExcluded(rel)) continue
-  const p = toSitePath(full)
-  if (isData(p)) data.add(p)
-  else shell.add(p)
+// 相対パス一覧（rel）から shell/data のプリキャッシュ一覧を組み立てる。
+export function buildManifest(rels) {
+  const shell = new Set()
+  const data = new Set()
+  for (const rel of rels) {
+    if (isExcluded(rel)) continue
+    const p = toSitePath(rel)
+    if (isData(rel)) data.add(p)
+    else shell.add(p)
+  }
+  return { shell: [...shell].sort(), data: [...data].sort() }
 }
 
-const manifest = {
-  shell: [...shell].sort(),
-  data: [...data].sort(),
+function main() {
+  let files
+  try {
+    files = walk(DIST)
+  } catch {
+    console.error(`✖ ${DIST}/ が見つかりません。先に npm run build を実行してください。`)
+    process.exit(1)
+  }
+  const rels = files.map((full) => relative(DIST, full).split(sep).join('/'))
+  const manifest = buildManifest(rels)
+  writeFileSync(join(DIST, 'precache-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+  console.log(`✓ precache-manifest.json 生成: shell ${manifest.shell.length}件 / data ${manifest.data.length}件`)
 }
-writeFileSync(join(DIST, 'precache-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
-console.log(`✓ precache-manifest.json 生成: shell ${manifest.shell.length}件 / data ${manifest.data.length}件`)
+
+// node scripts/gen-precache.mjs で直接実行された時だけ生成する（import 時は副作用なし＝テスト可能）。
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
