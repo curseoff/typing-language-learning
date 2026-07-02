@@ -14,7 +14,7 @@
   - **純粋ロジック**（domain/application の判定・計算・状態遷移・変換で**分岐/端ケースあり**）＋**バグ修正** → **test-author が Red(commit) → coder が Green**。**「UI 寄り」に分類する前に、純粋ロジックが混ざっていないか必ず確認**し、混ざれば切り出して test-author を通す（判断基準：**「そのテストは実装をなぞるだけ＝同義反復になりそうか」→ なりそうなら test-author 先行**で独立性を確保。速度を理由に省かない）。
   - **自明な純粋関数**（`!muted` 等・分岐/端ケースなし）・**見た目/CSS/教材データ/ブラウザAPIの薄い配線**（AudioContext/SW/navigator/localStorage） → coder がテストごと。
   - **UI/見た目/レイアウト/a11y が要点**の変更 → マージ前に **ui-auditor が実画面で独立確認**（司令塔は最終判定のみ・headless 自己検証を抱え込まない）。`shots:play` で捉えられない状態（打鍵途中・オフライン・`beforeinstallprompt` 等）は ui-auditor が **puppeteer 等で状態を作って検証**する。
-  - **層をまたぐ大きめのリファクタ/新モジュール** → 要所で **ddd-auditor** に依存方向・責務を独立監査（毎回ではない）。
+  - **層/依存の監査（ddd-auditor）** → **リリース（develop→master）の直前に bug-watcher と同枠で司令塔が起動**し、未リリース分（`origin/master..origin/develop`）の依存方向・責務漏れ・domain 純粋性を独立監査。または**本人指示**でも起動。**毎コミット/毎マージ/構造変更ごとには起動しない**（bug-watcher と同じトリガ）。
   - **大きめ/曖昧な UX・技術企画** → **planner** に草案（着手前 Issue は原則司令塔が書く＝Issue駆動）。
   - **不具合調査** → 本人指示 or リリース直前（上記 bug-watcher ルール）。
 
