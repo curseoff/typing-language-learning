@@ -1684,3 +1684,30 @@ kbd {
 .update-toast__later:hover {
   color: var(--text);
 }
+
+/* オフライン告知バナー。上部中央に控えめに固定表示（更新トースト(200)は下部・別位置なので棲み分け）。 */
+.offline-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
