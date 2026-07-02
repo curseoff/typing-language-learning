@@ -19,10 +19,13 @@ export function registerServiceWorker({ onUpdate } = {}) {
       return // 登録失敗は無視（PWA 無しの通常動作にフォールバック）
     }
 
-    // 更新適用後（新 SW が制御を取った瞬間）に一度だけリロードして新 shell を反映する。
+    // ユーザーが「更新」を押して skipWaiting した結果 controller が入れ替わった時だけリロードする。
+    // 初回訪問の clients.claim()（controller: null→active）でも controllerchange は発火するが、
+    // そこで reload すると初回で画面が一瞬リロードし、オフライン起動体験を損なう（＝reload しない）。
+    let userTriggered = false
     let reloading = false
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloading) return // 多重リロード防止
+      if (!userTriggered || reloading) return // 初回 claim では reload しない／多重 reload 防止
       reloading = true
       window.location.reload()
     })
@@ -30,7 +33,10 @@ export function registerServiceWorker({ onUpdate } = {}) {
     // waiting 中の新 SW をトーストに通知する。「更新」押下で SKIP_WAITING を送る。
     const notify = (waiting) => {
       if (!waiting || typeof onUpdate !== 'function') return
-      onUpdate(() => waiting.postMessage('SKIP_WAITING'))
+      onUpdate(() => {
+        userTriggered = true // 以降の controllerchange はユーザー起点＝reload 対象
+        waiting.postMessage('SKIP_WAITING')
+      })
     }
 
     // 既に更新待ちの SW がある（前セッションで検知済み・controller あり＝初回ではない）。
