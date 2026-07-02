@@ -4,6 +4,9 @@
   --panel-2: #273449;
   --text: #e2e8f0;
   --muted: #94a3b8;
+  /* 機能テキスト（操作ヒント/キー案内）専用。実背景で AA(4.5:1) 以上を確保:
+     bg=9.00 / panel=7.37 / panel-2=6.32:1。opacity を使わず色で表現する。 */
+  --muted-fn: #aeb9c9;
   --accent: #38bdf8;
   --green: #4ade80;
   --red: #f87171;
@@ -1387,13 +1390,13 @@ ruby > rt {
 
 .hint {
   text-align: center;
-  color: var(--muted);
+  color: var(--muted-fn);
   font-size: 13px;
   margin-top: 18px;
 }
 .key-hint {
   text-align: center;
-  color: var(--muted);
+  color: var(--muted-fn);
   font-size: 13px;
   margin-top: -8px;
 }
