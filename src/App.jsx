@@ -21,6 +21,7 @@ import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
 import InstallButton from './ui/pwa/InstallButton.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
+import SoundToggle from './ui/sound/SoundToggle.jsx'
 import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
@@ -507,6 +508,7 @@ export default function App() {
 
       {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
 
+      <SoundToggle />
       <OfflineBanner />
       <UpdateToast />
       <InstallButton />
