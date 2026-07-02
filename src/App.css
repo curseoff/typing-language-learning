@@ -1703,6 +1703,10 @@ kbd {
   padding: 7px 16px;
   font-size: 13px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  /* 単行を維持する。left:50%（rightなし）だと fixed 要素の shrink-to-fit 幅が
+     ビューポート半分に制限され、狭幅では文言がテキスト幅を下回って折り返し、
+     下に伸びてタイトル(h1)に被る。nowrap で常に1行に保ち被りを防ぐ。 */
+  white-space: nowrap;
 }
 .offline-banner__dot {
   width: 8px;
