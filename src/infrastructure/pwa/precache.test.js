@@ -3,7 +3,13 @@
 // sw.js の addAll がオリジン直下へ解決され 404 → install の shell 先読みが丸ごと reject する。
 // よって全エントリが先頭 '/' で始まらず、index は './' であることを固定する。
 import { describe, it, expect } from 'vitest'
-import { toSitePath, isData, buildManifest } from '../../../scripts/gen-precache.mjs'
+import {
+  toSitePath,
+  isData,
+  isFallbackChunk,
+  classify,
+  buildManifest,
+} from '../../../scripts/gen-precache.mjs'
 
 describe('gen-precache: scope 相対パス化（#171）', () => {
   it('index.html は "./"、それ以外は先頭スラッシュ無しの相対', () => {
@@ -13,17 +19,45 @@ describe('gen-precache: scope 相対パス化（#171）', () => {
     expect(toSitePath('content.sqlite3')).toBe('content.sqlite3')
   })
 
-  it('相対パスでも data 群（大物）を正しく判定する', () => {
+  it('data 群は content.sqlite3 と wasm のみ（#173：fallback チャンクは含めない）', () => {
     expect(isData('content.sqlite3')).toBe(true)
     expect(isData('assets/sqlite3-xyz.wasm')).toBe(true)
-    expect(isData('assets/L1-abc.js')).toBe(true)
-    expect(isData('assets/wordsData-abc.js')).toBe(true)
-    expect(isData('assets/dictionaryData-abc.js')).toBe(true)
-    expect(isData('assets/wordGlossData-abc.js')).toBe(true)
-    // shell 側（小資産）は data ではない
+    // fallback チャンクは data ではない（skip 扱い）
+    expect(isData('assets/L1-abc.js')).toBe(false)
+    expect(isData('assets/wordsData-abc.js')).toBe(false)
+    expect(isData('assets/dictionaryData-abc.js')).toBe(false)
+    expect(isData('assets/wordGlossData-abc.js')).toBe(false)
+    // shell 側（小資産）も data ではない
     expect(isData('assets/index-abc.js')).toBe(false)
     expect(isData('icon.svg')).toBe(false)
     expect(isData('manifest.webmanifest')).toBe(false)
+  })
+
+  it('fallback チャンク（L1〜L4/wordsData/dictionaryData/wordGlossData）を判定する（#173）', () => {
+    expect(isFallbackChunk('assets/L1-abc.js')).toBe(true)
+    expect(isFallbackChunk('assets/L4-abc.js')).toBe(true)
+    expect(isFallbackChunk('assets/wordsData-abc.js')).toBe(true)
+    expect(isFallbackChunk('assets/dictionaryData-abc.js')).toBe(true)
+    expect(isFallbackChunk('assets/wordGlossData-abc.js')).toBe(true)
+    // 通常資産は fallback ではない
+    expect(isFallbackChunk('assets/index-abc.js')).toBe(false)
+    expect(isFallbackChunk('content.sqlite3')).toBe(false)
+    expect(isFallbackChunk('assets/sqlite3-xyz.wasm')).toBe(false)
+  })
+
+  it('classify は 3値（skip/data/shell）に振り分ける（#173）', () => {
+    // data：sqlite/wasm のみ
+    expect(classify('content.sqlite3')).toBe('data')
+    expect(classify('assets/sqlite3-xyz.wasm')).toBe('data')
+    // skip：fallback チャンクと除外対象
+    expect(classify('assets/L1-abc.js')).toBe('skip')
+    expect(classify('assets/wordsData-abc.js')).toBe('skip')
+    expect(classify('sw.js')).toBe('skip')
+    expect(classify('assets/index-abc.js.map')).toBe('skip')
+    // shell：起動必須の小資産
+    expect(classify('assets/index-abc.js')).toBe('shell')
+    expect(classify('icon.svg')).toBe('shell')
+    expect(classify('manifest.webmanifest')).toBe('shell')
   })
 
   it('buildManifest の全エントリが先頭 "/" で始まらず、index は "./"', () => {
@@ -54,10 +88,13 @@ describe('gen-precache: scope 相対パス化（#171）', () => {
     expect(shell).toContain('assets/index-abc.js')
     expect(shell).toContain('icon.svg')
     expect(shell).toContain('manifest.webmanifest')
+    // data は sqlite/wasm のみ（#173）
     expect(data).toContain('content.sqlite3')
     expect(data).toContain('assets/sqlite3-xyz.wasm')
-    expect(data).toContain('assets/L1-abc.js')
-    expect(data).toContain('assets/wordsData-abc.js')
+    expect(data).toEqual(['assets/sqlite3-xyz.wasm', 'content.sqlite3'])
+    // fallback チャンクは shell/data どちらにも載らない（#173：skip）
+    expect(all).not.toContain('assets/L1-abc.js')
+    expect(all).not.toContain('assets/wordsData-abc.js')
     // 除外対象は含まれない
     expect(all).not.toContain('sw.js')
     expect(all).not.toContain('precache-manifest.json')
