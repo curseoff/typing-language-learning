@@ -11,7 +11,7 @@ export function registerServiceWorker({ onUpdate } = {}) {
     return
   }
 
-  window.addEventListener('load', async () => {
+  const start = async () => {
     let registration
     try {
       registration = await navigator.serviceWorker.register(new URL('sw.js', document.baseURI).href)
@@ -49,5 +49,14 @@ export function registerServiceWorker({ onUpdate } = {}) {
         }
       })
     })
-  })
+  }
+
+  // 登録の起点は React effect 内（<UpdateToast>）なので、既に load 済み（readyState complete）の
+  // ことがある。その場合 'load' は二度と発火しないため即実行し、未了なら load を待つ（両対応）。
+  // ※ 片方（load 待ちのみ）だと登録がスキップされ PWA が丸ごと無効化される（#169 の回帰）。
+  if (document.readyState === 'complete') {
+    start()
+  } else {
+    window.addEventListener('load', start, { once: true })
+  }
 }
