@@ -10,6 +10,7 @@ import { loadDictRecords, saveDictRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
@@ -167,6 +168,7 @@ export function useDict({ dict, level, theme, mode, seed, onExit }) {
         })
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
+        playMiss()
         setHasError(true)
       }
     },

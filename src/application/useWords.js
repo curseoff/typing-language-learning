@@ -10,6 +10,7 @@ import { loadWordRecords, saveWordRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
 
 export function useWords({ allWords, level, theme, mode, seed, onExit }) {
@@ -175,6 +176,7 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
         })
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
+        playMiss()
         setHasError(true)
       }
     }

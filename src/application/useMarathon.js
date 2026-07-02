@@ -7,6 +7,7 @@ import { mulberry32 } from '../domain/rng.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { playMiss } from '../infrastructure/sound.js'
 
 export function useMarathon({ active, onFinish }) {
   const [segments, setSegments] = useState([])
@@ -132,6 +133,7 @@ export function useMarathon({ active, onFinish }) {
         })
         segMistakesRef.current += 1
         trackMiss(trackerRef.current)
+        playMiss()
         setHasError(true)
       }
     },
