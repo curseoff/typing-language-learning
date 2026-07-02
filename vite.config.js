@@ -8,6 +8,9 @@ export default defineConfig({
   // Electron(file://)で読み込めるよう相対パスにする
   base: './',
   plugins: [react()],
+  // sqlite-wasm は事前バンドルすると .wasm の locate に失敗しがちなので最適化から除外。
+  // 教材コンテンツを content.sqlite3 から読む contentDb.js が動的 import する。
+  optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
   // package.json の version をビルド時に注入（TOPに表示）
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   test: {
@@ -22,11 +25,18 @@ export default defineConfig({
       reporter: ['text-summary', 'html'],
       // コード（ロジック）のみ対象。データ/エントリ/テストは除外。
       include: ['src/**/*.{js,jsx}'],
-      exclude: ['src/**/*.test.{js,jsx}', 'src/content/**', 'src/test/**', 'src/main.jsx'],
+      // registerSW.js は import.meta.env.PROD で本番のみ走るブラウザ SW 配線（main.jsx と同種の
+      // エントリ配線）で jsdom 単体テストの対象外。UI ロジックは UpdateToast.test.jsx で被覆する。
+      exclude: [
+        'src/**/*.test.{js,jsx}',
+        'src/content/**',
+        'src/test/**',
+        'src/main.jsx',
+        'src/infrastructure/pwa/registerSW.js',
+      ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
-      // 60秒タイマーの重複ロジック（被覆済み）を useCountdownTimer に集約・削除したため、
-      // 分母が縮み率が微減（抽出した hook 自体は 100% 被覆）。実測直下へ追従。
-      thresholds: { statements: 76.3, branches: 58.2, functions: 74.4, lines: 77.3 },
+      // オフライン検知（onlineStatus/useOnlineStatus/OfflineBanner）にテストを追加し微増。実測直下へ追従。
+      thresholds: { statements: 76.9, branches: 59.0, functions: 75.3, lines: 78.0 },
     },
   },
 })

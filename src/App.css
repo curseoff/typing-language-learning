@@ -1632,3 +1632,120 @@ kbd {
 .seg-stats .q-answer {
   color: var(--muted);
 }
+
+/* ---- PWA 更新通知トースト（新しい版を検知したとき画面下部に控えめに出す） ---- */
+.update-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 200; /* dev-panel(100)・他の fixed(50) より前面 */
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.update-toast__msg {
+  font-size: 14px;
+}
+.update-toast__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.update-toast__update {
+  padding: 7px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #06283d;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.update-toast__update:hover {
+  filter: brightness(1.08);
+}
+.update-toast__later {
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.update-toast__later:hover {
+  color: var(--text);
+}
+
+/* オフライン告知バナー。上部中央に控えめに固定表示（更新トースト(200)は下部・別位置なので棲み分け）。 */
+.offline-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  /* 単行を維持する。left:50%（rightなし）だと fixed 要素の shrink-to-fit 幅が
+     ビューポート半分に制限され、狭幅では文言がテキスト幅を下回って折り返し、
+     下に伸びてタイトル(h1)に被る。nowrap で常に1行に保ち被りを防ぐ。 */
+  white-space: nowrap;
+}
+.offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+/* 「アプリとして追加」ボタン。右下に控えめに固定表示（オフラインバナーは上部・更新トーストは
+   下部中央なので位置で棲み分け）。beforeinstallprompt を捕捉できたときだけ描画される。 */
+.install-button {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, filter 0.15s ease;
+}
+.install-button:hover {
+  background: var(--panel-2);
+}
+.install-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.install-button__icon {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+}

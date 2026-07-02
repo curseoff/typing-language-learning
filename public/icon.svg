@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="タイピング">
+  <rect width="512" height="512" rx="96" fill="#0f172a"/>
+  <rect x="72" y="168" width="368" height="200" rx="28" fill="#1e293b" stroke="#38bdf8" stroke-width="10"/>
+  <g fill="#38bdf8">
+    <rect x="110" y="206" width="44" height="40" rx="8"/>
+    <rect x="170" y="206" width="44" height="40" rx="8"/>
+    <rect x="230" y="206" width="44" height="40" rx="8"/>
+    <rect x="290" y="206" width="44" height="40" rx="8"/>
+    <rect x="350" y="206" width="44" height="40" rx="8"/>
+    <rect x="110" y="262" width="44" height="40" rx="8"/>
+    <rect x="170" y="262" width="44" height="40" rx="8"/>
+    <rect x="230" y="262" width="44" height="40" rx="8"/>
+    <rect x="290" y="262" width="44" height="40" rx="8"/>
+    <rect x="350" y="262" width="44" height="40" rx="8"/>
+  </g>
+  <rect x="150" y="318" width="212" height="34" rx="10" fill="#4ade80"/>
+</svg>

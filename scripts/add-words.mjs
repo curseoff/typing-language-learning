@@ -16,8 +16,9 @@
 //   - kana: ローマ字変換可能・読みを完全消費・長音「ー」は警告
 //   - theme: 日常/旅行/ビジネス か空
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { WORD_THEMES, bandOf } from '../src/content/words.js'
+import { readNdjson, writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 import { WORDS } from '../src/content/wordsAll.js'
 import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
 
@@ -132,18 +133,21 @@ if (ng.length) {
 console.log(`\n--- 追記用（OK ${ok.length}語）---`)
 for (const w of ok) console.log(jsLine(w))
 
-// ---- 書き込み ----
+// ---- 書き込み（正準ソース content/words.ndjson に追記 → 生成物を再生成）----
 if (write && ok.length) {
-  const path = new URL('../src/content/words.js', import.meta.url)
-  const src = readFileSync(path, 'utf-8')
-  const idx = src.lastIndexOf('\n]')
-  if (idx < 0) {
-    console.error('\n✖ words.js の末尾 "]" が見つからず追記できませんでした。')
-    process.exit(1)
-  }
-  const block = '\n  // ==== add-words で追加 ====\n' + ok.map(jsLine).join('\n') + '\n'
-  writeFileSync(path, src.slice(0, idx) + block + src.slice(idx))
-  console.log(`\n✓ words.js に ${ok.length}語を追記しました。続けて: npm run check`)
+  const url = new URL('../content/words.ndjson', import.meta.url)
+  // 検査で付与した auto/warns は落とし、単語の正準フィールドだけ残す。
+  const clean = ok.map((w) => ({
+    en: w.en,
+    ja: w.ja,
+    kana: w.kana,
+    freq: w.freq,
+    level: w.level,
+    ...(w.theme != null ? { theme: w.theme } : {}),
+  }))
+  writeNdjson(url, [...readNdjson(url), ...clean])
+  runContentBuild()
+  console.log(`\n✓ content/words.ndjson に ${ok.length}語を追記し生成物を再生成しました。続けて: npm run check`)
 } else if (write) {
   console.log('\n(OKが0語のため書き込みませんでした)')
 }

@@ -17,6 +17,9 @@ import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
+import UpdateToast from './ui/pwa/UpdateToast.jsx'
+import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
+import InstallButton from './ui/pwa/InstallButton.jsx'
 import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
@@ -186,7 +189,8 @@ export default function App() {
     setWordTheme(theme)
     setWordMode(modeKey)
     setWordSeed(seed)
-    const w = await loadWords()
+    // 対象レベルの単語だけ遅延読み込み（テーマ絞りは domain 側／4択の誤答は同レベル全テーマから）
+    const w = await loadWords(level)
     setWordsData(w)
     setPhase('words')
   }, [])
@@ -197,8 +201,8 @@ export default function App() {
     setDictTheme(theme)
     setDictMode(modeKey)
     setDictSeed(seed)
-    // 英英データと英→和グロッサリを並行ロード（クイズ回答後に選んだ語の和訳を見出し下に出す）
-    const [d, gloss] = await Promise.all([loadDict(), loadWordGloss()])
+    // 対象レベルの英英だけ＋英→和グロッサリを並行ロード（クイズ回答後に選んだ語の和訳を見出し下に出す）
+    const [d, gloss] = await Promise.all([loadDict(level), loadWordGloss()])
     setDictData(d)
     setDictGloss(gloss)
     setPhase('dict')
@@ -501,6 +505,10 @@ export default function App() {
       )}
 
       {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
+
+      <OfflineBanner />
+      <UpdateToast />
+      <InstallButton />
     </div>
     </ReplayProvider>
   )

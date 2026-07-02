@@ -1,0 +1,392 @@
+{
+  "id": "climbing",
+  "title": "クライミング",
+  "start": "arrive",
+  "endingCount": 4,
+  "nodes": {
+    "arrive": {
+      "en": "Early in the morning, you reach the foot of the rocky cliff.",
+      "ja": "早朝、あなたは岩壁のふもとに到着する。",
+      "kana": "そうちょう、あなたはがんぺきのふもとにとうちゃくする。",
+      "jaWords": [
+        "早朝、",
+        "あなたは",
+        "岩壁の",
+        "ふもとに",
+        "到着する。"
+      ],
+      "next": "arrive_2"
+    },
+    "arrive_2": {
+      "en": "The sky is perfectly clear and the air is cool.",
+      "ja": "空は快晴で、空気はひんやりしている。",
+      "kana": "そらはかいせいで、くうきはひんやりしている。",
+      "jaWords": [
+        "空は",
+        "快晴で、",
+        "空気は",
+        "ひんやりしている。"
+      ],
+      "next": "gear"
+    },
+    "gear": {
+      "en": "You check your harness, rope, and shoes one by one.",
+      "ja": "あなたはハーネスとロープと靴を一つずつ確認する。",
+      "kana": "あなたははーねすとろーぷとくつをひとつずつかくにんする。",
+      "jaWords": [
+        "あなたは",
+        "ハーネスと",
+        "ロープと",
+        "靴を",
+        "一つずつ",
+        "確認する。"
+      ],
+      "next": "gear_2"
+    },
+    "gear_2": {
+      "en": "Everything is ready for the climb.",
+      "ja": "登る準備はすべて整った。",
+      "kana": "のぼるじゅんびはすべてととのった。",
+      "jaWords": [
+        "登る",
+        "準備は",
+        "すべて",
+        "整った。"
+      ],
+      "next": "observe"
+    },
+    "observe": {
+      "en": "You look up and study the lines on the rock face.",
+      "ja": "あなたは見上げて岩肌の登路を観察する。",
+      "kana": "あなたはみあげていわはだのとうろをかんさつする。",
+      "jaWords": [
+        "あなたは",
+        "見上げて",
+        "岩肌の",
+        "登路を",
+        "観察する。"
+      ],
+      "next": "observe_2"
+    },
+    "observe_2": {
+      "en": "Which route will you take today?",
+      "ja": "今日はどのルートを選びますか？",
+      "kana": "きょうはどのるーとをえらびますか？",
+      "jaWords": [
+        "今日は",
+        "どの",
+        "ルートを",
+        "選びますか？"
+      ],
+      "choices": [
+        {
+          "en": "I will take the easy route.",
+          "ja": "やさしいルートを選ぶ。",
+          "kana": "やさしいるーとをえらぶ。",
+          "next": "easy"
+        },
+        {
+          "en": "I will challenge the hard route.",
+          "ja": "難しいルートに挑む。",
+          "kana": "むずかしいるーとにいどむ。",
+          "next": "hard"
+        }
+      ]
+    },
+    "easy": {
+      "en": "You start up the gentle slope with steady hands.",
+      "ja": "あなたは安定した手つきでゆるやかな斜面を登り始める。",
+      "kana": "あなたはあんていしたてつきでゆるやかなしゃめんをのぼりはじめる。",
+      "jaWords": [
+        "あなたは",
+        "安定した",
+        "手つきで",
+        "ゆるやかな",
+        "斜面を",
+        "登り始める。"
+      ],
+      "next": "easy_2"
+    },
+    "easy_2": {
+      "en": "The holds are large and your progress is smooth.",
+      "ja": "ホールドは大きく、登りは順調だ。",
+      "kana": "ほーるどはおおきく、のぼりはじゅんちょうだ。",
+      "jaWords": [
+        "ホールドは",
+        "大きく、",
+        "登りは",
+        "順調だ。"
+      ],
+      "next": "easy_3"
+    },
+    "easy_3": {
+      "en": "Soon you reach a wide ledge halfway up.",
+      "ja": "やがて中腹の広い岩棚にたどり着く。",
+      "kana": "やがてちゅうふくのひろいいわだなにたどりつく。",
+      "jaWords": [
+        "やがて",
+        "中腹の",
+        "広い",
+        "岩棚に",
+        "たどり着く。"
+      ],
+      "next": "easy_4"
+    },
+    "easy_4": {
+      "en": "What will you do here?",
+      "ja": "ここでどうしますか？",
+      "kana": "ここでどうしますか？",
+      "jaWords": [
+        "ここで",
+        "どうしますか？"
+      ],
+      "choices": [
+        {
+          "en": "I will go for the summit.",
+          "ja": "頂上を目指す。",
+          "kana": "ちょうじょうをめざす。",
+          "next": "summit"
+        },
+        {
+          "en": "I will rest here for a while.",
+          "ja": "途中で休憩する。",
+          "kana": "とちゅうできゅうけいする。",
+          "next": "rest"
+        }
+      ]
+    },
+    "summit": {
+      "en": "You climb the final pitch with calm, sure moves.",
+      "ja": "あなたは落ち着いた確かな動きで最後の一段を登る。",
+      "kana": "あなたはおちついたたしかなうごきでさいごのいちだんをのぼる。",
+      "jaWords": [
+        "あなたは",
+        "落ち着いた",
+        "確かな",
+        "動きで",
+        "最後の",
+        "一段を",
+        "登る。"
+      ],
+      "next": "summit_2"
+    },
+    "summit_2": {
+      "en": "At last you pull yourself onto the very top.",
+      "ja": "ついにあなたは頂上へと体を引き上げる。",
+      "kana": "ついにあなたはちょうじょうへとからだをひきあげる。",
+      "jaWords": [
+        "ついに",
+        "あなたは",
+        "頂上へと",
+        "体を",
+        "引き上げる。"
+      ],
+      "next": "summit_3"
+    },
+    "summit_3": {
+      "en": "You stand tall and breathe in the cool wind.",
+      "ja": "あなたは胸を張り、冷たい風を吸い込む。",
+      "kana": "あなたはむねをはり、つめたいかぜをすいこむ。",
+      "jaWords": [
+        "あなたは",
+        "胸を張り、",
+        "冷たい",
+        "風を",
+        "吸い込む。"
+      ],
+      "ending": "good",
+      "endLabel": "グッドエンド：登頂成功"
+    },
+    "rest": {
+      "en": "You sit on the ledge and drink some water.",
+      "ja": "あなたは岩棚に腰かけて水を飲む。",
+      "kana": "あなたはいわだなにこしかけてみずをのむ。",
+      "jaWords": [
+        "あなたは",
+        "岩棚に",
+        "腰かけて",
+        "水を",
+        "飲む。"
+      ],
+      "next": "rest_2"
+    },
+    "rest_2": {
+      "en": "From here you notice a hidden crack in the rock.",
+      "ja": "ここから岩の中に隠れた割れ目に気づく。",
+      "kana": "ここからいわのなかにかくれたわれめにきづく。",
+      "jaWords": [
+        "ここから",
+        "岩の",
+        "中に",
+        "隠れた",
+        "割れ目に",
+        "気づく。"
+      ],
+      "next": "rest_3"
+    },
+    "rest_3": {
+      "en": "It is a beautiful new route that no one has climbed.",
+      "ja": "それは誰も登ったことのない美しい新ルートだ。",
+      "kana": "それはだれものぼったことのないうつくしいしんるーとだ。",
+      "jaWords": [
+        "それは",
+        "誰も",
+        "登った",
+        "ことの",
+        "ない",
+        "美しい",
+        "新ルートだ。"
+      ],
+      "ending": "lucky",
+      "endLabel": "ラッキーエンド：新ルート発見"
+    },
+    "hard": {
+      "en": "You grip the small holds and start the steep wall.",
+      "ja": "あなたは小さなホールドをつかみ、険しい壁を登り始める。",
+      "kana": "あなたはちいさなほーるどをつかみ、けわしいかべをのぼりはじめる。",
+      "jaWords": [
+        "あなたは",
+        "小さな",
+        "ホールドを",
+        "つかみ、",
+        "険しい",
+        "壁を",
+        "登り始める。"
+      ],
+      "next": "hard_2"
+    },
+    "hard_2": {
+      "en": "Halfway up, your foot slips off a wet hold.",
+      "ja": "中腹で、足が濡れたホールドから滑る。",
+      "kana": "ちゅうふくで、あしがぬれたほーるどからすべる。",
+      "jaWords": [
+        "中腹で、",
+        "足が",
+        "濡れた",
+        "ホールドから",
+        "滑る。"
+      ],
+      "next": "hard_3"
+    },
+    "hard_3": {
+      "en": "Your arms are getting tired and your heart races.",
+      "ja": "腕は疲れてきて、心臓が高鳴る。",
+      "kana": "うではつかれてきて、しんぞうがたかなる。",
+      "jaWords": [
+        "腕は",
+        "疲れてきて、",
+        "心臓が",
+        "高鳴る。"
+      ],
+      "next": "hard_4"
+    },
+    "hard_4": {
+      "en": "How will you handle this danger?",
+      "ja": "この危機にどう対処しますか？",
+      "kana": "このききにどうたいしょしますか？",
+      "jaWords": [
+        "この",
+        "危機に",
+        "どう",
+        "対処しますか？"
+      ],
+      "choices": [
+        {
+          "en": "I will push on with all my strength.",
+          "ja": "力を込めて登り続ける。",
+          "kana": "ちからをこめてのぼりつづける。",
+          "next": "push"
+        },
+        {
+          "en": "I will climb down to safety.",
+          "ja": "安全に降りる。",
+          "kana": "あんぜんにおりる。",
+          "next": "descend"
+        }
+      ]
+    },
+    "push": {
+      "en": "You force your tired body up one more move.",
+      "ja": "あなたは疲れた体を無理にもう一手分押し上げる。",
+      "kana": "あなたはつかれたからだをむりにもういってぶんおしあげる。",
+      "jaWords": [
+        "あなたは",
+        "疲れた",
+        "体を",
+        "無理に",
+        "もう",
+        "一手分",
+        "押し上げる。"
+      ],
+      "next": "push_2"
+    },
+    "push_2": {
+      "en": "Suddenly your grip fails and you fall.",
+      "ja": "突然手が離れ、あなたは落下する。",
+      "kana": "とつぜんてがはなれ、あなたはらっかする。",
+      "jaWords": [
+        "突然",
+        "手が",
+        "離れ、",
+        "あなたは",
+        "落下する。"
+      ],
+      "next": "push_3"
+    },
+    "push_3": {
+      "en": "The rope catches you, but you hit the rock and hurt your leg.",
+      "ja": "ロープが止めたが、岩に当たり脚を痛めてしまう。",
+      "kana": "ろーぷがとめたが、いわにあたりあしをいためてしまう。",
+      "jaWords": [
+        "ロープが",
+        "止めたが、",
+        "岩に",
+        "当たり",
+        "脚を",
+        "痛めてしまう。"
+      ],
+      "ending": "bad",
+      "endLabel": "バッドエンド：無理をして負傷"
+    },
+    "descend": {
+      "en": "You carefully lower yourself, hold by hold.",
+      "ja": "あなたは一手ずつ慎重に体を下ろしていく。",
+      "kana": "あなたはいってずつしんちょうにからだをおろしていく。",
+      "jaWords": [
+        "あなたは",
+        "一手ずつ",
+        "慎重に",
+        "体を",
+        "下ろしていく。"
+      ],
+      "next": "descend_2"
+    },
+    "descend_2": {
+      "en": "Your feet touch the solid ground again.",
+      "ja": "あなたの足は再び固い地面に着く。",
+      "kana": "あなたのあしはふたたびかたいじめんにつく。",
+      "jaWords": [
+        "あなたの",
+        "足は",
+        "再び",
+        "固い",
+        "地面に",
+        "着く。"
+      ],
+      "next": "descend_3"
+    },
+    "descend_3": {
+      "en": "You did not reach the top, but you came home safe.",
+      "ja": "頂上には届かなかったが、無事に帰ってきた。",
+      "kana": "ちょうじょうにはとどかなかったが、ぶじにかえってきた。",
+      "jaWords": [
+        "頂上には",
+        "届かなかったが、",
+        "無事に",
+        "帰ってきた。"
+      ],
+      "ending": "normal",
+      "endLabel": "ノーマルエンド：安全に下山"
+    }
+  }
+}

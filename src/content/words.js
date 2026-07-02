@@ -29,7 +29,23 @@ export const WORD_MODES = [
 // 単語データは大きい(約1.6MB)ので遅延 import（初回バンドルに含めない）。
 // アプリ側は loadWords()／WORD_COUNTS を使う。Node ツールは ./wordsAll.js を使う。
 export const WORD_COUNTS = {"1":{"すべて":749,"日常":220,"旅行":65,"ビジネス":40},"2":{"すべて":1873,"日常":295,"旅行":114,"ビジネス":191},"3":{"すべて":1307,"日常":175,"旅行":86,"ビジネス":103},"4":{"すべて":15145,"日常":304,"旅行":176,"ビジネス":473}}
-export const loadWords = () => import('./wordsData.js').then((m) => m.default)
+// content.sqlite3（SQLite-WASM）から指定レベルだけ読む。失敗時は生成物 .js を level で絞ってフォールバック。
+export const loadWords = async (level) => {
+  try {
+    return await (await import('./contentDb.js')).queryWords(level)
+  } catch (e) {
+    ;(await import('./contentFallback.js')).recordContentFallback('words', e)
+    const all = (await import('./wordsData.js')).default
+    return level != null ? all.filter((w) => w.level === level) : all
+  }
+}
 
-// 単語の英→和グロッサリ（{ [en]: ja }）を遅延 import（プレイ画面の和訳併記用）。
-export const loadWordGloss = () => import('./wordGlossData.js').then((m) => m.default)
+// 単語の英→和グロッサリ（{ [en]: ja }）。SQLite 優先・.js フォールバック。
+export const loadWordGloss = async () => {
+  try {
+    return await (await import('./contentDb.js')).queryGloss()
+  } catch (e) {
+    ;(await import('./contentFallback.js')).recordContentFallback('gloss', e)
+    return (await import('./wordGlossData.js')).default
+  }
+}
