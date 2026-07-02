@@ -3,6 +3,7 @@
 //   - Service Worker が登録され、ページを制御している（controller が付く）
 //   - shell-v1 に起動必須の小資産（/・CSS・index-*.js・manifest・icon）が揃う
 //   - data-v1 に大物（content.sqlite3・sqlite3-*.wasm）が入る
+//   - data-v1 に fallback チャンク（L1〜L4/wordsData/…）が入っていない（#173：空先読み検知）
 // dist/ を preview で配信し、単語モードを一度プレイして SQLite/wasm 取得を促してから判定する。
 //
 // 使い方:
@@ -100,8 +101,15 @@ async function inspectCaches(page) {
     if (!(await hasUrl(data, `${origin}/content.sqlite3`))) missing.push('data:content.sqlite3')
     if (!(await hasPattern(data, /sqlite3-[^/]*\.wasm$/))) missing.push('data:sqlite3-*.wasm')
 
+    // #173: fallback チャンク（L1〜L4/wordsData/dictionaryData/wordGlossData）は
+    // data-v1 に先読みされてはならない（約11MB の空先読み再発を検知）。
+    const fallbackRe = /\/(?:L[1-4]|wordsData|dictionaryData|wordGlossData)-[^/]*\.js$/
+    const strayFallback = (await data.keys())
+      .map((r) => new URL(r.url).pathname)
+      .filter((p) => fallbackRe.test(p))
+
     const count = async (cache) => (await cache.keys()).length
-    return { missing, shellCount: await count(shell), dataCount: await count(data) }
+    return { missing, strayFallback, shellCount: await count(shell), dataCount: await count(data) }
   })
 }
 
@@ -151,16 +159,22 @@ async function main() {
     // 教材ロードを発火させてから、少し待ってキャッシュを確認する。
     await playWords(page)
 
-    let { missing, shellCount, dataCount } = await inspectCaches(page)
+    let { missing, strayFallback, shellCount, dataCount } = await inspectCaches(page)
     // data 群は activate 後の背景先読み＋SWR で少し遅れることがある。数回リトライ。
     for (let i = 0; i < 6 && missing.length; i++) {
       await sleep(500)
-      ;({ missing, shellCount, dataCount } = await inspectCaches(page))
+      ;({ missing, strayFallback, shellCount, dataCount } = await inspectCaches(page))
     }
 
     if (missing.length) {
       console.error(`✖ PWA: キャッシュに不足があります → ${missing.join(', ')}`)
       console.error(`  （shell ${shellCount}件 / data ${dataCount}件 キャッシュ済み）`)
+      process.exit(1)
+    }
+    if (strayFallback.length) {
+      // #173: fallback チャンクが data-v1 に混入＝空先読みの再発。
+      console.error(`✖ PWA: data-v1 に fallback チャンクが混入しています → ${strayFallback.join(', ')}`)
+      console.error(`  （fallback チャンクは precache 対象外。gen-precache の classify を確認）`)
       process.exit(1)
     }
     console.log(`✓ PWA: SW制御中・shell ${shellCount}件/data ${dataCount}件キャッシュ済み`)
