@@ -67,3 +67,6 @@ coverage
 
 # 教材の SQLite 生成物（配布/クエリ用。正準ソースは content/*.ndjson。npm run content:sqlite で生成）
 /public/content.sqlite3
+
+# 打鍵ミス効果音（scripts/gen-miss-sound.mjs で生成・prebuild/predev で自動生成）
+/public/miss.wav
