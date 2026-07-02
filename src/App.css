@@ -1334,6 +1334,13 @@ h1 {
 }
 
 /* ふりがな（ルビ）：漢字の上に読みを小さく表示 */
+/* ルビが本文より広い run（着陸/入国審査官 等）で既定の space-around が
+   漢字と漢字の間に余白を分配し字間が不自然に開くのを防ぐ。center で
+   ルビは中央寄せにし、本文字は自然な字間で並ぶ（#107）。
+   ruby-position には触れず、ふりがなは本文の上のまま。 */
+ruby {
+  ruby-align: center;
+}
 ruby > rt {
   font-size: 0.5em;
   color: var(--muted);
