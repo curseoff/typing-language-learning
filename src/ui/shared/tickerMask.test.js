@@ -65,3 +65,35 @@ describe('computeTickerFade', () => {
     )
   })
 })
+
+// #108 回帰：狭幅で「現在アイテムの幅 > track 幅」になると、左端固定(left≤0)の
+// 現在アイテムが「入ってくる語」と誤検出され fadeStart=0 に潰れ、いま打っている文が
+// 全幅グラデで沈む。入ってくる語は「left>0 かつ右端 trackWidth を越える語」であるべき。
+describe('computeTickerFade #108 現在アイテムが track 幅を超えるとき', () => {
+  const trackW = 322
+
+  it('ケースA: 左端固定(left=0)の現在アイテムが track 幅を超えても現在文を全幅で沈めない(fadeStart≠0)', () => {
+    // 単語例文 both の1ペア = 665px が track 322px を越える実測ケース。
+    // 右から入ってくる別アイテムは無いので、浅い右端フェード(trackWidth - edge)へ退避すべき。
+    const boxes = [{ left: 0, width: 665 }]
+    expect(computeTickerFade(boxes, trackW)).toEqual({ fadeStart: 314, fadeEnd: 322 })
+  })
+
+  it('ケースA(負の左端): スクロールで左へ流れた現在アイテム(left<0)でも fadeStart を 0 にしない', () => {
+    // left が負でも「入ってくる語」ではない＝現在アイテムなので暗くしない。
+    const boxes = [{ left: -120, width: 665 }]
+    const { fadeStart } = computeTickerFade(boxes, trackW)
+    expect(fadeStart).toBeGreaterThan(0)
+    expect(fadeStart).toBe(314) // trackWidth - edge の浅い端フェードへ退避
+  })
+
+  it('ケースB(正常維持): left≤0 の現在アイテムがあっても、後続の left>0 の語が右端を越えればその左端へスナップ', () => {
+    const boxes = [
+      { left: -20, width: 80 }, // 現在アイテム(左へ流れ中・右端 60 は track 内)
+      { left: 70, width: 100 }, // 右端 170 収まる
+      { left: 180, width: 200 }, // 左端 180>0・右端 380>322 → 入ってくる語
+    ]
+    // 180 - gap/2(5) = 175 にスナップ（現在アイテムの left≤0 に引きずられない）
+    expect(computeTickerFade(boxes, trackW).fadeStart).toBe(175)
+  })
+})
