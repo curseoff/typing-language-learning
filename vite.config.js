@@ -36,7 +36,7 @@ export default defineConfig({
       ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
       // オフライン検知（onlineStatus/useOnlineStatus/OfflineBanner）にテストを追加し微増。実測直下へ追従。
-      thresholds: { statements: 76.6, branches: 58.8, functions: 75.0, lines: 77.7 },
+      thresholds: { statements: 76.9, branches: 59.0, functions: 75.3, lines: 78.0 },
     },
   },
 })

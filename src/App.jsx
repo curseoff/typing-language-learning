@@ -19,6 +19,7 @@ import TouchView from './ui/touch/TouchView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
+import InstallButton from './ui/pwa/InstallButton.jsx'
 import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
@@ -507,6 +508,7 @@ export default function App() {
 
       <OfflineBanner />
       <UpdateToast />
+      <InstallButton />
     </div>
     </ReplayProvider>
   )
