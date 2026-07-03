@@ -28,7 +28,7 @@ function useTickerScroll(frac, cur, len) {
       left: c.offsetLeft + shift,
       width: c.offsetWidth,
     }))
-    const mask = tickerMaskImage(boxes, track.clientWidth)
+    const mask = tickerMaskImage(boxes, track.clientWidth, { curIndex: cur })
     track.style.maskImage = mask
     track.style.webkitMaskImage = mask
   }, [frac, cur, len])
