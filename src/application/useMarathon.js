@@ -1,15 +1,20 @@
 // マラソンのゲームセッション（状態機械）。
-// active=このモードが表示中か / onFinish(record, segStats)=最初の打鍵から60秒で呼ぶ。
-import { useCallback, useEffect, useRef, useState } from 'react'
+// active=このモードが表示中か / onFinish(record, segStats)=終了条件到達で呼ぶ。
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
+import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
 
-export function useMarathon({ active, onFinish }) {
+// endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
+export function useMarathon({ active, onFinish, endCondition }) {
+  // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
+  const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
+  const limitMs = endLimitMs(ec)
   const [segments, setSegments] = useState([])
   const [segIndex, setSegIndex] = useState(0)
   const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
@@ -66,6 +71,7 @@ export function useMarathon({ active, onFinish }) {
         theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
 
         seed, // 同じ問題列を再現するためのシード（リプレイ用）
+        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
         speed,
         keys,
         mistakes: totalMistakes,
@@ -75,7 +81,7 @@ export function useMarathon({ active, onFinish }) {
       }
       onFinish(record, segStatsRef.current)
     },
-    [onFinish],
+    [onFinish, ec],
   )
 
   const handleKey = useCallback(
@@ -170,7 +176,7 @@ export function useMarathon({ active, onFinish }) {
     flushTracker(trackerRef.current)
     finish(keysRef.current, mistakesRef.current, t, startedAt)
   }
-  const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({ active, startTime, onTimeout })
+  const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({ active, startTime, onTimeout, limitMs })
 
   return {
     start,

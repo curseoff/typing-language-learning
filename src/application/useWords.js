@@ -1,11 +1,12 @@
-// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。最初の打鍵から60秒で終了。
+// 単語の入力モード（英語/日本語/英語・日本語）の状態機械。最初の打鍵から制限時間で終了。
 // both は1語ごとに英語→その日本語を続けて入力する。語が尽きたら継ぎ足してループする。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildWordPassage } from '../domain/words/wordset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
+import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
+import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
@@ -13,7 +14,11 @@ import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
 
-export function useWords({ allWords, level, theme, mode, seed, onExit }) {
+// endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, onExit }) {
+  // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
+  const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
+  const limitMs = endLimitMs(ec)
   // 「今プレイ中の問題列」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
   // restart のたびに新しい seed を切り直す（＝View 内「もう一度」は別の問題列）。
   // この seed を record に必ず保存することで、通常プレイの記録も再現可能になる。
@@ -29,7 +34,6 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
   const [hasError, setHasError] = useState(false)
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
-  const [now, setNow] = useState(0)
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
@@ -37,7 +41,6 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const timeUpRef = useRef(false) // 時間切れ処理を一度だけ行うガード
   const keysRef = useRef(0) // 時間切れ finish 用の最新打鍵数
   const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
 
@@ -47,8 +50,6 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     [words, mode],
   )
   const seg = segments[segIndex]
-  // 進捗バーは経過時間（0→60秒）で表す
-  const progress = Math.min(1, startTime !== null && now ? (now - startTime) / TIME_LIMIT_MS : 0)
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
@@ -63,32 +64,13 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     setHasError(false)
     setTypedKeys(0)
     setMistakes(0)
-    setNow(0)
     setFinished(false)
     setResult(null)
     setStartTime(null)
     finishedRef.current = false
-    timeUpRef.current = false
     keysRef.current = 0
     mistakesRef.current = 0
   }, [allWords, level, theme, mode])
-
-  useEffect(() => {
-    if (finished) return
-    const id = setInterval(() => setNow(performance.now()), 100)
-    return () => clearInterval(id)
-  }, [finished])
-
-  const started = startTime !== null
-  const liveSpeed = useMemo(() => {
-    if (!started || now === 0) return 0
-    const min = (now - startTime) / 60000
-    return min > 0 ? Math.round(typedKeys / min) : 0
-  }, [now, typedKeys, started, startTime])
-  const elapsedSec = useMemo(() => {
-    if (!started || now === 0) return 0
-    return Math.round((now - startTime) / 100) / 10
-  }, [now, started, startTime])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -99,6 +81,7 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
       const record = {
         source: 'word', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
+        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
         level,
         theme,
         mode,
@@ -114,7 +97,7 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, sessionSeed],
+    [level, theme, mode, sessionSeed, ec],
   )
 
   useEffect(() => {
@@ -184,26 +167,30 @@ export function useWords({ allWords, level, theme, mode, seed, onExit }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [finished, seg, segIndex, segments.length, input, typedKeys, mode, allWords, level, theme, onExit, restart, finish])
 
-  // 最初の打鍵から60秒で終了（キー入力が無くても時間で finish）。
-  // 現在入力中の語があれば partial として記録に積んでから finish。
-  useEffect(() => {
-    if (finished || startTime === null || timeUpRef.current) return
-    if (now - startTime < TIME_LIMIT_MS) return
-    timeUpRef.current = true // partial 記録と finish 予約は一度だけ
-    const t = startTime + TIME_LIMIT_MS
+  // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
+  // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。
+  const onTimeout = (endTime, startedAt) => {
     if (seg && input.length > 0) {
       segPush(segTrackerRef.current, {
         type: seg.type,
         label: seg.type === 'en' ? seg.en : seg.ja,
         keys: input.length,
-        t,
+        t: endTime,
         partial: true,
       })
     }
     flushTracker(trackerRef.current)
-    // effect 内の同期 setState（finish→setRecords/setResult/setFinished）は次tickへ遅延。
-    setTimeout(() => finish(keysRef.current, mistakesRef.current, t, startTime), 0)
-  }, [finished, now, startTime, seg, input, finish])
+    finish(keysRef.current, mistakesRef.current, endTime, startedAt)
+  }
+  const { now, elapsedSec, liveSpeed: speedFor } = useCountdownTimer({
+    active: !finished,
+    startTime,
+    onTimeout,
+    limitMs,
+  })
+  const liveSpeed = speedFor(typedKeys)
+  // 進捗バーは経過時間（0→制限時間）で表す。
+  const progress = Math.min(1, startTime !== null && now ? (now - startTime) / limitMs : 0)
 
   return {
     segments,

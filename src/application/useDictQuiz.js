@@ -1,7 +1,7 @@
 // 英英辞典の選択式（打って選ぶ）。最初の打鍵から60秒で終了。問題が尽きたら再シャッフルで継ぎ足す。
 // スコアはタイピング数(typedKeys)。
 // kind='quiz': 定義→英単語4択（回答後に和訳開示） / kind='pick': 単語+和訳→説明文4択
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DICT_QUIZ_COUNT,
   DICT_TYPE_COUNT,
@@ -11,12 +11,17 @@ import {
   makeDictPick,
 } from '../domain/dictionary/dictset.js'
 import { mulberry32 } from '../domain/rng.js'
+import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.js'
 import { makeSeed } from './seed.js'
 import { playMiss } from '../infrastructure/sound.js'
 
-export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit }) {
+// endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
+export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondition, onExit }) {
+  // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
+  const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
+  const limitMs = endLimitMs(ec)
   // 「今プレイ中の問題列・選択肢」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
   // restart のたびに切り直し、record には必ずこの seed を保存して再現可能にする。
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
@@ -85,6 +90,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
       const record = {
         source: 'dict', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
+        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
         level,
         theme,
         mode: kind,
@@ -102,7 +108,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
       setResult(record)
       setFinished(true)
     },
-    [level, theme, kind, sessionSeed],
+    [level, theme, kind, sessionSeed, ec],
   )
 
   const commit = useCallback((option, typed = 0) => {
@@ -196,7 +202,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, onExit })
   // 最初の打鍵から60秒で終了（操作が無くても時間で finish）。
   const onTimeout = (endTime, startedAt) =>
     finish(keysRef.current, correctRef.current, mistakesRef.current, endTime, startedAt)
-  const { elapsedSec } = useCountdownTimer({ active: !finished, startTime, onTimeout })
+  const { elapsedSec } = useCountdownTimer({ active: !finished, startTime, onTimeout, limitMs })
 
   return {
     question: q,

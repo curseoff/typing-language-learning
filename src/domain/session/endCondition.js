@@ -42,6 +42,14 @@ export function normalizeEndCondition(input) {
   return { kind: input.kind, value: input.value }
 }
 
+// カウントダウンタイマーの制限時間(ms)。時間制は value 秒＝value*1000、
+// それ以外の kind は当面は既定60秒相当（#208 段1a・items/life/chars/endless は後段で対応）。
+export function endLimitMs(input) {
+  const { kind, value } = normalizeEndCondition(input)
+  if (kind === 'time') return value * 1000
+  return DEFAULT_END_CONDITION.value * 1000
+}
+
 // 0..1 の進捗率。value<=0・endless・欠損は 0（ゼロ除算回避）、超過は 1 に clamp。
 export function progressRatio(endCondition, progress) {
   const { kind, value } = endCondition

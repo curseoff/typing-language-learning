@@ -5,6 +5,7 @@ import {
   shouldFinish,
   normalizeEndCondition,
   progressRatio,
+  endLimitMs,
 } from './endCondition.js'
 
 describe('shouldFinish', () => {
@@ -141,5 +142,24 @@ describe('progressRatio', () => {
   it('欠損フィールドは 0 扱いで進捗率 0', () => {
     const ec = { kind: 'time', value: 60 }
     expect(progressRatio(ec, {})).toBe(0)
+  })
+})
+
+describe('endLimitMs（#208 段1a・タイマー制限時間）', () => {
+  it('null/undefined（既定 time60）は 60000ms', () => {
+    expect(endLimitMs(null)).toBe(60000)
+    expect(endLimitMs(undefined)).toBe(60000)
+  })
+
+  it('time は value 秒＝value*1000ms', () => {
+    expect(endLimitMs({ kind: 'time', value: 30 })).toBe(30000)
+    expect(endLimitMs({ kind: 'time', value: 120 })).toBe(120000)
+  })
+
+  it('time 以外の kind は当面 60000ms（後段で対応）', () => {
+    expect(endLimitMs({ kind: 'chars', value: 600 })).toBe(60000)
+    expect(endLimitMs({ kind: 'items', value: 20 })).toBe(60000)
+    expect(endLimitMs({ kind: 'life', value: 3 })).toBe(60000)
+    expect(endLimitMs({ kind: 'endless', value: null })).toBe(60000)
   })
 })
