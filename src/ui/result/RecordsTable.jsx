@@ -6,8 +6,9 @@ import { useRecordDetail } from './useRecordDetail.jsx'
 export default function RecordsTable({ records, modeKey, rankText, endCondition, highlight }) {
   const list = records || []
   const { open, modal } = useRecordDetail()
-  // 問題数制は「正解数」順のランキング＝主列を正解数に切替える。時間/文字数制は従来どおりタイピング数。
-  const isItems = (endCondition?.kind ?? 'time') === 'items'
+  // 問題数制・サドンデス（life）は「正解数」順のランキング＝主列を正解数に切替える。時間/文字数制は従来どおりタイピング数。
+  const kind = endCondition?.kind ?? 'time'
+  const isItems = kind === 'items' || kind === 'life'
   return (
     <div className="records">
       <h3>

@@ -34,6 +34,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
   const [hasError, setHasError] = useState(false)
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
+  const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
@@ -64,6 +65,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
     setHasError(false)
     setTypedKeys(0)
     setMistakes(0)
+    setMissedItems(0)
     setFinished(false)
     setResult(null)
     setStartTime(null)
@@ -188,6 +190,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         })
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
+        setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
         setHasError(true)
         // ミス数（life 制）の到達を判定。
@@ -231,6 +234,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
     hasError,
     typedKeys,
     mistakes,
+    missedItems,
     liveSpeed,
     elapsedSec,
     progress,

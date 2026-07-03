@@ -41,6 +41,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
   const [picked, setPicked] = useState(null)
   const [correct, setCorrect] = useState(0)
   const [mistakes, setMistakes] = useState(0)
+  const [missedItems, setMissedItems] = useState(0) // ミスした設問数（life 制HUD用の live 値）
   const [typedKeys, setTypedKeys] = useState(0) // タイピング数（選択肢を打った文字数の合計）
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
@@ -69,6 +70,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
     setPicked(null)
     setCorrect(0)
     setMistakes(0)
+    setMissedItems(0)
     setTypedKeys(0)
     setFinished(false)
     setResult(null)
@@ -223,6 +225,11 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
       } else {
         setMistakes((m) => (mistakesRef.current = m + 1))
         perQMissRef.current += 1
+        // ミスした設問数を live 更新（life 制HUD用）＝確定設問のミス>0件数＋現在設問が既ミスなら+1。
+        setMissedItems(
+          segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
+            (perQMissRef.current > 0 ? 1 : 0),
+        )
         playMiss()
         setHasError(true)
         // ミス数（life 制）の到達を判定。
@@ -246,6 +253,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
     picked,
     correct,
     mistakes,
+    missedItems,
     typedKeys,
     elapsedSec,
     finished,

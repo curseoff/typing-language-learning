@@ -5,13 +5,16 @@ import { progressRatio } from '../domain/session/endCondition.js'
 export const END_TIME_VALUES = [30, 60, 120, 180] // 時間制の秒数（既定60＝従来挙動）
 export const END_CHARS_VALUES = [300, 600, 1200] // 文字数制の文字数
 export const END_ITEMS_VALUES = [10, 25, 50] // 問題数制の問題数
+export const END_LIFE_VALUES = [1, 3, 5] // サドンデス（ライフ制）のライフ数＝許容ミス問題数
 
 // 種別の定義（表示順）。label=種別名、unit=値の単位、values=選べる値、defaultValue=種別切替時の既定。
 // endless は「値を持たない種別」＝values 空・defaultValue null（自動終了なし。Escで中断・スコア非記録）。
+// life（サドンデス）は「ミスした問題数」が value に達したら脱落＝ライフ制。値ラベルは特別扱い（endValueLabel）。
 export const END_KINDS = [
   { kind: 'time', label: '時間', unit: '秒', values: END_TIME_VALUES, defaultValue: 60 },
   { kind: 'chars', label: '文字数', unit: '文字', values: END_CHARS_VALUES, defaultValue: 600 },
   { kind: 'items', label: '問題数', unit: '問', values: END_ITEMS_VALUES, defaultValue: 25 },
+  { kind: 'life', label: 'サドンデス', unit: '', values: END_LIFE_VALUES, defaultValue: 3 },
   { kind: 'endless', label: 'エンドレス', unit: '', values: [], defaultValue: null },
 ]
 
@@ -38,8 +41,9 @@ export function endConditionForKind(kind) {
   return { kind: k.kind, value: k.defaultValue }
 }
 
-// 値チップのラベル（例: "60秒" / "600文字"）。
+// 値チップのラベル（例: "60秒" / "600文字" / "ライフ3"）。
 export function endValueLabel(kind, value) {
+  if (kind === 'life') return `ライフ${value}` // ライフは前置ラベル（"ライフ3"）
   return `${value}${endKind(kind).unit}`
 }
 
@@ -50,6 +54,7 @@ export function endConditionSummary(endCondition) {
   if (kind === 'endless') return 'Escを押すまで継続'
   if (kind === 'chars') return `${value}文字打ったら終了`
   if (kind === 'items') return `${value}問で終了`
+  if (kind === 'life') return `ミス${value}問で終了（ライフ${value}）`
   return `${value}秒で終了`
 }
 
@@ -58,13 +63,22 @@ export function endConditionSummary(endCondition) {
 //   time  … 「経過 / N秒」＋進捗＝経過/制限（従来どおり）
 //   chars … 「打鍵 / N文字」＋進捗＝keys/value（打鍵基準）
 //   items … 「完了 / N問」＋進捗＝items/value（完了問題数基準。items=呼び出し側の完了問題数）
+//   life  … 「残り / N」＝残りライフ（value-missedItems）。進捗＝消費率（missedItems/value）。
 //   endless … 「経過 N秒」のカウントアップ。分母が無いので進捗バーは満たさない（progress=0）。
-// 未対応 kind（life は段5以降）は時間相当へは倒さず、素直に time 表示にフォールバックする。
-export function endHudStat(endCondition, { elapsedSec = 0, keys = 0, items = 0 } = {}) {
+// 未対応 kind は時間相当へは倒さず、素直に time 表示にフォールバックする。
+export function endHudStat(endCondition, { elapsedSec = 0, keys = 0, items = 0, missedItems = 0 } = {}) {
   const kind = endCondition?.kind ?? 'time'
   const value = endCondition?.value ?? 60
   if (kind === 'endless') {
     return { label: '経過', value: `${elapsedSec}秒`, progress: 0 }
+  }
+  if (kind === 'life') {
+    const remaining = Math.max(0, value - missedItems) // 残りライフ（0未満にしない）
+    return {
+      label: 'ライフ',
+      value: `${remaining} / ${value}`,
+      progress: progressRatio({ kind: 'life', value }, { missedItems }),
+    }
   }
   if (kind === 'chars') {
     return {

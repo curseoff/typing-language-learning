@@ -21,6 +21,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
   const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
   const [typedKeys, setTypedKeys] = useState(0) // 正しく打った総文字数
   const [mistakes, setMistakes] = useState(0)
+  const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [startTime, setStartTime] = useState(null)
 
@@ -45,6 +46,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
     setCompleted([])
     setTypedKeys(0)
     setMistakes(0)
+    setMissedItems(0)
     setHasError(false)
     setStartTime(null)
     segStartRef.current = null
@@ -184,6 +186,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
         trackMiss(trackerRef.current)
         playMiss()
         setHasError(true)
+        // ミスした問題数（life 制HUD用）を live 更新＝確定問題のミス>0件数＋進行中問題が既ミスなら+1。
+        setMissedItems(
+          segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
+            (segMistakesRef.current > 0 ? 1 : 0),
+        )
         // ミス数（life 制）の到達を判定。
         finishByProgress(performance.now(), typedKeys, completed.length, mistakesRef.current, seg, segInput.length)
       }
@@ -232,6 +239,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
     hasError,
     typedKeys,
     mistakes,
+    missedItems,
     liveSpeed: speedFor(typedKeys),
     elapsedSec,
   }

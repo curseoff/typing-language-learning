@@ -62,11 +62,12 @@ export function StartRow({ onStart }) {
 }
 
 // 単語の記録（入力=速度、4択=正解数）。行クリックで詳細。単語・英英で共用。
-// 問題数制（items）は「正解数」順のランキング＝主列を正解数に切替える（#208 段3b）。
+// 問題数制（items）・サドンデス（life）は「正解数」順のランキング＝主列を正解数に切替える（#208 段3b/5b）。
 export function WordRecords({ list, isQuiz, rankText, endCondition }) {
   const rows = list || []
   const { open, modal } = useRecordDetail()
-  const isItems = (endCondition?.kind ?? 'time') === 'items'
+  const kind = endCondition?.kind ?? 'time'
+  const isItems = kind === 'items' || kind === 'life'
   return (
     <div className="records">
       <h3>

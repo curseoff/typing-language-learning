@@ -176,6 +176,7 @@ export default function App() {
     hasError,
     typedKeys,
     mistakes,
+    missedItems,
     liveSpeed,
     elapsedSec,
   } = useMarathon({ active: phase === 'playing', onFinish, endCondition })
@@ -524,6 +525,7 @@ export default function App() {
           hasError={hasError}
           typedKeys={typedKeys}
           mistakes={mistakes}
+          missedItems={missedItems}
           liveSpeed={liveSpeed}
           elapsedSec={elapsedSec}
         />

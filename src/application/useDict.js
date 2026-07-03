@@ -41,6 +41,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
   const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
   const [typedKeys, setTypedKeys] = useState(0)
   const [mistakes, setMistakes] = useState(0)
+  const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [startTime, setStartTime] = useState(null)
   const [finished, setFinished] = useState(false)
@@ -66,6 +67,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     setCompleted([])
     setTypedKeys(0)
     setMistakes(0)
+    setMissedItems(0)
     setHasError(false)
     setStartTime(null)
     setFinished(false)
@@ -208,6 +210,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
         })
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
+        setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
         setHasError(true)
         // ミス数（life 制）の到達を判定。
@@ -255,6 +258,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     hasError,
     typedKeys,
     mistakes,
+    missedItems,
     liveSpeed: speedFor(typedKeys),
     elapsedSec,
     word: segments[segIndex]?.word, // 現在セグの見出し語

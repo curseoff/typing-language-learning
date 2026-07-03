@@ -5,6 +5,7 @@ import {
   END_TIME_VALUES,
   END_CHARS_VALUES,
   END_ITEMS_VALUES,
+  END_LIFE_VALUES,
   END_KINDS,
   DEFAULT_END_CONDITION,
   endKind,
@@ -29,12 +30,16 @@ describe('定数', () => {
     expect(END_ITEMS_VALUES).toEqual([10, 25, 50])
   })
 
+  it('END_LIFE_VALUES は [1,3,5]', () => {
+    expect(END_LIFE_VALUES).toEqual([1, 3, 5])
+  })
+
   it('DEFAULT_END_CONDITION は { kind:"time", value:60 }', () => {
     expect(DEFAULT_END_CONDITION).toEqual({ kind: 'time', value: 60 })
   })
 
-  it('END_KINDS は time/chars/items/endless の4種別を表示順で持つ', () => {
-    expect(END_KINDS.map((k) => k.kind)).toEqual(['time', 'chars', 'items', 'endless'])
+  it('END_KINDS は time/chars/items/life/endless の5種別を表示順で持つ', () => {
+    expect(END_KINDS.map((k) => k.kind)).toEqual(['time', 'chars', 'items', 'life', 'endless'])
   })
 
   it('END_KINDS の各要素は label/unit/values/defaultValue を持つ（endless は値なし）', () => {
@@ -42,6 +47,7 @@ describe('定数', () => {
       { kind: 'time', label: '時間', unit: '秒', values: END_TIME_VALUES, defaultValue: 60 },
       { kind: 'chars', label: '文字数', unit: '文字', values: END_CHARS_VALUES, defaultValue: 600 },
       { kind: 'items', label: '問題数', unit: '問', values: END_ITEMS_VALUES, defaultValue: 25 },
+      { kind: 'life', label: 'サドンデス', unit: '', values: END_LIFE_VALUES, defaultValue: 3 },
       { kind: 'endless', label: 'エンドレス', unit: '', values: [], defaultValue: null },
     ])
   })
@@ -63,8 +69,14 @@ describe('endKind', () => {
     expect(endKind('items').unit).toBe('問')
   })
 
+  it('life を引くとサドンデスの種別定義を返す', () => {
+    expect(endKind('life').kind).toBe('life')
+    expect(endKind('life').label).toBe('サドンデス')
+    expect(endKind('life').defaultValue).toBe(3)
+  })
+
   it('未知の kind は先頭（time）にフォールバックする', () => {
-    expect(endKind('life').kind).toBe('time')
+    expect(endKind('unknown').kind).toBe('time')
     expect(endKind(undefined).kind).toBe('time')
   })
 })
@@ -92,6 +104,10 @@ describe('endConditionForKind（種別の既定値で終了条件を作る）', 
     expect(endConditionForKind('items')).toEqual({ kind: 'items', value: 25 })
   })
 
+  it('life は { kind:"life", value:3 }（既定ライフ3）', () => {
+    expect(endConditionForKind('life')).toEqual({ kind: 'life', value: 3 })
+  })
+
   it('endless は { kind:"endless", value:null }（値を持たない）', () => {
     expect(endConditionForKind('endless')).toEqual({ kind: 'endless', value: null })
   })
@@ -114,6 +130,10 @@ describe('endValueLabel（値チップのラベル）', () => {
     expect(endValueLabel('items', 25)).toBe('25問')
   })
 
+  it('life は前置ラベル "ライフ3"', () => {
+    expect(endValueLabel('life', 3)).toBe('ライフ3')
+  })
+
   it('未知の kind は time の単位（秒）を使う', () => {
     expect(endValueLabel('unknown', 42)).toBe('42秒')
   })
@@ -130,6 +150,10 @@ describe('endConditionSummary（説明文用サマリ）', () => {
 
   it('items は "◯問で終了"', () => {
     expect(endConditionSummary({ kind: 'items', value: 25 })).toBe('25問で終了')
+  })
+
+  it('life は "ミス◯問で終了（ライフ◯）"', () => {
+    expect(endConditionSummary({ kind: 'life', value: 3 })).toBe('ミス3問で終了（ライフ3）')
   })
 
   it('endless は「Escを押すまで継続」（自動終了なし）', () => {
@@ -168,10 +192,22 @@ describe('endHudStat（プレイ中HUDの終了条件スタット）', () => {
     expect(stat.progress).toBeCloseTo(0.5, 5)
   })
 
-  it('未対応 kind（life）は素直に time 表示へフォールバックする', () => {
-    const stat = endHudStat({ kind: 'life', value: 3 }, { elapsedSec: 30 })
+  it('life は label="ライフ"・value="残り/N"・progress=消費率（missedItems/value）', () => {
+    const stat = endHudStat({ kind: 'life', value: 3 }, { missedItems: 1 })
+    expect(stat.label).toBe('ライフ')
+    expect(stat.value).toBe('2 / 3') // 残りライフ＝3-1
+    expect(stat.progress).toBeCloseTo(1 / 3, 5)
+  })
+
+  it('life は missedItems が value に達したら残り0（負にしない）', () => {
+    const stat = endHudStat({ kind: 'life', value: 3 }, { missedItems: 3 })
+    expect(stat.value).toBe('0 / 3')
+    expect(stat.progress).toBe(1)
+  })
+
+  it('未対応 kind は素直に time 表示へフォールバックする', () => {
+    const stat = endHudStat({ kind: 'unknown', value: 3 }, { elapsedSec: 30 })
     expect(stat.label).toBe('時間')
-    // value は endCondition.value（3）が秒として表示される（フォールバック挙動の特性化）。
     expect(stat.value).toBe('30 / 3秒')
   })
 

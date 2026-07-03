@@ -15,13 +15,14 @@ export default function MarathonView({
   hasError,
   typedKeys,
   mistakes,
+  missedItems,
   liveSpeed,
   elapsedSec,
   endCondition,
 }) {
   const currentSeg = segments[segIndex]
-  // items 制の HUD 進捗＝完了問題数（segIndex＝確定済みセグ数）。time/chars は不変。
-  const endStat = endHudStat(endCondition, { elapsedSec, keys: typedKeys, items: segIndex })
+  // items 制の HUD 進捗＝完了問題数（segIndex＝確定済みセグ数）、life 制は残りライフ（missedItems）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec, keys: typedKeys, items: segIndex, missedItems })
   return (
     <div className="game">
       <div className="play-meta">
