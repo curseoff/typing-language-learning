@@ -33,15 +33,16 @@ describe('定数', () => {
     expect(DEFAULT_END_CONDITION).toEqual({ kind: 'time', value: 60 })
   })
 
-  it('END_KINDS は time/chars/items の3種別を表示順で持つ', () => {
-    expect(END_KINDS.map((k) => k.kind)).toEqual(['time', 'chars', 'items'])
+  it('END_KINDS は time/chars/items/endless の4種別を表示順で持つ', () => {
+    expect(END_KINDS.map((k) => k.kind)).toEqual(['time', 'chars', 'items', 'endless'])
   })
 
-  it('END_KINDS の各要素は label/unit/values/defaultValue を持つ', () => {
+  it('END_KINDS の各要素は label/unit/values/defaultValue を持つ（endless は値なし）', () => {
     expect(END_KINDS).toEqual([
       { kind: 'time', label: '時間', unit: '秒', values: END_TIME_VALUES, defaultValue: 60 },
       { kind: 'chars', label: '文字数', unit: '文字', values: END_CHARS_VALUES, defaultValue: 600 },
       { kind: 'items', label: '問題数', unit: '問', values: END_ITEMS_VALUES, defaultValue: 25 },
+      { kind: 'endless', label: 'エンドレス', unit: '', values: [], defaultValue: null },
     ])
   })
 })
@@ -91,6 +92,10 @@ describe('endConditionForKind（種別の既定値で終了条件を作る）', 
     expect(endConditionForKind('items')).toEqual({ kind: 'items', value: 25 })
   })
 
+  it('endless は { kind:"endless", value:null }（値を持たない）', () => {
+    expect(endConditionForKind('endless')).toEqual({ kind: 'endless', value: null })
+  })
+
   it('未知の kind は time の既定にフォールバックする', () => {
     expect(endConditionForKind('unknown')).toEqual({ kind: 'time', value: 60 })
   })
@@ -125,6 +130,10 @@ describe('endConditionSummary（説明文用サマリ）', () => {
 
   it('items は "◯問で終了"', () => {
     expect(endConditionSummary({ kind: 'items', value: 25 })).toBe('25問で終了')
+  })
+
+  it('endless は「Escを押すまで継続」（自動終了なし）', () => {
+    expect(endConditionSummary({ kind: 'endless', value: null })).toBe('Escを押すまで継続')
   })
 
   it('null は既定（60秒で終了）に落とす', () => {
@@ -166,9 +175,11 @@ describe('endHudStat（プレイ中HUDの終了条件スタット）', () => {
     expect(stat.value).toBe('30 / 3秒')
   })
 
-  it('未対応 kind（endless）も time 表示へフォールバックする', () => {
+  it('endless は label="経過"・value="N秒" のカウントアップ・progress=0（分母なし）', () => {
     const stat = endHudStat({ kind: 'endless', value: null }, { elapsedSec: 10 })
-    expect(stat.label).toBe('時間')
+    expect(stat.label).toBe('経過')
+    expect(stat.value).toBe('10秒')
+    expect(stat.progress).toBe(0)
   })
 
   it('endCondition が null なら既定（time60）で扱う', () => {

@@ -92,12 +92,15 @@ export default function App() {
       set: (k) => setEndCondition(endConditionForKind(k)),
     }
     // 終了条件の値（時間=秒 / 文字数=文字）。←→で選択中種別の値を移動。
+    // endless は値を持たない＝値行を出さない（endRows でスキップ。←→は種別行のみで操作）。
+    const endValues = endKind(endCondition.kind).values ?? []
     const end = {
       id: 'end',
-      options: endKind(endCondition.kind).values,
+      options: endValues,
       value: endCondition.value,
       set: (v) => setEndCondition({ kind: endCondition.kind, value: v }),
     }
+    const endRows = endValues.length > 0 ? [endKindRow, end] : [endKindRow]
     switch (gameType) {
       case 'story':
         return [
@@ -112,8 +115,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wordLevel, set: setWordLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wordTheme, set: setWordTheme },
           { id: 'mode', options: WORD_MODE_KEYS, value: wordMode, set: setWordMode },
-          endKindRow,
-          end,
+          ...endRows,
           bottom,
         ]
       case 'dict':
@@ -122,8 +124,7 @@ export default function App() {
           { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: setDictLevel },
           { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: setDictTheme },
           { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
-          endKindRow,
-          end,
+          ...endRows,
           bottom,
         ]
       case 'touch':
@@ -138,8 +139,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: setWsentTheme },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
-          endKindRow,
-          end,
+          ...endRows,
           bottom,
         ]
     }

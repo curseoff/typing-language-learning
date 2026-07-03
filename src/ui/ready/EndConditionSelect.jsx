@@ -8,7 +8,7 @@ import { selCls, SectionLabel } from './parts.jsx'
 export default function EndConditionSelect({ endCondition, onChange, focusSection, onFocusSection }) {
   const kind = endCondition?.kind ?? 'time'
   const value = endCondition?.value ?? 60
-  const values = endKind(kind).values
+  const values = endKind(kind).values ?? [] // endless は値を持たない（空配列＝値チップ行を出さない）
   return (
     <>
       <SectionLabel>終了条件</SectionLabel>
@@ -30,23 +30,25 @@ export default function EndConditionSelect({ endCondition, onChange, focusSectio
             ))}
           </div>
         </div>
-        {/* 下段：選択中種別の値（時間=秒 / 文字数=文字） */}
-        <div className="mode-group">
-          <div className="mode-btns">
-            {values.map((v) => (
-              <button
-                key={v}
-                className={`mode-btn ${selCls(value === v, focusSection === 'end')}`}
-                onClick={() => {
-                  onChange({ kind, value: v })
-                  onFocusSection('end')
-                }}
-              >
-                {endValueLabel(kind, v)}
-              </button>
-            ))}
+        {/* 下段：選択中種別の値（時間=秒 / 文字数=文字）。endless は値が無いので行ごと出さない */}
+        {values.length > 0 && (
+          <div className="mode-group">
+            <div className="mode-btns">
+              {values.map((v) => (
+                <button
+                  key={v}
+                  className={`mode-btn ${selCls(value === v, focusSection === 'end')}`}
+                  onClick={() => {
+                    onChange({ kind, value: v })
+                    onFocusSection('end')
+                  }}
+                >
+                  {endValueLabel(kind, v)}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   )
