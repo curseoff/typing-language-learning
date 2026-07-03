@@ -4,6 +4,9 @@
   --panel-2: #273449;
   --text: #e2e8f0;
   --muted: #94a3b8;
+  /* 機能テキスト（操作ヒント/キー案内）専用。実背景で AA(4.5:1) 以上を確保:
+     bg=9.00 / panel=7.37 / panel-2=6.32:1。opacity を使わず色で表現する。 */
+  --muted-fn: #aeb9c9;
   --accent: #38bdf8;
   --green: #4ade80;
   --red: #f87171;
@@ -26,6 +29,16 @@ body {
   max-width: 760px;
   margin: 0 auto;
   padding: 32px 20px 64px;
+  /* 短いコンテンツ（プレイ中・記録が少ない結果など）が上寄せになり画面下部が
+     大きく空くのを防ぐため、ビューポート高いっぱいの箱にして中身を縦中央へ寄せる。
+     min-height（固定 height ではない）なので、記録が多い結果（ランキング15件等）で
+     中身が 100vh を超えたら箱がそのまま縦に伸び、body 側が普通にスクロールする。
+     その時は justify-content の余白配分が 0 になり上詰めに戻る＝上端が切れずに全て読める。 */
+  min-height: 100vh;
+  min-height: 100dvh; /* モバイルのURLバー伸縮に強い動的ビューポート単位（未対応環境は上の 100vh にフォールバック） */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 h1 {
@@ -799,7 +812,9 @@ h1 {
 /* ティッカー: 現在語の左端を固定し、ストリップ全体を滑らかに左へスライド。
    完了語は左へ流れて clip+フェード、現在語は常に全文字が見える。 */
 .flow.ticker .flow-track {
-  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。 */
+  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。
+     初期描画用のフォールバック値。実行時は Flow.jsx が右端フェードを語境界へスナップして
+     mask-image を上書きする（収まる語はくっきり／はみ出す語だけゴースト＝#108）。 */
   -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
 }
@@ -1334,6 +1349,13 @@ h1 {
 }
 
 /* ふりがな（ルビ）：漢字の上に読みを小さく表示 */
+/* ルビが本文より広い run（着陸/入国審査官 等）で既定の space-around が
+   漢字と漢字の間に余白を分配し字間が不自然に開くのを防ぐ。center で
+   ルビは中央寄せにし、本文字は自然な字間で並ぶ（#107）。
+   ruby-position には触れず、ふりがなは本文の上のまま。 */
+ruby {
+  ruby-align: center;
+}
 ruby > rt {
   font-size: 0.5em;
   color: var(--muted);
@@ -1380,13 +1402,13 @@ ruby > rt {
 
 .hint {
   text-align: center;
-  color: var(--muted);
+  color: var(--muted-fn);
   font-size: 13px;
   margin-top: 18px;
 }
 .key-hint {
   text-align: center;
-  color: var(--muted);
+  color: var(--muted-fn);
   font-size: 13px;
   margin-top: -8px;
 }

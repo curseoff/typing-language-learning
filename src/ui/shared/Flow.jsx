@@ -4,10 +4,12 @@
 // - ticker かつ both（英語・日本語）: 英語と和訳を「ペア」で交互に並べる。
 import { useLayoutEffect, useRef } from 'react'
 import { Typed, RubyTyped, RubyText } from './Text.jsx'
+import { tickerMaskImage } from './tickerMask.js'
 
 const ANCHOR_RATIO = 0.35 // 入力位置を画面のこの割合に保つ
 
 // 入力位置(offsetLeft + 幅×frac)を ANCHOR に保つよう transform を ref で直接更新（1文字ごと左スクロール）。
+// あわせて右端フェードを「語境界」にスナップし、収まる語はくっきり／はみ出す語だけをゴースト化する（#108）。
 function useTickerScroll(frac, cur, len) {
   const trackRef = useRef(null)
   const stripRef = useRef(null)
@@ -19,7 +21,16 @@ function useTickerScroll(frac, cur, len) {
     if (!strip || !word || !track) return
     const anchor = track.clientWidth * ANCHOR_RATIO
     const cursorX = word.offsetLeft + word.offsetWidth * frac
-    strip.style.transform = `translateX(${Math.min(0, anchor - cursorX)}px)`
+    const shift = Math.min(0, anchor - cursorX)
+    strip.style.transform = `translateX(${shift}px)`
+    // 各語のビュー座標(offsetLeft+shift)から右端フェードの開始位置を語境界へ合わせる。
+    const boxes = Array.from(strip.children).map((c) => ({
+      left: c.offsetLeft + shift,
+      width: c.offsetWidth,
+    }))
+    const mask = tickerMaskImage(boxes, track.clientWidth, { curIndex: cur })
+    track.style.maskImage = mask
+    track.style.webkitMaskImage = mask
   }, [frac, cur, len])
   return { trackRef, stripRef, curRef }
 }

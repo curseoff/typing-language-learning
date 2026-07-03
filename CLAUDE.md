@@ -7,7 +7,7 @@
 - **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
 - **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
-- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装(Green)／test-author＝テスト先行(Red)／ddd-auditor・ui-auditor＝read-only監査／planner＝UX企画・Issue草案／bug-watcher＝リリース直前（develop→master）または本人指示で不具合調査）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う（**例外：bug-watcher は本人の常設許可で `bug` 不具合 Issue の作成・更新・クローズを自律実行してよい**。確証のある不具合のみ）。委任のたびに `tmp/agent-status.md`（稼働台帳・ローカルのみ／gitignore）を更新し、観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`/team`** で各エージェントの稼働状況を確認できる。
+- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装(Green)／test-author＝テスト先行(Red)／ddd-auditor＝層/依存監査・ui-auditor＝見た目/a11y実画面監査（read-only）／reviewer＝並列監査の合成・裁定＋差分の品質(再利用/簡素化)レビュー（read-only）／planner＝UX/技術企画・Issue草案＋契約(spec)先回り起草／bug-watcher＝正しさ/挙動の不具合調査（リリース直前 or 本人指示））。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う（**例外：bug-watcher は本人の常設許可で `bug` 不具合 Issue の作成・更新・クローズを自律実行してよい**。確証のある不具合のみ）。委任のたびに `tmp/agent-status.md`（稼働台帳・ローカルのみ／gitignore）を更新し、観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`/team`** で各エージェントの稼働状況を確認できる。
 - **bug-watcher の起動は (a) 本人の指示があったとき、または (b) リリース（develop→master マージ）の直前に司令塔が起動、のいずれか**。**develop へマージするたびの自動起動はしない**。リリース直前は司令塔が未リリース分（`origin/master..origin/develop`）を調査させ、結果を確認してからリリースへ進む（`run_in_background:true` 推奨・急ぐなら結果を待って判断）。bug-watcher は確証のある不具合だけ `bug` ラベルで Issue 化し、解消されたら同じ Issue を更新・クローズする。
 - **TDD（テスト先行）＝ domain/application の「ロジック」と「バグ修正」に適用**。流れは **Red→Green→Refactor**：受け入れ条件（本人 or planner）→ **test-author** が失敗テスト(Red) → **coder** が通す最小実装(Green)→refactor。**coder は test-author の仕様テストを編集しない**（不備は司令塔に申告）。司令塔は「赤→緑」と「**coder の差分が `*.test.*` を触っていない**」を確認し、Red と Green をコミット分離する。**見た目・CSS・教材データは TDD 対象外**（従来どおり `check`/スクショ/`validate`）。
 - **役割の受け渡し（リスク別／司令塔の裁量ブレを封じる）**。中間ホップは従来どおり司令塔が逐次オーケストレーション（成果物＝ブランチを介して各役へ渡す）。変更の性質で役を機械的に選ぶ：
@@ -15,8 +15,10 @@
   - **自明な純粋関数**（`!muted` 等・分岐/端ケースなし）・**見た目/CSS/教材データ/ブラウザAPIの薄い配線**（AudioContext/SW/navigator/localStorage） → coder がテストごと。
   - **UI/見た目/レイアウト/a11y が要点**の変更 → マージ前に **ui-auditor が実画面で独立確認**（司令塔は最終判定のみ・headless 自己検証を抱え込まない）。`shots:play` で捉えられない状態（打鍵途中・オフライン・`beforeinstallprompt` 等）は ui-auditor が **puppeteer 等で状態を作って検証**する。
   - **層/依存の監査（ddd-auditor）** → **リリース（develop→master）の直前に bug-watcher と同枠で司令塔が起動**し、未リリース分（`origin/master..origin/develop`）の依存方向・責務漏れ・domain 純粋性を独立監査。または**本人指示**でも起動。**毎コミット/毎マージ/構造変更ごとには起動しない**（bug-watcher と同じトリガ）。
-  - **大きめ/曖昧な UX・技術企画** → **planner** に草案（着手前 Issue は原則司令塔が書く＝Issue駆動）。
-  - **不具合調査** → 本人指示 or リリース直前（上記 bug-watcher ルール）。
+  - **大きめ/曖昧な UX・技術企画**、および**契約(spec)の先回り起草**（並列開発のキュー埋め＝純粋ロジックの入力→出力・シグネチャ・端ケースを実装前に言語化） → **planner**（草案/契約を司令塔に返す。着手前 Issue は原則司令塔＝Issue駆動。契約は司令塔が test-author→coder へ渡す前段。重要ロジックは本人承認を挟む）。
+  - **並列監査の合成・裁定／差分の品質レビュー（再利用・簡素化・効率）** → **reviewer**（read-only。複数監査の重複排除・敵対的検証で採否とリリース可否を判定。fan-out が大きい時に使う。小規模は司令塔が兼ねてよい）。
+  - **不具合調査（正しさ/挙動）** → 本人指示 or リリース直前（上記 bug-watcher ルール）。**見た目は ui-auditor／層・依存は ddd-auditor** と守備範囲を分ける（重複させない）。
+  - **並列運用**：独立タスクは worktree 隔離で並列可（1ファイル1ライター・read-only 監査は自由並列・マージは直列キュー）。fan-out を本格化する場合は Workflow を検討（本人がオプトイン）。
 
 ## Issue 駆動開発（実質的な開発に適用）
 機能追加・修正・リファクタ・バグ修正など「作業」に適用。**typo・docs 微修・`tmp/agent-status.md` 台帳更新・自明なワンライナー等の小改変は除外**。

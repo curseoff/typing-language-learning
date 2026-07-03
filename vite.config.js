@@ -36,7 +36,7 @@ export default defineConfig({
       ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
       // 打鍵ミス効果音（sound/soundSettingsRepository/SoundToggle）にテストを追加し微増。実測直下へ追従。
-      thresholds: { statements: 77.4, branches: 60.2, functions: 75.6, lines: 78.4 },
+      thresholds: { statements: 77.5, branches: 60.4, functions: 75.7, lines: 78.6 },
     },
   },
 })
