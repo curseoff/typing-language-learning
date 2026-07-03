@@ -97,3 +97,47 @@ describe('computeTickerFade #108 現在アイテムが track 幅を超えると�
     expect(computeTickerFade(boxes, trackW).fadeStart).toBe(175)
   })
 })
+
+// #203 回帰：ticker+both で 2ペア目以降(現在アイテムの index≥1)の打ち始めに、
+// 現在ペアの view-left が正(>0)になり、幅広だと右端も越えるため、現在アイテム自身が
+// 「入ってくる語」と誤検出され fadeStart=left-gap/2 に潰れて現在文が沈む。
+// entering 判定は「index > curIndex の後続語」に限定すべき（現在アイテム以前は除外）。
+describe('computeTickerFade #203 現在アイテムの index≥1 で幅広のとき', () => {
+  const trackW = 322
+
+  it('curIndex を渡すと現在アイテム(index1)は entering 扱いされず、現在文が沈まない(浅い端フェード)', () => {
+    // #203 実測: trackWidth=322, curIdx=1 frac=0 の現在ペア view-left=112.7・幅 665。
+    const boxes = [
+      { left: -560, width: 665 }, // index0: 左へ流れ去った過去ペア(right=105<322)
+      { left: 112.7, width: 665 }, // index1: 現在ペア(right=777.7>322・幅広)
+      { left: 787.7, width: 665 }, // index2: 未来ペア(left>trackWidth で画面外)
+    ]
+    const { fadeStart } = computeTickerFade(boxes, trackW, { curIndex: 1 })
+    // 現在アイテムが entering と誤検出されると fadeStart≈112.7-5=107.7 で沈む。
+    expect(fadeStart).not.toBeCloseTo(107.7)
+    // 真の入場語は無い(index2 は画面外)ので、先読み無し相当の浅い端フェードへ退避。
+    expect(fadeStart).toBeGreaterThan(300)
+    expect(fadeStart).toBeCloseTo(314) // trackWidth - edge
+  })
+
+  it('curIndex 指定でも、現在より後(index>curIndex)の真の入場語にはスナップする', () => {
+    const boxes = [
+      { left: -560, width: 665 }, // index0: 過去ペア
+      { left: 112.7, width: 665 }, // index1: 現在ペア(entering ではない)
+      { left: 300, width: 665 }, // index2: 現在より後・left<322 かつ right>322 → 真の入場語
+    ]
+    const { fadeStart } = computeTickerFade(boxes, trackW, { curIndex: 1 })
+    // 300 - gap/2(5) = 295 にスナップ。
+    expect(fadeStart).toBeCloseTo(295)
+  })
+
+  it('後方互換: curIndex 未指定なら従来どおり全 box を対象に判定する', () => {
+    const boxes = [
+      { left: 0, width: 100 },
+      { left: 110, width: 100 }, // 右端 210 収まる
+      { left: 220, width: 100 }, // 右端 320>322... 実は 320<322 なので収まる
+    ]
+    // trackW=322 では index2 の右端 320<322 で収まる → 浅い端フェード。
+    expect(computeTickerFade(boxes, trackW)).toEqual({ fadeStart: 314, fadeEnd: 322 })
+  })
+})
