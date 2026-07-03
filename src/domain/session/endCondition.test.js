@@ -50,15 +50,28 @@ describe('shouldFinish', () => {
     })
   })
 
-  describe('life（mistakes >= value）', () => {
-    it('mistakes=value（ちょうど）で終了する', () => {
+  // #208 段5: life は「ミスした問題数(missedItems)」で判定する（打鍵ミス総数 mistakes ではない）。
+  // 同じ問題内で何回打鍵ミスしても、その問題のライフ消費は1（＝missedItems は問題単位で数える）。
+  describe('life（missedItems >= value・問題単位）', () => {
+    it('missedItems=value（ちょうど）で終了する', () => {
       const ec = { kind: 'life', value: 3 }
-      expect(shouldFinish(ec, { mistakes: 3 })).toBe(true)
+      expect(shouldFinish(ec, { missedItems: 3 })).toBe(true)
     })
 
-    it('mistakes=value-1（直前）では終了しない', () => {
+    it('missedItems=value-1（直前）では終了しない', () => {
       const ec = { kind: 'life', value: 3 }
-      expect(shouldFinish(ec, { mistakes: 2 })).toBe(false)
+      expect(shouldFinish(ec, { missedItems: 2 })).toBe(false)
+    })
+
+    it('打鍵ミス総数(mistakes)が value 以上でも、missedItems が無ければ終了しない（問題単位で数える）', () => {
+      const ec = { kind: 'life', value: 3 }
+      // 1問の中で5回打鍵ミスしても、ミスした問題は1つ＝脱落しない。
+      expect(shouldFinish(ec, { mistakes: 5 })).toBe(false)
+    })
+
+    it('missedItems 欠損は 0 扱いで終了しない', () => {
+      const ec = { kind: 'life', value: 1 }
+      expect(shouldFinish(ec, {})).toBe(false)
     })
   })
 
@@ -120,9 +133,24 @@ describe('progressRatio', () => {
     expect(progressRatio(ec, { items: 10 })).toBeCloseTo(0.5, 5)
   })
 
-  it('life は mistakes/value（0.5）', () => {
+  it('life は missedItems/value（ミスした問題数基準・0.5）', () => {
     const ec = { kind: 'life', value: 4 }
-    expect(progressRatio(ec, { mistakes: 2 })).toBeCloseTo(0.5, 5)
+    expect(progressRatio(ec, { missedItems: 2 })).toBeCloseTo(0.5, 5)
+  })
+
+  it('life は missedItems=value で 1 に達する', () => {
+    const ec = { kind: 'life', value: 3 }
+    expect(progressRatio(ec, { missedItems: 3 })).toBe(1)
+  })
+
+  it('life は missedItems=1・value=3 で 1/3', () => {
+    const ec = { kind: 'life', value: 3 }
+    expect(progressRatio(ec, { missedItems: 1 })).toBeCloseTo(1 / 3, 5)
+  })
+
+  it('life の missedItems 欠損は 0（打鍵ミス総数では進捗しない）', () => {
+    const ec = { kind: 'life', value: 3 }
+    expect(progressRatio(ec, { mistakes: 5 })).toBe(0)
   })
 
   it('value を超えても 1 に clamp される', () => {
@@ -148,7 +176,7 @@ describe('progressRatio', () => {
   })
 
   it('life の value<=0 もゼロ除算を避けて 0 を返す', () => {
-    expect(progressRatio({ kind: 'life', value: 0 }, { mistakes: 5 })).toBe(0)
+    expect(progressRatio({ kind: 'life', value: 0 }, { missedItems: 5 })).toBe(0)
   })
 
   it('欠損フィールドは 0 扱いで進捗率 0', () => {
