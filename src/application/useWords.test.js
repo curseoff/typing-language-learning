@@ -93,6 +93,38 @@ describe('useWords（単語入力・結合）', () => {
     expect(result.current.hasError).toBe(true)
   })
 
+  // #208 段2: 文字数制（chars）は「時間」ではなく「打鍵数」で終了する。
+  it('文字数制 chars=N は時間切れ(60秒)を待たず、N 文字打鍵した時点で finished になる', () => {
+    const N = 5
+    const endCondition = { kind: 'chars', value: N }
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition, onExit: () => {} }),
+    )
+    // N-1 文字ではまだ終わらない（時間では無く打鍵数で終わる境界）。
+    typeSome(result, N - 1)
+    expect(result.current.finished).toBe(false)
+    // N 文字目で終了する（60秒アドバンスはしない＝時間では終わっていない）。
+    typeSome(result, 1)
+    expect(result.current.finished).toBe(true)
+    // 記録は chars 用キーに保存され、所要時間(seconds)が成績として入る。
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en', endCondition)][0]
+    expect(rec.endCondition.kind).toBe('chars')
+    expect(rec.keys).toBe(N)
+    expect(rec.seconds).toEqual(expect.any(Number))
+  }, 20000)
+
+  it('文字数制では 60秒経過しても打鍵数に達しなければ終了しない（時間では終わらない）', () => {
+    const endCondition = { kind: 'chars', value: 100 }
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition, onExit: () => {} }),
+    )
+    // 数文字だけ打って開始（100 文字には届かない）。
+    typeSome(result, 5)
+    // 60秒経過させても、chars=100 に達していないので終了してはいけない。
+    runOutClock()
+    expect(result.current.finished).toBe(false)
+  }, 20000)
+
   it('同じ seed なら同じ単語列を再現し、record に seed が入る（リプレイ）', () => {
     const seed = 987654
     const opts = { allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', seed, onExit: () => {} }

@@ -145,7 +145,7 @@ describe('progressRatio', () => {
   })
 })
 
-describe('endLimitMs（#208 段1a・タイマー制限時間）', () => {
+describe('endLimitMs（#208 段2・タイマー制限時間）', () => {
   it('null/undefined（既定 time60）は 60000ms', () => {
     expect(endLimitMs(null)).toBe(60000)
     expect(endLimitMs(undefined)).toBe(60000)
@@ -156,10 +156,11 @@ describe('endLimitMs（#208 段1a・タイマー制限時間）', () => {
     expect(endLimitMs({ kind: 'time', value: 120 })).toBe(120000)
   })
 
-  it('time 以外の kind は当面 60000ms（後段で対応）', () => {
-    expect(endLimitMs({ kind: 'chars', value: 600 })).toBe(60000)
-    expect(endLimitMs({ kind: 'items', value: 20 })).toBe(60000)
-    expect(endLimitMs({ kind: 'life', value: 3 })).toBe(60000)
-    expect(endLimitMs({ kind: 'endless', value: null })).toBe(60000)
+  it('非時間 kind（chars/items/life/endless）は時間で自動終了しないため Infinity を返す', () => {
+    // 時間ではなく打鍵数/問題数/ミス数で終わるので、タイマー上限は無限大＝時間切れが起きない。
+    expect(endLimitMs({ kind: 'chars', value: 600 })).toBe(Infinity)
+    expect(endLimitMs({ kind: 'items', value: 20 })).toBe(Infinity)
+    expect(endLimitMs({ kind: 'life', value: 3 })).toBe(Infinity)
+    expect(endLimitMs({ kind: 'endless', value: null })).toBe(Infinity)
   })
 })
