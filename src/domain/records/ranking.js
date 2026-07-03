@@ -21,13 +21,16 @@ export function isRecordable(endCondition) {
 
 // 終了条件ごとの成績比較（#208 段0b・Array.sort 準拠：負=a が上位/正=b/0=同着）。
 // 入力レコードは読み取りのみ（非破壊）。欠損は不利側の既定へ落とす。
+// 昇順比較（Infinity 同士でも NaN を出さず 0 を返す。減算だと Infinity-Infinity=NaN になる）。
+const cmpAsc = (x, y) => (x < y ? -1 : x > y ? 1 : 0)
+
 export function compareRecords(endCondition, a, b) {
   const { kind } = normalizeEndCondition(endCondition)
   switch (kind) {
     case 'chars':
       // 少ない秒数が上位＝速い方が上。同秒はミスの少ない順。
       return (
-        (a.seconds ?? Infinity) - (b.seconds ?? Infinity) ||
+        cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity) ||
         (a.mistakes ?? 0) - (b.mistakes ?? 0)
       )
     case 'items':
@@ -35,7 +38,7 @@ export function compareRecords(endCondition, a, b) {
       // 正解数の多い方が上位。同数は速い方が上。
       return (
         (b.correctCount ?? 0) - (a.correctCount ?? 0) ||
-        (a.seconds ?? Infinity) - (b.seconds ?? Infinity)
+        cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity)
       )
     case 'endless':
       return 0

@@ -251,11 +251,11 @@ describe('compareRecords（#208 段0b・Array.sort 準拠）', () => {
     expect(sign(compareRecords(ec, { correctCount: 5, seconds: 50 }, {}))).toBe(-1)
   })
 
-  it('life: seconds 欠損同士＆correctCount 同数は NaN を返す（Infinity-Infinity・現挙動の特性化）', () => {
-    // 実データでは seconds は必ず入るため実害はないが、両者 seconds 欠損だと
-    // (Infinity - Infinity) = NaN になり、Array.sort 比較関数としては不定になる。
+  it('life: seconds 欠損同士＆correctCount 同数は同着（0）を返す（NaN を出さない）', () => {
+    // 両者 seconds 欠損（＝ともに Infinity 扱い）で correctCount も同数なら完全な同着＝0。
+    // 減算 (Infinity - Infinity) の NaN で Array.sort が不定になるのを防ぐ。
     const ec = { kind: 'life', value: 3 }
-    expect(Number.isNaN(compareRecords(ec, { correctCount: 4 }, { correctCount: 4 }))).toBe(true)
+    expect(compareRecords(ec, { correctCount: 4 }, { correctCount: 4 })).toBe(0)
   })
 
   it('life: seconds 欠損は Infinity 扱いで、seconds を持つ方が上位（同 correctCount）', () => {
