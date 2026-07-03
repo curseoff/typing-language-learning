@@ -4,11 +4,13 @@
 import { progressRatio } from '../domain/session/endCondition.js'
 export const END_TIME_VALUES = [30, 60, 120, 180] // 時間制の秒数（既定60＝従来挙動）
 export const END_CHARS_VALUES = [300, 600, 1200] // 文字数制の文字数
+export const END_ITEMS_VALUES = [10, 25, 50] // 問題数制の問題数
 
 // 種別の定義（表示順）。label=種別名、unit=値の単位、values=選べる値、defaultValue=種別切替時の既定。
 export const END_KINDS = [
   { kind: 'time', label: '時間', unit: '秒', values: END_TIME_VALUES, defaultValue: 60 },
   { kind: 'chars', label: '文字数', unit: '文字', values: END_CHARS_VALUES, defaultValue: 600 },
+  { kind: 'items', label: '問題数', unit: '問', values: END_ITEMS_VALUES, defaultValue: 25 },
 ]
 
 export const DEFAULT_END_CONDITION = { kind: 'time', value: 60 }
@@ -44,15 +46,17 @@ export function endConditionSummary(endCondition) {
   const kind = endCondition?.kind ?? 'time'
   const value = endCondition?.value ?? 60
   if (kind === 'chars') return `${value}文字打ったら終了`
+  if (kind === 'items') return `${value}問で終了`
   return `${value}秒で終了`
 }
 
 // プレイ中HUDの「終了条件」スタット（ラベル/分子・分母の値/進捗率）を種別ごとに算出する（#208 段2c）。
-// progress={elapsedSec, keys}。進捗率は domain の progressRatio に委譲（純粋計算）。
+// progress={elapsedSec, keys, items}。進捗率は domain の progressRatio に委譲（純粋計算）。
 //   time  … 「経過 / N秒」＋進捗＝経過/制限（従来どおり）
 //   chars … 「打鍵 / N文字」＋進捗＝keys/value（打鍵基準）
-// 未対応 kind（items/life/endless は段3以降）は時間相当へは倒さず、素直に time 表示にフォールバックする。
-export function endHudStat(endCondition, { elapsedSec = 0, keys = 0 } = {}) {
+//   items … 「完了 / N問」＋進捗＝items/value（完了問題数基準。items=呼び出し側の完了問題数）
+// 未対応 kind（life/endless は段4以降）は時間相当へは倒さず、素直に time 表示にフォールバックする。
+export function endHudStat(endCondition, { elapsedSec = 0, keys = 0, items = 0 } = {}) {
   const kind = endCondition?.kind ?? 'time'
   const value = endCondition?.value ?? 60
   if (kind === 'chars') {
@@ -60,6 +64,13 @@ export function endHudStat(endCondition, { elapsedSec = 0, keys = 0 } = {}) {
       label: '文字数',
       value: `${keys} / ${value}文字`,
       progress: progressRatio({ kind: 'chars', value }, { keys }),
+    }
+  }
+  if (kind === 'items') {
+    return {
+      label: '問題数',
+      value: `${items} / ${value}問`,
+      progress: progressRatio({ kind: 'items', value }, { items }),
     }
   }
   return {

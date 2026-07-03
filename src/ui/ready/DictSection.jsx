@@ -157,9 +157,10 @@ export default function DictSection({
         <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
       ) : (
         <WordRecords
-          list={dictRanking(dictLevel, dictTheme, dictMode)}
+          list={dictRanking(dictLevel, dictTheme, dictMode, endCondition)}
           isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
           rankText={`英英 ${dictLevelLabel(dictLevel)} ${dictTheme}`}
+          endCondition={endCondition}
         />
       )}
     </>

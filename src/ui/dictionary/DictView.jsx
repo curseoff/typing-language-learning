@@ -24,7 +24,8 @@ export default function DictView({ dict, gloss, level, theme, mode, seed, levelL
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
 function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
   const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, endCondition, onExit })
-  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys })
+  // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index })
 
   return (
     <div className="game">
@@ -91,7 +92,8 @@ function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
 // 単語例文（マラソン）の英語/日本語入力と同じ TopFlow（ティッカー表示）で描画する。
 function TypeView({ dict, gloss, level, theme, mode, seed, meta, endCondition, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, endCondition, onExit })
-  const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys })
+  // items 制の HUD 進捗＝完了語数（segIndex）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex })
 
   return (
     <div className="game">
@@ -142,7 +144,8 @@ function typeHint(mode, segType) {
 // 4択（定義→英単語をタイプ/クリック）
 function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
   const q = useDictQuiz({ dict, level, theme, seed, endCondition, onExit })
-  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys })
+  // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index })
   // 回答後、選んだ語（型 or クリック）の和訳をグロッサリから引いて見出し下に出す
   const pickedWord = q.input || q.picked?.display
   const pickedJa = q.picked !== null && pickedWord ? gloss?.[pickedWord] : null
@@ -207,17 +210,25 @@ function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
 }
 
 function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[dictRecKey(level, theme, mode)] || []
+  const list = records[dictRecKey(level, theme, mode, result.endCondition)] || []
   const { open, modal } = useRecordDetail()
   const isQuiz = mode === 'quiz' || mode === 'pick' // 選択式＝正解数で表示
+  // 問題数制は主成績＝正解数（一発正解した問題数）。時間/文字数制は従来どおりタイピング数。
+  const isItems = (result.endCondition?.kind ?? 'time') === 'items'
   return (
     <div className="result">
       <h2>記録</h2>
       <div className="result-main">
-        <div className="result-speed">{result.keys ?? 0}</div>
-        <div className="result-unit">タイピング数</div>
+        <div className="result-speed">{isItems ? (result.correctCount ?? 0) : (result.keys ?? 0)}</div>
+        <div className="result-unit">{isItems ? '正解（問）' : 'タイピング数'}</div>
       </div>
-      {isQuiz ? (
+      {isItems ? (
+        <div className="result-sub">
+          <span>正解 {result.correctCount ?? 0}/{result.endCondition?.value ?? 0}問</span>
+          <span>正確率 {result.accuracy}%</span>
+          <span>{result.seconds} 秒</span>
+        </div>
+      ) : isQuiz ? (
         <div className="result-sub">
           <span>速度 {result.speed} 打/分</span>
           <span>正解 {result.correct}/{result.words}</span>
@@ -255,7 +266,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>タイピング数</th>
+                <th>{isItems ? '正解' : 'タイピング数'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -270,7 +281,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>
-                  <td className="speed">{r.keys ?? 0}</td>
+                  <td className="speed">{isItems ? (r.correctCount ?? 0) : (r.keys ?? 0)}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

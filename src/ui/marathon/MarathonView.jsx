@@ -20,7 +20,8 @@ export default function MarathonView({
   endCondition,
 }) {
   const currentSeg = segments[segIndex]
-  const endStat = endHudStat(endCondition, { elapsedSec, keys: typedKeys })
+  // items 制の HUD 進捗＝完了問題数（segIndex＝確定済みセグ数）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec, keys: typedKeys, items: segIndex })
   return (
     <div className="game">
       <div className="play-meta">

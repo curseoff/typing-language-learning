@@ -130,9 +130,10 @@ export default function WordSentenceSection({
         <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} />
       ) : (
         <RecordsTable
-          records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme)]}
+          records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme, endCondition)]}
           modeKey={mode}
           rankText={`単語例文 L${wsentLevel} / ${wsentTheme}`}
+          endCondition={endCondition}
         />
       )}
     </>

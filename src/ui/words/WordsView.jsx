@@ -35,9 +35,10 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
 function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit }) {
   const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, onExit })
-  const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys })
-  // 時間制の進捗はフックの滑らかな progress を維持し、文字数制は打鍵基準へ切替える。
-  const progress = endCondition?.kind === 'chars' ? endStat.progress : w.progress
+  // items 制の HUD 進捗＝完了語数（segIndex）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex })
+  // 時間制はフックの滑らかな progress を維持し、文字数制/問題数制は endStat 側（打鍵/問題基準）へ切替える。
+  const progress = (endCondition?.kind ?? 'time') === 'time' ? w.progress : endStat.progress
 
   return (
     <div className="game">
@@ -83,7 +84,8 @@ function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
 function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, onExit }) {
   const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit })
-  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys })
+  // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index })
 
   return (
     <div className="game">
@@ -163,17 +165,25 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, on
 }
 
 function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[wordRecKey(level, theme, mode)] || []
+  const list = records[wordRecKey(level, theme, mode, result.endCondition)] || []
   const { open, modal } = useRecordDetail()
   const isQuiz = mode.startsWith('quiz')
+  // 問題数制は主成績＝正解数（一発正解した問題数）。時間/文字数制は従来どおりタイピング数。
+  const isItems = (result.endCondition?.kind ?? 'time') === 'items'
   return (
     <div className="result">
       <h2>記録</h2>
       <div className="result-main">
-        <div className="result-speed">{result.keys ?? 0}</div>
-        <div className="result-unit">タイピング数</div>
+        <div className="result-speed">{isItems ? (result.correctCount ?? 0) : (result.keys ?? 0)}</div>
+        <div className="result-unit">{isItems ? '正解（問）' : 'タイピング数'}</div>
       </div>
-      {isQuiz ? (
+      {isItems ? (
+        <div className="result-sub">
+          <span>正解 {result.correctCount ?? 0}/{result.endCondition?.value ?? 0}問</span>
+          <span>正確率 {result.accuracy}%</span>
+          <span>{result.seconds} 秒</span>
+        </div>
+      ) : isQuiz ? (
         <div className="result-sub">
           <span>速度 {result.speed} 打/分</span>
           <span>正解 {result.correct}/{result.words}</span>
@@ -210,7 +220,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>タイピング数</th>
+                <th>{isItems ? '正解' : 'タイピング数'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -225,7 +235,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>
-                  <td className="speed">{r.keys ?? 0}</td>
+                  <td className="speed">{isItems ? (r.correctCount ?? 0) : (r.keys ?? 0)}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

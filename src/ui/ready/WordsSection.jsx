@@ -159,9 +159,10 @@ export default function WordsSection({
         <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
       ) : (
         <WordRecords
-          list={wordRanking(wordLevel, wordTheme, wordMode)}
+          list={wordRanking(wordLevel, wordTheme, wordMode, endCondition)}
           isQuiz={wordMode.startsWith('quiz')}
           rankText={`単語 ${dictLevelLabel(wordLevel)} ${wordTheme}`}
+          endCondition={endCondition}
         />
       )}
     </>

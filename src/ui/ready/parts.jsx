@@ -62,13 +62,15 @@ export function StartRow({ onStart }) {
 }
 
 // 単語の記録（入力=速度、4択=正解数）。行クリックで詳細。単語・英英で共用。
-export function WordRecords({ list, isQuiz, rankText }) {
+// 問題数制（items）は「正解数」順のランキング＝主列を正解数に切替える（#208 段3b）。
+export function WordRecords({ list, isQuiz, rankText, endCondition }) {
   const rows = list || []
   const { open, modal } = useRecordDetail()
+  const isItems = (endCondition?.kind ?? 'time') === 'items'
   return (
     <div className="records">
       <h3>
-        記録ランキング<span className="records-sub">（タイピング数順・最大15件）</span>
+        記録ランキング<span className="records-sub">（{isItems ? '正解数' : 'タイピング数'}順・最大15件）</span>
       </h3>
       {rows.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>
@@ -77,7 +79,7 @@ export function WordRecords({ list, isQuiz, rankText }) {
           <thead>
             <tr>
               <th>#</th>
-              <th>タイピング数</th>
+              <th>{isItems ? '正解' : 'タイピング数'}</th>
               <th>正確率</th>
               <th>時間</th>
               <th>日時</th>
@@ -92,7 +94,7 @@ export function WordRecords({ list, isQuiz, rankText }) {
                 title="クリックで記録の詳細"
               >
                 <td>{i + 1}</td>
-                <td className="speed">{r.keys ?? 0}</td>
+                <td className="speed">{isItems ? (r.correctCount ?? 0) : (r.keys ?? 0)}</td>
                 <td>{r.accuracy}%</td>
                 <td>{r.seconds}秒</td>
                 <td className="date">{r.date}</td>
