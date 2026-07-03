@@ -113,9 +113,9 @@ describe('endConditionToken（#208 段0b）', () => {
   })
 })
 
-describe('isRecordable（#208 段0b）', () => {
-  it('endless のみ記録対象外', () => {
-    expect(isRecordable({ kind: 'endless', value: null })).toBe(false)
+describe('isRecordable（#208 段6：エンドレスも記録対象に）', () => {
+  it('endless は記録対象になった（ESC で >=30 秒プレイしたら記録するため）', () => {
+    expect(isRecordable({ kind: 'endless', value: null })).toBe(true)
   })
 
   it('time / chars / items / life は記録対象', () => {
@@ -167,10 +167,27 @@ describe('compareRecords（#208 段0b・Array.sort 準拠）', () => {
     expect(sign(compareRecords(ec, { correctCount: 15, seconds: 120 }, { correctCount: 8, seconds: 60 }))).toBe(-1)
   })
 
-  it('endless は非記録＝常に 0（同着扱い）', () => {
+  it('endless は speed 降順（速い方が上位＝負・#208 段6）', () => {
     const ec = { kind: 'endless', value: null }
-    expect(compareRecords(ec, { keys: 100 }, { keys: 1 })).toBe(0)
-    expect(compareRecords(ec, { correctCount: 9, seconds: 10 }, { correctCount: 1, seconds: 99 })).toBe(0)
+    expect(sign(compareRecords(ec, { speed: 300, mistakes: 2 }, { speed: 200, mistakes: 0 }))).toBe(-1)
+  })
+
+  it('endless 同速は mistakes 昇順（少ない方が上位＝負・#208 段6）', () => {
+    const ec = { kind: 'endless', value: null }
+    expect(sign(compareRecords(ec, { speed: 300, mistakes: 1 }, { speed: 300, mistakes: 5 }))).toBe(-1)
+  })
+
+  it('endless: speed 欠損は 0 扱いで下位（speed?? 0 フォールバック・#208 段6）', () => {
+    const ec = { kind: 'endless', value: null }
+    // a は speed あり(100)・b は欠損(=0) → 速い a が上位（負）。
+    expect(sign(compareRecords(ec, { speed: 100, mistakes: 0 }, { mistakes: 0 }))).toBe(-1)
+  })
+
+  it('反対称性：endless で sign(cmp(a,b)) === -sign(cmp(b,a))（#208 段6）', () => {
+    const ec = { kind: 'endless', value: null }
+    const a = { speed: 300, mistakes: 2 }
+    const b = { speed: 200, mistakes: 0 }
+    expect(sign(compareRecords(ec, a, b))).toBe(-sign(compareRecords(ec, b, a)))
   })
 
   it('items 欠損（correctCount 無しの旧レコード）は 0 扱いで最下位', () => {
