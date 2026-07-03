@@ -117,7 +117,12 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
       if (finishedRef.current) return
       const startedAt = startTimeRef.current ?? t
       const items = segStatsRef.current.length
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys: keysRef.current, items, mistakes: mistakesRef.current })) return
+      // life は「ミスした設問数」で判定（打鍵ミス総数ではない・#208 段5）。
+      // 確定設問のミス>0件数＋現在設問が既にミス済みなら+1（設問単位）。
+      const missedItems =
+        segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
+        (perQMissRef.current > 0 ? 1 : 0)
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys: keysRef.current, items, missedItems })) return
       finish(keysRef.current, correctRef.current, mistakesRef.current, t, startedAt)
     },
     [ec, finish],

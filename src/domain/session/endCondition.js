@@ -1,5 +1,5 @@
 // セッションの終了条件を判定する純粋関数群（#208 段0）。
-// endCondition={kind,value}、progress={elapsedMs,keys,items,mistakes}。
+// endCondition={kind,value}、progress={elapsedMs,keys,items,missedItems}。
 // React/DOM/Date/performance 非依存・副作用なし・決定的に保つ（時間の計測は呼び出し側で行い、
 // この層は渡された progress の数値だけで判定する）。
 //
@@ -7,7 +7,8 @@
 //   time    … value 秒の経過で終了（elapsedMs はミリ秒）
 //   chars   … value 文字の打鍵で終了（keys）
 //   items   … value 問題の消化で終了（items）
-//   life    … value 回のミスで終了（mistakes）＝ライフ制
+//   life    … value 個の「ミスした問題」で終了（missedItems）＝ライフ制。
+//             打鍵ミス総数(mistakes)ではなく問題単位で数える（同一問題内の複数ミスは1）。
 //   endless … 終了条件なし（常に false）
 
 // 既定の終了条件（60 秒）。
@@ -19,7 +20,7 @@ export function shouldFinish(endCondition, progress) {
   const elapsedMs = progress.elapsedMs ?? 0
   const keys = progress.keys ?? 0
   const items = progress.items ?? 0
-  const mistakes = progress.mistakes ?? 0
+  const missedItems = progress.missedItems ?? 0
   switch (kind) {
     case 'time':
       return elapsedMs >= value * 1000
@@ -28,7 +29,7 @@ export function shouldFinish(endCondition, progress) {
     case 'items':
       return items >= value
     case 'life':
-      return mistakes >= value
+      return missedItems >= value
     case 'endless':
       return false
     default:
@@ -57,7 +58,7 @@ export function progressRatio(endCondition, progress) {
   const elapsedMs = progress.elapsedMs ?? 0
   const keys = progress.keys ?? 0
   const items = progress.items ?? 0
-  const mistakes = progress.mistakes ?? 0
+  const missedItems = progress.missedItems ?? 0
   let ratio
   switch (kind) {
     case 'time':
@@ -70,7 +71,7 @@ export function progressRatio(endCondition, progress) {
       ratio = value > 0 ? items / value : 0
       break
     case 'life':
-      ratio = value > 0 ? mistakes / value : 0
+      ratio = value > 0 ? missedItems / value : 0
       break
     default:
       // endless・未知 kind は進捗率の概念が無い。

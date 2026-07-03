@@ -96,7 +96,12 @@ export function useMarathon({ active, onFinish, endCondition }) {
     (t, keys, items, missCount, seg, partialLen) => {
       if (finishedRef.current) return
       const startedAt = startTimeRef.current ?? t
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, mistakes: missCount })) return
+      // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない・#208 段5）。
+      // 確定問題(segStats)のミス>0件数＋進行中問題が既にミス済みなら+1（問題単位）。
+      const missedItems =
+        segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
+        (segMistakesRef.current > 0 ? 1 : 0)
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0 && segStartRef.current !== null) {
         const ms = t - segStartRef.current
         segStatsRef.current = [

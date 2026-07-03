@@ -9,7 +9,7 @@ import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/sessi
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
-import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
+import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
@@ -118,7 +118,9 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     (t, keys, items, missCount, seg, partialLen) => {
       if (finishedRef.current) return
       const startedAt = startTimeRef.current ?? t
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, mistakes: missCount })) return
+      // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない・#208 段5）。
+      const missedItems = segMissedItems(segTrackerRef.current)
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0) {
         segPush(segTrackerRef.current, {
           type: seg.type,

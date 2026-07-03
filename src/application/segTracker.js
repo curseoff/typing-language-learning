@@ -12,6 +12,13 @@ export function segMiss(tr) {
   tr.mistakes += 1
 }
 
+// ライフ制（life）の「ミスした問題数」。確定済み問題(list)でミス>0の件数に、
+// 進行中の問題が既にミス済みなら +1（打鍵ミス総数ではなく問題単位で数える・#208 段5）。
+export function segMissedItems(tr) {
+  const done = tr.list.filter((s) => (s.mistakes ?? 0) > 0).length
+  return done + (tr.mistakes > 0 ? 1 : 0)
+}
+
 // セグメント完了（または打ち切り partial=true）で1件積む。keys=その語/文の打鍵数、t=完了時刻。
 // sentenceIndex を渡すと「何文目か」を記録に残す（英英 both で文数を数えるのに使う）。
 export function segPush(tr, { type, label, keys, t, partial = false, sentenceIndex }) {

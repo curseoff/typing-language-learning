@@ -9,7 +9,7 @@ import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/sessi
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
-import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
+import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
@@ -112,7 +112,10 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
     const finishByProgress = (t, keys, items, missCount, partialLen) => {
       if (finishedRef.current) return
       const startedAt = startTime ?? t
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, mistakes: missCount })) return
+      // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない）。ミス処理後に呼ばれるので
+      // 現在問題のミスも segTracker に反映済み＝判定時点の確定値で数える（off-by-one 回避）。
+      const missedItems = segMissedItems(segTrackerRef.current)
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0) {
         segPush(segTrackerRef.current, {
           type: seg.type,
