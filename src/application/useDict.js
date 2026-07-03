@@ -85,6 +85,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
       const list = segTrackerRef.current.list
       // 打ち終えた「文の数」。both は1文=en+ja の2セグなので、sentenceIndex のユニーク数で数える。
       const words = new Set(list.map((s) => s.sentenceIndex)).size
+      // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
+      const correctCount = list.filter((s) => !s.partial && (s.mistakes ?? 0) === 0).length
       const record = {
         source: 'dict', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
@@ -97,6 +99,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
         words,
         mistakes: totalMistakes,
         accuracy,
+        correctCount,
         seconds,
         segStats: list,
         date: new Date().toLocaleString('ja-JP'),

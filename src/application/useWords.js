@@ -78,6 +78,10 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
+      // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
+      const correctCount = segTrackerRef.current.list.filter(
+        (s) => !s.partial && (s.mistakes ?? 0) === 0,
+      ).length
       const record = {
         source: 'word', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
@@ -89,6 +93,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         keys,
         mistakes: totalMistakes,
         accuracy,
+        correctCount,
         seconds,
         segStats: segTrackerRef.current.list,
         date: new Date().toLocaleString('ja-JP'),

@@ -89,6 +89,10 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
       const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
       const minutes = (endTime - startedAt) / 60000
       const speed = minutes > 0 ? Math.round(keys / minutes) : 0
+      // 一発正解数（items 制の主指標）＝正答かつミス0の設問数。#208 段3a
+      const noMissCorrect = segStatsRef.current.filter(
+        (s) => s.correct && (s.mistakes ?? 0) === 0,
+      ).length
       const record = {
         source: 'dict', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
@@ -99,6 +103,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
         keys, // タイピング数（主指標）
         speed,
         correct: correctCount,
+        correctCount: noMissCorrect,
         words: total,
         mistakes: totalMistakes,
         accuracy,

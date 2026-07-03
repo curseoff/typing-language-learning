@@ -64,6 +64,10 @@ export function useMarathon({ active, onFinish, endCondition }) {
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const { mode, rank, source, seed, theme } = ctxRef.current
+      // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
+      const correctCount = segStatsRef.current.filter(
+        (s) => !s.partial && (s.mistakes ?? 0) === 0,
+      ).length
       const record = {
         mode,
         rank,
@@ -76,6 +80,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
         keys,
         mistakes: totalMistakes,
         accuracy,
+        correctCount,
         seconds,
         date: new Date().toLocaleString('ja-JP'),
       }
