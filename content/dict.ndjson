@@ -26,6 +26,7 @@
 {"word":"arm","def":"the long part of your body between your hand and shoulder","ja":"手と肩の間にある体の長い部分","kana":"てとかたのあいだにあるからだのながいぶぶん","level":1,"theme":"日常"}
 {"word":"art","def":"things people make that are nice to look at","ja":"人々が作る見て美しい物","kana":"ひとびとがつくるみてうつくしいもの","level":1,"theme":"日常"}
 {"word":"article","def":"a piece of writing in a newspaper or magazine","ja":"新聞や雑誌に載る文章","kana":"しんぶんやざっしにのるぶんしょう","level":1,"theme":"日常"}
+{"word":"ask","def":"to say something because you want to know","ja":"知りたくて何かを言うこと","kana":"しりたくてなにかをいうこと","level":1,"theme":"ビジネス"}
 {"word":"asleep","def":"sleeping and not awake","ja":"眠っていて目覚めていない","kana":"ねむっていてめざめていない","level":1,"theme":"日常"}
 {"word":"aunt","def":"the sister of your mother or father","ja":"あなたの母か父の姉妹","kana":"あなたのははかちちのしまい","level":1,"theme":"日常"}
 {"word":"autumn","def":"the season after summer when leaves fall","ja":"夏のあとの葉が落ちる季節","kana":"なつのあとのはがおちるきせつ","level":1,"theme":"日常"}
@@ -63,6 +64,7 @@
 {"word":"boil","def":"to heat water until it bubbles","ja":"水を泡が立つまで熱すること","kana":"みずをあわがたつまでねっすること","level":1,"theme":"日常"}
 {"word":"bone","def":"a hard white part inside the body","ja":"体の中にある硬く白い部分","kana":"からだのなかにあるかたくしろいぶぶん","level":1,"theme":"日常"}
 {"word":"book","def":"pages with words that you read","ja":"読む言葉が書かれた紙","kana":"よむことばがかかれたかみ","level":1,"theme":"日常"}
+{"word":"boss","def":"the person who tells workers what to do","ja":"働く人に何をするか言う人","kana":"はたらくひとになにをするかいうひと","level":1,"theme":"ビジネス"}
 {"word":"bottle","def":"a tall glass or plastic thing that holds drinks","ja":"飲み物を入れる背の高いガラスやプラスチックの物","kana":"のみものをいれるせのたかいがらすやぷらすちっくのもの","level":1,"theme":"日常"}
 {"word":"bottom","def":"the lowest part of something","ja":"何かの最も低い部分","kana":"なにかのもっともひくいぶぶん","level":1,"theme":"日常"}
 {"word":"box","def":"a container with straight sides for holding things","ja":"物を入れるための真っ直ぐな側面を持つ入れ物","kana":"ものをいれるためのまっすぐなそくめんをもついれもの","level":1,"theme":"日常"}
@@ -94,6 +96,7 @@
 {"word":"carrot","def":"a long orange vegetable that grows under the ground","ja":"地中で育つ細長い橙色の野菜","kana":"ちちゅうでそだつほそながいだいだいいろのやさい","level":1,"theme":"日常"}
 {"word":"carry","def":"to hold something and move it","ja":"何かを持って動かすこと","kana":"なにかをもってうごかすこと","level":1,"theme":"日常"}
 {"word":"castle","def":"a large strong building where kings lived long ago","ja":"昔に王が住んだ大きく頑丈な建物","kana":"むかしにおうがすんだおおきくがんじょうなたてもの","level":1,"theme":"旅行"}
+{"word":"cat","def":"a small animal that many people keep at home","ja":"多くの人が家で飼う小さな動物","kana":"おおくのひとがいえでかうちいさなどうぶつ","level":1,"theme":"日常"}
 {"word":"catch","def":"to take and hold a moving thing","ja":"動いている物をつかんで持つこと","kana":"うごいているものをつかんでもつこと","level":1,"theme":"日常"}
 {"word":"cave","def":"a large hole in the side of a hill or under the ground","ja":"丘の側面や地下にある大きな穴","kana":"おかのそくめんやちかにあるおおきなあな","level":1,"theme":"旅行"}
 {"word":"ceiling","def":"the top inside part of a room above your head","ja":"頭の上にある部屋の内側の上の部分","kana":"あたまのうえにあるへやのうちがわのうえのぶぶん","level":1,"theme":"日常"}
@@ -215,6 +218,7 @@
 {"word":"fall","def":"to move down toward the ground","ja":"地面に向かって下に動くこと","kana":"じめんにむかってしたにうごくこと","level":1,"theme":"日常"}
 {"word":"family","def":"the people who are your parents and children","ja":"親や子どもなどの人たち","kana":"おややこどもなどのひとたち","level":1,"theme":"日常"}
 {"word":"famous","def":"known by very many people","ja":"とても多くの人に知られていること","kana":"とてもおおくのひとにしられていること","level":1,"theme":"日常"}
+{"word":"far","def":"a long way from here","ja":"ここからとても離れている状態","kana":"ここからとてもはなれているじょうたい","level":1,"theme":"旅行"}
 {"word":"farm","def":"a place where people grow food and keep animals","ja":"人々が食べ物を育て動物を飼う場所","kana":"ひとびとがたべものをそだてどうぶつをかうばしょ","level":1,"theme":"日常"}
 {"word":"farmer","def":"a person who grows food on land","ja":"土地で食べ物を育てる人","kana":"とちでたべものをそだてるひと","level":1,"theme":"日常"}
 {"word":"father","def":"a male parent of a child","ja":"子どもの男の親","kana":"こどものおとこのおや","level":1,"theme":"日常"}
@@ -239,6 +243,7 @@
 {"word":"fly","def":"to move through the air","ja":"空中を移動する","kana":"くうちゅうをいどうする","level":1,"theme":"旅行"}
 {"word":"fold","def":"to bend something over onto itself","ja":"何かを自身の上に曲げること","kana":"なにかをじしんのうえにまげること","level":1,"theme":"日常"}
 {"word":"follow","def":"to go after someone or something","ja":"だれかや何かの後について行くこと","kana":"だれかやなにかのあとについていくこと","level":1,"theme":"日常"}
+{"word":"food","def":"things that people and animals eat","ja":"人や動物が食べるもの","kana":"ひとやどうぶつがたべるもの","level":1,"theme":"日常"}
 {"word":"forehead","def":"the part of your face above your eyes","ja":"目の上にある顔の部分","kana":"めのうえにあるかおのぶぶん","level":1,"theme":"日常"}
 {"word":"forget","def":"to not be able to keep something in your mind","ja":"何かを頭の中に保てないこと","kana":"なにかをあたまのなかにたもてないこと","level":1,"theme":"日常"}
 {"word":"fox","def":"a wild animal with red fur and a long tail","ja":"赤い毛と長い尾をもつ野生動物","kana":"あかいけとながいおをもつやせいどうぶつ","level":1,"theme":"日常"}
@@ -248,6 +253,7 @@
 {"word":"friend","def":"a person you like and know well","ja":"好きでよく知っている人","kana":"すきでよくしっているひと","level":1,"theme":"日常"}
 {"word":"frog","def":"a small animal that jumps and lives near water","ja":"跳ねて水辺に住む小さな動物","kana":"はねてみずべにすむちいさなどうぶつ","level":1,"theme":"日常"}
 {"word":"front","def":"the part of a thing that faces forward","ja":"前を向いている物の部分","kana":"まえをむいているもののぶぶん","level":1,"theme":"日常"}
+{"word":"fruit","def":"a sweet food that grows on plants and trees","ja":"植物や木にできる甘い食べ物","kana":"しょくぶつやきにできるあまいたべもの","level":1,"theme":"日常"}
 {"word":"full","def":"holding as much as it can","ja":"入れられるだけ入っている様子","kana":"いれられるだけはいっているようす","level":1,"theme":"日常"}
 {"word":"funny","def":"making you laugh or smile","ja":"笑ったり微笑んだりさせる","kana":"わらったりほほえんだりさせる","level":1,"theme":"日常"}
 {"word":"future","def":"the time that is coming later","ja":"後でやってくる時","kana":"あとでやってくるとき","level":1,"theme":"日常"}
@@ -402,8 +408,10 @@
 {"word":"moment","def":"a very short time","ja":"とても短い時間","kana":"とてもみじかいじかん","level":1,"theme":"日常"}
 {"word":"money","def":"coins and paper that you use to buy things","ja":"物を買うのに使う硬貨や紙","kana":"ものをかうのにつかうこうかやかみ","level":1,"theme":"ビジネス"}
 {"word":"monkey","def":"an animal that climbs trees and has a long tail","ja":"木に登り長い尾をもつ動物","kana":"きにのぼりながいおをもつどうぶつ","level":1,"theme":"日常"}
+{"word":"morning","def":"the early part of the day","ja":"一日の早い時間","kana":"いちにちのはやいじかん","level":1,"theme":"日常"}
 {"word":"mostly","def":"in most cases or for the most part","ja":"ほとんどの場合に、または大部分は","kana":"ほとんどのばあいにまたはだいぶぶんは","level":1,"theme":"日常"}
 {"word":"mother","def":"a female parent of a child","ja":"子どもの女の親","kana":"こどものおんなのおや","level":1,"theme":"日常"}
+{"word":"mountain","def":"a very high place made of rock and land","ja":"岩と土でできたとても高い場所","kana":"いわとどでできたとてもたかいばしょ","level":1,"theme":"旅行"}
 {"word":"mouth","def":"the part of your face that you use to eat and speak","ja":"食べたり話したりするために使う顔の部分","kana":"たべたりはなしたりするためにつかうかおのぶぶん","level":1,"theme":"日常"}
 {"word":"move","def":"to go from one place to another","ja":"ある場所から別の場所へ行く","kana":"あるばしょからべつのばしょへいく","level":1,"theme":"日常"}
 {"word":"movie","def":"a story shown in pictures that move on a screen","ja":"画面の上で動く映像で見せる物語","kana":"がめんのうえでうごくえいぞうでみせるものがたり","level":1,"theme":"日常"}
@@ -421,6 +429,7 @@
 {"word":"newspaper","def":"sheets of paper with news that you read each day","ja":"毎日読むニュースが載った紙","kana":"まいにちよむにゅーすがのったかみ","level":1,"theme":"日常"}
 {"word":"next","def":"coming right after this one","ja":"これのすぐ後に来る","kana":"これのすぐあとにくる","level":1,"theme":"日常"}
 {"word":"nice","def":"pleasant and good","ja":"心地よくて良い","kana":"ここちよくてよい","level":1,"theme":"日常"}
+{"word":"night","def":"the dark part of the day when the sky is black","ja":"空が暗くなる一日の時間","kana":"そらがくらくなるいちにちのじかん","level":1,"theme":"日常"}
 {"word":"noodle","def":"a long thin food made from flour","ja":"小麦粉で作った細長い食べ物","kana":"こむぎこでつくったほそながいたべもの","level":1,"theme":"日常"}
 {"word":"noon","def":"the middle of the day","ja":"一日の真ん中","kana":"いちにちのまんなか","level":1,"theme":"日常"}
 {"word":"north","def":"the direction that is to your left when you face the rising sun","ja":"昇る太陽に向かうと左になる方向","kana":"のぼるたいようにむかうとひだりになるほうこう","level":1,"theme":"旅行"}
@@ -445,6 +454,7 @@
 {"word":"party","def":"a time when people meet to have fun together","ja":"人々が集まって一緒に楽しむ時間","kana":"ひとびとがあつまっていっしょにたのしむじかん","level":1,"theme":"日常"}
 {"word":"past","def":"the time that has already happened","ja":"すでに過ぎ去った時","kana":"すでにすぎさったとき","level":1,"theme":"日常"}
 {"word":"path","def":"a narrow way you walk along","ja":"歩いて進む狭い道","kana":"あるいてすすむせまいみち","level":1,"theme":"日常"}
+{"word":"pay","def":"to give money for something you buy","ja":"買うものにお金を渡すこと","kana":"かうものにおかねをわたすこと","level":1,"theme":"ビジネス"}
 {"word":"peace","def":"a time with no war or fighting","ja":"戦争や争いのない時","kana":"せんそうやあらそいのないとき","level":1,"theme":"日常"}
 {"word":"pen","def":"a tool with ink that you use to write","ja":"書くために使うインクの入った道具","kana":"かくためにつかういんくのはいったどうぐ","level":1,"theme":"日常"}
 {"word":"pencil","def":"a thin tool that you use to write or draw","ja":"書いたり描いたりするために使う細い道具","kana":"かいたりえがいたりするためにつかうほそいどうぐ","level":1,"theme":"日常"}
@@ -460,6 +470,7 @@
 {"word":"pig","def":"a fat farm animal with a flat nose","ja":"鼻が平たい太った家畜","kana":"はながひらたいふとったかちく","level":1,"theme":"日常"}
 {"word":"pink","def":"having a light red color","ja":"薄い赤の色をしている","kana":"うすいあかのいろをしている","level":1,"theme":"日常"}
 {"word":"place","def":"an area or spot where something is","ja":"何かがある場所や地点","kana":"なにかがあるばしょやちてん","level":1,"theme":"日常"}
+{"word":"plan","def":"an idea about what you will do later","ja":"あとで何をするかについての考え","kana":"あとでなにをするかについてのかんがえ","level":1,"theme":"ビジネス"}
 {"word":"plane","def":"a vehicle with wings that flies in the sky","ja":"翼を持って空を飛ぶ乗り物","kana":"つばさをもってそらをとぶのりもの","level":1,"theme":"旅行"}
 {"word":"plant","def":"to put a seed in the ground so it grows","ja":"育つように種を土に入れる","kana":"そだつようにたねをつちにいれる","level":1,"theme":"日常"}
 {"word":"plate","def":"a flat round dish for food","ja":"食べ物を載せる平らで丸い皿","kana":"たべものをのせるたいらでまるいさら","level":1,"theme":"日常"}
@@ -519,9 +530,11 @@
 {"word":"reward","def":"something good you get for doing well","ja":"よくやったことに対してもらえるよいもの","kana":"よくやったことにたいしてもらえるよいもの","level":1,"theme":"ビジネス"}
 {"word":"rice","def":"small white grains that people cook and eat","ja":"人が炊いて食べる小さな白い粒","kana":"ひとがたいてたべるちいさなしろいつぶ","level":1,"theme":"日常"}
 {"word":"rich","def":"having a lot of money","ja":"たくさんのお金を持っている","kana":"たくさんのおかねをもっている","level":1,"theme":"日常"}
+{"word":"ride","def":"to sit on something that carries you","ja":"自分を運ぶものに座ること","kana":"じぶんをはこぶものにすわること","level":1,"theme":"旅行"}
 {"word":"right","def":"correct and without any mistake","ja":"正しくて間違いがないこと","kana":"ただしくてまちがいがないこと","level":1,"theme":"日常"}
 {"word":"ring","def":"a round band you wear on your finger","ja":"指にはめる丸い輪","kana":"ゆびにはめるまるいわ","level":1,"theme":"日常"}
 {"word":"rise","def":"to go up to a higher place","ja":"より高い所へ上がること","kana":"よりたかいところへあがること","level":1,"theme":"日常"}
+{"word":"river","def":"a long line of water that flows across the land","ja":"土地を流れる長い水の道","kana":"とちをながれるながいみずのみち","level":1,"theme":"旅行"}
 {"word":"road","def":"a way that cars go on","ja":"車が通る道","kana":"くるまがとおるみち","level":1,"theme":"旅行"}
 {"word":"rock","def":"a hard piece of stone","ja":"硬い石の塊","kana":"かたいいしのかたまり","level":1,"theme":"日常"}
 {"word":"roll","def":"to move by turning over and over","ja":"何度も回りながら動くこと","kana":"なんどもまわりながらうごくこと","level":1,"theme":"日常"}
@@ -529,6 +542,7 @@
 {"word":"room","def":"a space inside a building with walls around it","ja":"建物の中の壁に囲まれた空間","kana":"たてもののなかのかべにかこまれたくうかん","level":1,"theme":"日常"}
 {"word":"root","def":"the part of a plant that grows under the ground","ja":"地中で育つ植物の部分","kana":"ちちゅうでそだつしょくぶつのぶぶん","level":1,"theme":"日常"}
 {"word":"round","def":"having the shape of a circle or ball","ja":"円やボールの形をしている様子","kana":"えんやぼーるのかたちをしているようす","level":1,"theme":"日常"}
+{"word":"run","def":"to move fast on your feet","ja":"足を使って速く動くこと","kana":"あしをつかってはやくうごくこと","level":1,"theme":"日常"}
 {"word":"sad","def":"feeling unhappy","ja":"幸せでないと感じる","kana":"しあわせでないとかんじる","level":1,"theme":"日常"}
 {"word":"safe","def":"not in danger and not able to be hurt","ja":"危険がなく傷つけられない様子","kana":"きけんがなくきずつけられないようす","level":1,"theme":"旅行"}
 {"word":"salad","def":"a cold dish made of raw vegetables","ja":"生の野菜で作る冷たい料理","kana":"なまのやさいでつくるつめたいりょうり","level":1,"theme":"日常"}
@@ -545,6 +559,7 @@
 {"word":"seed","def":"a small thing that a new plant grows from","ja":"新しい植物が育つもとになる小さなもの","kana":"あたらしいしょくぶつがそだつもとになるちいさなもの","level":1,"theme":"日常"}
 {"word":"seek","def":"to try to find something","ja":"何かを見つけようとすること","kana":"なにかをみつけようとすること","level":1,"theme":"日常"}
 {"word":"seem","def":"to look like something is true","ja":"何かが本当のように見えること","kana":"なにかがほんとうのようにみえること","level":1,"theme":"日常"}
+{"word":"sell","def":"to give something to someone for money","ja":"お金と引きかえに何かを人に渡すこと","kana":"おかねとひきかえになにかをひとにわたすこと","level":1,"theme":"ビジネス"}
 {"word":"send","def":"to make something go to another place","ja":"何かを別の場所へ行かせること","kana":"なにかをべつのばしょへいかせること","level":1,"theme":"ビジネス"}
 {"word":"sentence","def":"a group of words that tell a complete idea","ja":"完全な考えを伝える言葉の集まり","kana":"かんぜんなかんがえをつたえることばのあつまり","level":1,"theme":"日常"}
 {"word":"serious","def":"not joking and very real","ja":"冗談ではなくとても本当の","kana":"じょうだんではなくとてもほんとうの","level":1,"theme":"日常"}
@@ -556,8 +571,10 @@
 {"word":"share","def":"to give a part of something to other people","ja":"何かの一部を他の人に与えること","kana":"なにかのいちぶをほかのひとにあたえること","level":1,"theme":"日常"}
 {"word":"sharp","def":"able to cut things easily","ja":"物を簡単に切れる","kana":"ものをかんたんにきれる","level":1,"theme":"日常"}
 {"word":"sheep","def":"a farm animal with soft thick hair","ja":"柔らかく厚い毛をもつ家畜","kana":"やわらかくあついけをもつかちく","level":1,"theme":"日常"}
+{"word":"ship","def":"a big boat that carries people over the sea","ja":"海を渡って人を運ぶ大きな船","kana":"うみをわたってひとをはこぶおおきなふね","level":1,"theme":"旅行"}
 {"word":"shirt","def":"a piece of clothing for the top of your body","ja":"体の上部のための衣服","kana":"からだのじょうぶのためのいふく","level":1,"theme":"日常"}
 {"word":"shoe","def":"a thing that you wear on your foot","ja":"足にはくもの","kana":"あしにはくもの","level":1,"theme":"日常"}
+{"word":"shop","def":"a place where you can buy things","ja":"物を買える場所","kana":"ものをかえるばしょ","level":1,"theme":"ビジネス"}
 {"word":"short","def":"having a small length or time","ja":"長さや時間が小さいこと","kana":"ながさやじかんがちいさいこと","level":1,"theme":"日常"}
 {"word":"shoulder","def":"the part of the body where the arm joins","ja":"腕がつながる体の部分","kana":"うでがつながるからだのぶぶん","level":1,"theme":"日常"}
 {"word":"shout","def":"to say something in a very loud voice","ja":"とても大きな声で何かを言うこと","kana":"とてもおおきなこえでなにかをいうこと","level":1,"theme":"日常"}
@@ -567,6 +584,7 @@
 {"word":"side","def":"a part of something that is not the front or back","ja":"何かの前でも後ろでもない部分","kana":"なにかのまえでもうしろでもないぶぶん","level":1,"theme":"日常"}
 {"word":"sign","def":"a board that shows information or directions","ja":"情報や道順を示す板","kana":"じょうほうやみちじゅんをしめすいた","level":1,"theme":"旅行"}
 {"word":"silver","def":"a shiny gray metal that has high value","ja":"価値の高い光る灰色の金属","kana":"かちのたかいひかるはいいろのきんぞく","level":1,"theme":"日常"}
+{"word":"sing","def":"to make music with your voice","ja":"声で音楽を作ること","kana":"こえでおんがくをつくること","level":1,"theme":"日常"}
 {"word":"sink","def":"to go down below the surface of water","ja":"水面の下へ下がること","kana":"すいめんのしたへさがること","level":1,"theme":"日常"}
 {"word":"sister","def":"a girl or woman who has the same parents as you","ja":"あなたと同じ親を持つ女の子や女の人","kana":"あなたとおなじおやをもつおんなのこやおんなのひと","level":1,"theme":"日常"}
 {"word":"sit","def":"to rest with your body on a chair or the ground","ja":"いすや地面の上に体をのせて休むこと","kana":"いすやじめんのうえにからだをのせてやすむこと","level":1,"theme":"日常"}
@@ -631,6 +649,7 @@
 {"word":"swim","def":"to move through water by using your body","ja":"体を使って水の中を進む","kana":"からだをつかってみずのなかをすすむ","level":1,"theme":"旅行"}
 {"word":"table","def":"a piece of furniture with a flat top and legs","ja":"平らな天板と脚を持つ家具","kana":"たいらなてんばんとあしをもつかぐ","level":1,"theme":"日常"}
 {"word":"take","def":"to hold something and move it with you","ja":"何かを持って一緒に動かすこと","kana":"なにかをもっていっしょにうごかすこと","level":1,"theme":"日常"}
+{"word":"talk","def":"to say words to another person","ja":"別の人に言葉を言うこと","kana":"べつのひとにことばをいうこと","level":1,"theme":"ビジネス"}
 {"word":"tall","def":"having a large height from top to bottom","ja":"上から下まで高さが大きい","kana":"うえからしたまでたかさがおおきい","level":1,"theme":"日常"}
 {"word":"taste","def":"the feeling that food gives in your mouth","ja":"食べ物が口の中で与える感じ","kana":"たべものがくちのなかであたえるかんじ","level":1,"theme":"日常"}
 {"word":"tax","def":"money that people pay to the government","ja":"人々が政府に払うお金","kana":"ひとびとがせいふにはらうおかね","level":1,"theme":"ビジネス"}
@@ -661,6 +680,7 @@
 {"word":"top","def":"the highest part of something","ja":"何かの最も高い部分","kana":"なにかのもっともたかいぶぶん","level":1,"theme":"旅行"}
 {"word":"topic","def":"the thing that people talk or write about","ja":"人が話したり書いたりする事柄","kana":"ひとがはなしたりかいたりすることがら","level":1,"theme":"日常"}
 {"word":"touch","def":"to put your hand on something","ja":"何かに手を当てること","kana":"なにかにてをあてること","level":1,"theme":"日常"}
+{"word":"town","def":"a place with houses and shops where people live","ja":"家や店があり人が住む場所","kana":"いえやみせがありじんがすむばしょ","level":1,"theme":"旅行"}
 {"word":"toy","def":"a thing that a child plays with","ja":"子供が遊ぶための物","kana":"こどもがあそぶためのもの","level":1,"theme":"日常"}
 {"word":"train","def":"a vehicle that runs on rails","ja":"線路を走る乗り物","kana":"せんろをはしるのりもの","level":1,"theme":"旅行"}
 {"word":"travel","def":"to go from one place to another far place","ja":"ある場所から別の遠い場所へ行くこと","kana":"あるばしょからべつのとおいばしょへいくこと","level":1,"theme":"旅行"}
@@ -683,6 +703,7 @@
 {"word":"waist","def":"the part of your body in the middle where you wear a belt","ja":"ベルトを身につける体の真ん中の部分","kana":"べるとをみにつけるからだのまんなかのぶぶん","level":1,"theme":"日常"}
 {"word":"wait","def":"to stay until something happens","ja":"何かが起こるまでとどまること","kana":"なにかがおこるまでとどまること","level":1,"theme":"日常"}
 {"word":"wake","def":"to stop sleeping and open your eyes","ja":"眠るのをやめて目を開ける","kana":"ねむるのをやめてめをあける","level":1,"theme":"日常"}
+{"word":"walk","def":"to move on your feet at a slow speed","ja":"足を使ってゆっくり動くこと","kana":"あしをつかってゆっくりうごくこと","level":1,"theme":"旅行"}
 {"word":"wall","def":"the side of a room or building","ja":"部屋や建物の側面","kana":"へややたてもののそくめん","level":1,"theme":"日常"}
 {"word":"want","def":"to wish to have or do something","ja":"何かを持ちたいまたはしたいと思う","kana":"なにかをもちたいまたはしたいとおもう","level":1,"theme":"日常"}
 {"word":"war","def":"a long fight between countries","ja":"国どうしの長い戦い","kana":"くにどうしのながいたたかい","level":1,"theme":"日常"}
@@ -930,6 +951,7 @@
 {"word":"breeze","def":"a light and gentle wind","ja":"軽くて穏やかな風","kana":"かるくておだやかなかぜ","level":2,"theme":"日常"}
 {"word":"brick","def":"a hard block used to build walls","ja":"壁を作るのに使う硬いかたまり","kana":"かべをつくるのにつかうかたいかたまり","level":2,"theme":"日常"}
 {"word":"bride","def":"a woman on the day she gets married","ja":"結婚するその日の女性","kana":"けっこんするそのひのじょせい","level":2,"theme":"日常"}
+{"word":"bridge","def":"a structure that lets you cross over a river or road","ja":"川や道の上を渡れるようにする建造物","kana":"かわやみちのうえをわたれるようにするけんぞうぶつ","level":2,"theme":"旅行"}
 {"word":"brief","def":"short and using only a few words","ja":"短くて少ない言葉だけを使う","kana":"みじかくてすくないことばだけをつかう","level":2,"theme":"日常"}
 {"word":"brilliant","def":"very good or very clever","ja":"とても良いまたはとても賢い","kana":"とてもよいまたはとてもかしこい","level":2,"theme":"日常"}
 {"word":"broad","def":"wide and large from one side to the other","ja":"一方からもう一方まで幅が広いこと","kana":"いっぽうからもういっぽうまではばがひろいこと","level":2,"theme":"日常"}
@@ -985,6 +1007,7 @@
 {"word":"chant","def":"to say or sing the same words over and over","ja":"同じ言葉を繰り返し言ったり歌ったりすること","kana":"おなじことばをくりかえしいったりうたったりすること","level":2,"theme":"日常"}
 {"word":"character","def":"a person in a story or play","ja":"物語や劇の中の人物","kana":"ものがたりやげきのなかのじんぶつ","level":2,"theme":"日常"}
 {"word":"characteristic","def":"a special part of someone or something that makes it what it is","ja":"その人や物をそのものたらしめる特別な部分","kana":"そのひとやものをそのものたらしめるとくべつなぶぶん","level":2,"theme":"日常"}
+{"word":"charge","def":"the money you must pay for something","ja":"何かに払わなければならないお金","kana":"なにかにはらわなければならないおかね","level":2,"theme":"ビジネス"}
 {"word":"chase","def":"to run after someone to catch them","ja":"誰かを捕まえようと追いかける","kana":"だれかをつかまえようとおいかける","level":2,"theme":"日常"}
 {"word":"cheerful","def":"happy and full of good feeling","ja":"幸せで良い気分に満ちている","kana":"しあわせでよいきぶんにみちている","level":2,"theme":"日常"}
 {"word":"chef","def":"a person who cooks food in a restaurant","ja":"料理店で食べ物を作る人","kana":"りょうりてんでたべものをつくるひと","level":2,"theme":"日常"}
@@ -1016,6 +1039,7 @@
 {"word":"clerk","def":"a person who works in a shop or office","ja":"店や事務所で働く人","kana":"みせやじむしょではたらくひと","level":2,"theme":"ビジネス"}
 {"word":"cliff","def":"a high steep area of rock near the sea or a hill","ja":"海や丘のそばにある高くて険しい岩の場所","kana":"うみやおかのそばにあるたかくてけわしいいわのばしょ","level":2,"theme":"旅行"}
 {"word":"climate","def":"the usual weather of a place over a long time","ja":"長い間のある場所のいつもの天気","kana":"ながいあいだのあるばしょのいつものてんき","level":2,"theme":"日常"}
+{"word":"climb","def":"to go up something using your hands and feet","ja":"手と足を使って何かを上ること","kana":"てとあしをつかってなにかをのぼること","level":2,"theme":"旅行"}
 {"word":"clinic","def":"a small place where people go to see a doctor","ja":"人が医者に診てもらいに行く小さな場所","kana":"ひとがいしゃにみてもらいにいくちいさなばしょ","level":2,"theme":"日常"}
 {"word":"closet","def":"a small room or space where you keep clothes","ja":"服をしまっておく小さな部屋や空間","kana":"ふくをしまっておくちいさなへややくうかん","level":2,"theme":"日常"}
 {"word":"clumsy","def":"moving in an awkward way and often dropping things","ja":"ぎこちなく動きよく物を落とすこと","kana":"ぎこちなくうごきよくものをおとすこと","level":2,"theme":"日常"}
@@ -1084,6 +1108,7 @@
 {"word":"consult","def":"to ask someone for help or advice about something","ja":"何かについて人に助けや助言を求めること","kana":"なにかについてひとにたすけやじょげんをもとめること","level":2,"theme":"日常"}
 {"word":"consume","def":"to use up food energy or other things","ja":"食べ物やエネルギーや他のものを使い切ること","kana":"たべものやえねるぎーやほかのものをつかいきること","level":2,"theme":"ビジネス"}
 {"word":"consumer","def":"a person who buys and uses things","ja":"物を買って使う人","kana":"ものをかってつかうひと","level":2,"theme":"ビジネス"}
+{"word":"contact","def":"the act of reaching someone to share information","ja":"情報を伝えるために誰かとつながること","kana":"じょうほうをつたえるためにだれかとつながること","level":2,"theme":"ビジネス"}
 {"word":"container","def":"a thing that is used to hold something","ja":"何かを入れるために使う物","kana":"なにかをいれるためにつかうもの","level":2,"theme":"日常"}
 {"word":"contest","def":"a game where people try to win","ja":"人々が勝とうとする競い合い","kana":"ひとびとがかとうとするきそいあい","level":2,"theme":"日常"}
 {"word":"context","def":"the words around a word that give it meaning","ja":"言葉に意味を与える周りの言葉","kana":"ことばにいみをあたえるまわりのことば","level":2,"theme":"日常"}
@@ -1226,6 +1251,7 @@
 {"word":"dimension","def":"a measure of length width or height","ja":"長さや幅や高さの寸法","kana":"ながさやはばやたかさのすんぽう","level":2,"theme":"日常"}
 {"word":"diminish","def":"to become smaller or less in size or amount","ja":"大きさや量が小さくなったり減ったりすること","kana":"おおきさやりょうがちいさくなったりへったりすること","level":2,"theme":"日常"}
 {"word":"dine","def":"to eat a meal","ja":"食事をとる","kana":"しょくじをとる","level":2,"theme":"日常"}
+{"word":"dinner","def":"the main meal that people eat in the evening","ja":"夕方に食べる主な食事","kana":"ゆうがたにたべるおもなしょくじ","level":2,"theme":"日常"}
 {"word":"diplomacy","def":"the work of keeping good relations between countries","ja":"国々の間の良い関係を保つ仕事","kana":"くにぐにのあいだのよいかんけいをたもつしごと","level":2,"theme":"日常"}
 {"word":"direct","def":"going straight without anything in between","ja":"間に何もなくまっすぐ進む様子","kana":"あいだになにもなくまっすぐすすむようす","level":2,"theme":"日常"}
 {"word":"director","def":"a person who leads a group or makes a film","ja":"集団を率いるか映画を作る人","kana":"しゅうだんをひきいるかえいがをつくるひと","level":2,"theme":"ビジネス"}
@@ -1262,6 +1288,7 @@
 {"word":"diving","def":"the sport of going down under water","ja":"水の中へ潜るスポーツ","kana":"みずのなかへもぐるすぽーつ","level":2,"theme":"旅行"}
 {"word":"division","def":"the way of finding how many times one number goes into another","ja":"ある数が別の数に何回入るかを求めるやり方","kana":"あるすうがべつのすうになんかいはいるかをもとめるやりかた","level":2,"theme":"日常"}
 {"word":"dock","def":"a place where boats stop near the land","ja":"船が陸の近くで止まる場所","kana":"ふねがりくのちかくでとまるばしょ","level":2,"theme":"旅行"}
+{"word":"document","def":"a paper or file with written information","ja":"書かれた情報がある紙やファイル","kana":"かかれたじょうほうがあるかみやふぁいる","level":2,"theme":"ビジネス"}
 {"word":"doll","def":"a toy that looks like a small person","ja":"小さな人のように見えるおもちゃ","kana":"ちいさなひとのようにみえるおもちゃ","level":2,"theme":"日常"}
 {"word":"dolphin","def":"a smart sea animal that swims and looks friendly","ja":"泳ぐ賢く優しそうな海の動物","kana":"およぐかしこくやさしそうなうみのどうぶつ","level":2,"theme":"旅行"}
 {"word":"domestic","def":"belonging to or happening in one country","ja":"一つの国に属したりその中で起こったりする","kana":"ひとつのくににぞくしたりそのなかでおこったりする","level":2,"theme":"日常"}
@@ -1366,6 +1393,7 @@
 {"word":"exist","def":"to be real and present in the world","ja":"世界に本当にあって存在すること","kana":"せかいにほんとうにあってそんざいすること","level":2,"theme":"日常"}
 {"word":"existence","def":"the state of being real and present in the world","ja":"世界に実在して存在している状態","kana":"せかいにじつざいしてそんざいしているじょうたい","level":2,"theme":"日常"}
 {"word":"expense","def":"the money that you spend on something","ja":"何かに使うお金","kana":"なにかにつかうおかね","level":2,"theme":"ビジネス"}
+{"word":"expensive","def":"costing a lot of money","ja":"お金がたくさんかかること","kana":"おかねがたくさんかかること","level":2,"theme":"日常"}
 {"word":"experience","def":"something you have done or felt in your life","ja":"人生の中でしたり感じたりしたこと","kana":"じんせいのなかでしたりかんじたりしたこと","level":2,"theme":"日常"}
 {"word":"experiment","def":"a test done to learn something new","ja":"新しいことを知るために行う試し","kana":"あたらしいことをしるためにおこなうためし","level":2,"theme":"日常"}
 {"word":"expert","def":"a person who knows a lot about one thing","ja":"一つのことをよく知っている人","kana":"ひとつのことをよくしっているひと","level":2,"theme":"ビジネス"}
@@ -1437,6 +1465,7 @@
 {"word":"forbid","def":"to order that something must not be done","ja":"何かをしてはいけないと命じる","kana":"なにかをしてはいけないとめいじる","level":2,"theme":"日常"}
 {"word":"force","def":"power that makes something move or change","ja":"何かを動かしたり変えたりする力","kana":"なにかをうごかしたりかえたりするちから","level":2,"theme":"日常"}
 {"word":"foreign","def":"from another country","ja":"よその国の","kana":"よそのくにの","level":2,"theme":"旅行"}
+{"word":"forest","def":"a large area covered with many trees","ja":"たくさんの木でおおわれた広い場所","kana":"たくさんのきでおおわれたひろいばしょ","level":2,"theme":"旅行"}
 {"word":"forever","def":"for all time without ever ending","ja":"終わることなくずっと","kana":"おわることなくずっと","level":2,"theme":"日常"}
 {"word":"forgive","def":"to stop being angry at someone for a bad thing","ja":"悪いことについて誰かに怒るのをやめる","kana":"わるいことについてだれかにおこるのをやめる","level":2,"theme":"日常"}
 {"word":"form","def":"the shape or way that something appears","ja":"何かが現れる形や様子","kana":"なにかがあらわれるかたちやようす","level":2,"theme":"日常"}
@@ -1531,6 +1560,7 @@
 {"word":"ham","def":"meat from a pig that you eat in slices","ja":"薄切りにして食べる豚の肉","kana":"うすぎりにしてたべるぶたのにく","level":2,"theme":"日常"}
 {"word":"hammer","def":"a tool with a heavy metal head used to hit nails","ja":"釘を打つために使う重い金属の頭を持つ道具","kana":"くぎをうつためにつかうおもいきんぞくのあたまをもつどうぐ","level":2,"theme":"日常"}
 {"word":"handsome","def":"having a nice and pleasant face","ja":"よくて感じのいい顔をしている","kana":"よくてかんじのいいかおをしている","level":2,"theme":"日常"}
+{"word":"harbor","def":"a safe place by the sea where ships stay","ja":"船がとまる海のそばの安全な場所","kana":"ふねがとまるうみのそばのあんぜんなばしょ","level":2,"theme":"旅行"}
 {"word":"harm","def":"hurt or damage that is done to a person or thing","ja":"人や物に与えられる傷や損害","kana":"ひとやものにあたえられるきずやそんがい","level":2,"theme":"日常"}
 {"word":"harmful","def":"causing damage or hurt to someone or something","ja":"誰かや何かに損害や害を与える","kana":"だれかやなにかにそんがいやがいをあたえる","level":2,"theme":"日常"}
 {"word":"harmless","def":"not able to cause any hurt or damage","ja":"どんな傷や損害も与えられない","kana":"どんなきずやそんがいもあたえられない","level":2,"theme":"日常"}
@@ -1558,6 +1588,7 @@
 {"word":"highway","def":"a big wide road where cars go fast","ja":"車が速く走る大きく広い道","kana":"くるまがはやくはしるおおきくひろいみち","level":2,"theme":"旅行"}
 {"word":"hike","def":"to walk a long way in the country for fun","ja":"楽しみのために田舎を長く歩く","kana":"たのしみのためにいなかをながくあるく","level":2,"theme":"旅行"}
 {"word":"hire","def":"to pay someone to work for you","ja":"自分のために働いてもらうため人に金を払う","kana":"じぶんのためにはたらいてもらうためひとにかねをはらう","level":2,"theme":"ビジネス"}
+{"word":"hobby","def":"something you enjoy doing in your free time","ja":"自由な時間に楽しんですること","kana":"じゆうなじかんにたのしんですること","level":2,"theme":"日常"}
 {"word":"holy","def":"connected with god or religion and very respected","ja":"神や宗教に結びつきとても敬われる","kana":"かみやしゅうきょうにむすびつきとてもうやまわれる","level":2,"theme":"日常"}
 {"word":"honey","def":"a sweet sticky food made by bees","ja":"蜂が作る甘くてねばねばした食べ物","kana":"はちがつくるあまくてねばねばしたたべもの","level":2,"theme":"日常"}
 {"word":"honor","def":"great respect that people give to a person","ja":"人々がある人に与える大きな尊敬","kana":"ひとびとがあるひとにあたえるおおきなそんけい","level":2,"theme":"日常"}
@@ -1642,6 +1673,7 @@
 {"word":"investigate","def":"to look at something carefully to learn the truth","ja":"真実を知るために注意深く調べること","kana":"しんじつをしるためにちゅういぶかくしらべること","level":2,"theme":"日常"}
 {"word":"investment","def":"money you put into something to gain more later","ja":"あとでもっと得るために何かに入れるお金","kana":"あとでもっとえるためになにかにいれるおかね","level":2,"theme":"ビジネス"}
 {"word":"invisible","def":"not able to be seen","ja":"見ることができない","kana":"みることができない","level":2,"theme":"日常"}
+{"word":"invite","def":"to ask someone to come to an event or place","ja":"誰かに行事や場所へ来てほしいと頼むこと","kana":"だれかにぎょうじやばしょへきてほしいとたのむこと","level":2,"theme":"日常"}
 {"word":"involve","def":"to have something as a needed part","ja":"何かを必要な一部として持つこと","kana":"なにかをひつようないちぶとしてもつこと","level":2,"theme":"日常"}
 {"word":"issue","def":"an important point that people talk about","ja":"人々が話し合う大切な点","kana":"ひとびとがはなしあうたいせつなてん","level":2,"theme":"ビジネス"}
 {"word":"jam","def":"a sweet soft food made from fruit and sugar","ja":"果物と砂糖から作る甘く柔らかい食べ物","kana":"くだものとさとうからつくるあまくやわらかいたべもの","level":2,"theme":"日常"}
@@ -1875,6 +1907,7 @@
 {"word":"opposite","def":"as different as it can be from something","ja":"何かとできるだけ違う","kana":"なにかとできるだけちがう","level":2,"theme":"日常"}
 {"word":"optional","def":"that you can choose to do or not do","ja":"するかしないか選べる","kana":"するかしないかえらべる","level":2,"theme":"日常"}
 {"word":"orchestra","def":"a large group of people who play music together","ja":"一緒に音楽を演奏する大きな人々の集団","kana":"いっしょにおんがくをえんそうするおおきなひとびとのしゅうだん","level":2,"theme":"日常"}
+{"word":"order","def":"a request to buy or bring something","ja":"何かを買ったり持ってきてもらうよう頼むこと","kana":"なにかをかったりもってきてもらうようたのむこと","level":2,"theme":"ビジネス"}
 {"word":"ordinary","def":"normal and not special in any way","ja":"普通で何も特別でない","kana":"ふつうでなにもとくべつでない","level":2,"theme":"日常"}
 {"word":"organ","def":"a part inside the body that does a certain job","ja":"体の中である働きをする部分","kana":"からだのなかであるはたらきをするぶぶん","level":2,"theme":"日常"}
 {"word":"organism","def":"a living thing such as a plant or animal","ja":"植物や動物のような生き物","kana":"しょくぶつやどうぶつのようないきもの","level":2,"theme":"日常"}
@@ -1912,6 +1945,7 @@
 {"word":"passion","def":"a very strong feeling of love or interest","ja":"愛や関心のとても強い気持ち","kana":"あいやかんしんのとてもつよいきもち","level":2,"theme":"日常"}
 {"word":"passionate","def":"having very strong feelings about something","ja":"何かにとても強い気持ちを持つ","kana":"なにかにとてもつよいきもちをもつ","level":2,"theme":"日常"}
 {"word":"passive","def":"not taking action and letting things happen to you","ja":"行動を起こさず、物事が自分に起こるままにする","kana":"こうどうをおこさずものごとがじぶんにおこるままにする","level":2,"theme":"日常"}
+{"word":"passport","def":"a small book that lets you travel to other countries","ja":"他の国へ旅行するために使う小さな本","kana":"たのくにへりょこうするためにつかうちいさなほん","level":2,"theme":"旅行"}
 {"word":"patience","def":"the ability to wait without getting angry","ja":"怒らずに待つことができる力","kana":"おこらずにまつことができるちから","level":2,"theme":"日常"}
 {"word":"patient","def":"a person who is sick and gets care from a doctor","ja":"病気で医者から手当てを受ける人","kana":"びょうきでいしゃからておあてをうけるひと","level":2,"theme":"日常"}
 {"word":"pattern","def":"a set of shapes or lines that repeat","ja":"くり返す形や線の組み合わせ","kana":"くりかえすかたちやせんのくみあわせ","level":2,"theme":"日常"}
@@ -2031,6 +2065,7 @@
 {"word":"professor","def":"a teacher of the highest rank at a university","ja":"大学で最も高い地位の教師","kana":"だいがくでもっともたかいちいのきょうし","level":2,"theme":"日常"}
 {"word":"program","def":"a show that you watch on television or hear on radio","ja":"テレビで見たりラジオで聞いたりする番組","kana":"てれびでみたりらじおできいたりするばんぐみ","level":2,"theme":"日常"}
 {"word":"progress","def":"the act of moving forward to something better","ja":"よりよいものへ前に進むこと","kana":"よりよいものへまえにすすむこと","level":2,"theme":"日常"}
+{"word":"project","def":"a planned piece of work with a clear goal","ja":"はっきりした目的のある計画された仕事","kana":"はっきりしたもくてきのあるけいかくされたしごと","level":2,"theme":"ビジネス"}
 {"word":"promote","def":"to give someone a higher job","ja":"誰かにより高い仕事を与えること","kana":"だれかによりたかいしごとをあたえること","level":2,"theme":"ビジネス"}
 {"word":"pronunciation","def":"the way you say the sounds of words","ja":"言葉の音を言う仕方","kana":"ことばのおとをいうしかた","level":2,"theme":"日常"}
 {"word":"proof","def":"facts that show that something is true","ja":"何かが本当だと示す事実","kana":"なにかがほんとうだとしめすじじつ","level":2,"theme":"日常"}
@@ -2112,6 +2147,7 @@
 {"word":"remote","def":"far away from other places","ja":"他から遠く離れた","kana":"ほかからとおくはなれた","level":2,"theme":"旅行"}
 {"word":"renew","def":"to make something fresh or new again","ja":"何かを再び新しくすること","kana":"なにかをふたたびあたらしくすること","level":2,"theme":"日常"}
 {"word":"rent","def":"to pay money to use something for a time","ja":"ある期間何かを使うためにお金を払うこと","kana":"あるきかんなにかをつかうためにおかねをはらうこと","level":2,"theme":"日常"}
+{"word":"repair","def":"to fix something that is broken","ja":"こわれたものを直すこと","kana":"こわれたものをなおすこと","level":2,"theme":"日常"}
 {"word":"repay","def":"to give back money that you borrowed","ja":"借りたお金を返す","kana":"かりたおかねをかえす","level":2,"theme":"ビジネス"}
 {"word":"replace","def":"to put a new thing in the place of an old one","ja":"古いものの場所に新しいものを置く","kana":"ふるいもののばしょにあたらしいものをおく","level":2,"theme":"日常"}
 {"word":"reply","def":"to answer someone with words","ja":"言葉で誰かに答えること","kana":"ことばでだれかにこたえること","level":2,"theme":"日常"}
@@ -2206,6 +2242,7 @@
 {"word":"search","def":"to look hard for something you want to find","ja":"見つけたい物を一生懸命探す","kana":"みつけたいものをいっしょうけんめいさがす","level":2,"theme":"日常"}
 {"word":"seasoning","def":"something you add to food to give it more taste","ja":"食べ物にもっと味をつけるために加えるもの","kana":"たべものにもっとあじをつけるためにくわえるもの","level":2,"theme":"日常"}
 {"word":"secretary","def":"a person whose job is to help in an office with letters and meetings","ja":"会社や事務所で手紙や会議を手伝うことを仕事にしている人","kana":"かいしゃやじむしょでてがみやかいぎをてつだうことをしごとにしているひと","level":2,"theme":"ビジネス"}
+{"word":"section","def":"one part of a larger group or company","ja":"より大きな集まりや会社の一つの部分","kana":"よりおおきなあつまりやかいしゃのひとつのぶぶん","level":2,"theme":"ビジネス"}
 {"word":"security","def":"the state of being safe from danger or harm","ja":"危険や害から守られて安全な状態","kana":"きけんやがいからまもられてあんぜんなじょうたい","level":2,"theme":"日常"}
 {"word":"segment","def":"one of the parts that something is divided into","ja":"何かが分けられた部分の一つ","kana":"なにかがわけられたぶぶんのひとつ","level":2,"theme":"日常"}
 {"word":"selfish","def":"thinking only about yourself and not other people","ja":"他の人ではなく自分のことだけを考える","kana":"ほかのひとではなくじぶんのことだけをかんがえる","level":2,"theme":"日常"}
@@ -2233,6 +2270,7 @@
 {"word":"shelter","def":"to keep someone safe from harm","ja":"誰かを害から守る","kana":"だれかをがいからまもる","level":2,"theme":"日常"}
 {"word":"shine","def":"to give out bright light","ja":"明るい光を放つこと","kana":"あかるいひかりをはなつこと","level":2,"theme":"日常"}
 {"word":"shiny","def":"having a bright surface that reflects light","ja":"光を反射する明るい表面を持つ","kana":"ひかりをはんしゃするあかるいひょうめんをもつ","level":2,"theme":"日常"}
+{"word":"shopping","def":"the act of going to shops to buy things","ja":"店に行って物を買うこと","kana":"みせにいってものをかうこと","level":2,"theme":"日常"}
 {"word":"shore","def":"the land at the edge of the sea or a lake","ja":"海や湖のふちにある陸地","kana":"うみやみずうみのふちにあるりくち","level":2,"theme":"旅行"}
 {"word":"shorten","def":"to make something less long","ja":"何かをより短くする","kana":"なにかをよりみじかくする","level":2,"theme":"日常"}
 {"word":"shower","def":"to wash your body under falling water","ja":"落ちる水の下で体を洗う","kana":"おちるみずのしたでからだをあらう","level":2,"theme":"日常"}
@@ -2441,6 +2479,7 @@
 {"word":"toss","def":"to throw something lightly with your hand","ja":"手で何かを軽く投げる","kana":"てでなにかをかるくなげる","level":2,"theme":"日常"}
 {"word":"total","def":"the whole amount when everything is added","ja":"すべてを足したときの全体の量","kana":"すべてをたしたときのぜんたいのりょう","level":2,"theme":"ビジネス"}
 {"word":"tough","def":"strong and not easy to break","ja":"強くて壊れにくい","kana":"つよくてこわれにくい","level":2,"theme":"日常"}
+{"word":"tour","def":"a trip where you visit many places to see them","ja":"多くの場所を見に行くための旅","kana":"おおくのばしょをみにいくためのたび","level":2,"theme":"旅行"}
 {"word":"tourist","def":"a person who travels to see new places for fun","ja":"楽しみのために新しい場所を見に旅する人","kana":"たのしみのためにあたらしいばしょをみにたびするひと","level":2,"theme":"旅行"}
 {"word":"tournament","def":"a contest where many players try to win","ja":"多くの選手が勝とうとする競技会","kana":"おおくのせんしゅがかとうとするきょうぎかい","level":2,"theme":"日常"}
 {"word":"towel","def":"a piece of soft cloth used to dry your body","ja":"体を拭くために使う柔らかい布","kana":"からだをふくためにつかうやわらかいぬの","level":2,"theme":"日常"}
@@ -2515,6 +2554,7 @@
 {"word":"vibrate","def":"to shake quickly with small fast movements","ja":"小さく速い動きで素早く揺れること","kana":"ちいさくはやいうごきですばやくゆれること","level":2,"theme":"日常"}
 {"word":"victim","def":"a person who is hurt by a bad event","ja":"悪い出来事によって傷つけられた人","kana":"わるいできごとによってきずつけられたひと","level":2,"theme":"日常"}
 {"word":"victory","def":"a win in a game war or fight against someone","ja":"試合や戦争や争いで相手に勝つこと","kana":"しあいやせんそうやあらそいであいてにかつこと","level":2,"theme":"日常"}
+{"word":"view","def":"what you can see from a place","ja":"ある場所から見えるもの","kana":"あるばしょからみえるもの","level":2,"theme":"旅行"}
 {"word":"viewpoint","def":"a way of looking at or thinking about something","ja":"何かを見たり考えたりする見方","kana":"なにかをみたりかんがえたりするみかた","level":2,"theme":"日常"}
 {"word":"villain","def":"a bad person in a story","ja":"物語の中の悪い人","kana":"ものがたりのなかのわるいひと","level":2,"theme":"日常"}
 {"word":"vinegar","def":"a sour liquid added to food for taste","ja":"味のために食べ物に加える酸っぱい液体","kana":"あじのためにたべものにくわえるすっぱいえきたい","level":2,"theme":"日常"}
@@ -2587,6 +2627,7 @@
 {"word":"accommodate","def":"to provide room or space for people","ja":"人のために場所や空間を用意する","kana":"ひとのためにばしょやくうかんをよういする","level":3,"theme":"旅行"}
 {"word":"accumulate","def":"to gather more and more of something over time","ja":"時間をかけて何かをだんだん集めること","kana":"じかんをかけてなにかをだんだんあつめること","level":3,"theme":"日常"}
 {"word":"acetone","def":"a strong liquid used to remove paint from nails","ja":"爪から塗料を落とすのに使う強い液体","kana":"つめからとりょうをおとすのにつかうつよいえきたい","level":3,"theme":"日常"}
+{"word":"achieve","def":"to reach a goal after trying hard","ja":"がんばって目標に届くこと","kana":"がんばってもくひょうにとどくこと","level":3,"theme":"ビジネス"}
 {"word":"acidity","def":"how sour a liquid is or how much acid it has","ja":"液体がどれだけ酸っぱいか酸をどれだけ含むか","kana":"えきたいがどれだけすっぱいかさんをどれだけふくむか","level":3,"theme":"日常"}
 {"word":"acorn","def":"the small nut that grows on an oak tree","ja":"樫の木に実る小さな木の実","kana":"かしのきにみのるちいさなきのみ","level":3,"theme":"日常"}
 {"word":"acquit","def":"to decide in court that someone is not guilty","ja":"法廷で誰かが無罪だと決めること","kana":"ほうていでだれかがむざいだときめること","level":3,"theme":"日常"}
@@ -2597,6 +2638,7 @@
 {"word":"adhesive","def":"a substance used to stick things together","ja":"物をくっつけるために使う物質","kana":"ものをくっつけるためにつかうぶっしつ","level":3,"theme":"日常"}
 {"word":"admiral","def":"a very important officer who leads ships in a navy","ja":"海軍で船を率いるとても重要な士官","kana":"かいぐんでふねをひきいるとてもじゅうようなしかん","level":3,"theme":"日常"}
 {"word":"admiration","def":"a feeling of great respect and liking for someone","ja":"誰かへの大きな尊敬と好意の気持ち","kana":"だれかへのおおきなそんけいとこういのきもち","level":3,"theme":"日常"}
+{"word":"adventure","def":"an exciting trip that may have some danger","ja":"危険があるかもしれないわくわくする旅","kana":"きけんがあるかもしれないわくわくするたび","level":3,"theme":"旅行"}
 {"word":"adverb","def":"a word that tells more about how something is done","ja":"何かがどう行われるかを詳しく伝える語","kana":"なにかがどうおこなわれるかをくわしくつたえるご","level":3,"theme":"日常"}
 {"word":"advocate","def":"to support an idea or plan in public","ja":"考えや計画を公に支持する","kana":"かんがえやけいかくをおおやけにしじする","level":3,"theme":"ビジネス"}
 {"word":"affinity","def":"a natural liking or feeling of closeness for someone","ja":"人に対する自然な好意や親しみの感じ","kana":"ひとにたいするしぜんなこういやしたしみのかんじ","level":3,"theme":"日常"}
@@ -2646,6 +2688,7 @@
 {"word":"archery","def":"the sport of shooting with a bow","ja":"弓で射る競技","kana":"ゆみでいるきょうぎ","level":3,"theme":"日常"}
 {"word":"arid","def":"very dry with little rain","ja":"雨が少なくとても乾いていること","kana":"あめがすくなくとてもかわいていること","level":3,"theme":"日常"}
 {"word":"arrears","def":"money that is owed and should have been paid before","ja":"支払うべきだったのにまだ払っていないお金","kana":"しはらうべきだったのにまだはらっていないおかね","level":3,"theme":"ビジネス"}
+{"word":"arrival","def":"the act of reaching the place you were going to","ja":"行こうとしていた場所に着くこと","kana":"いこうとしていたばしょにつくこと","level":3,"theme":"旅行"}
 {"word":"arrogance","def":"the feeling of thinking you are better than other people","ja":"自分が他人より優れていると思う気持ち","kana":"じぶんがたにんよりすぐれているとおもうきもち","level":3,"theme":"日常"}
 {"word":"arrow","def":"a thin pointed stick shot from a bow","ja":"弓から放たれる細くて先のとがった棒","kana":"ゆみからはなたれるほそくてさきのとがったぼう","level":3,"theme":"日常"}
 {"word":"arson","def":"the crime of setting fire to a building on purpose","ja":"建物にわざと火をつける犯罪","kana":"たてものにわざとひをつけるはんざい","level":3,"theme":"日常"}
@@ -2667,8 +2710,10 @@
 {"word":"auditorium","def":"a large room where many people sit to watch a show","ja":"多くの人が座って公演を見る大きな部屋","kana":"おおくのひとがすわってこうえんをみるおおきなへや","level":3,"theme":"旅行"}
 {"word":"aurora","def":"colored lights in the sky near the cold parts of the world","ja":"地球の寒い地域近くの空に現れる色のついた光","kana":"ちきゅうのさむいちいきちかくのそらにあらわれるいろのついたひかり","level":3,"theme":"旅行"}
 {"word":"automation","def":"the use of machines to do work without people","ja":"人を使わず機械に仕事をさせること","kana":"ひとをつかわずきかいにしごとをさせること","level":3,"theme":"ビジネス"}
+{"word":"available","def":"ready to be used or seen or bought","ja":"使ったり見たり買ったりできる状態","kana":"つかったりみたりかったりできるじょうたい","level":3,"theme":"日常"}
 {"word":"avalanche","def":"a large mass of snow that slides down a mountain","ja":"山を滑り落ちる大量の雪","kana":"やまをすべりおちるたいりょうのゆき","level":3,"theme":"日常"}
 {"word":"avatar","def":"a small picture that stands for a person on a computer","ja":"計算機上で人を表す小さな絵","kana":"けいさんきじょうでひとをあらわすちいさなえ","level":3,"theme":"日常"}
+{"word":"average","def":"the usual amount found by adding numbers and sharing them","ja":"数を足して分けて求めるふつうの量","kana":"かずをたしてわけてもとめるふつうのりょう","level":3,"theme":"日常"}
 {"word":"axle","def":"the bar that goes through the center of wheels","ja":"車輪の中心を通る棒","kana":"しゃりんのちゅうしんをとおるぼう","level":3,"theme":"旅行"}
 {"word":"backdrop","def":"a large painted cloth hung behind a stage as a scene","ja":"舞台の後ろに掛ける景色を描いた大きな布","kana":"ぶたいのうしろにかけるけしきをえがいたおおきなぬの","level":3,"theme":"日常"}
 {"word":"backpack","def":"a bag you carry on your back","ja":"背中に背負って運ぶ袋","kana":"せなかにせおってはこぶふくろ","level":3,"theme":"旅行"}
@@ -2904,9 +2949,11 @@
 {"word":"deity","def":"a god or being that people pray to","ja":"人々が祈る神や存在","kana":"ひとびとがいのるかみやそんざい","level":3,"theme":"日常"}
 {"word":"delay","def":"a time when something is late","ja":"遅れること","kana":"おくれること","level":3,"theme":"旅行"}
 {"word":"delicacy","def":"a special food that is rare and tastes very good","ja":"珍しくとても美味しい特別な食べ物","kana":"めずらしくとてもおいしいとくべつなたべもの","level":3,"theme":"日常"}
+{"word":"demand","def":"how much people want to buy something","ja":"人が何かをどれくらい買いたいか","kana":"ひとがなにかをどれくらいかいたいか","level":3,"theme":"ビジネス"}
 {"word":"democracy","def":"a system where people choose their leaders by voting","ja":"人々が投票で指導者を選ぶ仕組み","kana":"ひとびとがとうひょうでしどうしゃをえらぶしくみ","level":3,"theme":"日常"}
 {"word":"den","def":"a place where a wild animal lives and sleeps","ja":"野生の動物が住んで眠る場所","kana":"やせいのどうぶつがすんでねむるばしょ","level":3,"theme":"日常"}
 {"word":"density","def":"how much of a thing is packed in a space","ja":"ある空間に物がどれだけ詰まっているか","kana":"あるくうかんにものがどれだけつまっているか","level":3,"theme":"日常"}
+{"word":"depart","def":"to leave a place to begin a trip","ja":"旅を始めるために場所を離れること","kana":"たびをはじめるためにばしょをはなれること","level":3,"theme":"旅行"}
 {"word":"departure","def":"the act of leaving a place","ja":"場所を出発すること","kana":"ばしょをしゅっぱつすること","level":3,"theme":"旅行"}
 {"word":"depreciation","def":"the fall in the value of something as it gets older","ja":"物が古くなるにつれて価値が下がること","kana":"ものがふるくなるにつれてかちがさがること","level":3,"theme":"ビジネス"}
 {"word":"dermatitis","def":"a problem that makes the skin red and sore","ja":"皮膚が赤くなり痛くなる問題","kana":"ひふがあかくなりいたくなるもんだい","level":3,"theme":"日常"}
@@ -2914,6 +2961,7 @@
 {"word":"destination","def":"the place you are going to","ja":"行き先","kana":"いきさき","level":3,"theme":"旅行"}
 {"word":"detergent","def":"a liquid or powder used to clean clothes or dishes","ja":"衣類や皿を洗うのに使う液や粉","kana":"いるいやさらをあらうのにつかうえきやこな","level":3,"theme":"日常"}
 {"word":"detonate","def":"to make a bomb explode","ja":"爆弾を爆発させること","kana":"ばくだんをばくはつさせること","level":3,"theme":"日常"}
+{"word":"develop","def":"to grow and become bigger or better over time","ja":"時間とともに大きくよくなっていくこと","kana":"じかんとともにおおきくよくなっていくこと","level":3,"theme":"日常"}
 {"word":"deviation","def":"the amount by which something differs from the usual","ja":"何かが普通からずれている量","kana":"なにかがふつうからずれているりょう","level":3,"theme":"ビジネス"}
 {"word":"devoted","def":"giving a lot of love and care to someone","ja":"誰かに多くの愛と世話を注ぐ","kana":"だれかにおおくのあいとせわをそそぐ","level":3,"theme":"日常"}
 {"word":"devotion","def":"strong love and loyal care for someone or something","ja":"誰かや何かへの強い愛と忠実な思い","kana":"だれかやなにかへのつよいあいとちゅうじつなおもい","level":3,"theme":"日常"}
@@ -2933,6 +2981,7 @@
 {"word":"dishwasher","def":"a machine that washes plates and cups for you","ja":"皿やコップを洗ってくれる機械","kana":"さらやこっぷをあらってくれるきかい","level":3,"theme":"日常"}
 {"word":"dispatch","def":"to send a person or thing to a place","ja":"人や物をある場所へ送ること","kana":"ひとやものをあるばしょへおくること","level":3,"theme":"ビジネス"}
 {"word":"dispersion","def":"the act of spreading things out over a wide area","ja":"ものを広い範囲に広げること","kana":"ものをひろいはんいにひろげること","level":3,"theme":"日常"}
+{"word":"distance","def":"the space between two places","ja":"二つの場所の間の広がり","kana":"ふたつのばしょのまのひろがり","level":3,"theme":"旅行"}
 {"word":"distill","def":"to make a liquid pure by heating it and cooling the steam","ja":"液体を熱し蒸気を冷やして純粋にすること","kana":"えきたいをねっしじょうきをひやしてじゅんすいにすること","level":3,"theme":"日常"}
 {"word":"distort","def":"to change the shape or truth of something","ja":"何かの形や真実を変えること","kana":"なにかのかたちやしんじつをかえること","level":3,"theme":"日常"}
 {"word":"distribution","def":"the way that something is shared out across an area","ja":"何かがある範囲に分け広げられるさま","kana":"なにかがあるはんいにわけひろげられるさま","level":3,"theme":"日常"}
@@ -3165,6 +3214,7 @@
 {"word":"hormone","def":"a substance in the body that controls how it grows and works","ja":"体の成長や働きを調える体内の物質","kana":"からだのせいちょうやはたらきをととのえるたいないのぶっしつ","level":3,"theme":"日常"}
 {"word":"hostility","def":"a strong feeling of anger toward someone you see as an enemy","ja":"敵と見なす相手に向ける強い怒りの気持ち","kana":"てきとみなすあいてにむけるつよいいかりのきもち","level":3,"theme":"日常"}
 {"word":"hosting","def":"the service of keeping a website on a computer for others to visit","ja":"他の人が訪れられるように網頁を計算機に置く役務","kana":"ほかのひとがおとずれられるようにうぇぶさいとをけいさんきにおくえきむ","level":3,"theme":"ビジネス"}
+{"word":"however","def":"used to show that something is different from before","ja":"前とちがうことを示すときに使う言葉","kana":"まえとちがうことをしめすときにつかうことば","level":3,"theme":"日常"}
 {"word":"hubcap","def":"a round cover that goes over the center of a wheel on a car","ja":"車の車輪の中心を覆う丸いカバー","kana":"くるまのしゃりんのちゅうしんをおおうまるいかばー","level":3,"theme":"旅行"}
 {"word":"humility","def":"the quality of not being proud about yourself","ja":"自分を誇らない性質","kana":"じぶんをほこらないせいしつ","level":3,"theme":"日常"}
 {"word":"hurl","def":"to throw something with great force","ja":"物を強い力で投げること","kana":"ものをつよいちからでなげること","level":3,"theme":"日常"}
@@ -3207,6 +3257,7 @@
 {"word":"intestine","def":"a long tube in the body that takes food after the stomach","ja":"胃の後で食べ物を受け取る体の中の長い管","kana":"いのあとでたべものをうけとるからだのなかのながいくだ","level":3,"theme":"日常"}
 {"word":"intimacy","def":"a close warm feeling between people","ja":"人と人の間の近く温かい気持ち","kana":"ひととひとのあいだのちかくあたたかいきもち","level":3,"theme":"日常"}
 {"word":"intricate","def":"having many small parts and details","ja":"小さな部分や細部が多い","kana":"ちいさなぶぶんやさいぶがおおい","level":3,"theme":"日常"}
+{"word":"invest","def":"to put money into something to gain more later","ja":"あとでより多く得るために何かにお金を入れること","kana":"あとでよりおおくえるためになにかにおかねをいれること","level":3,"theme":"ビジネス"}
 {"word":"ionic","def":"relating to atoms that have an electric charge","ja":"電気を帯びた原子に関する様子","kana":"でんきをおびたげんしにかんするようす","level":3,"theme":"日常"}
 {"word":"ionosphere","def":"a high part of the air that helps send radio signals","ja":"電波を送るのを助ける空の高い部分","kana":"でんぱをおくるのをたすけるそらのたかいぶぶん","level":3,"theme":"日常"}
 {"word":"iris","def":"a tall plant with large purple or yellow flowers","ja":"大きな紫や黄色の花を持つ背の高い植物","kana":"おおきなむらさきやきいろのはなをもつせのたかいしょくぶつ","level":3,"theme":"日常"}
@@ -3266,6 +3317,7 @@
 {"word":"litigation","def":"the process of taking a problem to court","ja":"問題を裁判に持ち込む手続き","kana":"もんだいをさいばんにもちこむてつづき","level":3,"theme":"ビジネス"}
 {"word":"livestock","def":"animals such as cows and sheep kept on a farm for use","ja":"使うため農場で飼う牛や羊などの動物","kana":"つかうためのうじょうでかううしやひつじなどのどうぶつ","level":3,"theme":"日常"}
 {"word":"loam","def":"rich dark soil that is good for growing plants","ja":"植物を育てるのに良い豊かで黒い土","kana":"しょくぶつをそだてるのによいゆたかでくろいつち","level":3,"theme":"日常"}
+{"word":"lodging","def":"a place where you stay and sleep for a short time","ja":"短い間泊まって眠る場所","kana":"みじかいまとまってねむるばしょ","level":3,"theme":"旅行"}
 {"word":"lofty","def":"very high or rising up to a great height","ja":"とても高いまたは高い所まで立ち上がる様子","kana":"とてもたかいまたはたかいところまでたちあがるようす","level":3,"theme":"日常"}
 {"word":"logistics","def":"the work of moving and storing goods for a business","ja":"商売のために品物を運び保管する仕事","kana":"しょうばいのためにしなものをはこびほかんするしごと","level":3,"theme":"ビジネス"}
 {"word":"longitude","def":"the distance east or west on the earth shown by lines","ja":"線で示される地球上の東西の距離","kana":"せんでしめされるちきゅうじょうのとうざいのきょり","level":3,"theme":"日常"}
@@ -3283,6 +3335,7 @@
 {"word":"maintenance","def":"the work of keeping something in good condition","ja":"何かを良い状態に保つ作業","kana":"なにかをよいじょうたいにたもつさぎょう","level":3,"theme":"ビジネス"}
 {"word":"malnutrition","def":"poor health caused by not eating enough good food","ja":"良い食べ物を十分に食べないことで起こる悪い健康状態","kana":"よいたべものをじゅうぶんにたべないことでおこるわるいけんこうじょうたい","level":3,"theme":"日常"}
 {"word":"malware","def":"harmful software made to damage or break into a computer","ja":"計算機を壊したり侵入したりするため作られた有害な譜","kana":"けいさんきをこわしたりしんにゅうしたりするためつくられたゆうがいなふ","level":3,"theme":"日常"}
+{"word":"manage","def":"to control and take care of work or people","ja":"仕事や人を管理して面倒を見ること","kana":"しごとやひとをかんりしてめんどうをみること","level":3,"theme":"ビジネス"}
 {"word":"mandible","def":"the lower part of the mouth that holds the teeth","ja":"歯を支える口の下の部分","kana":"はをささえるくちのしたのぶぶん","level":3,"theme":"日常"}
 {"word":"mandolin","def":"a small round musical thing with strings that you pluck","ja":"指ではじく弦のついた小さく丸い楽器","kana":"ゆびではじくげんのついたちいさくまるいがっき","level":3,"theme":"日常"}
 {"word":"mane","def":"the long hair on the neck of a horse or a lion","ja":"馬やライオンの首にある長い毛","kana":"うまやらいおんのくびにあるながいけ","level":3,"theme":"日常"}
@@ -3426,6 +3479,7 @@
 {"word":"parsley","def":"a green plant used to add flavor to food","ja":"食べ物に風味を加えるために使う緑の植物","kana":"たべものにふうみをくわえるためにつかうみどりのしょくぶつ","level":3,"theme":"日常"}
 {"word":"particle","def":"a very tiny piece of something","ja":"何かのとても小さなかけら","kana":"なにかのとてもちいさなかけら","level":3,"theme":"日常"}
 {"word":"partition","def":"a thin wall that divides a room into parts","ja":"部屋をいくつかに分ける薄い壁","kana":"へやをいくつかにわけるうすいかべ","level":3,"theme":"日常"}
+{"word":"passenger","def":"a person who travels in a car train or plane","ja":"車や電車や飛行機で移動する人","kana":"くるまやでんしゃやひこうきでいどうするひと","level":3,"theme":"旅行"}
 {"word":"pasture","def":"a field where farm animals eat grass","ja":"家畜が草を食べる野原","kana":"かちくがくさをたべるのはら","level":3,"theme":"日常"}
 {"word":"patriarch","def":"the oldest man who leads a family or group","ja":"家族や集団を率いる最も年上の男性","kana":"かぞくやしゅうだんをひきいるもっともとしうえのだんせい","level":3,"theme":"日常"}
 {"word":"patterned","def":"having a repeated design of shapes or colors","ja":"形や色の繰り返しの模様がある","kana":"かたちやいろのくりかえしのもようがある","level":3,"theme":"日常"}
@@ -3485,6 +3539,7 @@
 {"word":"precipitate","def":"a solid that forms in a liquid during a chemical change","ja":"化学変化で液体の中にできる固体","kana":"かがくへんかでえきたいのなかにできるこたい","level":3,"theme":"日常"}
 {"word":"predator","def":"an animal that hunts and eats other animals","ja":"他の動物を狩って食べる動物","kana":"ほかのどうぶつをかってたべるどうぶつ","level":3,"theme":"日常"}
 {"word":"preface","def":"a short part at the start of a book that explains it","ja":"本の始めにあって内容を説明する短い部分","kana":"ほんのはじめにあってないようをせつめいするみじかいぶぶん","level":3,"theme":"日常"}
+{"word":"prefer","def":"to like one thing more than another","ja":"あるものを別のものより好きに思うこと","kana":"あるものをべつのものよりすきにおもうこと","level":3,"theme":"日常"}
 {"word":"prefix","def":"a group of letters added to the front of a word to change it","ja":"語を変えるために語の前に付け加える文字の群れ","kana":"ごをかえるためにごのまえにつけくわえるもじのむれ","level":3,"theme":"日常"}
 {"word":"prejudice","def":"an unfair feeling about a person before you know them","ja":"知る前に人に抱く不公平な気持ち","kana":"しるまえにひとにいだくふこうへいなきもち","level":3,"theme":"日常"}
 {"word":"principle","def":"a basic truth or rule that guides how you act or think","ja":"行動や考え方を導く基本的な真理や決まり","kana":"こうどうやかんがえかたをみちびくきほんてきなしんりやきまり","level":3,"theme":"日常"}
@@ -3543,10 +3598,13 @@
 {"word":"recession","def":"a time when business and trade are weak","ja":"商売や取引が弱くなる時期","kana":"しょうばいやとりひきがよわくなるじき","level":3,"theme":"ビジネス"}
 {"word":"recital","def":"a show where someone plays music or reads to people","ja":"人前で音楽を演奏したり朗読したりする催し","kana":"ひとまえでおんがくをえんそうしたりろうどくしたりするもよおし","level":3,"theme":"日常"}
 {"word":"recite","def":"to say something aloud from memory","ja":"記憶から声に出して言う","kana":"きおくからこえにだしていう","level":3,"theme":"日常"}
+{"word":"recommend","def":"to tell someone that something is good and worth trying","ja":"何かが良いから試すとよいと人に伝えること","kana":"なにかがよいからためすとよいとひとにつたえること","level":3,"theme":"ビジネス"}
 {"word":"rectangular","def":"having the shape with four sides and four square corners","ja":"四つの辺と四つの直角を持つ形をしたさま","kana":"よっつのへんとよっつのちょっかくをもつかたちをしたさま","level":3,"theme":"日常"}
+{"word":"reduce","def":"to make something smaller in size or amount","ja":"何かの大きさや量を小さくすること","kana":"なにかのおおきさやりょうをちいさくすること","level":3,"theme":"日常"}
 {"word":"reef","def":"a line of rock or coral near the surface of the sea","ja":"海の表面近くにある岩や珊瑚の連なり","kana":"うみのひょうめんちかくにあるいわやさんごのつらなり","level":3,"theme":"旅行"}
 {"word":"refract","def":"to make light bend as it passes through water or glass","ja":"光が水やガラスを通るときに曲げること","kana":"ひかりがみずやがらすをとおるときにまげること","level":3,"theme":"日常"}
 {"word":"refraction","def":"the bending of light as it passes through water or glass","ja":"光が水やガラスを通るとき曲がること","kana":"ひかりがみずやがらすをとおるときまがること","level":3,"theme":"日常"}
+{"word":"region","def":"a large area of land with its own features","ja":"それぞれの特徴を持つ広い土地","kana":"それぞれのとくちょうをもつひろいとち","level":3,"theme":"旅行"}
 {"word":"rehabilitation","def":"the process of helping someone become well or able again","ja":"誰かが再び健康になったりできるようになるのを助ける過程","kana":"だれかがふたたびけんこうになったりできるようになるのをたすけるかてい","level":3,"theme":"日常"}
 {"word":"rehearsal","def":"a time when people practice a play or show before they do it","ja":"劇や催しを行う前に練習する時間","kana":"げきやもよおしをおこなうまえにれんしゅうするじかん","level":3,"theme":"日常"}
 {"word":"rehearse","def":"to practice before a show or event","ja":"催しや本番の前に練習すること","kana":"もよおしやほんばんのまえにれんしゅうすること","level":3,"theme":"日常"}
@@ -3579,6 +3637,7 @@
 {"word":"riot","def":"a wild and angry crowd that breaks things","ja":"物を壊す荒れた怒った群衆","kana":"ものをこわすあれたおこったぐんしゅう","level":3,"theme":"日常"}
 {"word":"rivalry","def":"a state of competing strongly against another","ja":"他者と強く競い合う状態","kana":"たしゃとつよくきそいあうじょうたい","level":3,"theme":"日常"}
 {"word":"roam","def":"to walk around with no fixed place to go","ja":"行く先を決めずに歩き回ること","kana":"いくさきをきめずにあるきまわること","level":3,"theme":"日常"}
+{"word":"route","def":"the way you follow to go from one place to another","ja":"ある場所から別の場所へ行くためにたどる道","kana":"あるばしょからべつのばしょへいくためにたどるみち","level":3,"theme":"旅行"}
 {"word":"router","def":"a device that sends data between computers and the internet","ja":"コンピューターとインターネットの間でデータを送る装置","kana":"こんぴゅーたーといんたーねっとのあいだででーたをおくるそうち","level":3,"theme":"日常"}
 {"word":"rugged","def":"having a rough surface with many bumps and rocks","ja":"多くの凹凸や岩のある粗い表面を持つさま","kana":"おおくのおうとつやいわのあるあらいひょうめんをもつさま","level":3,"theme":"旅行"}
 {"word":"sage","def":"a plant with grey green leaves used to flavor food","ja":"食べ物に風味をつけるのに使う灰緑色の葉の植物","kana":"たべものにふうみをつけるのにつかうはいみどりいろのはのしょくぶつ","level":3,"theme":"日常"}
@@ -3639,6 +3698,7 @@
 {"word":"sightseeing","def":"visiting interesting places as a tourist","ja":"観光地を見て回ること","kana":"かんこうちをみてまわること","level":3,"theme":"旅行"}
 {"word":"silhouette","def":"the dark outline of someone seen against a light background","ja":"明るい背景に映る人の暗い輪郭","kana":"あかるいはいけいにうつるひとのくらいりんかく","level":3,"theme":"日常"}
 {"word":"silt","def":"fine soft soil carried and left by water","ja":"水に運ばれ残された細かく柔らかい土","kana":"みずにはこばれのこされたこまかくやわらかいつち","level":3,"theme":"日常"}
+{"word":"similar","def":"almost the same but not exactly","ja":"ほとんど同じだがまったく同じではない状態","kana":"ほとんどおなじだがまったくおなじではないじょうたい","level":3,"theme":"日常"}
 {"word":"simmer","def":"to cook food slowly in liquid just below boiling","ja":"沸騰の少し手前で食材を液体の中でゆっくり煮ること","kana":"ふっとうのすこしてまえでしょくざいをえきたいのなかでゆっくりにること","level":3,"theme":"日常"}
 {"word":"singe","def":"to burn the surface of something lightly","ja":"何かの表面を軽く焦がすこと","kana":"なにかのひょうめんをかるくこがすこと","level":3,"theme":"日常"}
 {"word":"singing","def":"the act of making music with your voice","ja":"声で音楽を作る行為","kana":"こえでおんがくをつくるこうい","level":3,"theme":"日常"}
@@ -3726,6 +3786,7 @@
 {"word":"supernova","def":"a star that bursts with a very bright light","ja":"とても明るい光とともに爆発する星","kana":"とてもあかるいひかりとともにばくはつするほし","level":3,"theme":"日常"}
 {"word":"superstition","def":"a belief that some action brings good or bad luck","ja":"ある行いが幸運や不運をもたらすという信じ込み","kana":"あるおこないがこううんやふうんをもたらすというしんじこみ","level":3,"theme":"日常"}
 {"word":"supplement","def":"a thing you take to add what your food lacks","ja":"食事に足りないものを補うために取るもの","kana":"しょくじにたりないものをおぎなうためにとるもの","level":3,"theme":"日常"}
+{"word":"supply","def":"the amount of something that people can buy","ja":"人が買える物の量","kana":"ひとがかえるもののりょう","level":3,"theme":"ビジネス"}
 {"word":"surplus","def":"an amount of money or goods that is more than needed","ja":"必要より多いお金や品物の量","kana":"ひつようよりおおいおかねやしなもののりょう","level":3,"theme":"ビジネス"}
 {"word":"suspension","def":"a liquid in which tiny solid bits float without dissolving","ja":"小さな固体の粒が溶けずに浮かぶ液体","kana":"ちいさなこたいのつぶがとけずにうかぶえきたい","level":3,"theme":"日常"}
 {"word":"swamp","def":"soft wet land covered with water and plants","ja":"水と植物に覆われた柔らかく湿った土地","kana":"みずとしょくぶつにおおわれたやわらかくしめったとち","level":3,"theme":"日常"}
@@ -6643,6 +6704,7 @@
 {"word":"completeness","def":"the state of being complete and entire","ja":"完全で全体の状態","kana":"かんぜんでぜんたいのじょうたい","level":4,"theme":null}
 {"word":"complexation","def":"the joining of a metal with other molecules into a unit","ja":"金属が他の分子と結びついて一つになること","kana":"きんぞくがたのぶんしとむすびついてひとつになること","level":4,"theme":null}
 {"word":"complexity","def":"the quality of being intricate and compounded","ja":"込み入って複合的な性質","kana":"こみいってふくごうてきなせいしつ","level":4,"theme":null}
+{"word":"compliance","def":"the act of following rules and laws","ja":"決まりや法律に従うこと","kana":"きまりやほうりつにしたがうこと","level":4,"theme":"ビジネス"}
 {"word":"compliant","def":"disposed or willing to comply","ja":"応じたいと思わせるまたは応じることを望んでいる","kana":"おうじたいとおもわせるまたはおうじることをのぞんでいる","level":4,"theme":null}
 {"word":"complication","def":"the act or process of complicating","ja":"複雑にする行為や方法","kana":"ふくざつにするこういやほうほう","level":4,"theme":null}
 {"word":"complicity","def":"guilt as an accomplice in a crime or offense","ja":"犯罪や罪の共犯者として有罪であること","kana":"はんざいやつみのきょうはんしゃとしてゆうざいであること","level":4,"theme":null}
@@ -6774,6 +6836,7 @@
 {"word":"considerable","def":"large or relatively large in number or amount or extent or degree","ja":"数量範囲または程度において比較的大きいまたは大きい","kana":"すうりょうはんいまたはていどにおいてひかくてきおおきいまたはおおきい","level":4,"theme":null}
 {"word":"considerably","def":"to a great extent or degree","ja":"かなりの範囲または程度まで","kana":"かなりのはんいまたはていどまで","level":4,"theme":null}
 {"word":"consignment","def":"goods carried by a large vehicle","ja":"大きい車両で運ばれる品物","kana":"おおきいしゃりょうではこばれるしなもの","level":4,"theme":null}
+{"word":"consolidate","def":"to join many things into one stronger whole","ja":"多くのものを一つのより強いまとまりにすること","kana":"おおくのものをひとつのよりつよいまとまりにすること","level":4,"theme":"ビジネス"}
 {"word":"consolidation","def":"combining into a solid mass","ja":"固体塊にまとまる","kana":"こたいかたまりにまとまる","level":4,"theme":null}
 {"word":"consomme","def":"clear soup usually of beef or veal or chicken","ja":"通常牛子牛鶏の澄んだスープ","kana":"つうじょううしこうしにわとりのすんだすーぷ","level":4,"theme":null}
 {"word":"consonance","def":"the repetition of consonants especially at the ends of words","ja":"特に語尾における子音の反復","kana":"とくにごびにおけるしいんのはんぷく","level":4,"theme":null}
@@ -6810,6 +6873,7 @@
 {"word":"contentedly","def":"in a way that shows you are happy and pleased","ja":"幸せで満ち足りている様子で","kana":"しあわせでみちたりているようすで","level":4,"theme":"日常"}
 {"word":"contestant","def":"a person who participates in competitions","ja":"競争に参加する人","kana":"きょうそうにさんかするひと","level":4,"theme":null}
 {"word":"contiguity","def":"the attribute of being so near as to be touching","ja":"接触しているほど非常に近いという特性","kana":"せっしょくしているほどひじょうにちかいというとくせい","level":4,"theme":null}
+{"word":"contingency","def":"something that might happen but is not certain","ja":"起こるかもしれないが確かではないこと","kana":"おこるかもしれないがたしかではないこと","level":4,"theme":"ビジネス"}
 {"word":"continuity","def":"uninterrupted connection or union","ja":"連続的な接続または合併","kana":"れんぞくてきなせつぞくまたはがっぺい","level":4,"theme":null}
 {"word":"contouring","def":"plowing along the level lines of a slope","ja":"斜面の水平な線に沿って耕すこと","kana":"しゃめんのすいへいなせんにそってたがやすこと","level":4,"theme":null}
 {"word":"contraction","def":"a shortening or tensing of a part or organ","ja":"体の一部または器官の短縮や緊張","kana":"からだのいちぶまたはきかんのたんしゅくやきんちょう","level":4,"theme":null}
@@ -7677,6 +7741,7 @@
 {"word":"detinue","def":"a legal claim to get back goods held by another","ja":"他人が持つ品の返還を求める訴え","kana":"たにんがもつしなのへんかんをもとめるうったえ","level":4,"theme":null}
 {"word":"detonation","def":"a violent release of energy caused by a chemical or nuclear reaction","ja":"化学や核反応によるエネルギーの激しい放出","kana":"かがくやかくはんのうによるえねるぎーのはげしいほうしゅつ","level":4,"theme":null}
 {"word":"detonator","def":"a mechanical or electrical explosive device or a small amount of explosive","ja":"機械的または電気的爆発装置または小量の爆発物","kana":"きかいてきまたはでんきてきばくはつそうちまたはしょうりょうのばくはつぶつ","level":4,"theme":null}
+{"word":"detour","def":"a longer way you take when the usual road is blocked","ja":"いつもの道が通れないときに通るより長い道","kana":"いつものみちがとおれないときにとおるよりながいみち","level":4,"theme":"旅行"}
 {"word":"detoxify","def":"to remove harmful things from the body or another place","ja":"体や別の場所から有害なものを取り除くこと","kana":"からだやべつのばしょからゆうがいなものをとりのぞくこと","level":4,"theme":"日常"}
 {"word":"detrempe","def":"the base dough used to make layered pastry","ja":"層状の生地を作るための基の生地","kana":"そうじょうのきじをつくるためのもとのきじ","level":4,"theme":null}
 {"word":"detritivore","def":"an animal that feeds on dead plant and animal matter","ja":"枯れた植物や動物の残骸を食べる動物","kana":"かれたしょくぶつやどうぶつのざんがいをたべるどうぶつ","level":4,"theme":null}
@@ -8206,6 +8271,7 @@
 {"word":"dysthymia","def":"mild chronic depression","ja":"軽い慢性鬱病","kana":"かるいまんせいうつびょう","level":4,"theme":null}
 {"word":"dystrophy","def":"any of several hereditary diseases of the muscular system characterized by weakness and wasting of skeletal muscles","ja":"衰弱と骨格の筋肉を浪費により特徴づけられる筋肉系のいくつかの遺伝病の総称","kana":"すいじゃくとこっかくのきんにくをろうひによりとくちょうづけられるきんにくけいのいくつかのいでんびょうのそうしょう","level":4,"theme":null}
 {"word":"dysuria","def":"painful or difficult urination","ja":"痛みを伴う排尿か排尿困難","kana":"いたみをともなうはいにょうかはいにょうこんなん","level":4,"theme":null}
+{"word":"eager","def":"wanting to do something very much","ja":"何かをとてもやりたいと思っている","kana":"なにかをとてもやりたいとおもっている","level":4,"theme":"日常"}
 {"word":"eagerly","def":"in a way that shows you really want something","ja":"何かを本当に欲しがっている様子で","kana":"なにかをほんとうにほしがっているようすで","level":4,"theme":"日常"}
 {"word":"eagerness","def":"a positive feeling of wanting to push ahead with something","ja":"何かを押し進めたいと思う前向きな気持ち","kana":"なにかをおしすすめたいとおもうまえむきなきもち","level":4,"theme":null}
 {"word":"eagleowl","def":"a very large owl with ear like tufts","ja":"耳のような羽毛を持つとても大きな梟","kana":"みみのようなうもうをもつとてもおおきなふくろう","level":4,"theme":null}
@@ -8395,6 +8461,7 @@
 {"word":"embalm","def":"preserve a dead body","ja":"遺体を保存する","kana":"いたいをほぞんする","level":4,"theme":null}
 {"word":"embalmer","def":"a mortician who treats corpses with preservatives","ja":"死体に防腐処理を施す葬儀屋","kana":"したいにぼうふしょりをほどこすそうぎや","level":4,"theme":null}
 {"word":"embankment","def":"a long wall of earth built to hold back water or carry a road","ja":"水を堰き止めたり道を通したりするため築いた土の長い壁","kana":"みずをせきとめたりみちをとおしたりするためきずいたつちのながいかべ","level":4,"theme":"日常"}
+{"word":"embark","def":"to get on a ship or plane to begin a journey","ja":"旅を始めるために船や飛行機に乗ること","kana":"たびをはじめるためにふねやひこうきにのること","level":4,"theme":"旅行"}
 {"word":"embed","def":"to fix something firmly into a mass","ja":"何かをかたまりの中にしっかり固定する","kana":"なにかをかたまりのなかにしっかりこていする","level":4,"theme":"日常"}
 {"word":"embedding","def":"a way of turning data into a list of numbers","ja":"データを数の並びに変える表し方","kana":"でーたをかずのならびにかえるあらわしかた","level":4,"theme":null}
 {"word":"embellish","def":"to add small things to make something look better","ja":"より良く見せるため小さな物を加える","kana":"よりよくみせるためちいさなものをくわえる","level":4,"theme":"日常"}
@@ -8932,6 +8999,7 @@
 {"word":"fealty","def":"the loyalty that citizens owe to their country","ja":"国民が自分の国に尽くす忠誠","kana":"こくみんがじぶんのくににつくすちゅうせい","level":4,"theme":null}
 {"word":"fearful","def":"timid by nature or revealing timidity","ja":"自然または臆病さをさらけ出すことにより気弱な","kana":"しぜんまたはおくびょうさをさらけだすことによりきよわな","level":4,"theme":null}
 {"word":"fearlessness","def":"feeling no fear","ja":"恐れを感じないこと","kana":"おそれをかんじないこと","level":4,"theme":null}
+{"word":"feasibility","def":"how possible it is to do something","ja":"何かをどれくらいできるかということ","kana":"なにかをどれくらいできるかということ","level":4,"theme":"ビジネス"}
 {"word":"feasible","def":"able to be done without too much trouble","ja":"あまり苦労せず行うことができる","kana":"あまりくろうせずおこなうことができる","level":4,"theme":"日常"}
 {"word":"featheredge","def":"a thin tapering edge","ja":"薄い先細の縁","kana":"うすいさきほそのえん","level":4,"theme":null}
 {"word":"featherwort","def":"a small soft plant with leaves like feathers","ja":"羽のような葉をもつ小さな柔らかい植物","kana":"はねのようなはをもつちいさなやわらかいしょくぶつ","level":4,"theme":null}
@@ -9733,6 +9801,7 @@
 {"word":"gentrification","def":"the restoration of run down urban areas by the middle class","ja":"中産階級による荒廃した市街地の復興","kana":"ちゅうさんかいきゅうによるこうはいしたしがいちのふっこう","level":4,"theme":null}
 {"word":"genuflect","def":"bend the knees and bow in church or before a religious superior or image","ja":"教会ではひざを折ってお辞儀をしまた宗教上の役職者や偶像の前でも同じである","kana":"きょうかいではひざをおっておじぎをしまたしゅうきょうじょうのやくしょくしゃやぐうぞうのまえでもおなじである","level":4,"theme":null}
 {"word":"genuflection","def":"the act of bending the knees in worship or reverence","ja":"礼拝あるいは敬意を表するために膝を折る行為","kana":"れいはいあるいはけいいをひょうするためにひざをおるこうい","level":4,"theme":null}
+{"word":"genuine","def":"real and not fake","ja":"本物でにせものでない","kana":"ほんものでにせものでない","level":4,"theme":"日常"}
 {"word":"geocentric","def":"having the earth as the center","ja":"中心として地球を有するさま","kana":"ちゅうしんとしてちきゅうをゆうするさま","level":4,"theme":null}
 {"word":"geochemistry","def":"the chemistry of the earth s crust","ja":"地殻の化学","kana":"ちかくのかがく","level":4,"theme":null}
 {"word":"geochronology","def":"the study of the age of rocks and the earth","ja":"岩石や地球の年代を調べる学問","kana":"がんせきやちきゅうのねんだいをしらべるがくもん","level":4,"theme":null}
@@ -10710,6 +10779,7 @@
 {"word":"hulling","def":"the removing of the outer shell from grain or seeds","ja":"穀物や種から外の殻を取り除くこと","kana":"こくもつやたねからそとのからをとりのぞくこと","level":4,"theme":null}
 {"word":"hum","def":"sing with closed lips","ja":"閉じられたくちびるで歌う","kana":"とじられたくちびるでうたう","level":4,"theme":null}
 {"word":"humanism","def":"the doctrine that people s duty is to promote human welfare","ja":"人間の義務は人間の幸福を増進させることであるという主義","kana":"にんげんのぎむはにんげんのこうふくをぞうしんさせることであるというしゅぎ","level":4,"theme":null}
+{"word":"humble","def":"not thinking you are better than others","ja":"自分が他の人よりえらいと思わない","kana":"じぶんがたのひとよりえらいとおもわない","level":4,"theme":"日常"}
 {"word":"humbly","def":"in a humble manner","ja":"謙虚な物腰で","kana":"けんきょなものごしで","level":4,"theme":null}
 {"word":"humbug","def":"pretentious or silly talk or writing","ja":"うぬぼれているまたは無分別な話または文書","kana":"うぬぼれているまたはむふんべつなはなしまたはぶんしょ","level":4,"theme":null}
 {"word":"humdrum","def":"the quality of wearisome constancy routine and lack of variety","ja":"退屈なほど不変で変化に乏しい性質","kana":"たいくつなほどふへんでへんかにとぼしいせいしつ","level":4,"theme":null}
@@ -11717,6 +11787,7 @@
 {"word":"landinggear","def":"the wheels and parts that a plane uses to come down to the ground","ja":"飛行機が地面に降りるために使う車輪や部品","kana":"ひこうきがじめんにおりるためにつかうしゃりんやぶひん","level":4,"theme":"旅行"}
 {"word":"landlord","def":"a person who owns a place that others rent","ja":"他の人が借りる場所を所有する人","kana":"ほかのひとがかりるばしょをしょゆうするひと","level":4,"theme":"日常"}
 {"word":"landmine","def":"a hidden bomb that blows up when stepped on","ja":"踏むと爆発する隠された爆弾","kana":"ふむとばくはつするかくされたばくだん","level":4,"theme":null}
+{"word":"landscape","def":"everything you can see across a wide area of land","ja":"広い土地一面に見えるすべてのもの","kana":"ひろいとちいちめんにみえるすべてのもの","level":4,"theme":"旅行"}
 {"word":"landslide","def":"a fall of earth and rock down the side of a hill","ja":"丘の斜面を土や岩が落ちること","kana":"おかのしゃめんをつちやいわがおちること","level":4,"theme":"日常"}
 {"word":"landward","def":"toward land","ja":"陸に向かって","kana":"りくにむかって","level":4,"theme":null}
 {"word":"languid","def":"slow and lacking energy or interest","ja":"遅くて力や興味に欠ける様子","kana":"おそくてちからやきょうみにかけるようす","level":4,"theme":"日常"}
@@ -11857,6 +11928,7 @@
 {"word":"leukocytosis","def":"an abnormal increase in the number of white blood cells in the blood as a result of infection","ja":"感染の結果の血液中の白血球の数の異常な増加","kana":"かんせんのけっかのけつえきちゅうのはっけっきゅうのかずのいじょうなぞうか","level":4,"theme":null}
 {"word":"levain","def":"a natural mix of flour and water used to raise bread","ja":"パンを膨らませる小麦粉と水の天然種","kana":"ぱんをふくらませるこむぎことみずのてんねんしゅ","level":4,"theme":null}
 {"word":"levee","def":"a formal reception of visitors or guests","ja":"訪問客または客の公式レセプション","kana":"ほうもんきゃくまたはきゃくのこうしきれせぷしょん","level":4,"theme":null}
+{"word":"leverage","def":"to use something you have to get a better result","ja":"持っているものを使ってよりよい結果を得ること","kana":"もっているものをつかってよりよいけっかをえること","level":4,"theme":"ビジネス"}
 {"word":"levitate","def":"cause to rise in the air and float as if in defiance of gravity","ja":"重力に反しているように空中に引き揚げ浮かせるようにする","kana":"じゅうりょくにはんしているようにくうちゅうにひきあげうかせるようにする","level":4,"theme":null}
 {"word":"levity","def":"feeling an inappropriate lack of seriousness","ja":"真剣さが不適当に欠如していると感じること","kana":"しんけんさがふてきとうにけつじょしているとかんじること","level":4,"theme":null}
 {"word":"levy","def":"money that a government makes people pay","ja":"政府が人々に払わせるお金","kana":"せいふがひとびとにはらわせるおかね","level":4,"theme":"ビジネス"}
@@ -12177,6 +12249,7 @@
 {"word":"magnetopause","def":"the boundary where a planets magnetic field meets space wind","ja":"惑星の磁場が宇宙の風と接する境目","kana":"わくせいのじばがうちゅうのかぜとせっするさかいめ","level":4,"theme":null}
 {"word":"magnetoresistance","def":"the change in resistance caused by a magnetic field","ja":"磁場によって起きる電気抵抗の変化","kana":"じばによっておきるでんきていこうのへんか","level":4,"theme":null}
 {"word":"magnetostatic","def":"relating to magnetic fields that do not change","ja":"変化しない磁場に関する","kana":"へんかしないじばにかんする","level":4,"theme":null}
+{"word":"magnificent","def":"very grand and beautiful to look at","ja":"とても堂々として美しい","kana":"とてもどうどうとしてうつくしい","level":4,"theme":"旅行"}
 {"word":"magnitude","def":"how large or strong something is","ja":"何かがどれほど大きいか強いか","kana":"なにかがどれほどおおきいかつよいか","level":4,"theme":"日常"}
 {"word":"magnolia","def":"dried bark of various magnolias","ja":"様々なモクレンの乾燥樹皮","kana":"さまざまなもくれんのかんそうじゅひ","level":4,"theme":null}
 {"word":"magnon","def":"a tiny unit of magnetic wave in a material","ja":"物質の中の磁気の波の小さな単位","kana":"ぶっしつのなかのじきのなみのちいさなたんい","level":4,"theme":null}
@@ -12647,6 +12720,7 @@
 {"word":"moderation","def":"quality of being moderate and avoiding extremes","ja":"穏やかで両極端を避ける性質","kana":"おだやかでりょうきょくたんをさけるせいしつ","level":4,"theme":null}
 {"word":"modernity","def":"the quality of being current or of the present","ja":"現行していることあるいは現在であることの特性","kana":"げんこうしていることあるいはげんざいであることのとくせい","level":4,"theme":null}
 {"word":"modernization","def":"making modern in appearance or behavior","ja":"外観または行動を現代的にする","kana":"がいかんまたはこうどうをげんだいてきにする","level":4,"theme":null}
+{"word":"modest","def":"not proud and not talking too much about yourself","ja":"自慢せず自分のことを話しすぎない","kana":"じまんせずじぶんのことをはなしすぎない","level":4,"theme":"日常"}
 {"word":"modestly","def":"in a way that does not show off","ja":"見せびらかさないやり方で","kana":"みせびらかさないやりかたで","level":4,"theme":"日常"}
 {"word":"modicum","def":"a small or moderate or token amount","ja":"小量中程度の量あるいは申し訳程度の量","kana":"しょうりょうちゅうていどのりょうあるいはもうしわけていどのりょう","level":4,"theme":null}
 {"word":"modifier","def":"a word that adds meaning to another word","ja":"別の語に意味を加える語","kana":"べつのごにいみをくわえるご","level":4,"theme":"日常"}
@@ -12995,6 +13069,7 @@
 {"word":"negligent","def":"characterized by neglect and undue lack of concern","ja":"軽視と過度の関心の欠如によって特徴づけられる","kana":"けいしとかどのかんしんのけつじょによってとくちょうづけられる","level":4,"theme":null}
 {"word":"negligible","def":"so small that it is not worth thinking about","ja":"考える価値もないほど小さい","kana":"かんがえるかちもないほどちいさい","level":4,"theme":"日常"}
 {"word":"negligibly","def":"in a way too small to matter","ja":"問題にならないほど小さく","kana":"もんだいにならないほどちいさく","level":4,"theme":"日常"}
+{"word":"negotiation","def":"a talk to reach an agreement that both sides accept","ja":"両方が受け入れる合意に達するための話し合い","kana":"りょうほうがうけいれるごういにたっするためのはなしあい","level":4,"theme":"ビジネス"}
 {"word":"neigh","def":"the characteristic sounds made by a horse","ja":"馬によってたてられる特徴のある音","kana":"うまによってたてられるとくちょうのあるおと","level":4,"theme":null}
 {"word":"nekton","def":"the aggregate of actively swimming animals in a body of water ranging from microscopic organisms to whales","ja":"微生物から鯨に渡るまで水中で活発に泳ぐ動物集団","kana":"びせいぶつからくじらにわたるまですいちゅうでかっぱつにおよぐどうぶつしゅうだん","level":4,"theme":null}
 {"word":"nematicide","def":"a chemical used to kill tiny worms in soil","ja":"土の中の小さな虫を殺す薬剤","kana":"どのなかのちいさなむしをころすやくざい","level":4,"theme":null}
@@ -13048,6 +13123,7 @@
 {"word":"neutronization","def":"the turning of matter into neutrons under crushing pressure","ja":"潰す圧力で物質が中性子に変わること","kana":"つぶすあつりょくでぶっしつがちゅうせいしにかわること","level":4,"theme":null}
 {"word":"neutropenia","def":"leukopenia in which the decrease is primarily in number of neutrophils","ja":"白血球減少症のうち主に好中球が減少すること","kana":"はっけっきゅうげんしょうしょうのうちおもにこうちゅうだまがげんしょうすること","level":4,"theme":null}
 {"word":"neutrophil","def":"the chief phagocytic leukocyte","ja":"主要な食細胞白血球","kana":"しゅようなしょくさいぼうはっけっきゅう","level":4,"theme":null}
+{"word":"nevertheless","def":"used to say something is true even after what was said before","ja":"前に言ったことのあとでもそれが本当だと言うときに使う言葉","kana":"まえにいったことのあとでもそれがほんとうだというときにつかうことば","level":4,"theme":"日常"}
 {"word":"nevus","def":"a blemish on the skin that is formed before birth","ja":"生まれつき肌にある斑紋","kana":"うまれつきはだにあるはんもん","level":4,"theme":null}
 {"word":"newel","def":"the post at the top or bottom of a flight of stairs","ja":"階段の先端または下部の柱","kana":"かいだんのせんたんまたはかぶのはしら","level":4,"theme":null}
 {"word":"ngoni","def":"a west african string instrument like a small lute","ja":"小さな琵琶に似た西アフリカの弦楽器","kana":"ちいさなびわににたにしあふりかのげんがっき","level":4,"theme":null}
@@ -13600,6 +13676,7 @@
 {"word":"pannier","def":"either of a pair of bags or boxes hung over the rear wheel of a vehicle","ja":"乗り物の後輪の上に乗せる一対の袋または箱のいずれか","kana":"のりものののちわのうえにのせるいっついのふくろまたははこのいずれか","level":4,"theme":null}
 {"word":"panning","def":"turning a camera slowly to one side","ja":"撮影機をゆっくり横へ振ること","kana":"さつえいきをゆっくりよこへふること","level":4,"theme":null}
 {"word":"panoply","def":"a complete and impressive array","ja":"完全で印象的な配置","kana":"かんぜんでいんしょうてきなはいち","level":4,"theme":null}
+{"word":"panorama","def":"a wide view of a large area around you","ja":"まわりの広い場所を見わたす景色","kana":"まわりのひろいばしょをみわたすけしき","level":4,"theme":"旅行"}
 {"word":"panpipe","def":"a primitive wind instrument consisting of several parallel pipes bound together","ja":"いくつかの菅を平行に束ねたものからなる原始の管楽器","kana":"いくつかのすがをへいこうにたばねたものからなるげんしのかんがっき","level":4,"theme":null}
 {"word":"pant","def":"breathe noisily as when one is exhausted","ja":"荒々しく呼吸する疲れ切っている時のように","kana":"あらあらしくこきゅうするつかれきっているときのように","level":4,"theme":null}
 {"word":"pantheon","def":"all the gods of a religion","ja":"ある宗教のすべての神","kana":"あるしゅうきょうのすべてのかみ","level":4,"theme":null}
@@ -14535,6 +14612,7 @@
 {"word":"profitability","def":"the state of being able to make money","ja":"利益を生み出せる状態","kana":"りえきをうみだせるじょうたい","level":4,"theme":"ビジネス"}
 {"word":"profligacy","def":"the trait of spending extravagantly","ja":"金遣いの荒い特性","kana":"かねづかいのあらいとくせい","level":4,"theme":null}
 {"word":"profligate","def":"a dissolute man in fashionable society","ja":"社交界の放埒な男性","kana":"しゃこうかいのほうらつなだんせい","level":4,"theme":null}
+{"word":"profound","def":"very deep and full of meaning","ja":"とても深く意味に満ちている","kana":"とてもふかくいみにみちている","level":4,"theme":"日常"}
 {"word":"profoundly","def":"in a very deep and strong way","ja":"とても深く強い様子で","kana":"とてもふかくつよいようすで","level":4,"theme":"日常"}
 {"word":"profundity","def":"great depth of thought or feeling","ja":"考えや感情の大きな深さ","kana":"かんがえやかんじょうのおおきなふかさ","level":4,"theme":"日常"}
 {"word":"profuse","def":"given out in large amounts","ja":"大量に出される","kana":"たいりょうにだされる","level":4,"theme":"日常"}
@@ -14598,6 +14676,7 @@
 {"word":"prosody","def":"the patterns of stress and intonation in a language","ja":"発話の強勢抑揚などのパターン","kana":"はつわのつよぜいよくようなどのぱたーん","level":4,"theme":null}
 {"word":"prospect","def":"to search an area for gold or other metals","ja":"金や他の金属を求めて土地を探すこと","kana":"きんやほかのきんぞくをもとめてとちをさがすこと","level":4,"theme":"日常"}
 {"word":"prospecting","def":"the searching of land for minerals or oil","ja":"鉱物や油を求めて土地を探ること","kana":"こうぶつやあぶらをもとめてとちをさぐること","level":4,"theme":null}
+{"word":"prospective","def":"likely to become something in the future","ja":"将来そうなりそうな","kana":"しょうらいそうなりそうな","level":4,"theme":"ビジネス"}
 {"word":"prospectus","def":"a formal written offer to sell securities that sets forth a plan for a business enterprise","ja":"書面による正式な提案で証券を売却し事業の計画を発表するもの","kana":"しょめんによるせいしきなていあんでしょうけんをばいきゃくしじぎょうのけいかくをはっぴょうするもの","level":4,"theme":"ビジネス"}
 {"word":"prosperity","def":"the state of being rich and doing well","ja":"豊かでうまくいっている状態","kana":"ゆたかでうまくいっているじょうたい","level":4,"theme":"ビジネス"}
 {"word":"prostate","def":"a firm partly muscular chestnut sized gland in males at the neck of the urethra","ja":"男性の尿道の首にある硬く部分的に筋骨が発達した栗サイズの腺","kana":"だんせいのにょうどうのくびにあるかたくぶぶんてきにきんこつがはったつしたくりさいずのせん","level":4,"theme":null}
@@ -15921,6 +16000,7 @@
 {"word":"secant","def":"a straight line that cuts through a curve","ja":"曲線を切って通る直線","kana":"きょくせんをきってとおるちょくせん","level":4,"theme":"日常"}
 {"word":"secco","def":"painting on dry plaster instead of wet","ja":"湿ったのではなく乾いた漆喰に描くこと","kana":"しめったのではなくかわいたしっくいにえがくこと","level":4,"theme":null}
 {"word":"secede","def":"withdraw from an organization or communion","ja":"組織または宗派から脱退する","kana":"そしきまたはしゅうはからだったいする","level":4,"theme":null}
+{"word":"secluded","def":"quiet and far away from other people","ja":"静かで他の人からとても離れている","kana":"しずかでたのひとからとてもはなれている","level":4,"theme":"旅行"}
 {"word":"secondary","def":"coming after the first in order or importance","ja":"順序や重要さで一番目の後に来る","kana":"じゅんじょやじゅうようさでいちばんめのあとにくる","level":4,"theme":"日常"}
 {"word":"secondly","def":"in the second place","ja":"二番目にあるさま","kana":"にばんめにあるさま","level":4,"theme":null}
 {"word":"secrecy","def":"the trait of keeping things secret","ja":"物事を秘密にしておこうとする性質","kana":"ものごとをひみつにしておこうとするせいしつ","level":4,"theme":null}
@@ -16275,6 +16355,8 @@
 {"word":"simper","def":"a silly self conscious smile","ja":"愚かな自意識過剰な微笑","kana":"おろかなじいしきかじょうなびしょう","level":4,"theme":null}
 {"word":"simplex","def":"allowing communication in only one direction at a time or in telegraphy allowing only one message over a line at a time","ja":"一度に一方向のみ情報のやり取りができるまたは電信で一回線で一度に一つのメッセージのみ可能なさま","kana":"いちどにいちほうこうのみじょうほうのやりとりができるまたはでんしんでいちかいせんでいちどにひとつのめっせーじのみかのうなさま","level":4,"theme":null}
 {"word":"simplistic","def":"made to seem easier than it really is","ja":"実際よりも簡単に見せかけられた","kana":"じっさいよりもかんたんにみせかけられた","level":4,"theme":"日常"}
+{"word":"simultaneously","def":"at the same time as something else","ja":"何か別のことと同じときに","kana":"なにかべつのこととおなじときに","level":4,"theme":"ビジネス"}
+{"word":"sincere","def":"honest and truly meaning what you say","ja":"正直で言うことを本当に思っている","kana":"しょうじきでいうことをほんとうにおもっている","level":4,"theme":"日常"}
 {"word":"sincerely","def":"with sincerity","ja":"誠実さをもって","kana":"せいじつさをもって","level":4,"theme":null}
 {"word":"sincerity","def":"the quality of being honest and truly meaning what you say","ja":"正直で言うことを本心から思っている性質","kana":"しょうじきでいうことをほんしんからおもっているせいしつ","level":4,"theme":"日常"}
 {"word":"sine","def":"ratio of the length of the side opposite the given angle to the length of the hypotenuse of a right angled triangle","ja":"直角三角形の斜辺の長さに対する指定角度の反対側の長さの比率","kana":"ちょっかくさんかっけいのしゃへんのながさにたいするしていかくどのはんたいがわのながさのひりつ","level":4,"theme":null}
@@ -17026,6 +17108,7 @@
 {"word":"streak","def":"move quickly in a straight line","ja":"すばやくまっすぐに動く","kana":"すばやくまっすぐにうごく","level":4,"theme":null}
 {"word":"streaked","def":"marked with long thin lines of a different color","ja":"違う色の細長い線がついた様子","kana":"ちがういろのほそながいせんがついたようす","level":4,"theme":"日常"}
 {"word":"streaky","def":"marked with or as if with stripes or linear discolorations","ja":"縞文様または線形の変色あるいはあたかも縞文様または線形の変色のようなもので特徴付けられる","kana":"しまもんようまたはせんけいのへんしょくあるいはあたかもしまもんようまたはせんけいのへんしょくのようなものでとくちょうづけられる","level":4,"theme":null}
+{"word":"streamline","def":"to make a way of working simpler and faster","ja":"仕事のやり方をより簡単で速くすること","kana":"しごとのやりかたをよりかんたんではやくすること","level":4,"theme":"ビジネス"}
 {"word":"strenuous","def":"needing a lot of hard effort","ja":"多くの激しい努力を要する","kana":"おおくのはげしいどりょくをようする","level":4,"theme":"日常"}
 {"word":"stressor","def":"any agent that causes stress to an organism","ja":"ストレスを有機体へもたらす因子のどれか","kana":"すとれすをゆうきたいへもたらすいんしのどれか","level":4,"theme":null}
 {"word":"stretcher","def":"a flat bed used to carry a sick or hurt person","ja":"病人や怪我人を運ぶ平たい寝台","kana":"びょうにんやけがにんをはこぶひらたいしんだい","level":4,"theme":"日常"}
@@ -17122,6 +17205,7 @@
 {"word":"substation","def":"a subsidiary station where electricity is transformed for distribution by a low voltage network","ja":"電気が配給のために低電圧ネットワークによって変換される従属局","kana":"でんきがはいきゅうのためにていでんあつねっとわーくによってへんかんされるじゅうぞくきょく","level":4,"theme":null}
 {"word":"subterfuge","def":"something intended to misrepresent the true nature of an activity","ja":"ある行動の本質を不正確に述べる意図のある何か","kana":"あるこうどうのほんしつをふせいかくにのべるいとのあるなにか","level":4,"theme":null}
 {"word":"subtitle","def":"a smaller title that comes below the main title","ja":"主な題名の下に来る小さな題","kana":"おもなだいめいのしたにくるちいさなだい","level":4,"theme":"日常"}
+{"word":"subtle","def":"small and hard to notice at first","ja":"小さくて初めは気づきにくい","kana":"ちいさくてはじめはきづきにくい","level":4,"theme":"日常"}
 {"word":"subtlety","def":"a subtle difference in meaning or opinion or attitude","ja":"意味意見または態度の微妙な違い","kana":"いみいけんまたはたいどのびみょうなちがい","level":4,"theme":null}
 {"word":"subtract","def":"to take one number away from another","ja":"ある数から別の数を取り去ること","kana":"あるかずからべつのかずをとりさること","level":4,"theme":"日常"}
 {"word":"subulate","def":"narrow and tapering to a fine point","ja":"細くて先が鋭くとがった","kana":"ほそくてさきがするどくとがった","level":4,"theme":null}
@@ -17555,6 +17639,7 @@
 {"word":"terrace","def":"a flat raised step of land on a slope","ja":"斜面にある平らで一段高い土地","kana":"しゃめんにあるたいらでいちだんたかいとち","level":4,"theme":"旅行"}
 {"word":"terracing","def":"cutting flat steps into a slope for farming","ja":"斜面に平らな段を作って農地にすること","kana":"しゃめんにたいらなだんをつくってのうちにすること","level":4,"theme":null}
 {"word":"terracotta","def":"hard baked brown clay used for pots","ja":"器に使う硬く焼いた茶色の粘土","kana":"うつわにつかうかたくやいたちゃいろのねんど","level":4,"theme":null}
+{"word":"terrain","def":"the shape and features of the ground in an area","ja":"ある場所の土地の形や様子","kana":"あるばしょのとちのかたちやようす","level":4,"theme":"旅行"}
 {"word":"terrapin","def":"any of various edible north american web footed turtles living in fresh or brackish water","ja":"北米の淡水または半塩水に生息する水かきのある食用の亀","kana":"ほくべいのたんすいまたははんえんすいにせいそくするみずかきのあるしょくようのかめ","level":4,"theme":null}
 {"word":"terrarium","def":"a vivarium in which selected living plants are kept and observed","ja":"選択された植物が維持され観察される生態植物園","kana":"せんたくされたしょくぶつがいじされかんさつされるせいたいしょくぶつえん","level":4,"theme":null}
 {"word":"terrazzo","def":"a floor of stone chips set in cement and polished","ja":"石片をコンクリートに埋め磨いた床","kana":"いしへんをこんくりーとにうめみがいたゆか","level":4,"theme":null}
@@ -17633,6 +17718,7 @@
 {"word":"thorax","def":"the part of the body between the neck and the stomach","ja":"首と腹の間の体の部分","kana":"くびとはらのあいだのからだのぶぶん","level":4,"theme":"日常"}
 {"word":"thornbill","def":"any of various south american hummingbirds with a sharp pointed bill","ja":"鋭く尖ったくちばしを持つ様々な南米産のハチドリ類各種","kana":"するどくとがったくちばしをもつさまざまななんべいさんのはちどりるいかくしゅ","level":4,"theme":null}
 {"word":"thorny","def":"bristling with perplexities","ja":"当惑でいっぱいの","kana":"とうわくでいっぱいの","level":4,"theme":null}
+{"word":"thorough","def":"done with great care and full attention to detail","ja":"細かいところまで注意し丁寧に行う","kana":"こまかいところまでちゅういしていねいにおこなう","level":4,"theme":"日常"}
 {"word":"thoroughly","def":"in a complete and careful way","ja":"完全で念入りなやり方で","kana":"かんぜんでねんいりなやりかたで","level":4,"theme":"日常"}
 {"word":"though","def":"however","ja":"しかしながら","kana":"しかしながら","level":4,"theme":null}
 {"word":"thrash","def":"give a thrashing to","ja":"に鞭打ちを与える","kana":"にむちうちをあたえる","level":4,"theme":null}
@@ -18074,6 +18160,7 @@
 {"word":"turboprop","def":"an airplane with an external propeller that is driven by a turbojet engine","ja":"ターボジェットエンジンで動かされる外部プロペラ付きの飛行機","kana":"たーぼじぇっとえんじんでうごかされるがいぶぷろぺらつきのひこうき","level":4,"theme":"旅行"}
 {"word":"turbopump","def":"a pump driven by a spinning bladed wheel","ja":"回る羽根車で動かす送液ポンプ","kana":"まわるはねぐるまでうごかすおくえきぽんぷ","level":4,"theme":null}
 {"word":"turbot","def":"flesh of a large european flatfish","ja":"大きなヨーロッパ産ヒラメの肉","kana":"おおきなよーろっぱさんひらめのにく","level":4,"theme":null}
+{"word":"turbulence","def":"rough moving air that shakes a plane during a flight","ja":"飛行中に飛行機を揺らす荒れた空気の動き","kana":"ひこうちゅうにひこうきをゆらすあれたくうきのうごき","level":4,"theme":"旅行"}
 {"word":"tureen","def":"a deep dish with a lid used for serving soup","ja":"スープを出すのに使う蓋つきの深い器","kana":"すーぷをだすのにつかうふたつきのふかいうつわ","level":4,"theme":"日常"}
 {"word":"turgid","def":"ostentatiously lofty in style","ja":"これ見よがしで気高いスタイル","kana":"これみよがしでけだかいすたいる","level":4,"theme":null}
 {"word":"turgidly","def":"in a turgid manner","ja":"膨らんで","kana":"ふくらんで","level":4,"theme":null}
@@ -18456,6 +18543,7 @@
 {"word":"vibrato","def":"a slight shaking in the pitch of a sung or played note","ja":"歌ったり奏でたりする音の高さのわずかな揺れ","kana":"うたったりかなでたりするおとのたかさのわずかなゆれ","level":4,"theme":"日常"}
 {"word":"viburnum","def":"a shrub with clusters of small flowers and berries","ja":"小さな花と実の房を持つ低木","kana":"ちいさなはなとみのぼうをもつていぼく","level":4,"theme":null}
 {"word":"viceroy","def":"governor of a country or province who rules as the representative of his or her king or sovereign","ja":"国や地域を王や主権者の代わりに治める人","kana":"くにやちいきをおうやしゅけんしゃのかわりにおさめるひと","level":4,"theme":null}
+{"word":"vicinity","def":"the area that is near a place","ja":"ある場所の近くの範囲","kana":"あるばしょのちかくのはんい","level":4,"theme":"旅行"}
 {"word":"viciously","def":"in a very cruel or fierce way","ja":"とても残酷で激しいやり方で","kana":"とてもざんこくではげしいやりかたで","level":4,"theme":"日常"}
 {"word":"vickers","def":"a way of measuring hardness with a diamond point","ja":"ダイヤの先で硬さを測る方法","kana":"だいやのさきでかたさをはかるほうほう","level":4,"theme":null}
 {"word":"victor","def":"a combatant who is able to defeat rivals","ja":"競争相手を負かすことのできる戦闘者","kana":"きょうそうあいてをまかすことのできるせんとうしゃ","level":4,"theme":null}
@@ -18600,6 +18688,7 @@
 {"word":"walrus","def":"either of two large northern marine mammals having ivory tusks and tough hide over thick blubber","ja":"象牙質の牙と厚い脂肪層を持つ二種類の大型の北方海洋哺乳動物の内の一方","kana":"ぞうげしつのきばとあついしぼうそうをもつにしゅるいのおおがたのほっぽうかいようほにゅうどうぶつのうちのいっぽう","level":4,"theme":null}
 {"word":"waltz","def":"a slow dance for two people in time with music","ja":"音楽に合わせた二人のためのゆっくりした踊り","kana":"おんがくにあわせたふたりのためのゆっくりしたおどり","level":4,"theme":"日常"}
 {"word":"wan","def":"lacking in intensity or brightness","ja":"強さまたは明るさが不足するさま","kana":"つよさまたはあかるさがふそくするさま","level":4,"theme":null}
+{"word":"wander","def":"to walk slowly with no clear plan of where to go","ja":"どこへ行くかはっきり決めずにゆっくり歩くこと","kana":"どこへいくかはっきりきめずにゆっくりあるくこと","level":4,"theme":"旅行"}
 {"word":"wanderer","def":"someone who leads a wandering unsettled life","ja":"放浪し定住地のない生活を送る人","kana":"ほうろうしていじゅうちのないせいかつをおくるひと","level":4,"theme":null}
 {"word":"wane","def":"grow smaller","ja":"小さくなる","kana":"ちいさくなる","level":4,"theme":null}
 {"word":"wanly","def":"in a weak or pale or languid manner","ja":"弱いか血の気がないあるいはけだるい態度で","kana":"よわいかちのけがないあるいはけだるいたいどで","level":4,"theme":null}
