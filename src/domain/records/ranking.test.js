@@ -234,4 +234,39 @@ describe('compareRecords（#208 段0b・Array.sort 準拠）', () => {
     const ec = { kind: 'time', value: 60 }
     expect(sign(compareRecords(ec, { keys: 20 }, { keys: 20, mistakes: 3 }))).toBe(-1)
   })
+
+  // b 側の欠損フォールバック（?? の右辺・逆側の分岐網羅）。
+  it('chars: b.seconds 欠損は Infinity 扱いで a が上位', () => {
+    const ec = { kind: 'chars', value: 600 }
+    expect(sign(compareRecords(ec, { seconds: 40, mistakes: 0 }, { mistakes: 0 }))).toBe(-1)
+  })
+
+  it('chars: 同秒で b.mistakes 欠損は 0 扱い（a のミスが多いと下位）', () => {
+    const ec = { kind: 'chars', value: 600 }
+    expect(sign(compareRecords(ec, { seconds: 40, mistakes: 3 }, { seconds: 40 }))).toBe(1)
+  })
+
+  it('items: b.correctCount / b.seconds 欠損でも比較が成立する', () => {
+    const ec = { kind: 'items', value: 25 }
+    expect(sign(compareRecords(ec, { correctCount: 5, seconds: 50 }, {}))).toBe(-1)
+  })
+
+  it('life: seconds 欠損同士＆correctCount 同数は NaN を返す（Infinity-Infinity・現挙動の特性化）', () => {
+    // 実データでは seconds は必ず入るため実害はないが、両者 seconds 欠損だと
+    // (Infinity - Infinity) = NaN になり、Array.sort 比較関数としては不定になる。
+    const ec = { kind: 'life', value: 3 }
+    expect(Number.isNaN(compareRecords(ec, { correctCount: 4 }, { correctCount: 4 }))).toBe(true)
+  })
+
+  it('life: seconds 欠損は Infinity 扱いで、seconds を持つ方が上位（同 correctCount）', () => {
+    const ec = { kind: 'life', value: 3 }
+    expect(sign(compareRecords(ec, { correctCount: 4, seconds: 30 }, { correctCount: 4 }))).toBe(-1)
+    expect(sign(compareRecords(ec, { correctCount: 4 }, { correctCount: 4, seconds: 30 }))).toBe(1)
+  })
+
+  it('time: keys 欠損は 0 扱い（a/b どちら欠損でも成立）', () => {
+    const ec = { kind: 'time', value: 60 }
+    expect(sign(compareRecords(ec, { keys: 10 }, { mistakes: 0 }))).toBe(-1)
+    expect(sign(compareRecords(ec, { mistakes: 0 }, { keys: 10 }))).toBe(1)
+  })
 })

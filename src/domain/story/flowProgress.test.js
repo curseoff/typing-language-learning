@@ -66,4 +66,12 @@ describe('storyFlowProgress', () => {
     expect(r.jaDone).toBe(0)
     expect(r.jaKanaDone).toBe(0)
   })
+
+  it('非 choice で activeType が en/ja いずれでもない（未着手 null）と activeRow=null', () => {
+    const r = storyFlowProgress(node, { stage: 'text', mode: 'both', activeType: null, input: '' })
+    expect(r.activeRow).toBeNull()
+    expect(r.jaDone).toBe(0)
+    // both では英語は完了済み扱い（enActive でなくても isBoth なら en 満杯）
+    expect(r.enDone).toBe(node.en.length)
+  })
 })
