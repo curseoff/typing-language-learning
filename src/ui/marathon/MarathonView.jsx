@@ -16,6 +16,7 @@ export default function MarathonView({
   mistakes,
   liveSpeed,
   elapsedSec,
+  limitSec = 60,
 }) {
   const currentSeg = segments[segIndex]
   return (
@@ -30,9 +31,9 @@ export default function MarathonView({
           { label: 'タイピング数', value: `${typedKeys}` },
           { label: '速度', value: `${liveSpeed} 打/分` },
           { label: 'ミス', value: mistakes },
-          { label: '時間', value: `${elapsedSec} / 60秒` },
+          { label: '時間', value: `${elapsedSec} / ${limitSec}秒` },
         ]}
-        progress={Math.min(1, elapsedSec / 60)}
+        progress={Math.min(1, elapsedSec / limitSec)}
       />
 
       {currentSeg?.word && (

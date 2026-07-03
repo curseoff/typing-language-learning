@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { WORD_LEVELS, WORD_MODES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { wordRanking } from '../../application/records.js'
 import ItemList from './ItemList.jsx'
+import EndConditionSelect from './EndConditionSelect.jsx'
 import {
   selCls,
   ModeButtons,
@@ -32,18 +33,18 @@ function WordsList({ level, theme, mode }) {
   return <ItemList items={items} type="words" mode={mode} />
 }
 
-function wordModeDesc(key) {
+function wordModeDesc(key, sec) {
   switch (key) {
     case 'quiz-en':
-      return '和訳を見て、4つの英単語から正解を入力（4択）。60秒で終了。'
+      return `和訳を見て、4つの英単語から正解を入力（4択）。${sec}秒で終了。`
     case 'quiz-ja':
-      return '英単語を見て、4つの和訳から正解をローマ字入力（4択）。60秒で終了。'
+      return `英単語を見て、4つの和訳から正解をローマ字入力（4択）。${sec}秒で終了。`
     case 'ja':
-      return '英単語を見て和訳をローマ字入力。60秒で終了。'
+      return `英単語を見て和訳をローマ字入力。${sec}秒で終了。`
     case 'both':
-      return '1語ごとに英語→その和訳を入力。60秒で終了。'
+      return `1語ごとに英語→その和訳を入力。${sec}秒で終了。`
     default:
-      return '和訳を見て英単語を入力。60秒で終了。'
+      return `和訳を見て英単語を入力。${sec}秒で終了。`
   }
 }
 
@@ -59,6 +60,8 @@ export default function WordsSection({
   bottomTab,
   onBottomTabChange,
   onStart,
+  endCondition,
+  onEndConditionChange,
 }) {
   return (
     <>
@@ -130,10 +133,17 @@ export default function WordsSection({
           />
         </div>
       </div>
-      <p className="mode-desc">{wordModeDesc(wordMode)}</p>
+      <p className="mode-desc">{wordModeDesc(wordMode, endCondition?.value ?? 60)}</p>
       <p className="pool-count">
         この条件の収録: {WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0} 語
       </p>
+
+      <EndConditionSelect
+        endCondition={endCondition}
+        onChange={onEndConditionChange}
+        focusSection={focusSection}
+        onFocusSection={onFocusSection}
+      />
 
       <StartRow onStart={onStart} />
       <BottomTabs

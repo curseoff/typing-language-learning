@@ -7,7 +7,7 @@ import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 import TopFlow from '../marathon/TopFlow.jsx'
 
-export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, onExit }) {
+export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
@@ -23,16 +23,18 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
       dir={mode === 'quiz-ja' ? 'ja' : 'en'}
       seed={seed}
       meta={meta}
+      endCondition={endCondition}
       onExit={onExit}
     />
   ) : (
-    <TypeView words={words} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
+    <TypeView words={words} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
   )
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
-function TypeView({ words, level, theme, mode, seed, meta, onExit }) {
-  const w = useWords({ allWords: words, level, theme, mode, seed, onExit })
+function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit }) {
+  const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, onExit })
+  const limitSec = endCondition?.value ?? 60
 
   return (
     <div className="game">
@@ -54,7 +56,7 @@ function TypeView({ words, level, theme, mode, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${w.typedKeys}` },
               { label: '速度', value: `${w.liveSpeed} 打/分` },
               { label: 'ミス', value: w.mistakes },
-              { label: '時間', value: `${w.elapsedSec} / 60秒` },
+              { label: '時間', value: `${w.elapsedSec} / ${limitSec}秒` },
             ]}
             progress={w.progress}
           />
@@ -76,8 +78,9 @@ function TypeView({ words, level, theme, mode, seed, meta, onExit }) {
 }
 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
-function QuizView({ words, level, theme, mode, dir, seed, meta, onExit }) {
-  const q = useWordQuiz({ words, level, theme, dir, mode, seed, onExit })
+function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, onExit }) {
+  const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit })
+  const limitSec = endCondition?.value ?? 60
 
   return (
     <div className="game">
@@ -99,9 +102,9 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / 60秒` },
+              { label: '時間', value: `${q.elapsedSec} / ${limitSec}秒` },
             ]}
-            progress={Math.min(1, q.elapsedSec / 60)}
+            progress={Math.min(1, q.elapsedSec / limitSec)}
           />
           <div className="word-card">
             <div className="word-dir">
