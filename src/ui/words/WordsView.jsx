@@ -3,6 +3,7 @@ import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
+import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 import TopFlow from '../marathon/TopFlow.jsx'
@@ -34,7 +35,9 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
 function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit }) {
   const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, onExit })
-  const limitSec = endCondition?.value ?? 60
+  const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys })
+  // 時間制の進捗はフックの滑らかな progress を維持し、文字数制は打鍵基準へ切替える。
+  const progress = endCondition?.kind === 'chars' ? endStat.progress : w.progress
 
   return (
     <div className="game">
@@ -56,9 +59,9 @@ function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit 
               { label: 'タイピング数', value: `${w.typedKeys}` },
               { label: '速度', value: `${w.liveSpeed} 打/分` },
               { label: 'ミス', value: w.mistakes },
-              { label: '時間', value: `${w.elapsedSec} / ${limitSec}秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={w.progress}
+            progress={progress}
           />
           <TopFlow
             segments={w.segments}
@@ -80,7 +83,7 @@ function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
 function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, onExit }) {
   const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit })
-  const limitSec = endCondition?.value ?? 60
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys })
 
   return (
     <div className="game">
@@ -102,9 +105,9 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, on
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / ${limitSec}秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, q.elapsedSec / limitSec)}
+            progress={endStat.progress}
           />
           <div className="word-card">
             <div className="word-dir">

@@ -1,6 +1,7 @@
 // 終了条件セレクタの選択肢とラベル（TOP用）。#208 段2b：時間/文字数の2種別。
 // domain/session/endCondition.js の {kind,value} モデルに対応する（value は数値）。
 // 将来 items/life/endless も同じ構造（種別ごとに値・ラベル・単位・既定値）で足せる。
+import { progressRatio } from '../domain/session/endCondition.js'
 export const END_TIME_VALUES = [30, 60, 120, 180] // 時間制の秒数（既定60＝従来挙動）
 export const END_CHARS_VALUES = [300, 600, 1200] // 文字数制の文字数
 
@@ -44,4 +45,26 @@ export function endConditionSummary(endCondition) {
   const value = endCondition?.value ?? 60
   if (kind === 'chars') return `${value}文字打ったら終了`
   return `${value}秒で終了`
+}
+
+// プレイ中HUDの「終了条件」スタット（ラベル/分子・分母の値/進捗率）を種別ごとに算出する（#208 段2c）。
+// progress={elapsedSec, keys}。進捗率は domain の progressRatio に委譲（純粋計算）。
+//   time  … 「経過 / N秒」＋進捗＝経過/制限（従来どおり）
+//   chars … 「打鍵 / N文字」＋進捗＝keys/value（打鍵基準）
+// 未対応 kind（items/life/endless は段3以降）は時間相当へは倒さず、素直に time 表示にフォールバックする。
+export function endHudStat(endCondition, { elapsedSec = 0, keys = 0 } = {}) {
+  const kind = endCondition?.kind ?? 'time'
+  const value = endCondition?.value ?? 60
+  if (kind === 'chars') {
+    return {
+      label: '文字数',
+      value: `${keys} / ${value}文字`,
+      progress: progressRatio({ kind: 'chars', value }, { keys }),
+    }
+  }
+  return {
+    label: '時間',
+    value: `${elapsedSec} / ${value}秒`,
+    progress: progressRatio({ kind: 'time', value }, { elapsedMs: elapsedSec * 1000 }),
+  }
 }

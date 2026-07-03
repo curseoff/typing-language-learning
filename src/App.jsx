@@ -514,7 +514,7 @@ export default function App() {
       {phase === 'playing' && (
         <MarathonView
           mode={mode}
-          limitSec={endCondition?.value ?? 60}
+          endCondition={endCondition}
           rankText={`単語例文 L${wsentLevel}`}
           gloss={wsentGloss}
           segments={segments}

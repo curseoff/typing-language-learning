@@ -3,6 +3,7 @@ import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { endHudStat } from '../../content/endConditions.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
@@ -23,7 +24,7 @@ export default function DictView({ dict, gloss, level, theme, mode, seed, levelL
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
 function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
   const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, endCondition, onExit })
-  const limitSec = endCondition?.value ?? 60
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys })
 
   return (
     <div className="game">
@@ -37,9 +38,9 @@ function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / ${limitSec}秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, q.elapsedSec / limitSec)}
+            progress={endStat.progress}
           />
           <div className="word-card">
             <div className="word-dir">単語に合う説明文を入力</div>
@@ -90,7 +91,7 @@ function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
 // 単語例文（マラソン）の英語/日本語入力と同じ TopFlow（ティッカー表示）で描画する。
 function TypeView({ dict, gloss, level, theme, mode, seed, meta, endCondition, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, endCondition, onExit })
-  const limitSec = endCondition?.value ?? 60
+  const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys })
 
   return (
     <div className="game">
@@ -104,9 +105,9 @@ function TypeView({ dict, gloss, level, theme, mode, seed, meta, endCondition, o
               { label: 'タイピング数', value: `${d.typedKeys}` },
               { label: '速度', value: `${d.liveSpeed} 打/分` },
               { label: 'ミス', value: d.mistakes },
-              { label: '時間', value: `${d.elapsedSec} / ${limitSec}秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, d.elapsedSec / limitSec)}
+            progress={endStat.progress}
           />
           {d.word && (
             <p className="seg-word">
@@ -141,7 +142,7 @@ function typeHint(mode, segType) {
 // 4択（定義→英単語をタイプ/クリック）
 function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
   const q = useDictQuiz({ dict, level, theme, seed, endCondition, onExit })
-  const limitSec = endCondition?.value ?? 60
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys })
   // 回答後、選んだ語（型 or クリック）の和訳をグロッサリから引いて見出し下に出す
   const pickedWord = q.input || q.picked?.display
   const pickedJa = q.picked !== null && pickedWord ? gloss?.[pickedWord] : null
@@ -158,9 +159,9 @@ function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / ${limitSec}秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, q.elapsedSec / limitSec)}
+            progress={endStat.progress}
           />
           <div className="word-card">
             <div className="word-dir">定義に合う英単語を入力</div>

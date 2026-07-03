@@ -1,5 +1,6 @@
 // マラソンのプレイ画面（バッジ・ステータス・本文・ヒントを合成）。
 import { modeLabel } from '../../content/modes.js'
+import { endHudStat } from '../../content/endConditions.js'
 import { StatsRow } from '../shared/index.js'
 import TopFlow from './TopFlow.jsx'
 import TranslateView from './TranslateView.jsx'
@@ -16,9 +17,10 @@ export default function MarathonView({
   mistakes,
   liveSpeed,
   elapsedSec,
-  limitSec = 60,
+  endCondition,
 }) {
   const currentSeg = segments[segIndex]
+  const endStat = endHudStat(endCondition, { elapsedSec, keys: typedKeys })
   return (
     <div className="game">
       <div className="play-meta">
@@ -31,9 +33,9 @@ export default function MarathonView({
           { label: 'タイピング数', value: `${typedKeys}` },
           { label: '速度', value: `${liveSpeed} 打/分` },
           { label: 'ミス', value: mistakes },
-          { label: '時間', value: `${elapsedSec} / ${limitSec}秒` },
+          { label: endStat.label, value: endStat.value },
         ]}
-        progress={Math.min(1, elapsedSec / limitSec)}
+        progress={endStat.progress}
       />
 
       {currentSeg?.word && (
