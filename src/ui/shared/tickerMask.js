@@ -7,7 +7,7 @@
 // trackWidth: track の可視幅(px)。
 // 返り値: { fadeStart, fadeEnd } … right へ向かうグラデーションで
 //   0..fadeStart は不透明、fadeStart..fadeEnd で透明へ。
-export function computeTickerFade(boxes, trackWidth, { gap = 10, edge = 8 } = {}) {
+export function computeTickerFade(boxes, trackWidth, { gap = 10, edge = 8, curIndex = -1 } = {}) {
   if (!Array.isArray(boxes) || !(trackWidth > 0)) {
     // 計測前などは従来相当のごく浅い右端フェードに退避。
     return { fadeStart: Math.max(0, trackWidth - edge), fadeEnd: trackWidth }
@@ -16,9 +16,14 @@ export function computeTickerFade(boxes, trackWidth, { gap = 10, edge = 8 } = {}
   // 現在アイテムは左端固定(left≤0)で、狭幅だと幅 > track になり右端も越えるが、
   // これは「入ってくる語」ではない（#108: 誤検出すると fadeStart=0 で現在文が全幅で沈む）。
   // よって left>0 かつ 右端が可視域を越える後続語だけを entering とみなす。
+  // #203: 現在アイテム(index=curIndex)は 2 ペア目以降で view-left が正になり、
+  // 幅広だと右端も越えるため entering と誤検出されうる。現在アイテムおよびそれ以前
+  // (idx ≤ curIndex)は入場語ではないので探索から除外する（既定 -1 なら全 box が対象）。
   let entering = null
-  for (const b of boxes) {
+  for (let idx = 0; idx < boxes.length; idx++) {
+    const b = boxes[idx]
     if (!b) continue
+    if (idx <= curIndex) continue
     const right = b.left + b.width
     // 左端がビュー内の正の位置にあり、右端が可視域を越える語。
     if (b.left > 0 && b.left < trackWidth && right > trackWidth) {
