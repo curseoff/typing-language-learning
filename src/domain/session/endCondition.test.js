@@ -139,6 +139,18 @@ describe('progressRatio', () => {
     expect(progressRatio({ kind: 'chars', value: 0 }, { keys: 10 })).toBe(0)
   })
 
+  it('time の value<=0 もゼロ除算を避けて 0 を返す', () => {
+    expect(progressRatio({ kind: 'time', value: 0 }, { elapsedMs: 5000 })).toBe(0)
+  })
+
+  it('items の value<=0 もゼロ除算を避けて 0 を返す', () => {
+    expect(progressRatio({ kind: 'items', value: 0 }, { items: 5 })).toBe(0)
+  })
+
+  it('life の value<=0 もゼロ除算を避けて 0 を返す', () => {
+    expect(progressRatio({ kind: 'life', value: 0 }, { mistakes: 5 })).toBe(0)
+  })
+
   it('欠損フィールドは 0 扱いで進捗率 0', () => {
     const ec = { kind: 'time', value: 60 }
     expect(progressRatio(ec, {})).toBe(0)

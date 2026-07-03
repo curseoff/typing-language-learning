@@ -213,4 +213,25 @@ describe('compareRecords（#208 段0b・Array.sort 準拠）', () => {
     expect(sign(compareRecords(ec, { keys: 50, mistakes: 2 }, { keys: 30, mistakes: 0 }))).toBe(-1)
     expect(sign(compareRecords(ec, { keys: 20, mistakes: 1 }, { keys: 20, mistakes: 5 }))).toBe(-1)
   })
+
+  // 欠損フィールドの既定フォールバック（?? Infinity / ?? 0 の右辺分岐網羅）。
+  it('chars: seconds 欠損の旧レコードは Infinity 扱いで下位になる', () => {
+    const ec = { kind: 'chars', value: 600 }
+    expect(sign(compareRecords(ec, { mistakes: 1 }, { seconds: 40, mistakes: 0 }))).toBe(1)
+  })
+
+  it('chars: 同秒で mistakes 欠損は 0 扱い（少ない方が上位）', () => {
+    const ec = { kind: 'chars', value: 600 }
+    expect(sign(compareRecords(ec, { seconds: 40 }, { seconds: 40, mistakes: 5 }))).toBe(-1)
+  })
+
+  it('items: correctCount 欠損同士は seconds 昇順の同着判定に落ちる', () => {
+    const ec = { kind: 'items', value: 25 }
+    expect(sign(compareRecords(ec, { seconds: 30 }, { seconds: 50 }))).toBe(-1)
+  })
+
+  it('time: 同 keys で mistakes 欠損は 0 扱い（少ない方が上位）', () => {
+    const ec = { kind: 'time', value: 60 }
+    expect(sign(compareRecords(ec, { keys: 20 }, { keys: 20, mistakes: 3 }))).toBe(-1)
+  })
 })
