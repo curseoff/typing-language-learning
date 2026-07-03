@@ -47,6 +47,34 @@ describe('ranking', () => {
     expect(list.length).toBe(MAX_RECORDS)
     expect(list[0].keys).toBe(MAX_RECORDS + 9) // 最多が先頭
   })
+
+  // #208 段0b-2：終了条件の配線（既定 time60＝従来と完全一致）。
+  it('recKey は endCondition 省略時に従来キーと一致する（後方互換）', () => {
+    expect(recKey('both', 1)).toBe(recKey('both', 1, 'sentence', undefined, undefined))
+    expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 60 })).toBe('both__r1')
+    expect(recKey('both', 1, 'wsent', '日常', { kind: 'endless', value: null })).toBe(
+      'both__wsent1__日常'
+    )
+  })
+
+  it('recKey は既定以外の終了条件でトークン付きの別キーになる', () => {
+    expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 30 })).toBe('both__r1__T30')
+    expect(recKey('both', 1, 'wsent', '日常', { kind: 'chars', value: 600 })).toBe(
+      'both__wsent1__日常__C600'
+    )
+  })
+
+  it('rankInsert は record.endCondition の kind で並べる（chars は速い順）', () => {
+    const ec = { kind: 'chars', value: 600 }
+    const list = rankInsert(
+      [
+        { seconds: 20, endCondition: ec },
+        { seconds: 8, endCondition: ec },
+      ],
+      { seconds: 12, endCondition: ec }
+    )
+    expect(list.map((r) => r.seconds)).toEqual([8, 12, 20])
+  })
 })
 
 describe('endConditionToken（#208 段0b）', () => {

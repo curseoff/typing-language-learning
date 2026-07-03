@@ -1,9 +1,16 @@
 // 物語の永続化（発見エンド＋記録ランキング）。物語ごとにキーを分ける。
-import { rankInsert } from '../domain/records/ranking.js'
+import { rankInsert, endConditionToken, isRecordable } from '../domain/records/ranking.js'
 
 // 物語ごとのキー（例 story-records-v1-climbing）。
 const foundKey = (storyId) => `story-endings-v1-${storyId}`
 const recordsKey = (storyId) => `story-records-v1-${storyId}`
+
+// 終了条件別の記録キー。time60/endless/未指定はトークン無し＝従来キーと一致。
+export function storyRecKey(storyId, endCondition) {
+  const base = recordsKey(storyId)
+  const t = endConditionToken(endCondition)
+  return t ? `${base}__${t}` : base
+}
 
 // 旧（単一物語時代）のキー。travel の記録として一度だけ引き継ぐ。
 const LEGACY_FOUND_KEY = 'story-endings-v1'
@@ -40,14 +47,17 @@ export function saveFound(storyId, ids) {
   localStorage.setItem(foundKey(storyId), JSON.stringify(ids))
 }
 
-export function loadStoryRecords(storyId) {
-  const key = recordsKey(storyId)
-  migrateLegacy(storyId, LEGACY_RECORDS_KEY, key)
+export function loadStoryRecords(storyId, endCondition) {
+  const key = storyRecKey(storyId, endCondition)
+  // 移行は従来キー（time60 相当・トークン無し）に対してのみ行う。
+  migrateLegacy(storyId, LEGACY_RECORDS_KEY, recordsKey(storyId))
   return parseArray(localStorage.getItem(key))
 }
 
 export function saveStoryRecord(storyId, record) {
-  const list = rankInsert(loadStoryRecords(storyId), record) // 速い順・最大15件
-  localStorage.setItem(recordsKey(storyId), JSON.stringify(list))
+  if (!isRecordable(record.endCondition)) return loadStoryRecords(storyId, record.endCondition) // endless は非記録
+  const key = storyRecKey(storyId, record.endCondition)
+  const list = rankInsert(loadStoryRecords(storyId, record.endCondition), record) // 成績順・最大15件
+  localStorage.setItem(key, JSON.stringify(list))
   return list
 }

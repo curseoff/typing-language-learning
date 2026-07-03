@@ -49,15 +49,20 @@ export function compareRecords(endCondition, a, b) {
 // モード×ランクの記録キー。source で出題元を分ける（文章=sentence / 単語例文=wsent）。
 // theme を渡すとテーマ別キーになる（単語例文＝単語/英英と同様にテーマ別ランキング）。
 // theme 未指定（文章・タッチ等）はキー据え置きで後方互換。
-export function recKey(mode, rank, source = 'sentence', theme) {
+// endCondition を渡すと終了条件別キーになる（time60/endless/未指定はトークン無し＝従来キー）。
+export function recKey(mode, rank, source = 'sentence', theme, endCondition) {
   const base = source === 'sentence' ? `${mode}__r${rank}` : `${mode}__${source}${rank}`
-  return theme != null ? `${base}__${theme}` : base
+  const withTheme = theme != null ? `${base}__${theme}` : base
+  const t = endConditionToken(endCondition)
+  return t ? `${withTheme}__${t}` : withTheme
 }
 
-// 記録を追加し、タイピング数(keys)の多い順で上位 max 件に絞った新しい配列を返す。
-// 60秒固定なので keys が成績そのもの。同数はミスの少ない順。古い記録(keys 無し)は 0 扱い。
-export function rankInsert(list, record, max = MAX_RECORDS) {
+// 記録を追加し、終了条件に応じた成績順で上位 max 件に絞った新しい配列を返す。
+// endCondition 未指定ならレコード自身の endCondition（無ければ time60）で並べる。
+// time60 では従来どおり keys 降順→mistakes 昇順（compareRecords の time 分岐と一致）。
+export function rankInsert(list, record, endCondition = undefined, max = MAX_RECORDS) {
   const next = [...(list || []), record]
-  next.sort((a, b) => (b.keys ?? 0) - (a.keys ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0))
+  const ec = endCondition ?? normalizeEndCondition(record?.endCondition)
+  next.sort((a, b) => compareRecords(ec, a, b))
   return next.slice(0, max)
 }
