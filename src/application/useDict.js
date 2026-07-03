@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
@@ -51,6 +51,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
   const keysRef = useRef(0) // 時間切れ finish 用の最新打鍵数
   const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
+  const startTimeRef = useRef(null) // 進捗 finish 用の開始時刻（startTime と同値）
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
@@ -72,6 +73,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     finishedRef.current = false
     keysRef.current = 0
     mistakesRef.current = 0
+    startTimeRef.current = null
   }, [buildSegments])
 
   const finish = useCallback(
@@ -106,6 +108,30 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     [level, theme, mode, sessionSeed, ec],
   )
 
+  // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
+  // 時間制は elapsedMs が制限に届くまで false のまま＝従来どおりタイマーが終了を担う。
+  // 現在入力中の問題があれば partial として記録に積んでから finish（時間切れと同じ扱い）。
+  const finishByProgress = useCallback(
+    (t, keys, items, missCount, seg, partialLen) => {
+      if (finishedRef.current) return
+      const startedAt = startTimeRef.current ?? t
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, mistakes: missCount })) return
+      if (seg && partialLen > 0) {
+        segPush(segTrackerRef.current, {
+          type: seg.type,
+          label: seg.word,
+          keys: partialLen,
+          t,
+          partial: true,
+          sentenceIndex: seg.sentenceIndex,
+        })
+      }
+      flushTracker(trackerRef.current)
+      finish(keys, missCount, t, startedAt)
+    },
+    [ec, finish],
+  )
+
   const handleKey = useCallback(
     (e) => {
       if (e.key === 'Escape') {
@@ -131,6 +157,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
       if (seg.variants.some((v) => v.startsWith(candidate))) {
         const t = performance.now()
         setStartTime((p) => p ?? t)
+        startTimeRef.current = startTimeRef.current ?? t // 進捗 finish 用
         setHasError(false)
         segMark(segTrackerRef.current, t) // この問題の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('d', mode, seg.word)) // 見出し語ごと×モード別
@@ -140,7 +167,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
 
         const completesSeg = seg.variants.includes(candidate)
 
-        // 問題が完了したら「問題ごとの記録」に積む（未完は60秒 finish 側で partial 記録）
+        // 問題が完了したら「問題ごとの記録」に積む（未完は finish 側で partial 記録）
         if (completesSeg) {
           segPush(segTrackerRef.current, {
             type: seg.type,
@@ -164,8 +191,10 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
+          finishByProgress(t, newKeys, completed.length + 1, mistakesRef.current, seg, 0)
         } else {
           setSegInput(candidate)
+          finishByProgress(t, newKeys, completed.length, mistakesRef.current, seg, candidate.length)
         }
       } else {
         setMistakes((m) => {
@@ -176,9 +205,11 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
         segMiss(segTrackerRef.current)
         playMiss()
         setHasError(true)
+        // ミス数（life 制）の到達を判定。
+        finishByProgress(performance.now(), typedKeys, completed.length, mistakesRef.current, seg, segInput.length)
       }
     },
-    [finished, segments, segIndex, segInput, typedKeys, mode, buildSegments, onExit, restart],
+    [finished, segments, segIndex, segInput, typedKeys, completed, mode, buildSegments, onExit, restart, finishByProgress],
   )
 
   useEffect(() => {

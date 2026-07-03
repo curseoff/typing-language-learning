@@ -42,12 +42,13 @@ export function normalizeEndCondition(input) {
   return { kind: input.kind, value: input.value }
 }
 
-// カウントダウンタイマーの制限時間(ms)。時間制は value 秒＝value*1000、
-// それ以外の kind は当面は既定60秒相当（#208 段1a・items/life/chars/endless は後段で対応）。
+// カウントダウンタイマーの制限時間(ms)。時間制は value 秒＝value*1000。
+// 非時間 kind（chars/items/life/endless）は「時間では終わらない」ので Infinity を返す
+// ＝タイマー（useCountdownTimer）は決して発火せず、終了は進捗判定（shouldFinish）が担う（#208 段2a）。
 export function endLimitMs(input) {
   const { kind, value } = normalizeEndCondition(input)
   if (kind === 'time') return value * 1000
-  return DEFAULT_END_CONDITION.value * 1000
+  return Infinity
 }
 
 // 0..1 の進捗率。value<=0・endless・欠損は 0（ゼロ除算回避）、超過は 1 に clamp。

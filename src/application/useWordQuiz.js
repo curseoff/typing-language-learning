@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
 import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.js'
 import { makeSeed } from './seed.js'
@@ -43,6 +43,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
   const keysRef = useRef(0) // 時間切れ finish 用の最新タイピング数
   const correctRef = useRef(0) // 時間切れ finish 用の最新正解数
   const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
+  const startTimeRef = useRef(null) // 進捗 finish 用の開始時刻（startTime と同値）
 
   const q = questions[index]
 
@@ -67,6 +68,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
     keysRef.current = 0
     correctRef.current = 0
     mistakesRef.current = 0
+    startTimeRef.current = null
   }, [buildWith])
 
   const finish = useCallback(
@@ -102,15 +104,32 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
     [level, theme, mode, sessionSeed, ec],
   )
 
+  // 進捗（タイピング数/設問数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
+  // 時間制は elapsedMs が制限に届くまで false のまま＝従来どおりタイマーが終了を担う。
+  // クイズは完答した設問のみ segStats に積む方針なので、未確定設問の partial 記録はしない。
+  const finishByProgress = useCallback(
+    (t) => {
+      if (finishedRef.current) return
+      const startedAt = startTimeRef.current ?? t
+      const items = segStatsRef.current.length
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys: keysRef.current, items, mistakes: mistakesRef.current })) return
+      finish(keysRef.current, correctRef.current, mistakesRef.current, t, startedAt)
+    },
+    [ec, finish],
+  )
+
   const commit = useCallback(
     (option, typed = 0) => {
       const _t = performance.now()
       setStartTime((p) => p ?? _t)
+      startTimeRef.current = startTimeRef.current ?? _t // 進捗 finish 用
       setPicked(option)
       if (typed > 0) setTypedKeys((k) => (keysRef.current = k + typed)) // 打って選んだ分のタイピング数
       if (option.answer) setCorrect((c) => (correctRef.current = c + 1))
+      // タイピング数（chars 制）の到達を判定。
+      finishByProgress(_t)
     },
-    [],
+    [finishByProgress],
   )
 
   // クリックで選択
@@ -137,6 +156,9 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
       },
     ]
     perQMissRef.current = 0
+    // 設問数（items 制）の到達を判定（1問完答した直後）。
+    finishByProgress(performance.now())
+    if (finishedRef.current) return
     // 60秒制：問題が尽きたら再シャッフルで継ぎ足し、ずっと出題し続ける。
     if (index >= questions.length - 1) {
       setQuestions((prev) => [...prev, ...buildWith(makeSeed())])
@@ -145,7 +167,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
     setInput('')
     setPicked(null)
     setHasError(false)
-  }, [picked, index, questions, buildWith])
+  }, [picked, index, questions, buildWith, finishByProgress])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -191,11 +213,13 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
         perQMissRef.current += 1
         playMiss()
         setHasError(true)
+        // ミス数（life 制）の到達を判定。
+        finishByProgress(performance.now())
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, picked, q, input, advance, restart, onExit, commit])
+  }, [finished, picked, q, input, advance, restart, onExit, commit, finishByProgress])
 
   // 最初の打鍵から60秒で終了（操作が無くても時間で finish）。
   const onTimeout = (endTime, startedAt) =>

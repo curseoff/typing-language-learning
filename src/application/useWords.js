@@ -5,7 +5,7 @@ import { buildWordPassage } from '../domain/words/wordset.js'
 import { buildUnits, segMatches } from '../domain/typing/units.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
@@ -101,6 +101,25 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
   )
 
   useEffect(() => {
+    // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
+    // 時間制は elapsedMs が制限に届くまで false のままで、従来どおりタイマーが終了を担う。
+    // 現在入力中の語があれば partial として記録に積んでから finish する（時間切れと同じ扱い）。
+    const finishByProgress = (t, keys, items, missCount, partialLen) => {
+      if (finishedRef.current) return
+      const startedAt = startTime ?? t
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, mistakes: missCount })) return
+      if (seg && partialLen > 0) {
+        segPush(segTrackerRef.current, {
+          type: seg.type,
+          label: seg.type === 'en' ? seg.en : seg.ja,
+          keys: partialLen,
+          t,
+          partial: true,
+        })
+      }
+      flushTracker(trackerRef.current)
+      finish(keys, missCount, t, startedAt)
+    }
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -118,9 +137,9 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
       e.preventDefault()
       if (!seg || finishedRef.current) return
 
+      const t = performance.now()
       const candidate = input + e.key
       if (segMatches(seg, candidate)) {
-        const t = performance.now()
         setStartTime((p) => p ?? t)
         setHasError(false)
         segMark(segTrackerRef.current, t) // この語の最初の打鍵時刻
@@ -130,7 +149,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         keysRef.current = newKeys
 
         const completesSeg = seg.variants.includes(candidate)
-        // 語の完了で「問題ごとの記録」を1件積む（未完は60秒 finish 側で処理）
+        // 語の完了で「問題ごとの記録」を1件積む（未完は finish 側で処理）
         if (completesSeg) {
           segPush(segTrackerRef.current, {
             type: seg.type,
@@ -139,7 +158,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
             t,
             partial: false,
           })
-          // 語を打ち尽くしたら同じ seed で継ぎ足してループ（60秒の間ずっと続ける）。
+          // 語を打ち尽くしたら同じ seed で継ぎ足してループ（時間制の間ずっと続ける）。
           if (segIndex + 1 >= segments.length) {
             setWords((prev) => [
               ...prev,
@@ -152,6 +171,8 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         } else {
           setInput(candidate)
         }
+        // 正打のたびに打鍵数/問題数の到達を判定（完了語は partial 記録不要＝partialLen 0）。
+        finishByProgress(t, newKeys, completed.length + (completesSeg ? 1 : 0), mistakesRef.current, completesSeg ? 0 : candidate.length)
       } else {
         setMistakes((m) => {
           mistakesRef.current = m + 1
@@ -161,11 +182,13 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         segMiss(segTrackerRef.current)
         playMiss()
         setHasError(true)
+        // ミス数（life 制）の到達を判定。
+        finishByProgress(t, typedKeys, completed.length, mistakesRef.current, input.length)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, typedKeys, mode, allWords, level, theme, onExit, restart, finish])
+  }, [finished, seg, segIndex, segments.length, input, typedKeys, completed, startTime, ec, mode, allWords, level, theme, onExit, restart, finish])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。

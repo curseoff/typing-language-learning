@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs } from '../domain/session/endCondition.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
@@ -84,6 +84,36 @@ export function useMarathon({ active, onFinish, endCondition }) {
     [onFinish, ec],
   )
 
+  // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
+  // 時間制は elapsedMs が制限に届くまで false のまま＝従来どおりタイマーが終了を担う。
+  // 現在入力中の問題があれば partial として segStats に積んでから finish（時間切れと同じ扱い）。
+  const finishByProgress = useCallback(
+    (t, keys, items, missCount, seg, partialLen) => {
+      if (finishedRef.current) return
+      const startedAt = startTimeRef.current ?? t
+      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, mistakes: missCount })) return
+      if (seg && partialLen > 0 && segStartRef.current !== null) {
+        const ms = t - segStartRef.current
+        segStatsRef.current = [
+          ...segStatsRef.current,
+          {
+            no: segStatsRef.current.length + 1,
+            type: seg.type,
+            label: seg.type === 'en' ? seg.en : seg.ja,
+            keys: partialLen,
+            mistakes: segMistakesRef.current,
+            seconds: Math.round(ms / 100) / 10,
+            speed: ms > 0 ? Math.round(partialLen / (ms / 60000)) : 0,
+            partial: true,
+          },
+        ]
+      }
+      flushTracker(trackerRef.current)
+      finish(keys, missCount, t, startedAt)
+    },
+    [ec, finish],
+  )
+
   const handleKey = useCallback(
     (e) => {
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
@@ -129,8 +159,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
+          // 完了語は partial 不要（partialLen 0）。
+          finishByProgress(t, newKeys, completed.length + 1, mistakesRef.current, seg, 0)
         } else {
           setSegInput(candidate)
+          finishByProgress(t, newKeys, completed.length, mistakesRef.current, seg, candidate.length)
         }
       } else {
         setMistakes((m) => {
@@ -141,9 +174,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
         trackMiss(trackerRef.current)
         playMiss()
         setHasError(true)
+        // ミス数（life 制）の到達を判定。
+        finishByProgress(performance.now(), typedKeys, completed.length, mistakesRef.current, seg, segInput.length)
       }
     },
-    [segments, segIndex, segInput, typedKeys],
+    [segments, segIndex, segInput, typedKeys, completed, finishByProgress],
   )
 
   useEffect(() => {
