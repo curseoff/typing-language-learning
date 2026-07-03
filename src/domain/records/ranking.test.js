@@ -52,15 +52,22 @@ describe('ranking', () => {
   it('recKey は endCondition 省略時に従来キーと一致する（後方互換）', () => {
     expect(recKey('both', 1)).toBe(recKey('both', 1, 'sentence', undefined, undefined))
     expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 60 })).toBe('both__r1')
-    expect(recKey('both', 1, 'wsent', '日常', { kind: 'endless', value: null })).toBe(
-      'both__wsent1__日常'
-    )
   })
 
   it('recKey は既定以外の終了条件でトークン付きの別キーになる', () => {
     expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 30 })).toBe('both__r1__T30')
     expect(recKey('both', 1, 'wsent', '日常', { kind: 'chars', value: 600 })).toBe(
       'both__wsent1__日常__C600'
+    )
+    // endless は E トークンの別キー（time60＝従来キーと混ざらない。#208 段6）
+    expect(recKey('both', 1, 'wsent', '日常', { kind: 'endless', value: null })).toBe(
+      'both__wsent1__日常__E'
+    )
+  })
+
+  it('recKey は endless と time60 を別キーに分ける（ランキングが混ざらない。#208 段6）', () => {
+    expect(recKey('both', 1, 'wsent', '日常', { kind: 'endless', value: null })).not.toBe(
+      recKey('both', 1, 'wsent', '日常', { kind: 'time', value: 60 })
     )
   })
 
@@ -108,8 +115,8 @@ describe('endConditionToken（#208 段0b）', () => {
     expect(endConditionToken({ kind: 'life', value: 3 })).toBe('L3')
   })
 
-  it('endless は空文字（非記録・キー生成に使わない）', () => {
-    expect(endConditionToken({ kind: 'endless', value: null })).toBe('')
+  it('endless は E（値なしの種別トークン・別ランキング。#208 段6）', () => {
+    expect(endConditionToken({ kind: 'endless', value: null })).toBe('E')
   })
 })
 
