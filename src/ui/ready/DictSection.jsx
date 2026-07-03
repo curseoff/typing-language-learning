@@ -4,6 +4,7 @@ import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../
 import { dictRanking } from '../../application/records.js'
 import ItemList from './ItemList.jsx'
 import EndConditionSelect from './EndConditionSelect.jsx'
+import { endConditionSummary } from '../../content/endConditions.js'
 import {
   selCls,
   ModeButtons,
@@ -33,18 +34,18 @@ function DictList({ level, theme, mode }) {
   return <ItemList items={items} type="dict" mode={mode} />
 }
 
-function dictModeDesc(key, sec) {
+function dictModeDesc(key, end) {
   switch (key) {
     case 'both':
       return '1語ごとに見出し語の英語の定義→その和訳を続けて入力。'
     case 'pick':
-      return `英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ。${sec}秒で終了。`
+      return `英単語＋意味を見て、4つの説明文から合うものを入力して選ぶ。${end}。`
     case 'en':
       return '見出し語の英語の定義を入力（和訳は参考表示）。'
     case 'ja':
       return '見出し語の和訳をローマ字で入力（英語の定義は参考）。'
     default:
-      return `英語の定義を読んで、4つの英単語から正解を入力（4択）。回答後に和訳を表示。${sec}秒で終了。`
+      return `英語の定義を読んで、4つの英単語から正解を入力（4択）。回答後に和訳を表示。${end}。`
   }
 }
 
@@ -133,7 +134,7 @@ export default function DictSection({
           />
         </div>
       </div>
-      <p className="mode-desc">{dictModeDesc(dictMode, endCondition?.value ?? 60)}</p>
+      <p className="mode-desc">{dictModeDesc(dictMode, endConditionSummary(endCondition))}</p>
       <p className="pool-count">この条件の収録: {DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語</p>
 
       <EndConditionSelect

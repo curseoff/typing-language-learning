@@ -5,7 +5,7 @@ import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.j
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
-import { END_TIME_VALUES, DEFAULT_END_CONDITION, timeEndCondition } from './content/endConditions.js'
+import { END_KINDS, DEFAULT_END_CONDITION, endKind, endConditionForKind } from './content/endConditions.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './application/records.js'
@@ -84,12 +84,19 @@ export default function App() {
     const type = { id: 'type', options: TYPE_KEYS, value: gameType, set: setGameType }
     // 下部トグル（記録ランキング/収録一覧）。タッチ以外の種類に付く。
     const bottom = { id: 'bottom', options: ['records', 'list'], value: bottomTab, set: setBottomTab }
-    // 終了条件（段1は時間のみ）。←→で秒数を移動。wsent/words/dict に付く。
+    // 終了条件の種別（時間/文字数）。←→で種別を切替え＝その種別の既定値に落ちる。wsent/words/dict に付く。
+    const endKindRow = {
+      id: 'endKind',
+      options: END_KINDS.map((k) => k.kind),
+      value: endCondition.kind,
+      set: (k) => setEndCondition(endConditionForKind(k)),
+    }
+    // 終了条件の値（時間=秒 / 文字数=文字）。←→で選択中種別の値を移動。
     const end = {
       id: 'end',
-      options: END_TIME_VALUES,
+      options: endKind(endCondition.kind).values,
       value: endCondition.value,
-      set: (v) => setEndCondition(timeEndCondition(v)),
+      set: (v) => setEndCondition({ kind: endCondition.kind, value: v }),
     }
     switch (gameType) {
       case 'story':
@@ -105,6 +112,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wordLevel, set: setWordLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wordTheme, set: setWordTheme },
           { id: 'mode', options: WORD_MODE_KEYS, value: wordMode, set: setWordMode },
+          endKindRow,
           end,
           bottom,
         ]
@@ -114,6 +122,7 @@ export default function App() {
           { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: setDictLevel },
           { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: setDictTheme },
           { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
+          endKindRow,
           end,
           bottom,
         ]
@@ -129,6 +138,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: setWsentTheme },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          endKindRow,
           end,
           bottom,
         ]

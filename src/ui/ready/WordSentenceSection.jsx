@@ -7,6 +7,7 @@ import { recKey } from '../../domain/records/ranking.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
 import EndConditionSelect from './EndConditionSelect.jsx'
+import { endConditionSummary } from '../../content/endConditions.js'
 import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow, THEME_OPTIONS } from './parts.jsx'
 
 // 単語例文の収録一覧。レベルの例文＋テーママップを遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
@@ -105,7 +106,7 @@ export default function WordSentenceSection({
         ))}
       </div>
       <p className="mode-desc">
-        {modeDesc(mode)} 単語を使った例文を打ちます。{endCondition?.value ?? 60}秒で終了します。
+        {modeDesc(mode)} 単語を使った例文を打ちます。{endConditionSummary(endCondition)}します。
       </p>
       <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0} 文</p>
 

@@ -4,6 +4,7 @@ import { WORD_LEVELS, WORD_MODES, WORD_COUNTS, loadWords } from '../../content/w
 import { wordRanking } from '../../application/records.js'
 import ItemList from './ItemList.jsx'
 import EndConditionSelect from './EndConditionSelect.jsx'
+import { endConditionSummary } from '../../content/endConditions.js'
 import {
   selCls,
   ModeButtons,
@@ -33,18 +34,18 @@ function WordsList({ level, theme, mode }) {
   return <ItemList items={items} type="words" mode={mode} />
 }
 
-function wordModeDesc(key, sec) {
+function wordModeDesc(key, end) {
   switch (key) {
     case 'quiz-en':
-      return `和訳を見て、4つの英単語から正解を入力（4択）。${sec}秒で終了。`
+      return `和訳を見て、4つの英単語から正解を入力（4択）。${end}。`
     case 'quiz-ja':
-      return `英単語を見て、4つの和訳から正解をローマ字入力（4択）。${sec}秒で終了。`
+      return `英単語を見て、4つの和訳から正解をローマ字入力（4択）。${end}。`
     case 'ja':
-      return `英単語を見て和訳をローマ字入力。${sec}秒で終了。`
+      return `英単語を見て和訳をローマ字入力。${end}。`
     case 'both':
-      return `1語ごとに英語→その和訳を入力。${sec}秒で終了。`
+      return `1語ごとに英語→その和訳を入力。${end}。`
     default:
-      return `和訳を見て英単語を入力。${sec}秒で終了。`
+      return `和訳を見て英単語を入力。${end}。`
   }
 }
 
@@ -133,7 +134,7 @@ export default function WordsSection({
           />
         </div>
       </div>
-      <p className="mode-desc">{wordModeDesc(wordMode, endCondition?.value ?? 60)}</p>
+      <p className="mode-desc">{wordModeDesc(wordMode, endConditionSummary(endCondition))}</p>
       <p className="pool-count">
         この条件の収録: {WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0} 語
       </p>
