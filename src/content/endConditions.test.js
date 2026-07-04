@@ -156,8 +156,8 @@ describe('endConditionSummary（説明文用サマリ）', () => {
     expect(endConditionSummary({ kind: 'life', value: 3 })).toBe('ミス3問で終了（ライフ3）')
   })
 
-  it('endless は「Escを押すまで継続」（自動終了なし）', () => {
-    expect(endConditionSummary({ kind: 'endless', value: null })).toBe('Escを押すまで継続')
+  it('endless は「Escで終了（30秒以上で記録）」（ESC 終了・30秒以上でスコア記録。#208 段6）', () => {
+    expect(endConditionSummary({ kind: 'endless', value: null })).toBe('Escで終了（30秒以上で記録）')
   })
 
   it('null は既定（60秒で終了）に落とす', () => {

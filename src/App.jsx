@@ -169,6 +169,7 @@ export default function App() {
 
   const {
     start: startMarathon,
+    escFinish: marathonEscFinish,
     segments,
     segIndex,
     segInput,
@@ -316,6 +317,9 @@ export default function App() {
       if (e.key === 'Escape') {
         if (phase === 'playing' || phase === 'result') {
           e.preventDefault()
+          // エンドレスをプレイ中に ESC：30秒以上なら記録して結果へ（escFinish が onFinish 経由で
+          // phase を result にする）。30秒未満/未打鍵や result 中は従来どおり TOP へ戻る。#208 段6
+          if (phase === 'playing' && endCondition.kind === 'endless' && marathonEscFinish()) return
           setPhase('ready')
         }
         return
@@ -347,7 +351,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onNav)
     return () => window.removeEventListener('keydown', onNav)
-  }, [phase, start, startGame, rows, safeFocus])
+  }, [phase, start, startGame, rows, safeFocus, endCondition, marathonEscFinish])
 
   // 開発時だけ：結果画面をダミーデータで即プレビュー（本番ビルドには含まれない）
   const previewResult = useCallback(() => {

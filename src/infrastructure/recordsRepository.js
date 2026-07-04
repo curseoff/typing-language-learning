@@ -1,5 +1,5 @@
 // 記録の永続化（localStorage）。
-import { recKey, rankInsert, isRecordable } from '../domain/records/ranking.js'
+import { recKey, rankInsert } from '../domain/records/ranking.js'
 
 const STORAGE_KEY = 'typing-records-v3'
 const OLD_STORAGE_KEY = 'typing-records-v2'
@@ -27,7 +27,6 @@ export function loadRecords() {
 
 // 記録を保存し、更新後の全記録を返す
 export function saveRecord(record) {
-  if (!isRecordable(record.endCondition)) return loadRecords() // endless は非記録
   const all = loadRecords()
   const key = recKey(record.mode, record.rank, record.source, record.theme, record.endCondition)
   all[key] = rankInsert(all[key], record)

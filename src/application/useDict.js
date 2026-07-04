@@ -13,6 +13,10 @@ import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segT
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
+
+// エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
+const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
 function dictPool(dict, level, theme) {
@@ -139,10 +143,34 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     [ec, finish],
   )
 
+  // エンドレスは ESC が唯一の終了手段。30秒以上プレイしていれば記録して結果へ、
+  // それ未満（未打鍵で startTime 未確定なら経過0扱い）は中断＝onExit（#208 段6）。
+  const finishByEsc = useCallback(() => {
+    if (finishedRef.current) return false
+    const t = performance.now()
+    const startedAt = startTimeRef.current ?? t
+    if (t - startedAt < ENDLESS_MIN_RECORD_MS) return false
+    const seg = segments[segIndex]
+    if (seg && segInput.length > 0) {
+      segPush(segTrackerRef.current, {
+        type: seg.type,
+        label: seg.word,
+        keys: segInput.length,
+        t,
+        partial: true,
+        sentenceIndex: seg.sentenceIndex,
+      })
+    }
+    flushTracker(trackerRef.current)
+    finish(keysRef.current, mistakesRef.current, t, startedAt)
+    return true
+  }, [segments, segIndex, segInput, finish])
+
   const handleKey = useCallback(
     (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
+        if (ec.kind === 'endless' && !finished && finishByEsc()) return
         onExit()
         return
       }
@@ -217,7 +245,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
         finishByProgress(performance.now(), typedKeys, completed.length, mistakesRef.current, seg, segInput.length)
       }
     },
-    [finished, segments, segIndex, segInput, typedKeys, completed, mode, buildSegments, onExit, restart, finishByProgress],
+    [finished, segments, segIndex, segInput, typedKeys, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc],
   )
 
   useEffect(() => {

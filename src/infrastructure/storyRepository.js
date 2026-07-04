@@ -1,5 +1,5 @@
 // 物語の永続化（発見エンド＋記録ランキング）。物語ごとにキーを分ける。
-import { rankInsert, endConditionToken, isRecordable } from '../domain/records/ranking.js'
+import { rankInsert, endConditionToken } from '../domain/records/ranking.js'
 
 // 物語ごとのキー（例 story-records-v1-climbing）。
 const foundKey = (storyId) => `story-endings-v1-${storyId}`
@@ -55,7 +55,6 @@ export function loadStoryRecords(storyId, endCondition) {
 }
 
 export function saveStoryRecord(storyId, record) {
-  if (!isRecordable(record.endCondition)) return loadStoryRecords(storyId, record.endCondition) // endless は非記録
   const key = storyRecKey(storyId, record.endCondition)
   const list = rankInsert(loadStoryRecords(storyId, record.endCondition), record) // 成績順・最大15件
   localStorage.setItem(key, JSON.stringify(list))

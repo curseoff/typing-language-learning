@@ -213,16 +213,21 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
   const list = records[dictRecKey(level, theme, mode, result.endCondition)] || []
   const { open, modal } = useRecordDetail()
   const isQuiz = mode === 'quiz' || mode === 'pick' // 選択式＝正解数で表示
-  // 問題数制・サドンデス（life）は主成績＝正解数（一発正解した問題数）。時間/文字数制は従来どおりタイピング数。
+  // 問題数制・サドンデス（life）は主成績＝正解数。エンドレスは主成績＝速度（#208 段6）。時間/文字数制はタイピング数。
   const kind = result.endCondition?.kind ?? 'time'
   const isItems = kind === 'items'
   const isCorrect = isItems || kind === 'life' // items は分母つき、life は分母なしで正解数を表示
+  const isEndless = kind === 'endless'
   return (
     <div className="result">
       <h2>記録</h2>
       <div className="result-main">
-        <div className="result-speed">{isCorrect ? (result.correctCount ?? 0) : (result.keys ?? 0)}</div>
-        <div className="result-unit">{isCorrect ? '正解（問）' : 'タイピング数'}</div>
+        <div className="result-speed">
+          {isCorrect ? (result.correctCount ?? 0) : isEndless ? (result.speed ?? 0) : (result.keys ?? 0)}
+        </div>
+        <div className="result-unit">
+          {isCorrect ? '正解（問）' : isEndless ? '打/分（速度）' : 'タイピング数'}
+        </div>
       </div>
       {isCorrect ? (
         <div className="result-sub">
@@ -232,14 +237,14 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
         </div>
       ) : isQuiz ? (
         <div className="result-sub">
-          <span>速度 {result.speed} 打/分</span>
+          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
           <span>正解 {result.correct}/{result.words}</span>
           <span>正確率 {result.accuracy}%</span>
           <span>{result.seconds} 秒</span>
         </div>
       ) : (
         <div className="result-sub">
-          <span>速度 {result.speed} 打/分</span>
+          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
           <span>{result.words} 語</span>
           <span>ミス {result.mistakes}</span>
           <span>正確率 {result.accuracy}%</span>
@@ -268,7 +273,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>{isCorrect ? '正解' : 'タイピング数'}</th>
+                <th>{isCorrect ? '正解' : isEndless ? '速度' : 'タイピング数'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -283,7 +288,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>
-                  <td className="speed">{isCorrect ? (r.correctCount ?? 0) : (r.keys ?? 0)}</td>
+                  <td className="speed">{isCorrect ? (r.correctCount ?? 0) : isEndless ? (r.speed ?? 0) : (r.keys ?? 0)}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

@@ -13,6 +13,10 @@ import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segT
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
 import { makeSeed } from './seed.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
+
+// エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
+const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 export function useWords({ allWords, level, theme, mode, seed, endCondition, onExit }) {
@@ -130,9 +134,30 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
       flushTracker(trackerRef.current)
       finish(keys, missCount, t, startedAt)
     }
+    // エンドレスは ESC が唯一の終了手段。30秒以上プレイしていれば記録して結果へ、
+    // それ未満（未打鍵で startTime 未確定なら経過0扱い）は中断＝onExit（#208 段6）。
+    const finishByEsc = () => {
+      if (finishedRef.current) return false
+      const t = performance.now()
+      const startedAt = startTime ?? t
+      if (t - startedAt < ENDLESS_MIN_RECORD_MS) return false
+      if (seg && input.length > 0) {
+        segPush(segTrackerRef.current, {
+          type: seg.type,
+          label: seg.type === 'en' ? seg.en : seg.ja,
+          keys: input.length,
+          t,
+          partial: true,
+        })
+      }
+      flushTracker(trackerRef.current)
+      finish(keysRef.current, mistakesRef.current, t, startedAt)
+      return true
+    }
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
+        if (ec.kind === 'endless' && !finished && finishByEsc()) return
         onExit()
         return
       }

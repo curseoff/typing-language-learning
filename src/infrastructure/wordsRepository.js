@@ -1,5 +1,5 @@
 // 単語問題の記録の永続化（localStorage、レベル×テーマ×モード別）。
-import { MAX_RECORDS, compareRecords, endConditionToken, isRecordable } from '../domain/records/ranking.js'
+import { MAX_RECORDS, compareRecords, endConditionToken } from '../domain/records/ranking.js'
 import { normalizeEndCondition } from '../domain/session/endCondition.js'
 
 const STORAGE_KEY = 'word-records-v2'
@@ -20,7 +20,6 @@ export function loadWordRecords() {
 }
 
 export function saveWordRecord(record) {
-  if (!isRecordable(record.endCondition)) return loadWordRecords() // endless は非記録
   const all = loadWordRecords()
   const key = wordRecKey(record.level, record.theme, record.mode, record.endCondition)
   const list = [...(all[key] || []), record]

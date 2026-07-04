@@ -9,6 +9,10 @@ import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
+
+// エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
+const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 export function useMarathon({ active, onFinish, endCondition }) {
@@ -228,10 +232,40 @@ export function useMarathon({ active, onFinish, endCondition }) {
     flushTracker(trackerRef.current)
     finish(keysRef.current, mistakesRef.current, t, startedAt)
   }
+  // エンドレスの ESC 終了（App の ESC ハンドラから呼ぶ）。30秒以上プレイしていれば
+  // 未完セグを partial に積んで finish（記録して結果へ）＝true、未満なら false（中断は呼び出し側）。#208 段6
+  const escFinish = useCallback(() => {
+    if (finishedRef.current) return false
+    const t = performance.now()
+    const startedAt = startTimeRef.current ?? t
+    if (t - startedAt < ENDLESS_MIN_RECORD_MS) return false
+    const seg = segments[segIndex]
+    if (seg && segInput.length > 0 && segStartRef.current !== null) {
+      const ms = t - segStartRef.current
+      segStatsRef.current = [
+        ...segStatsRef.current,
+        {
+          no: segStatsRef.current.length + 1,
+          type: seg.type,
+          label: seg.type === 'en' ? seg.en : seg.ja,
+          keys: segInput.length,
+          mistakes: segMistakesRef.current,
+          seconds: Math.round(ms / 100) / 10,
+          speed: ms > 0 ? Math.round(segInput.length / (ms / 60000)) : 0,
+          partial: true,
+        },
+      ]
+    }
+    flushTracker(trackerRef.current)
+    finish(keysRef.current, mistakesRef.current, t, startedAt)
+    return true
+  }, [segments, segIndex, segInput, finish])
+
   const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({ active, startTime, onTimeout, limitMs })
 
   return {
     start,
+    escFinish,
     segments,
     segIndex,
     segInput,

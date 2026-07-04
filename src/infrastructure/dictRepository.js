@@ -1,5 +1,5 @@
 // 英英辞典の記録の永続化（localStorage、レベル×テーマ×モード別）。
-import { MAX_RECORDS, compareRecords, endConditionToken, isRecordable } from '../domain/records/ranking.js'
+import { MAX_RECORDS, compareRecords, endConditionToken } from '../domain/records/ranking.js'
 import { normalizeEndCondition } from '../domain/session/endCondition.js'
 
 const STORAGE_KEY = 'dict-records-v1'
@@ -20,7 +20,6 @@ export function loadDictRecords() {
 }
 
 export function saveDictRecord(record) {
-  if (!isRecordable(record.endCondition)) return loadDictRecords() // endless は非記録
   const all = loadDictRecords()
   const key = dictRecKey(record.level, record.theme, record.mode, record.endCondition)
   const list = [...(all[key] || []), record]

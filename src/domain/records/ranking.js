@@ -3,20 +3,20 @@ import { normalizeEndCondition } from '../session/endCondition.js'
 
 export const MAX_RECORDS = 15
 
-// 終了条件をランキングキーの識別トークンへ変換する（#208 段0b）。
-// 既定 time60・endless・null/undefined は空文字＝従来キーと同一（後方互換）。
+// 終了条件をランキングキーの識別トークンへ変換する（#208 段0b・段6）。
+// 既定 time60・null/undefined は空文字＝従来キーと同一（後方互換）。
+// endless は値なしの種別トークン 'E'（速度順の別ランキング。#208 段6）。
 // それ以外は kind の頭文字＋value（例 T30/C600/I25/L3）。
 export function endConditionToken(endCondition) {
   const { kind, value } = normalizeEndCondition(endCondition)
-  if (kind === 'endless') return ''
   if (kind === 'time' && value === 60) return ''
-  const prefix = { time: 'T', chars: 'C', items: 'I', life: 'L' }[kind]
-  return `${prefix}${value}`
+  const prefix = { time: 'T', chars: 'C', items: 'I', life: 'L', endless: 'E' }[kind]
+  return kind === 'endless' ? prefix : `${prefix}${value}`
 }
 
-// 記録対象か（endless のみ非対象）（#208 段0b）。
-export function isRecordable(endCondition) {
-  return normalizeEndCondition(endCondition).kind !== 'endless'
+// 記録対象か（#208 段6：endless も ESC で30秒以上プレイしたら記録対象）。
+export function isRecordable() {
+  return true
 }
 
 // 終了条件ごとの成績比較（#208 段0b・Array.sort 準拠：負=a が上位/正=b/0=同着）。
@@ -41,7 +41,8 @@ export function compareRecords(endCondition, a, b) {
         cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity)
       )
     case 'endless':
-      return 0
+      // 速度(WPM)の速い方が上位。同速はミスの少ない順（#208 段6）。
+      return (b.speed ?? 0) - (a.speed ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0)
     case 'time':
     default:
       // タイピング数の多い方が上位。同数はミスの少ない順（未知 kind もここへ）。

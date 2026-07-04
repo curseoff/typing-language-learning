@@ -16,6 +16,10 @@ import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.js'
 import { makeSeed } from './seed.js'
 import { playMiss } from '../infrastructure/sound.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
+
+// エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
+const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondition, onExit }) {
@@ -185,10 +189,22 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
     setHasError(false)
   }, [picked, index, questions, buildWith, finishByProgress])
 
+  // エンドレスは ESC が唯一の終了手段。30秒以上プレイしていれば記録して結果へ、
+  // それ未満（未打鍵で startTime 未確定なら経過0扱い）は中断＝onExit（#208 段6）。
+  const finishByEsc = useCallback(() => {
+    if (finishedRef.current) return false
+    const t = performance.now()
+    const startedAt = startTimeRef.current ?? t
+    if (t - startedAt < ENDLESS_MIN_RECORD_MS) return false
+    finish(keysRef.current, correctRef.current, mistakesRef.current, t, startedAt)
+    return true
+  }, [finish])
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
+        if (ec.kind === 'endless' && !finished && finishByEsc()) return
         onExit()
         return
       }
@@ -238,7 +254,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, picked, q, input, advance, restart, onExit, commit, finishByProgress])
+  }, [finished, picked, q, input, advance, restart, onExit, commit, finishByProgress, ec, finishByEsc])
 
   // 最初の打鍵から60秒で終了（操作が無くても時間で finish）。
   const onTimeout = (endTime, startedAt) =>

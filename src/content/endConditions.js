@@ -51,7 +51,7 @@ export function endValueLabel(kind, value) {
 export function endConditionSummary(endCondition) {
   const kind = endCondition?.kind ?? 'time'
   const value = endCondition?.value ?? 60
-  if (kind === 'endless') return 'Escを押すまで継続'
+  if (kind === 'endless') return 'Escで終了（30秒以上で記録）'
   if (kind === 'chars') return `${value}文字打ったら終了`
   if (kind === 'items') return `${value}問で終了`
   if (kind === 'life') return `ミス${value}問で終了（ライフ${value}）`
