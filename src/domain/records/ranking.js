@@ -3,11 +3,11 @@ import { normalizeEndCondition } from '../session/endCondition.js'
 
 export const MAX_RECORDS = 15
 
-// 終了条件をランキングキーの識別トークンへ変換する（#208 段0b・段6）。
+// 終了条件をランキングキーの区別用タグへ変換する（#208 段0b・段6）。
 // 既定 time60・null/undefined は空文字＝従来キーと同一（後方互換）。
-// endless は値なしの種別トークン 'E'（速度順の別ランキング。#208 段6）。
+// endless は値なしの種別タグ 'E'（速度順の別ランキング。#208 段6）。
 // それ以外は kind の頭文字＋value（例 T30/C600/I25/L3）。
-export function endConditionToken(endCondition) {
+export function endConditionTag(endCondition) {
   const { kind, value } = normalizeEndCondition(endCondition)
   if (kind === 'time' && value === 60) return ''
   const prefix = { time: 'T', chars: 'C', items: 'I', life: 'L', endless: 'E' }[kind]
@@ -53,11 +53,11 @@ export function compareRecords(endCondition, a, b) {
 // モード×ランクの記録キー。source で出題元を分ける（文章=sentence / 単語例文=wsent）。
 // theme を渡すとテーマ別キーになる（単語例文＝単語/英英と同様にテーマ別ランキング）。
 // theme 未指定（文章・タッチ等）はキー据え置きで後方互換。
-// endCondition を渡すと終了条件別キーになる（time60/endless/未指定はトークン無し＝従来キー）。
+// endCondition を渡すと終了条件別キーになる（time60/endless/未指定はタグ無し＝従来キー）。
 export function recKey(mode, rank, source = 'sentence', theme, endCondition) {
   const base = source === 'sentence' ? `${mode}__r${rank}` : `${mode}__${source}${rank}`
   const withTheme = theme != null ? `${base}__${theme}` : base
-  const t = endConditionToken(endCondition)
+  const t = endConditionTag(endCondition)
   return t ? `${withTheme}__${t}` : withTheme
 }
 
