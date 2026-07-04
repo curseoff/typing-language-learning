@@ -1,12 +1,13 @@
-// 「最初の打鍵から60秒で終了」の共通タイマー。now の刻み・60秒到達の1回限り発火・
+// 「最初の打鍵から一定時間で終了」の共通タイマー。now の刻み・上限到達の1回限り発火・
 // 経過秒/速度計算を集約し、各ゲームフックの重複を排除する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 
 // active: 時間を刻む条件（marathon は active prop、他は !finished）
 // startTime: 最初の打鍵時刻（呼び出し側が保持・null は未開始）
-// onTimeout(endTime, startedAt): 60秒到達で1回だけ。setTimeout(…,0) で次tickへ遅延。
-export function useCountdownTimer({ active, startTime, onTimeout }) {
+// onTimeout(endTime, startedAt): 上限到達で1回だけ。setTimeout(…,0) で次tickへ遅延。
+// limitMs: 制限時間（既定 60秒＝TIME_LIMIT_MS。終了条件が時間制なら value*1000 を渡す）。
+export function useCountdownTimer({ active, startTime, onTimeout, limitMs = TIME_LIMIT_MS }) {
   const [now, setNow] = useState(0)
   const firedRef = useRef(false) // onTimeout を一度だけ発火するガード
   const onTimeoutRef = useRef(onTimeout)
@@ -26,14 +27,14 @@ export function useCountdownTimer({ active, startTime, onTimeout }) {
     if (startTime === null) firedRef.current = false
   }, [startTime])
 
-  // 最初の打鍵から60秒で1回だけ onTimeout（effect 内同期 setState のカスケード回避で setTimeout 遅延）
+  // 最初の打鍵から limitMs で1回だけ onTimeout（effect 内同期 setState のカスケード回避で setTimeout 遅延）
   useEffect(() => {
     if (!active || startTime === null || firedRef.current) return
-    if (now - startTime < TIME_LIMIT_MS) return
+    if (now - startTime < limitMs) return
     firedRef.current = true
-    const endTime = startTime + TIME_LIMIT_MS
+    const endTime = startTime + limitMs
     setTimeout(() => onTimeoutRef.current(endTime, startTime), 0)
-  }, [active, now, startTime])
+  }, [active, now, startTime, limitMs])
 
   const started = startTime !== null
   const elapsedSec = useMemo(() => {

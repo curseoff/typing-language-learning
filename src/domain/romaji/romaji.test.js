@@ -50,4 +50,22 @@ describe('romaji', () => {
     expect(kanaConsumed(kana, toRomaji(kana))).toBe([...kana].length) // 全消費
     expect(performance.now() - t).toBeLessThan(50) // 旧実装は指数的で桁違いに遅かった
   })
+
+  // 端ケース（分岐網羅）: 語末の促音・BASE 非登録文字のフォールバック。
+  it('語末の促音（っ）は canonical で xtu になる', () => {
+    // toRomaji: 次ユニットが無いので ['',0] → xtu（末尾促音の分岐）。
+    expect(toRomaji('がっ')).toBe('gaxtu')
+  })
+
+  it('kanaConsumed: 語末の促音を含んでも手前まで消費できる', () => {
+    // units(i+1) が末尾で [] を返す経路（促音が最終文字）。
+    expect(kanaConsumed('がっ', 'ga')).toBe(1)
+  })
+
+  it('BASE に無い文字はそのまま素通しする（フォールバック分岐）', () => {
+    // BASE[ch] || [ch] の右辺（未登録文字）を通す。
+    expect(toRomaji('A')).toBe('A')
+    expect(romajiVariants('A')).toEqual(['A'])
+    expect(kanaConsumed('A', 'A')).toBe(1)
+  })
 })

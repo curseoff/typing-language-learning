@@ -47,6 +47,8 @@ export default function Ready({
   onBottomTabChange,
   onStart,
   records,
+  endCondition,
+  onEndConditionChange,
 }) {
 
   return (
@@ -88,6 +90,8 @@ export default function Ready({
           onBottomTabChange={onBottomTabChange}
           onStart={onStart}
           records={records}
+          endCondition={endCondition}
+          onEndConditionChange={onEndConditionChange}
         />
       )}
 
@@ -120,6 +124,8 @@ export default function Ready({
           bottomTab={bottomTab}
           onBottomTabChange={onBottomTabChange}
           onStart={onStart}
+          endCondition={endCondition}
+          onEndConditionChange={onEndConditionChange}
         />
       )}
 
@@ -137,6 +143,8 @@ export default function Ready({
           bottomTab={bottomTab}
           onBottomTabChange={onBottomTabChange}
           onStart={onStart}
+          endCondition={endCondition}
+          onEndConditionChange={onEndConditionChange}
         />
       )}
 

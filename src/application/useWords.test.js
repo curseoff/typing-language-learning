@@ -6,6 +6,7 @@ import { renderHook, act } from '@testing-library/react'
 import { useWords } from './useWords.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { WORDS } from '../content/wordsAll.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
 import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
 
 beforeEach(() => {
@@ -93,6 +94,38 @@ describe('useWords（単語入力・結合）', () => {
     expect(result.current.hasError).toBe(true)
   })
 
+  // #208 段2: 文字数制（chars）は「時間」ではなく「打鍵数」で終了する。
+  it('文字数制 chars=N は時間切れ(60秒)を待たず、N 文字打鍵した時点で finished になる', () => {
+    const N = 5
+    const endCondition = { kind: 'chars', value: N }
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition, onExit: () => {} }),
+    )
+    // N-1 文字ではまだ終わらない（時間では無く打鍵数で終わる境界）。
+    typeSome(result, N - 1)
+    expect(result.current.finished).toBe(false)
+    // N 文字目で終了する（60秒アドバンスはしない＝時間では終わっていない）。
+    typeSome(result, 1)
+    expect(result.current.finished).toBe(true)
+    // 記録は chars 用キーに保存され、所要時間(seconds)が成績として入る。
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en', endCondition)][0]
+    expect(rec.endCondition.kind).toBe('chars')
+    expect(rec.keys).toBe(N)
+    expect(rec.seconds).toEqual(expect.any(Number))
+  }, 20000)
+
+  it('文字数制では 60秒経過しても打鍵数に達しなければ終了しない（時間では終わらない）', () => {
+    const endCondition = { kind: 'chars', value: 100 }
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition, onExit: () => {} }),
+    )
+    // 数文字だけ打って開始（100 文字には届かない）。
+    typeSome(result, 5)
+    // 60秒経過させても、chars=100 に達していないので終了してはいけない。
+    runOutClock()
+    expect(result.current.finished).toBe(false)
+  }, 20000)
+
   it('同じ seed なら同じ単語列を再現し、record に seed が入る（リプレイ）', () => {
     const seed = 987654
     const opts = { allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', seed, onExit: () => {} }
@@ -110,5 +143,67 @@ describe('useWords（単語入力・結合）', () => {
     const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0]
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('word')
+  }, 20000)
+})
+
+// #208 段6：エンドレスは ESC で終了。30秒(=END_TIME_VALUES[0])以上プレイした時だけ記録する。
+const ENDLESS = { kind: 'endless', value: null }
+const MIN_RECORD_MS = END_TIME_VALUES[0] * 1000 // 記録に必要な最低プレイ時間（30秒）
+
+// 現在セグの正しい次の1文字を打つ（時間は進めない＝経過を境界で正確に制御するため）。
+const typeCorrect = (result) => {
+  const seg = result.current.segments[result.current.segIndex]
+  typeKey(seg.canonical[result.current.segInput.length])
+}
+const pressEscape = () => typeKey('Escape')
+
+describe('useWords エンドレス（#208 段6：ESC・30秒以上で記録）', () => {
+  it('数文字だけ打って(経過<30秒) ESC したら記録せず onExit（中断＝TOPへ）', () => {
+    const onExit = vi.fn()
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition: ENDLESS, onExit }),
+    )
+    typeCorrect(result) // startTime を確定（経過 0）
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS - 100)) // 29.9秒＝閾値未満
+    pressEscape()
+    expect(onExit).toHaveBeenCalledTimes(1) // 中断＝onExit
+    expect(result.current.finished).toBe(false) // 結果画面には行かない
+    expect(loadWordRecords()[wordRecKey(1, 'すべて', 'en', ENDLESS)] ?? []).toEqual([]) // 非記録
+  }, 20000)
+
+  it('経過>=30秒で ESC したら finished になり記録される（中断ではなく記録）', () => {
+    const onExit = vi.fn()
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition: ENDLESS, onExit }),
+    )
+    typeSome(result, 5) // 数文字打鍵（startTime 確定・keys>0）
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS)) // 30秒以上経過させる
+    pressEscape()
+    expect(result.current.finished).toBe(true) // 結果画面へ
+    expect(onExit).not.toHaveBeenCalled() // 30秒以上は中断ではない
+    const list = loadWordRecords()[wordRecKey(1, 'すべて', 'en', ENDLESS)]
+    expect(list.length).toBe(1)
+    expect(list[0].endCondition.kind).toBe('endless')
+    expect(list[0].speed).toEqual(expect.any(Number)) // 速度が成績として残る
+  }, 20000)
+
+  it('ちょうど30秒(>=)で ESC すれば記録される（境界）', () => {
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition: ENDLESS, onExit: () => {} }),
+    )
+    typeCorrect(result) // 経過 0 から
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS)) // ちょうど30秒
+    pressEscape()
+    expect(result.current.finished).toBe(true)
+    expect((loadWordRecords()[wordRecKey(1, 'すべて', 'en', ENDLESS)] ?? []).length).toBe(1)
+  }, 20000)
+
+  it('エンドレスは自動終了しない（打鍵・時間経過だけでは finished にならない＝ESC 必須）', () => {
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', endCondition: ENDLESS, onExit: () => {} }),
+    )
+    typeSome(result, 30)
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS * 3)) // 90秒経過してもエンドレスは終わらない
+    expect(result.current.finished).toBe(false)
   }, 20000)
 })

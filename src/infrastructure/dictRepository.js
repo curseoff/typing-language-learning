@@ -1,10 +1,13 @@
 // 英英辞典の記録の永続化（localStorage、レベル×テーマ×モード別）。
-import { MAX_RECORDS } from '../domain/records/ranking.js'
+import { MAX_RECORDS, compareRecords, endConditionToken } from '../domain/records/ranking.js'
+import { normalizeEndCondition } from '../domain/session/endCondition.js'
 
 const STORAGE_KEY = 'dict-records-v1'
 
-export function dictRecKey(level, theme, mode) {
-  return `L${level}__${theme}__${mode}`
+export function dictRecKey(level, theme, mode, endCondition) {
+  const base = `L${level}__${theme}__${mode}`
+  const t = endConditionToken(endCondition)
+  return t ? `${base}__${t}` : base
 }
 
 export function loadDictRecords() {
@@ -18,10 +21,10 @@ export function loadDictRecords() {
 
 export function saveDictRecord(record) {
   const all = loadDictRecords()
-  const key = dictRecKey(record.level, record.theme, record.mode)
+  const key = dictRecKey(record.level, record.theme, record.mode, record.endCondition)
   const list = [...(all[key] || []), record]
-  // 全モードでタイピング数(keys)の多い順に統一（60秒固定なので keys が成績）。同数はミスの少ない順。
-  list.sort((a, b) => (b.keys ?? 0) - (a.keys ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0))
+  // 終了条件に応じた成績順に統一（time60 では従来どおり keys 降順→mistakes 昇順）。
+  list.sort((a, b) => compareRecords(normalizeEndCondition(record.endCondition), a, b))
   all[key] = list.slice(0, MAX_RECORDS)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
   return all

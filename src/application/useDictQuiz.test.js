@@ -6,7 +6,11 @@ import { renderHook, act } from '@testing-library/react'
 import { useDictQuiz } from './useDictQuiz.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { DICT } from '../content/dictionaryAll.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
 import { loadDictRecords, dictRecKey } from '../infrastructure/dictRepository.js'
+
+const ENDLESS = { kind: 'endless', value: null }
+const MIN_RECORD_MS = END_TIME_VALUES[0] * 1000 // 記録に必要な最低プレイ時間（30秒）
 
 beforeEach(() => {
   localStorage.clear()
@@ -78,4 +82,38 @@ describe('useDictQuiz（英英4択・60秒・結合）', () => {
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('dict')
   })
+})
+
+// #208 段6：エンドレスは ESC で終了。30秒以上プレイした時だけ記録する。
+const pressEscape = () => typeKey('Escape')
+
+describe('useDictQuiz エンドレス（#208 段6：ESC・30秒以上で記録）', () => {
+  it('経過<30秒で ESC したら記録せず onExit（中断＝TOPへ）', () => {
+    const onExit = vi.fn()
+    const { result } = renderHook(() =>
+      useDictQuiz({ dict: DICT, level: 1, theme: 'すべて', kind: 'quiz', endCondition: ENDLESS, onExit }),
+    )
+    solve(result, 1) // startTime 確定
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS - 100)) // 29.9秒
+    pressEscape()
+    expect(onExit).toHaveBeenCalledTimes(1)
+    expect(result.current.finished).toBe(false)
+    expect(loadDictRecords()[dictRecKey(1, 'すべて', 'quiz', ENDLESS)] ?? []).toEqual([])
+  }, 20000)
+
+  it('経過>=30秒で ESC したら finished になり記録される（速度が成績）', () => {
+    const onExit = vi.fn()
+    const { result } = renderHook(() =>
+      useDictQuiz({ dict: DICT, level: 1, theme: 'すべて', kind: 'quiz', endCondition: ENDLESS, onExit }),
+    )
+    solve(result, 3)
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS)) // 30秒
+    pressEscape()
+    expect(result.current.finished).toBe(true)
+    expect(onExit).not.toHaveBeenCalled()
+    const list = loadDictRecords()[dictRecKey(1, 'すべて', 'quiz', ENDLESS)]
+    expect(list.length).toBe(1)
+    expect(list[0].endCondition.kind).toBe('endless')
+    expect(list[0].speed).toEqual(expect.any(Number))
+  }, 20000)
 })

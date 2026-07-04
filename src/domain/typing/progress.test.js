@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { alignJaToKana, kanjiDone, rubyParts, chipProgress } from './progress.js'
+import { alignJaToKana, kanjiDone, rubyParts, chipProgress, guideText, consumedWords } from './progress.js'
 import { WORDS } from '../../content/wordsAll.js'
 import { WORD_SENTENCES } from '../../content/wordSentences/all.js'
 
@@ -79,7 +79,55 @@ describe('rubyParts (ふりがな)', () => {
   })
 })
 
+describe('guideText (表示ローマ字の切替)', () => {
+  it('canonical が入力の接頭なら canonical をそのまま返す', () => {
+    const seg = { canonical: 'shi', variants: ['shi', 'si', 'ci'] }
+    expect(guideText(seg, 's')).toBe('shi')
+  })
+
+  it('canonical が合わないときは入力に合う最短の variant を選ぶ', () => {
+    // 'abcd' と 'ab' の両方が 'a' で始まるが、短い 'ab' を選ぶ（best 更新の分岐）。
+    const seg = { canonical: 'xxx', variants: ['abcd', 'ab'] }
+    expect(guideText(seg, 'a')).toBe('ab')
+  })
+
+  it('どの variant も合わなければ canonical にフォールバックする', () => {
+    const seg = { canonical: 'shi', variants: ['shi', 'si'] }
+    expect(guideText(seg, 'z')).toBe('shi')
+  })
+})
+
+describe('consumedWords (チップ消費数・端ケース)', () => {
+  it('words が無いセグメントは 0 を返す', () => {
+    expect(consumedWords({ type: 'en', en: 'hi' }, 'hi')).toBe(0)
+  })
+
+  it('英文（末尾句読点なし）でも語の終端で数える', () => {
+    const seg = { type: 'en', en: 'I read books', words: ['I', 'read', 'books'] }
+    expect(consumedWords(seg, 'I read')).toBe(2)
+  })
+
+  it('日本語で先頭語が未完なら 0 で打ち切る（break 分岐）', () => {
+    const seg = { type: 'ja', ja: '本を読む', kana: 'ほんをよむ', words: ['本', 'を', '読む'] }
+    expect(consumedWords(seg, 'ho')).toBe(0)
+  })
+})
+
 describe('chipProgress (チップ着色)', () => {
+  it('全語を打ち終えたら現在語なしで curDone=0 を返す', () => {
+    const seg = { type: 'ja', ja: '本を読む', kana: 'ほんをよむ', words: ['本', 'を', '読む'] }
+    expect(chipProgress(seg, 'honnwoyomu')).toEqual({ used: 3, curDone: 0, curKanaDone: 0 })
+  })
+
+  it('先頭語の途中（used=0）でも現在語の進捗を返す', () => {
+    const seg = { type: 'ja', ja: '本を読む', kana: 'ほんをよむ', words: ['本', 'を', '読む'] }
+    const p = chipProgress(seg, 'ho')
+    expect(p.used).toBe(0)
+    expect(p.curKanaDone).toBe(1) // 「ほ」1かなぶん
+  })
+})
+
+describe('chipProgress (旧テスト)', () => {
   it('英訳: 今打っている英単語の打鍵済み文字数を返す', () => {
     const seg = { type: 'en', en: 'I read books.', words: ['I', 'read', 'books', '.'] }
     expect(chipProgress(seg, 'I rea')).toEqual({ used: 1, curDone: 3, curKanaDone: 0 })

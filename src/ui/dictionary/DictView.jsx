@@ -3,26 +3,29 @@ import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { endHudStat } from '../../content/endConditions.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 
-export default function DictView({ dict, gloss, level, theme, mode, seed, levelLabel, modeLabel, onExit }) {
+export default function DictView({ dict, gloss, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
       <span className="meta-badge mode">英英 / {modeLabel} / {theme}</span>
     </div>
   )
-  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
-  if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} onExit={onExit} />
-  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
+  if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
+  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
 }
 
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
-function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
-  const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, onExit })
+function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, endCondition, onExit })
+  // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
 
   return (
     <div className="game">
@@ -36,9 +39,9 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / 60秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, q.elapsedSec / 60)}
+            progress={endStat.progress}
           />
           <div className="word-card">
             <div className="word-dir">単語に合う説明文を入力</div>
@@ -87,8 +90,10 @@ function PickView({ dict, gloss, level, theme, seed, meta, onExit }) {
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）
 // 単語例文（マラソン）の英語/日本語入力と同じ TopFlow（ティッカー表示）で描画する。
-function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
-  const d = useDict({ dict, level, theme, mode, seed, onExit })
+function TypeView({ dict, gloss, level, theme, mode, seed, meta, endCondition, onExit }) {
+  const d = useDict({ dict, level, theme, mode, seed, endCondition, onExit })
+  // items 制の HUD 進捗＝完了語数（segIndex）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
 
   return (
     <div className="game">
@@ -102,9 +107,9 @@ function TypeView({ dict, gloss, level, theme, mode, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${d.typedKeys}` },
               { label: '速度', value: `${d.liveSpeed} 打/分` },
               { label: 'ミス', value: d.mistakes },
-              { label: '時間', value: `${d.elapsedSec} / 60秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, d.elapsedSec / 60)}
+            progress={endStat.progress}
           />
           {d.word && (
             <p className="seg-word">
@@ -137,8 +142,10 @@ function typeHint(mode, segType) {
 }
 
 // 4択（定義→英単語をタイプ/クリック）
-function QuizView({ dict, gloss, level, theme, seed, meta, onExit }) {
-  const q = useDictQuiz({ dict, level, theme, seed, onExit })
+function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, seed, endCondition, onExit })
+  // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
   // 回答後、選んだ語（型 or クリック）の和訳をグロッサリから引いて見出し下に出す
   const pickedWord = q.input || q.picked?.display
   const pickedJa = q.picked !== null && pickedWord ? gloss?.[pickedWord] : null
@@ -155,9 +162,9 @@ function QuizView({ dict, gloss, level, theme, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / 60秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, q.elapsedSec / 60)}
+            progress={endStat.progress}
           />
           <div className="word-card">
             <div className="word-dir">定義に合う英単語を入力</div>
@@ -203,26 +210,41 @@ function QuizView({ dict, gloss, level, theme, seed, meta, onExit }) {
 }
 
 function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[dictRecKey(level, theme, mode)] || []
+  const list = records[dictRecKey(level, theme, mode, result.endCondition)] || []
   const { open, modal } = useRecordDetail()
   const isQuiz = mode === 'quiz' || mode === 'pick' // 選択式＝正解数で表示
+  // 問題数制・サドンデス（life）は主成績＝正解数。エンドレスは主成績＝速度（#208 段6）。時間/文字数制はタイピング数。
+  const kind = result.endCondition?.kind ?? 'time'
+  const isItems = kind === 'items'
+  const isCorrect = isItems || kind === 'life' // items は分母つき、life は分母なしで正解数を表示
+  const isEndless = kind === 'endless'
   return (
     <div className="result">
       <h2>記録</h2>
       <div className="result-main">
-        <div className="result-speed">{result.keys ?? 0}</div>
-        <div className="result-unit">タイピング数</div>
+        <div className="result-speed">
+          {isCorrect ? (result.correctCount ?? 0) : isEndless ? (result.speed ?? 0) : (result.keys ?? 0)}
+        </div>
+        <div className="result-unit">
+          {isCorrect ? '正解（問）' : isEndless ? '打/分（速度）' : 'タイピング数'}
+        </div>
       </div>
-      {isQuiz ? (
+      {isCorrect ? (
         <div className="result-sub">
-          <span>速度 {result.speed} 打/分</span>
+          <span>正解 {result.correctCount ?? 0}{isItems ? `/${result.endCondition?.value ?? 0}` : ''}問</span>
+          <span>正確率 {result.accuracy}%</span>
+          <span>{result.seconds} 秒</span>
+        </div>
+      ) : isQuiz ? (
+        <div className="result-sub">
+          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
           <span>正解 {result.correct}/{result.words}</span>
           <span>正確率 {result.accuracy}%</span>
           <span>{result.seconds} 秒</span>
         </div>
       ) : (
         <div className="result-sub">
-          <span>速度 {result.speed} 打/分</span>
+          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
           <span>{result.words} 語</span>
           <span>ミス {result.mistakes}</span>
           <span>正確率 {result.accuracy}%</span>
@@ -251,7 +273,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>タイピング数</th>
+                <th>{isCorrect ? '正解' : isEndless ? '速度' : 'タイピング数'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -266,7 +288,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>
-                  <td className="speed">{r.keys ?? 0}</td>
+                  <td className="speed">{isCorrect ? (r.correctCount ?? 0) : isEndless ? (r.speed ?? 0) : (r.keys ?? 0)}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

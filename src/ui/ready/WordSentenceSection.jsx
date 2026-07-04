@@ -6,6 +6,8 @@ import { WORD_LEVELS } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.js'
 import RecordsTable from '../result/RecordsTable.jsx'
 import ItemList from './ItemList.jsx'
+import EndConditionSelect from './EndConditionSelect.jsx'
+import { endConditionSummary } from '../../content/endConditions.js'
 import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow, THEME_OPTIONS } from './parts.jsx'
 
 // 単語例文の収録一覧。レベルの例文＋テーママップを遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
@@ -40,6 +42,8 @@ export default function WordSentenceSection({
   onBottomTabChange,
   onStart,
   records,
+  endCondition,
+  onEndConditionChange,
 }) {
   return (
     <>
@@ -101,8 +105,17 @@ export default function WordSentenceSection({
           </div>
         ))}
       </div>
-      <p className="mode-desc">{modeDesc(mode)} 単語を使った例文を打ちます。60秒で終了します。</p>
+      <p className="mode-desc">
+        {modeDesc(mode)} 単語を使った例文を打ちます。{endConditionSummary(endCondition)}します。
+      </p>
       <p className="pool-count">この条件の収録: {WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0} 文</p>
+
+      <EndConditionSelect
+        endCondition={endCondition}
+        onChange={onEndConditionChange}
+        focusSection={focusSection}
+        onFocusSection={onFocusSection}
+      />
 
       <StartRow onStart={onStart} />
       <BottomTabs
@@ -117,9 +130,10 @@ export default function WordSentenceSection({
         <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} />
       ) : (
         <RecordsTable
-          records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme)]}
+          records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme, endCondition)]}
           modeKey={mode}
           rankText={`単語例文 L${wsentLevel} / ${wsentTheme}`}
+          endCondition={endCondition}
         />
       )}
     </>

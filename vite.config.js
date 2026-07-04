@@ -35,8 +35,8 @@ export default defineConfig({
         'src/infrastructure/pwa/registerSW.js',
       ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
-      // 打鍵ミス効果音（sound/soundSettingsRepository/SoundToggle）にテストを追加し微増。実測直下へ追従。
-      thresholds: { statements: 77.5, branches: 60.4, functions: 75.7, lines: 78.6 },
+      // #208 段6（エンドレスの ESC 記録＋速度ランキング）のフック/UI テスト追加で微増。実測直下へ追従。
+      thresholds: { statements: 79.0, branches: 60.8, functions: 77.0, lines: 80.0 },
     },
   },
 })

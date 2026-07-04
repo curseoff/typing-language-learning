@@ -6,6 +6,7 @@ import { renderHook, act } from '@testing-library/react'
 import { useDict } from './useDict.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { DICT } from '../content/dictionaryAll.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
 import { loadDictRecords, dictRecKey } from '../infrastructure/dictRepository.js'
 
 beforeEach(() => {
@@ -116,5 +117,56 @@ describe('useDict（英英入力・60秒・結合）', () => {
     const labelsA = recA.segStats.map((s) => s.label)
     expect(labelsB.slice(0, 5)).toEqual(labelsA.slice(0, 5))
     expect(recA.seed).toBe(seed)
+  }, 20000)
+})
+
+// #208 段6：エンドレスは ESC で終了。30秒(=END_TIME_VALUES[0])以上プレイした時だけ記録する。
+const ENDLESS = { kind: 'endless', value: null }
+const MIN_RECORD_MS = END_TIME_VALUES[0] * 1000 // 記録に必要な最低プレイ時間（30秒）
+
+// 現在セグの正しい次の1文字を打つ（時間は進めない＝経過を境界で正確に制御するため）。
+const typeCorrect = (h) => {
+  const seg = h.result.current.segments[h.result.current.segIndex]
+  typeKey(seg.canonical[h.result.current.segInput.length])
+}
+const pressEscape = () => typeKey('Escape')
+
+describe('useDict エンドレス（#208 段6：ESC・30秒以上で記録）', () => {
+  it('数文字だけ打って(経過<30秒) ESC したら記録せず onExit（中断＝TOPへ）', () => {
+    const onExit = vi.fn()
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', endCondition: ENDLESS, onExit }),
+    )
+    typeCorrect(h) // startTime を確定（経過 0）
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS - 100)) // 29.9秒＝閾値未満
+    pressEscape()
+    expect(onExit).toHaveBeenCalledTimes(1)
+    expect(h.result.current.finished).toBe(false)
+    expect(loadDictRecords()[dictRecKey(1, 'すべて', 'ja', ENDLESS)] ?? []).toEqual([])
+  }, 20000)
+
+  it('経過>=30秒で ESC したら finished になり記録される（中断ではなく記録）', () => {
+    const onExit = vi.fn()
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', endCondition: ENDLESS, onExit }),
+    )
+    typeSome(h, 5)
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS)) // 30秒以上経過
+    pressEscape()
+    expect(h.result.current.finished).toBe(true)
+    expect(onExit).not.toHaveBeenCalled()
+    const list = loadDictRecords()[dictRecKey(1, 'すべて', 'ja', ENDLESS)]
+    expect(list.length).toBe(1)
+    expect(list[0].endCondition.kind).toBe('endless')
+    expect(list[0].speed).toEqual(expect.any(Number))
+  }, 20000)
+
+  it('エンドレスは自動終了しない（打鍵・時間経過だけでは finished にならない＝ESC 必須）', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', endCondition: ENDLESS, onExit: () => {} }),
+    )
+    typeSome(h, 30)
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS * 3)) // 90秒経過してもエンドレスは終わらない
+    expect(h.result.current.finished).toBe(false)
   }, 20000)
 })
