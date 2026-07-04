@@ -3,11 +3,12 @@ import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.js'
 import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
+import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 import TopFlow from '../marathon/TopFlow.jsx'
 
-export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, onExit }) {
+export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
@@ -23,16 +24,21 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
       dir={mode === 'quiz-ja' ? 'ja' : 'en'}
       seed={seed}
       meta={meta}
+      endCondition={endCondition}
       onExit={onExit}
     />
   ) : (
-    <TypeView words={words} level={level} theme={theme} mode={mode} seed={seed} meta={meta} onExit={onExit} />
+    <TypeView words={words} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
   )
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
-function TypeView({ words, level, theme, mode, seed, meta, onExit }) {
-  const w = useWords({ allWords: words, level, theme, mode, seed, onExit })
+function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit }) {
+  const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, onExit })
+  // items 制の HUD 進捗＝完了語数（segIndex）、life 制は残りライフ（missedItems）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex, missedItems: w.missedItems })
+  // 時間制はフックの滑らかな progress を維持し、文字数制/問題数制は endStat 側（打鍵/問題基準）へ切替える。
+  const progress = (endCondition?.kind ?? 'time') === 'time' ? w.progress : endStat.progress
 
   return (
     <div className="game">
@@ -54,9 +60,9 @@ function TypeView({ words, level, theme, mode, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${w.typedKeys}` },
               { label: '速度', value: `${w.liveSpeed} 打/分` },
               { label: 'ミス', value: w.mistakes },
-              { label: '時間', value: `${w.elapsedSec} / 60秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={w.progress}
+            progress={progress}
           />
           <TopFlow
             segments={w.segments}
@@ -76,8 +82,10 @@ function TypeView({ words, level, theme, mode, seed, meta, onExit }) {
 }
 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
-function QuizView({ words, level, theme, mode, dir, seed, meta, onExit }) {
-  const q = useWordQuiz({ words, level, theme, dir, mode, seed, onExit })
+function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, onExit }) {
+  const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit })
+  // items 制の HUD 進捗＝完答した設問数（index）、life 制は残りライフ（missedItems）。time/chars は不変。
+  const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
 
   return (
     <div className="game">
@@ -99,9 +107,9 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, onExit }) {
               { label: 'タイピング数', value: `${q.typedKeys}` },
               { label: '正解', value: q.correct },
               { label: 'ミス', value: q.mistakes },
-              { label: '時間', value: `${q.elapsedSec} / 60秒` },
+              { label: endStat.label, value: endStat.value },
             ]}
-            progress={Math.min(1, q.elapsedSec / 60)}
+            progress={endStat.progress}
           />
           <div className="word-card">
             <div className="word-dir">
@@ -157,26 +165,41 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, onExit }) {
 }
 
 function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[wordRecKey(level, theme, mode)] || []
+  const list = records[wordRecKey(level, theme, mode, result.endCondition)] || []
   const { open, modal } = useRecordDetail()
   const isQuiz = mode.startsWith('quiz')
+  // 問題数制・サドンデス（life）は主成績＝正解数。エンドレスは主成績＝速度（#208 段6）。時間/文字数制はタイピング数。
+  const kind = result.endCondition?.kind ?? 'time'
+  const isItems = kind === 'items'
+  const isCorrect = isItems || kind === 'life' // items は分母つき、life は分母なしで正解数を表示
+  const isEndless = kind === 'endless'
   return (
     <div className="result">
       <h2>記録</h2>
       <div className="result-main">
-        <div className="result-speed">{result.keys ?? 0}</div>
-        <div className="result-unit">タイピング数</div>
+        <div className="result-speed">
+          {isCorrect ? (result.correctCount ?? 0) : isEndless ? (result.speed ?? 0) : (result.keys ?? 0)}
+        </div>
+        <div className="result-unit">
+          {isCorrect ? '正解（問）' : isEndless ? '打/分（速度）' : 'タイピング数'}
+        </div>
       </div>
-      {isQuiz ? (
+      {isCorrect ? (
         <div className="result-sub">
-          <span>速度 {result.speed} 打/分</span>
+          <span>正解 {result.correctCount ?? 0}{isItems ? `/${result.endCondition?.value ?? 0}` : ''}問</span>
+          <span>正確率 {result.accuracy}%</span>
+          <span>{result.seconds} 秒</span>
+        </div>
+      ) : isQuiz ? (
+        <div className="result-sub">
+          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
           <span>正解 {result.correct}/{result.words}</span>
           <span>正確率 {result.accuracy}%</span>
           <span>{result.seconds} 秒</span>
         </div>
       ) : (
         <div className="result-sub">
-          <span>速度 {result.speed} 打/分</span>
+          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
           <span>ミス {result.mistakes}</span>
           <span>正確率 {result.accuracy}%</span>
           <span>{result.seconds} 秒</span>
@@ -204,7 +227,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>タイピング数</th>
+                <th>{isCorrect ? '正解' : isEndless ? '速度' : 'タイピング数'}</th>
                 <th>正確率</th>
                 <th>時間</th>
                 <th>日時</th>
@@ -219,7 +242,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
                   title="クリックで記録の詳細"
                 >
                   <td>{i + 1}</td>
-                  <td className="speed">{r.keys ?? 0}</td>
+                  <td className="speed">{isCorrect ? (r.correctCount ?? 0) : isEndless ? (r.speed ?? 0) : (r.keys ?? 0)}</td>
                   <td>{r.accuracy}%</td>
                   <td>{r.seconds}秒</td>
                   <td className="date">{r.date}</td>

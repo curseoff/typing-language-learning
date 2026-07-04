@@ -5,6 +5,7 @@ import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.j
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
+import { END_KINDS, DEFAULT_END_CONDITION, endKind, endConditionForKind } from './content/endConditions.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './application/records.js'
@@ -73,6 +74,7 @@ export default function App() {
   const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
   const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
+  const [endCondition, setEndCondition] = useState(DEFAULT_END_CONDITION) // 終了条件（段1は時間のみ・既定60秒＝従来）
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -82,6 +84,23 @@ export default function App() {
     const type = { id: 'type', options: TYPE_KEYS, value: gameType, set: setGameType }
     // 下部トグル（記録ランキング/収録一覧）。タッチ以外の種類に付く。
     const bottom = { id: 'bottom', options: ['records', 'list'], value: bottomTab, set: setBottomTab }
+    // 終了条件の種別（時間/文字数）。←→で種別を切替え＝その種別の既定値に落ちる。wsent/words/dict に付く。
+    const endKindRow = {
+      id: 'endKind',
+      options: END_KINDS.map((k) => k.kind),
+      value: endCondition.kind,
+      set: (k) => setEndCondition(endConditionForKind(k)),
+    }
+    // 終了条件の値（時間=秒 / 文字数=文字）。←→で選択中種別の値を移動。
+    // endless は値を持たない＝値行を出さない（endRows でスキップ。←→は種別行のみで操作）。
+    const endValues = endKind(endCondition.kind).values ?? []
+    const end = {
+      id: 'end',
+      options: endValues,
+      value: endCondition.value,
+      set: (v) => setEndCondition({ kind: endCondition.kind, value: v }),
+    }
+    const endRows = endValues.length > 0 ? [endKindRow, end] : [endKindRow]
     switch (gameType) {
       case 'story':
         return [
@@ -96,6 +115,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wordLevel, set: setWordLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wordTheme, set: setWordTheme },
           { id: 'mode', options: WORD_MODE_KEYS, value: wordMode, set: setWordMode },
+          ...endRows,
           bottom,
         ]
       case 'dict':
@@ -104,6 +124,7 @@ export default function App() {
           { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: setDictLevel },
           { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: setDictTheme },
           { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
+          ...endRows,
           bottom,
         ]
       case 'touch':
@@ -118,10 +139,11 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
           { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: setWsentTheme },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          ...endRows,
           bottom,
         ]
     }
-  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, wsentTheme, bottomTab])
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, wsentTheme, bottomTab, endCondition])
 
   // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
   const safeFocus = Math.min(focusRow, rows.length - 1)
@@ -147,6 +169,7 @@ export default function App() {
 
   const {
     start: startMarathon,
+    escFinish: marathonEscFinish,
     segments,
     segIndex,
     segInput,
@@ -154,9 +177,10 @@ export default function App() {
     hasError,
     typedKeys,
     mistakes,
+    missedItems,
     liveSpeed,
     elapsedSec,
-  } = useMarathon({ active: phase === 'playing', onFinish })
+  } = useMarathon({ active: phase === 'playing', onFinish, endCondition })
 
   // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
   // リプレイは記録の値＋seed を直接渡すために必須。
@@ -293,6 +317,9 @@ export default function App() {
       if (e.key === 'Escape') {
         if (phase === 'playing' || phase === 'result') {
           e.preventDefault()
+          // エンドレスをプレイ中に ESC：30秒以上なら記録して結果へ（escFinish が onFinish 経由で
+          // phase を result にする）。30秒未満/未打鍵や result 中は従来どおり TOP へ戻る。#208 段6
+          if (phase === 'playing' && endCondition.kind === 'endless' && marathonEscFinish()) return
           setPhase('ready')
         }
         return
@@ -324,7 +351,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onNav)
     return () => window.removeEventListener('keydown', onNav)
-  }, [phase, start, startGame, rows, safeFocus])
+  }, [phase, start, startGame, rows, safeFocus, endCondition, marathonEscFinish])
 
   // 開発時だけ：結果画面をダミーデータで即プレビュー（本番ビルドには含まれない）
   const previewResult = useCallback(() => {
@@ -430,6 +457,8 @@ export default function App() {
           onBottomTabChange={setBottomTab}
           onStart={start}
           records={records}
+          endCondition={endCondition}
+          onEndConditionChange={setEndCondition}
         />
       )}
 
@@ -455,6 +484,7 @@ export default function App() {
           seed={wordSeed}
           levelLabel={`W${wordLevel} ${WORD_LEVELS.find((l) => l.level === wordLevel)?.label ?? ''}`}
           modeLabel={wordModeLabel(wordMode)}
+          endCondition={endCondition}
           onExit={() => setPhase('ready')}
         />
       )}
@@ -470,6 +500,7 @@ export default function App() {
           seed={dictSeed}
           levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
           modeLabel={dictModeLabel(dictMode)}
+          endCondition={endCondition}
           onExit={() => setPhase('ready')}
         />
       )}
@@ -488,6 +519,7 @@ export default function App() {
       {phase === 'playing' && (
         <MarathonView
           mode={mode}
+          endCondition={endCondition}
           rankText={`単語例文 L${wsentLevel}`}
           gloss={wsentGloss}
           segments={segments}
@@ -497,6 +529,7 @@ export default function App() {
           hasError={hasError}
           typedKeys={typedKeys}
           mistakes={mistakes}
+          missedItems={missedItems}
           liveSpeed={liveSpeed}
           elapsedSec={elapsedSec}
         />

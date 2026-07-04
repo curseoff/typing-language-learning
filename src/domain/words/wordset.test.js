@@ -13,6 +13,22 @@ describe('buildWordSet (4択用)', () => {
     expect(buildWordSet(WORDS, 1, 'すべて').length).toBe(WORD_COUNT)
     expect(buildWordSet(WORDS, 2, '旅行', 10).length).toBe(10)
   })
+
+  it('レベル×テーマで空なら同レベル全体にフォールバックする', () => {
+    // level1 に該当テーマが無い→テーマ絞りが空→同レベルへフォールバック
+    const words = [{ en: 'apple', level: 1, theme: '日常', kana: 'あ', ja: 'あ' }]
+    const set = buildWordSet(words, 1, '旅行', 3)
+    expect(set).toHaveLength(3)
+    expect(set.every((w) => w.en === 'apple')).toBe(true)
+  })
+
+  it('同レベルも空ならデータ全体にフォールバックする', () => {
+    // level5 の語が無い→同レベルも空→全語へフォールバック
+    const words = [{ en: 'apple', level: 1, theme: '日常', kana: 'あ', ja: 'あ' }]
+    const set = buildWordSet(words, 5, 'すべて', 3)
+    expect(set).toHaveLength(3)
+    expect(set.every((w) => w.en === 'apple')).toBe(true)
+  })
 })
 
 describe('buildWordPassage (入力用・600文字)', () => {

@@ -6,7 +6,11 @@ import { renderHook, act } from '@testing-library/react'
 import { useWordQuiz } from './useWordQuiz.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { WORDS } from '../content/wordsAll.js'
+import { END_TIME_VALUES } from '../content/endConditions.js'
 import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
+
+const ENDLESS = { kind: 'endless', value: null }
+const MIN_RECORD_MS = END_TIME_VALUES[0] * 1000 // 記録に必要な最低プレイ時間（30秒）
 
 beforeEach(() => {
   localStorage.clear()
@@ -101,4 +105,38 @@ describe('useWordQuiz（4択・60秒・結合）', () => {
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('word')
   })
+})
+
+// #208 段6：エンドレスは ESC で終了。30秒以上プレイした時だけ記録する。
+const pressEscape = () => typeKey('Escape')
+
+describe('useWordQuiz エンドレス（#208 段6：ESC・30秒以上で記録）', () => {
+  it('経過<30秒で ESC したら記録せず onExit（中断＝TOPへ）', () => {
+    const onExit = vi.fn()
+    const { result } = renderHook(() =>
+      useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', endCondition: ENDLESS, onExit }),
+    )
+    solve(result, 1, correctOf) // startTime 確定
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS - 100)) // 29.9秒
+    pressEscape()
+    expect(onExit).toHaveBeenCalledTimes(1)
+    expect(result.current.finished).toBe(false)
+    expect(loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en', ENDLESS)] ?? []).toEqual([])
+  }, 20000)
+
+  it('経過>=30秒で ESC したら finished になり記録される（速度が成績）', () => {
+    const onExit = vi.fn()
+    const { result } = renderHook(() =>
+      useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', endCondition: ENDLESS, onExit }),
+    )
+    solve(result, 3, correctOf)
+    act(() => vi.advanceTimersByTime(MIN_RECORD_MS)) // 30秒
+    pressEscape()
+    expect(result.current.finished).toBe(true)
+    expect(onExit).not.toHaveBeenCalled()
+    const list = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en', ENDLESS)]
+    expect(list.length).toBe(1)
+    expect(list[0].endCondition.kind).toBe('endless')
+    expect(list[0].speed).toEqual(expect.any(Number))
+  }, 20000)
 })
