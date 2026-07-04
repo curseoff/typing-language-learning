@@ -3,7 +3,7 @@ import {
   rankInsert,
   recKey,
   MAX_RECORDS,
-  endConditionToken,
+  endConditionTag,
   isRecordable,
   compareRecords,
 } from './ranking.js'
@@ -54,12 +54,12 @@ describe('ranking', () => {
     expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 60 })).toBe('both__r1')
   })
 
-  it('recKey は既定以外の終了条件でトークン付きの別キーになる', () => {
+  it('recKey は既定以外の終了条件でタグ付きの別キーになる', () => {
     expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 30 })).toBe('both__r1__T30')
     expect(recKey('both', 1, 'wsent', '日常', { kind: 'chars', value: 600 })).toBe(
       'both__wsent1__日常__C600'
     )
-    // endless は E トークンの別キー（time60＝従来キーと混ざらない。#208 段6）
+    // endless は E タグの別キー（time60＝従来キーと混ざらない。#208 段6）
     expect(recKey('both', 1, 'wsent', '日常', { kind: 'endless', value: null })).toBe(
       'both__wsent1__日常__E'
     )
@@ -84,39 +84,39 @@ describe('ranking', () => {
   })
 })
 
-describe('endConditionToken（#208 段0b）', () => {
+describe('endConditionTag（#208 段0b）', () => {
   it('null / undefined は空文字（既定 time60 の従来キーへ落とす）', () => {
-    expect(endConditionToken(null)).toBe('')
-    expect(endConditionToken(undefined)).toBe('')
+    expect(endConditionTag(null)).toBe('')
+    expect(endConditionTag(undefined)).toBe('')
   })
 
   it('既定の time60 は空文字（従来キーと同一＝後方互換）', () => {
-    expect(endConditionToken({ kind: 'time', value: 60 })).toBe('')
+    expect(endConditionTag({ kind: 'time', value: 60 })).toBe('')
   })
 
-  it('time60 と null/undefined は同じトークンになる（既存記録の後方互換）', () => {
-    expect(endConditionToken({ kind: 'time', value: 60 })).toBe(endConditionToken(null))
-    expect(endConditionToken({ kind: 'time', value: 60 })).toBe(endConditionToken(undefined))
+  it('time60 と null/undefined は同じタグになる（既存記録の後方互換）', () => {
+    expect(endConditionTag({ kind: 'time', value: 60 })).toBe(endConditionTag(null))
+    expect(endConditionTag({ kind: 'time', value: 60 })).toBe(endConditionTag(undefined))
   })
 
   it('time30 は T30', () => {
-    expect(endConditionToken({ kind: 'time', value: 30 })).toBe('T30')
+    expect(endConditionTag({ kind: 'time', value: 30 })).toBe('T30')
   })
 
   it('chars600 は C600', () => {
-    expect(endConditionToken({ kind: 'chars', value: 600 })).toBe('C600')
+    expect(endConditionTag({ kind: 'chars', value: 600 })).toBe('C600')
   })
 
   it('items25 は I25', () => {
-    expect(endConditionToken({ kind: 'items', value: 25 })).toBe('I25')
+    expect(endConditionTag({ kind: 'items', value: 25 })).toBe('I25')
   })
 
   it('life3 は L3', () => {
-    expect(endConditionToken({ kind: 'life', value: 3 })).toBe('L3')
+    expect(endConditionTag({ kind: 'life', value: 3 })).toBe('L3')
   })
 
-  it('endless は E（値なしの種別トークン・別ランキング。#208 段6）', () => {
-    expect(endConditionToken({ kind: 'endless', value: null })).toBe('E')
+  it('endless は E（値なしの種別タグ・別ランキング。#208 段6）', () => {
+    expect(endConditionTag({ kind: 'endless', value: null })).toBe('E')
   })
 })
 
