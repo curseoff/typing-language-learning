@@ -9,6 +9,7 @@ import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../infrastructure/itemStatsRepository.js'
 import { playMiss } from '../infrastructure/sound.js'
+import { makeSeed } from './seed.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 
 // エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
@@ -33,6 +34,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
   const segMistakesRef = useRef(0) // 現在の問題のミス数
   const segStatsRef = useRef([]) // 確定した問題ごとの記録
   const ctxRef = useRef({ mode: 'both', rank: 1 }) // 開始時の mode/rank/source/seed
+  const poolRef = useRef([]) // 出題プール（継ぎ足し用に保持）
   const trackerRef = useRef(newTracker()) // 問題ごとの累積記録（文単位）
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
   // 時間切れ finish 用に最新の打鍵数/ミス/開始時刻を effect から参照する
@@ -42,6 +44,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
 
   const start = useCallback((mode, rank, source, pool, seed, theme) => {
     ctxRef.current = { mode, rank, source, seed, theme }
+    poolRef.current = pool // 問題数制などで出題を継ぎ足すため保持
     // seed があれば決定的な問題列を再現（リプレイ）。無ければ Math.random で通常出題。
     const opts = seed != null ? { rng: mulberry32(seed) } : {}
     setSegments(buildPassage(mode, pool, opts))
@@ -172,6 +175,13 @@ export function useMarathon({ active, onFinish, endCondition }) {
           ]
           segStartRef.current = null
           segMistakesRef.current = 0
+          // 出題を打ち尽くしたら継ぎ足す（問題数制などで初期セグメントを超えても続けられる）。
+          if (segIndex + 1 >= segments.length) {
+            setSegments((prev) => [
+              ...prev,
+              ...buildPassage(ctxRef.current.mode, poolRef.current, { rng: mulberry32(makeSeed()) }),
+            ])
+          }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
