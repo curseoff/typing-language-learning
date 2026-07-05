@@ -35,8 +35,9 @@ export default defineConfig({
         'src/infrastructure/pwa/registerSW.js',
       ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
-      // #208 段6（エンドレスの ESC 記録＋速度ランキング）のフック/UI テスト追加で微増。実測直下へ追従。
-      thresholds: { statements: 79.0, branches: 60.8, functions: 77.0, lines: 80.0 },
+      // #233 M2（romaji/progress を @tll/core へ、Text系/Flow/marathon を @tll/ui へ移設）で
+      // 未使用だった Passage.jsx が src 計測から外れ、薄板化で src の実測が上振れ。実測直下へ追従。
+      thresholds: { statements: 81.0, branches: 64.0, functions: 78.0, lines: 82.0 },
     },
   },
 })
