@@ -25,7 +25,11 @@
     "StorySection": "src/ui/ready/StorySection.jsx",
     "Ready": "src/ui/ready/Ready.jsx",
     "Result": "src/ui/result/Result.jsx",
-    "TouchView": "src/ui/touch/TouchView.jsx"
+    "TouchView": "src/ui/touch/TouchView.jsx",
+    "Passage": "src/ui/marathon/Passage.jsx",
+    "TranslateView": "src/ui/marathon/TranslateView.jsx",
+    "MarathonView": "src/ui/marathon/MarathonView.jsx",
+    "StoryView": "src/ui/story/StoryView.jsx"
   },
   "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
   "provider": {

@@ -10,14 +10,17 @@
   electron/main.cjs なので、放置すると Electron/Node 組込みを bundle しようとして失敗する）。
 - 型なし（TS不使用）なので .d.ts は空。@types/react は repo の node_modules に無く props は空ボディ。これは想定内。
 
-## スコープ（21コンポーネント）
+## スコープ（25コンポーネント）
 - general: Ready（TOP全体・3タブ実描画）/ Result（成績サマリ）
 - shared: Flow / Stat / StatsRow / RubyText / MaskedRubyText / OptionJa / QuizOptionLabel
 - ready: TouchSection / EndConditionSelect / ItemList / WordsSection / DictSection / WordSentenceSection / StorySection
 - result: RecordsTable / SegStatsTable ・ sound: SoundToggle ・ touch: Keyboard / TouchView
+- marathon: Passage / TranslateView / MarathonView ・ story: StoryView（物語エンジンが第1ノードを実描画）
 - **cfg.overrides**: SoundToggle={cardMode:single}（fixed）, TouchView={cardMode:column}（幅広）。GRID_OVERFLOW 対策。
+- **プレビュー helper**: `buildPassage`（domain/marathon）をエントリで非コンポーネント export。Passage/TranslateView/MarathonView は
+  pool `{word,en,ja,kana}` から `buildPassage(mode,pool,{target})` で**実 segment を生成**して描画（mode: 'en'/'both'/'en-tr' 等）。
 - **PWA系（InstallButton/OfflineBanner/UpdateToast/ContentFallbackNotice）は除外**：hook 状態が無いと null 返し＝静的描画不可。
-- **未同期（segment等の複雑モック要）**: Passage / TranslateView / MarathonView / StoryView / RecordDetail。追加は domain segment のモック形が要る。
+- **RecordDetail は除外**：モーダルで rich な record（segStats/choices/words/record 等）が必要。最小モックでは閉じるバーのみで空。追加するなら実 record 形の調査が要る。
 
 ## ビルド手順（重いデータはスタブ必須）
 重いセクション（WordsSection/DictSection/WordSentenceSection）は教材データを動的importするため、

@@ -28,6 +28,13 @@ export { default as Ready } from '../src/ui/ready/Ready.jsx';
 export { default as Result } from '../src/ui/result/Result.jsx';
 export { default as TouchView } from '../src/ui/touch/TouchView.jsx';
 
+export { default as Passage } from '../src/ui/marathon/Passage.jsx';
+export { default as TranslateView } from '../src/ui/marathon/TranslateView.jsx';
+export { default as MarathonView } from '../src/ui/marathon/MarathonView.jsx';
+export { default as StoryView } from '../src/ui/story/StoryView.jsx';
+// プレビュー用ヘルパ（コンポーネントではない＝componentSrcMap に入れない）。実 segment を生成する。
+export { buildPassage } from '../src/domain/marathon/passage.js';
+
 // プレビュー用ダーク背景ラッパ（provider）。ダークテーマ前提の淡色テキストが白カードで不可視になるのを防ぐ。
 export function DSFrame({ children }) {
   return React.createElement(
