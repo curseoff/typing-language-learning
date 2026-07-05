@@ -36,6 +36,10 @@ export { Chars, Typed, Chips, RubyTyped, MaskedText } from '../src/ui/shared/Tex
 export { ModeButtons, SectionLabel, BottomTabs, StartRow } from '../src/ui/ready/parts.jsx';
 export { default as RecordDetail } from '../src/ui/result/RecordDetail.jsx';
 
+export { WordRecords } from '../src/ui/ready/parts.jsx';
+export { RubyChars } from '../src/ui/shared/Text.jsx';
+export { default as TopFlow } from '../src/ui/marathon/TopFlow.jsx';
+
 // プレビュー用ヘルパ（コンポーネントではない＝componentSrcMap に入れない）。実 segment を生成する。
 export { buildPassage } from '../src/domain/marathon/passage.js';
 

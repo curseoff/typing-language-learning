@@ -39,7 +39,10 @@
     "SectionLabel": "src/ui/ready/parts.jsx",
     "BottomTabs": "src/ui/ready/parts.jsx",
     "StartRow": "src/ui/ready/parts.jsx",
-    "RecordDetail": "src/ui/result/RecordDetail.jsx"
+    "RecordDetail": "src/ui/result/RecordDetail.jsx",
+    "WordRecords": "src/ui/ready/parts.jsx",
+    "RubyChars": "src/ui/shared/Text.jsx",
+    "TopFlow": "src/ui/marathon/TopFlow.jsx"
   },
   "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
   "provider": {
@@ -57,6 +60,9 @@
     "RecordDetail": {
       "cardMode": "single",
       "primaryStory": "Detail"
+    },
+    "TopFlow": {
+      "cardMode": "column"
     }
   }
 }

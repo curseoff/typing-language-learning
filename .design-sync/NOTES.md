@@ -10,8 +10,8 @@
   electron/main.cjs なので、放置すると Electron/Node 組込みを bundle しようとして失敗する）。
 - 型なし（TS不使用）なので .d.ts は空。@types/react は repo の node_modules に無く props は空ボディ。これは想定内。
 
-## スコープ（35コンポーネント）
-- general: Ready / Result
+## スコープ（38コンポーネント）
+- general: Ready / Result ／ 追加小部品: WordRecords(ready) / RubyChars(shared) / TopFlow(marathon,cardMode:column)
 - shared: Flow / Stat / StatsRow / RubyText / MaskedRubyText / OptionJa / QuizOptionLabel / Chars / Typed / MaskedText / RubyTyped / Chips
 - ready: TouchSection / EndConditionSelect / ItemList / WordsSection / DictSection / WordSentenceSection / StorySection / ModeButtons / SectionLabel / BottomTabs / StartRow
 - result: RecordsTable / SegStatsTable / RecordDetail ・ sound: SoundToggle ・ touch: Keyboard / TouchView
@@ -22,7 +22,7 @@
 - **RecordDetail**: `.record-page` は `position:fixed; inset:0` の全画面。プレビューは **transform:translateZ(0) の高さ固定器**で包んで
   包含ブロックを作りカードに収める。props は `initial={{record, position}}`（record 直接ではない）＋ list=record配列。record に segStats/choices/words 等。
 - **PWA系（InstallButton/OfflineBanner/UpdateToast/ContentFallbackNotice）は除外**：hook 状態が無いと null 返し＝静的描画不可。
-- **未同期候補**: parts の WordRecords（record list 依存）、Text の RubyChars など。
+- **未同期候補**: DictView/WordsView（hook+データ依存の全画面クイズ）。追加は useWords/useDict のスタブが要る。
 
 ## ビルド手順（重いデータはスタブ必須）
 重いセクション（WordsSection/DictSection/WordSentenceSection）は教材データを動的importするため、
