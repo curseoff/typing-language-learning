@@ -2,7 +2,7 @@
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
-import { StatsRow, QuizOptionLabel, RubyText, MaskedRubyText } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel, OptionJa } from '../shared/index.js'
 import { endHudStat } from '../../content/endConditions.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
@@ -20,21 +20,6 @@ export default function DictView({ dict, gloss, wordRuby, level, theme, mode, se
   return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
 }
 
-
-// 選択肢下の和訳スロット。回答前も同じ高さを占めるようマスク表示で予約し、
-// 回答後（revealed）に実際の和訳＋ルビへ差し替える（レイアウトシフト防止）。
-// ja が無ければ何も出さない（グレースフル）。
-function OptionJa({ ja, kana, revealed }) {
-  if (!ja) return null
-  if (revealed) {
-    return <span className="quiz-option-ja">{kana ? <RubyText ja={ja} kana={kana} /> : ja}</span>
-  }
-  return (
-    <span className="quiz-option-ja masked" aria-hidden="true">
-      <MaskedRubyText ja={ja} kana={kana} />
-    </span>
-  )
-}
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
 function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
