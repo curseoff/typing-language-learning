@@ -131,8 +131,8 @@ export default function App() {
       case 'touch':
         return [
           type,
-          { id: 'level', options: TOUCH_LEVEL_KEYS, value: touchLevel, set: setTouchLevel },
           { id: 'mode', options: TOUCH_MODE_KEYS, value: touchMode, set: setTouchMode },
+          { id: 'level', options: TOUCH_LEVEL_KEYS, value: touchLevel, set: setTouchLevel },
         ]
       default: // wsent
         return [

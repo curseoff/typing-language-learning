@@ -1098,6 +1098,9 @@ h1 {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 40px;
   letter-spacing: 0.06em;
+  /* クリックで回答すると入力欄が空（空白のみ）になり行高が潰れてカードが縮む。
+     1行分の高さを常に確保して回答前後のレイアウトシフトを防ぐ。 */
+  min-height: 1.2em;
 }
 /* 4択クイズの回答後、選んだ語の和訳を見出しのすぐ下に控えめに併記 */
 .word-input-ja {
@@ -1133,6 +1136,12 @@ h1 {
   content: '・';
   margin-left: 8px;
   opacity: 0.5;
+}
+
+/* 回答後だけ出る reveal 行の高さを回答前から確保し、回答時のカード伸縮を防ぐ。
+   中身は描画したまま不可視化（視覚ノイズ無し）＋ aria-hidden で SR にも漏らさない。 */
+.reveal-pending {
+  visibility: hidden;
 }
 
 /* 英英辞典カード */

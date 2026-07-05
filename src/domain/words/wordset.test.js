@@ -4,6 +4,7 @@ import { buildUnits } from '../typing/units.js'
 import { TARGET_KEYS } from '../marathon/passage.js'
 import { WORDS } from '../../content/wordsAll.js'
 import { mulberry32 } from '../rng.js'
+import { romajiVariants } from '../romaji/romaji.js'
 
 const MODES = ['en', 'ja', 'both']
 const LEVELS = [1, 2, 3, 4]
@@ -94,6 +95,37 @@ describe('makeQuiz (4択)', () => {
           }
         }
       }
+    }
+  })
+
+  // #221: 回答後に「反対側」を表示するため、各選択肢に元エントリの
+  // en/ja/jaKana を付与する。dir に関わらず全 option に載せる。
+  describe('選択肢に反対側データ（en/ja/jaKana）を付与する (#221)', () => {
+    const byEn = new Map(WORDS.map((w) => [w.en, w]))
+
+    for (const dir of ['en', 'ja']) {
+      it(`dir=${dir}: 各選択肢が反対側データを、その選択肢の元エントリの値で持つ`, () => {
+        const set = buildWordSet(WORDS, 2, 'すべて', WORD_COUNT, { rng: mulberry32(7) })
+        const qs = makeQuiz(set, levelWords(WORDS, 2), dir, 4, { rng: mulberry32(11) })
+        for (const q of qs) {
+          expect(q.options).toHaveLength(4)
+          for (const o of q.options) {
+            // 追加された反対側データ（英単語 en・和訳 ja・和訳の読み jaKana）
+            const src = byEn.get(o.en)
+            expect(src, `en=${o.en} が単語データに存在する`).toBeTruthy()
+            expect(o.en).toBe(src.en)
+            expect(o.ja).toBe(src.ja)
+            expect(o.jaKana).toBe(src.kana)
+            // 反対側データが指すエントリは、display/variants を生んだエントリと同一
+            expect(o.display).toBe(dir === 'ja' ? src.ja : src.en)
+            expect(o.variants).toEqual(dir === 'ja' ? romajiVariants(src.kana) : [src.en])
+            // 既存 kana の意味（dir='ja'→元エントリの kana / それ以外→undefined）は不変
+            expect(o.kana).toBe(dir === 'ja' ? src.kana : undefined)
+          }
+          // 既存の問題形（正解を含む）が壊れていない
+          expect(q.options.some((o) => o.answer)).toBe(true)
+        }
+      })
     }
   })
 })

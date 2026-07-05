@@ -79,6 +79,10 @@ export function makeQuiz(words, pool, dir, optionCount = 4, { rng = Math.random 
         variants: optVariants(o, dir),
         kana: dir === 'ja' ? o.kana : undefined, // 漢字選択肢の進捗色付け用
         answer: o.en === w.en,
+        // 回答後に「反対側」を出すための元エントリの値（#221）
+        en: o.en,
+        ja: o.ja,
+        jaKana: o.kana,
       })),
     }
   })

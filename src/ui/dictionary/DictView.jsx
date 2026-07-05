@@ -2,7 +2,7 @@
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
-import { StatsRow, QuizOptionLabel, RubyText, MaskedRubyText } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel, OptionJa } from '../shared/index.js'
 import { endHudStat } from '../../content/endConditions.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
@@ -20,21 +20,6 @@ export default function DictView({ dict, gloss, wordRuby, level, theme, mode, se
   return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
 }
 
-
-// 選択肢下の和訳スロット。回答前も同じ高さを占めるようマスク表示で予約し、
-// 回答後（revealed）に実際の和訳＋ルビへ差し替える（レイアウトシフト防止）。
-// ja が無ければ何も出さない（グレースフル）。
-function OptionJa({ ja, kana, revealed }) {
-  if (!ja) return null
-  if (revealed) {
-    return <span className="quiz-option-ja">{kana ? <RubyText ja={ja} kana={kana} /> : ja}</span>
-  }
-  return (
-    <span className="quiz-option-ja masked" aria-hidden="true">
-      <MaskedRubyText ja={ja} kana={kana} />
-    </span>
-  )
-}
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
 function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
@@ -61,14 +46,20 @@ function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
           <div className="word-card">
             <div className="word-dir">単語に合う説明文を入力</div>
             <p className="dict-head">{q.question.prompt}</p>
-            {q.picked !== null && gloss?.[q.question.prompt] && (
-              <p className="dict-head-ja">{gloss[q.question.prompt]}</p>
+            {gloss?.[q.question.prompt] && (
+              // 回答前も同じ高さを占めるよう常に描画し、回答前は不可視で伏せる（レイアウトシフト防止）。
+              <p
+                className={`dict-head-ja${q.picked === null ? ' reveal-pending' : ''}`}
+                aria-hidden={q.picked === null || undefined}
+              >
+                {gloss[q.question.prompt]}
+              </p>
             )}
             <div className={`word-input ${q.hasError ? 'error' : ''}`}>
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}
             </div>
-            {q.picked !== null && <p className="dict-ref">{q.question.ja}</p>}
+            {/* 正解定義の和訳は各選択肢（正解＝緑）の下に出るので、ここでは重複表示しない（#219）。 */}
           </div>
           <div className="pick-options">
             {q.question.options.map((opt, i) => {
@@ -186,12 +177,24 @@ function QuizView({ dict, gloss, wordRuby, level, theme, seed, meta, endConditio
           <div className="word-card">
             <div className="word-dir">定義に合う英単語を入力</div>
             <p className="dict-def">{q.question.prompt}</p>
-            {q.picked !== null && <p className="dict-ref">{q.question.ja}</p>}
+            {/* 定義の和訳。内容は回答前から確定するので常に描画し、回答前は不可視で高さだけ確保。 */}
+            <p
+              className={`dict-ref${q.picked === null ? ' reveal-pending' : ''}`}
+              aria-hidden={q.picked === null || undefined}
+            >
+              {q.question.ja}
+            </p>
             <div className={`word-input ${q.hasError ? 'error' : ''}`}>
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}
             </div>
-            {pickedJa && <p className="word-input-ja">{pickedJa}</p>}
+            {/* 選んだ語の和訳。内容は回答時まで不定なので、常に1行を予約し未確定時は不可視プレースホルダ。 */}
+            <p
+              className={`word-input-ja${pickedJa ? '' : ' reveal-pending'}`}
+              aria-hidden={pickedJa ? undefined : true}
+            >
+              {pickedJa || ' '}
+            </p>
           </div>
           <div className="quiz-options">
             {q.question.options.map((opt, i) => {

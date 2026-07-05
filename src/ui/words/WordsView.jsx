@@ -2,7 +2,7 @@
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.js'
-import { StatsRow, QuizOptionLabel, RubyText } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel, RubyText, OptionJa } from '../shared/index.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
@@ -144,6 +144,12 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, on
                   onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}
                 >
                   <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
+                  {/* 回答後に反対側を表示（#221）。英語訳→和訳＋ルビ／日本語訳→英語(プレーン)。 */}
+                  {dir === 'ja' ? (
+                    <OptionJa ja={opt.en} kana={undefined} revealed={q.picked !== null} />
+                  ) : (
+                    <OptionJa ja={opt.ja} kana={opt.jaKana} revealed={q.picked !== null} />
+                  )}
                 </button>
               )
             })}
