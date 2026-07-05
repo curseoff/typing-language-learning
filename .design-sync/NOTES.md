@@ -10,12 +10,14 @@
   electron/main.cjs なので、放置すると Electron/Node 組込みを bundle しようとして失敗する）。
 - 型なし（TS不使用）なので .d.ts は空。@types/react は repo の node_modules に無く props は空ボディ。これは想定内。
 
-## スコープ（19コンポーネント）
+## スコープ（21コンポーネント）
+- general: Ready（TOP全体・3タブ実描画）/ Result（成績サマリ）
 - shared: Flow / Stat / StatsRow / RubyText / MaskedRubyText / OptionJa / QuizOptionLabel
 - ready: TouchSection / EndConditionSelect / ItemList / WordsSection / DictSection / WordSentenceSection / StorySection
-- result: RecordsTable / SegStatsTable ・ sound: SoundToggle ・ touch: Keyboard
-- **Ready** は約15 props で全体を composす複雑さのため floor card（プレビュー未執筆）。
+- result: RecordsTable / SegStatsTable ・ sound: SoundToggle ・ touch: Keyboard / TouchView
+- **cfg.overrides**: SoundToggle={cardMode:single}（fixed）, TouchView={cardMode:column}（幅広）。GRID_OVERFLOW 対策。
 - **PWA系（InstallButton/OfflineBanner/UpdateToast/ContentFallbackNotice）は除外**：hook 状態が無いと null 返し＝静的描画不可。
+- **未同期（segment等の複雑モック要）**: Passage / TranslateView / MarathonView / StoryView / RecordDetail。追加は domain segment のモック形が要る。
 
 ## ビルド手順（重いデータはスタブ必須）
 重いセクション（WordsSection/DictSection/WordSentenceSection）は教材データを動的importするため、
