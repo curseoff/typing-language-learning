@@ -97,6 +97,25 @@ export function RubyText({ ja, kana }) {
   )
 }
 
+// RubyText と同じ segmentation のまま各文字を全角マスク（＊）で伏せる。
+// 回答前の和訳スロットで「実物と同じ行数・幅」を占めて高さを予約するための表示。
+// 全角マスクなので漢字/かなと同じ字幅になり折返しが実物と一致し、rt(ルビ)行も保つ。
+export function MaskedRubyText({ ja, kana, maskCh = '＊' }) {
+  const mask = (s) => maskCh.repeat([...s].length)
+  if (!ja) return null
+  if (!kana) return mask(ja)
+  return rubyParts(ja, kana).map((p, pi) =>
+    p.ruby ? (
+      <ruby key={pi}>
+        {mask(p.chars.join(''))}
+        <rt>{mask(p.ruby)}</rt>
+      </ruby>
+    ) : (
+      <Fragment key={pi}>{mask(p.chars.join(''))}</Fragment>
+    ),
+  )
+}
+
 // 打った分だけ緑（.rdone）。間違えた時は今打つ文字(done位置)を赤(.rerr)に。
 export function Typed({ text, done, hasError = false }) {
   // 基底クラス rch を全 span に付け、per-char 下線(.typing 配下でのみ表示)の対象にする。

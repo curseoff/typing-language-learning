@@ -84,7 +84,13 @@ export function makeDictPick(
       prompt: e.word,
       ja: e.ja,
       answerDisplay: e.def,
-      options: opts.map((o) => ({ display: o.def, variants: [o.def], answer: o.word === e.word })),
+      options: opts.map((o) => ({
+        display: o.def,
+        variants: [o.def],
+        answer: o.word === e.word,
+        ja: o.ja,
+        kana: o.kana,
+      })),
     })
   }
   return items

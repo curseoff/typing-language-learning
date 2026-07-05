@@ -51,6 +51,58 @@ describe('rng 注入（決定的）', () => {
   })
 })
 
+describe('makeDictPick の各 option は和訳(ja)と読み(kana)を持つ（#216）', () => {
+  // def が互いに前方一致しないダミー辞書（誤答同士の衝突回避を素通しさせる）。
+  const DUMMY = [
+    { word: 'apple', def: 'a red fruit', ja: 'りんご', kana: 'りんご', level: 1, theme: '日常' },
+    { word: 'banana', def: 'yellow long fruit', ja: 'ばなな', kana: 'ばなな', level: 1, theme: '日常' },
+    { word: 'cat', def: 'small pet animal', ja: 'ねこ', kana: 'ねこ', level: 1, theme: '日常' },
+    { word: 'dog', def: 'loyal companion here', ja: 'いぬ', kana: 'いぬ', level: 1, theme: '日常' },
+    { word: 'egg', def: 'oval food from hen', ja: 'たまご', kana: 'たまご', level: 1, theme: '日常' },
+  ]
+  const byDef = Object.fromEntries(DUMMY.map((d) => [d.def, d]))
+
+  it('各 option の ja/kana が「その option の元エントリ」の値と一致する', () => {
+    const items = makeDictPick(DUMMY, DUMMY, 5, 4, { rng: mulberry32(42) })
+    expect(items.length).toBe(5)
+    for (const q of items) {
+      expect(q.options.length).toBe(4)
+      for (const o of q.options) {
+        const src = byDef[o.display] // display=def から元エントリを引く
+        expect(src).toBeDefined()
+        // 誤答は正解の和訳を流用せず、自分自身の和訳/読みを持つ。
+        expect(o.ja).toBe(src.ja)
+        expect(o.kana).toBe(src.kana)
+      }
+    }
+  })
+
+  it('正解 option の ja/kana は正解エントリ(e)の ja/kana に一致する', () => {
+    const items = makeDictPick(DUMMY, DUMMY, 5, 4, { rng: mulberry32(42) })
+    for (const q of items) {
+      const answer = q.options.find((o) => o.answer)
+      const e = DUMMY.find((d) => d.word === q.prompt) // prompt=word
+      expect(answer.ja).toBe(e.ja)
+      expect(answer.kana).toBe(e.kana)
+    }
+  })
+
+  it('既存フィールド（display/variants/answer）と問題形は不変', () => {
+    const items = makeDictPick(DUMMY, DUMMY, 5, 4, { rng: mulberry32(42) })
+    for (const q of items) {
+      const e = DUMMY.find((d) => d.word === q.prompt)
+      expect(q.prompt).toBe(e.word)
+      expect(q.ja).toBe(e.ja)
+      expect(q.answerDisplay).toBe(e.def)
+      expect(q.options.filter((o) => o.answer).length).toBe(1)
+      for (const o of q.options) {
+        expect(typeof o.display).toBe('string')
+        expect(o.variants).toEqual([o.display])
+      }
+    }
+  })
+})
+
 describe('makeDictQuiz', () => {
   it('定義→英単語の4択。選択肢に正解を含み、前方一致が衝突しない', () => {
     const lv = DICT_AVAILABLE_LEVELS[0]

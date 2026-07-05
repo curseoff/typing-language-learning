@@ -1,14 +1,14 @@
 // 物語の永続化（発見エンド＋記録ランキング）。物語ごとにキーを分ける。
-import { rankInsert, endConditionToken } from '../domain/records/ranking.js'
+import { rankInsert, endConditionTag } from '../domain/records/ranking.js'
 
 // 物語ごとのキー（例 story-records-v1-climbing）。
 const foundKey = (storyId) => `story-endings-v1-${storyId}`
 const recordsKey = (storyId) => `story-records-v1-${storyId}`
 
-// 終了条件別の記録キー。time60/endless/未指定はトークン無し＝従来キーと一致。
+// 終了条件別の記録キー。time60/endless/未指定はタグ無し＝従来キーと一致。
 export function storyRecKey(storyId, endCondition) {
   const base = recordsKey(storyId)
-  const t = endConditionToken(endCondition)
+  const t = endConditionTag(endCondition)
   return t ? `${base}__${t}` : base
 }
 
@@ -49,7 +49,7 @@ export function saveFound(storyId, ids) {
 
 export function loadStoryRecords(storyId, endCondition) {
   const key = storyRecKey(storyId, endCondition)
-  // 移行は従来キー（time60 相当・トークン無し）に対してのみ行う。
+  // 移行は従来キー（time60 相当・タグ無し）に対してのみ行う。
   migrateLegacy(storyId, LEGACY_RECORDS_KEY, recordsKey(storyId))
   return parseArray(localStorage.getItem(key))
 }

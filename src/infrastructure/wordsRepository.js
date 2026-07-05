@@ -1,12 +1,12 @@
 // 単語問題の記録の永続化（localStorage、レベル×テーマ×モード別）。
-import { MAX_RECORDS, compareRecords, endConditionToken } from '../domain/records/ranking.js'
+import { MAX_RECORDS, compareRecords, endConditionTag } from '../domain/records/ranking.js'
 import { normalizeEndCondition } from '../domain/session/endCondition.js'
 
 const STORAGE_KEY = 'word-records-v2'
 
 export function wordRecKey(level, theme, mode, endCondition) {
   const base = `L${level}__${theme}__${mode}`
-  const t = endConditionToken(endCondition)
+  const t = endConditionTag(endCondition)
   return t ? `${base}__${t}` : base
 }
 
