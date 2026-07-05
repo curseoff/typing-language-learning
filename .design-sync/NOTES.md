@@ -40,8 +40,8 @@
   ダーク地で包む。ダークテーマ前提の淡色テキストが白カード上で不可視になるのを防ぐため必須。
 
 ## Known render warns
-- Ready は floor card（未執筆・非失敗）。他は bad/thin/variantsIdentical=0。
-- MaskedRubyText/OptionJa は仕様上「淡色/マスク」表示で正常。RecordsTable は空状態（まだ記録がありません）。
+- bad/thin/variantsIdentical=0（floor card なし＝全コンポーネント authored）。
+- MaskedRubyText/OptionJa は仕様上「淡色/マスク」表示で正常。SectionLabel/StartRow/Chars/Typed 等の小部品は本質的に小さい表示で正常。
 
 ## Re-sync risks（次回が黙って古くなる箇所）
 - **シンボリックリンクと手書きエントリ**が無いと即失敗する（上記「前提」を必ず実施）。
