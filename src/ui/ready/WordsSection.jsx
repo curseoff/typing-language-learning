@@ -110,7 +110,7 @@ export default function WordsSection({
       <SectionLabel>モード</SectionLabel>
       <div className="mode-select">
         <div className="mode-group">
-          <div className="mode-course">入力</div>
+          <div className="mode-course">通常入力</div>
           <ModeButtons
             modes={WORD_INPUT}
             value={wordMode}
