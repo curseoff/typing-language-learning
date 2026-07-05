@@ -25,6 +25,9 @@ export { default as WordSentenceSection } from '../src/ui/ready/WordSentenceSect
 export { default as StorySection } from '../src/ui/ready/StorySection.jsx';
 export { default as Ready } from '../src/ui/ready/Ready.jsx';
 
+export { default as Result } from '../src/ui/result/Result.jsx';
+export { default as TouchView } from '../src/ui/touch/TouchView.jsx';
+
 // プレビュー用ダーク背景ラッパ（provider）。ダークテーマ前提の淡色テキストが白カードで不可視になるのを防ぐ。
 export function DSFrame({ children }) {
   return React.createElement(

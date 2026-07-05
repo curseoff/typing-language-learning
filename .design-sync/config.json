@@ -23,11 +23,22 @@
     "DictSection": "src/ui/ready/DictSection.jsx",
     "WordSentenceSection": "src/ui/ready/WordSentenceSection.jsx",
     "StorySection": "src/ui/ready/StorySection.jsx",
-    "Ready": "src/ui/ready/Ready.jsx"
+    "Ready": "src/ui/ready/Ready.jsx",
+    "Result": "src/ui/result/Result.jsx",
+    "TouchView": "src/ui/touch/TouchView.jsx"
   },
   "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
   "provider": {
     "component": "DSFrame"
   },
-  "readmeHeader": ".design-sync/conventions.md"
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "SoundToggle": {
+      "cardMode": "single",
+      "primaryStory": "Toggle"
+    },
+    "TouchView": {
+      "cardMode": "column"
+    }
+  }
 }

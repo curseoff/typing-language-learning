@@ -5,5 +5,6 @@ const stats = [
   { label: 'ミス', value: '3' },
   { label: '速度', value: '4.2 打/秒' },
 ];
+export const Start = () => <StatsRow stats={stats.map((s,i)=>({label:s.label,value:i?'0':'0秒'}))} progress={0} />;
 export const Midway = () => <StatsRow stats={stats} progress={0.55} />;
 export const Complete = () => <StatsRow stats={stats} progress={1} />;

@@ -41,4 +41,7 @@
 - 準備画面の各セクション: `WordsSection``DictSection``WordSentenceSection``StorySection``TouchSection`（レベル/テーマ/モード/終了条件の選択→スタート）。
 - 結果/記録: `RecordsTable`（記録ランキング）`SegStatsTable`（問題ごとの記録）`SoundToggle`（効果音切替）。
 
+
+- TOP画面全体: `Ready`（種類タブ→各セクション）。プレイ画面: `TouchView`（タッチ練習）。結果: `Result`（成績サマリ）。
+
 各部品の props と例は `components/<group>/<Name>/<Name>.prompt.md` を参照。
