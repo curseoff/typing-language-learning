@@ -68,7 +68,7 @@ function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
               {q.input ? q.input : ' '}
               {q.picked === null && <span className="caret">▍</span>}
             </div>
-            {q.picked !== null && <p className="dict-ref">{q.question.ja}</p>}
+            {/* 正解定義の和訳は各選択肢（正解＝緑）の下に出るので、ここでは重複表示しない（#219）。 */}
           </div>
           <div className="pick-options">
             {q.question.options.map((opt, i) => {
