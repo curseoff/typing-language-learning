@@ -1,0 +1,24 @@
+{
+  "pkg": "typing-language-learning",
+  "globalName": "TLL",
+  "shape": "package",
+  "srcDir": "src",
+  "cssEntry": "src/App.css",
+  "componentSrcMap": {
+    "TouchSection": "src/ui/ready/TouchSection.jsx",
+    "EndConditionSelect": "src/ui/ready/EndConditionSelect.jsx",
+    "ItemList": "src/ui/ready/ItemList.jsx",
+    "QuizOptionLabel": "src/ui/shared/QuizOptionLabel.jsx",
+    "OptionJa": "src/ui/shared/OptionJa.jsx",
+    "Flow": "src/ui/shared/Flow.jsx",
+    "Stat": "src/ui/shared/Stats.jsx",
+    "StatsRow": "src/ui/shared/Stats.jsx",
+    "RubyText": "src/ui/shared/Text.jsx",
+    "MaskedRubyText": "src/ui/shared/Text.jsx"
+  },
+  "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
+  "provider": {
+    "component": "DSFrame"
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
