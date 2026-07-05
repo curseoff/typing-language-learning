@@ -56,6 +56,28 @@ buildArray('content/dict.ndjson', 'src/content/dictionaryData.js', 'content/dict
   const out = `${GEN} ソース: content/gloss.ndjson\nexport default {${pairs.join(',')}}\n`
   writeFileSync(u('../src/content/wordGlossData.js'), out)
   console.log(`build → src/content/wordGlossData.js: ${pairs.length} 件`)
+
+  // ---- wordRuby（en→{ja,kana} マップ）----
+  // 単語4択(quiz)の回答後に各英単語の和訳＋読み(ルビ)を出すため、gloss のキー（英英で使う単語）
+  // について wordsData から {ja,kana} を引く。英英⊂単語なので基本は全件対応する。
+  const words = readNdjson('content/words.ndjson').map((l) => JSON.parse(l))
+  const wordByEn = new Map(words.map((w) => [w.en, w]))
+  const rubyPairs = []
+  let missing = 0
+  for (const l of lines) {
+    const { en } = JSON.parse(l)
+    const w = wordByEn.get(en)
+    if (!w) {
+      missing++
+      continue
+    }
+    rubyPairs.push(`${JSON.stringify(en)}:${JSON.stringify({ ja: w.ja, kana: w.kana })}`)
+  }
+  const rubyOut = `${GEN} ソース: content/gloss.ndjson × content/words.ndjson\nexport default {${rubyPairs.join(',')}}\n`
+  writeFileSync(u('../src/content/wordRubyData.js'), rubyOut)
+  console.log(
+    `build → src/content/wordRubyData.js: ${rubyPairs.length} 件${missing ? `（単語未対応 ${missing} 件をスキップ）` : ''}`,
+  )
 }
 
 // ---- sentences（例文）: level ごとに L1..L4.js へ分割＋theme.js/wsentCounts.js 派生生成 ----

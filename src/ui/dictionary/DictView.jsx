@@ -2,24 +2,39 @@
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.js'
-import { StatsRow, QuizOptionLabel } from '../shared/index.js'
+import { StatsRow, QuizOptionLabel, RubyText, MaskedRubyText } from '../shared/index.js'
 import { endHudStat } from '../../content/endConditions.js'
 import TopFlow from '../marathon/TopFlow.jsx'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import SegStatsTable from '../result/SegStatsTable.jsx'
 
-export default function DictView({ dict, gloss, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
+export default function DictView({ dict, gloss, wordRuby, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
   const meta = (
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
       <span className="meta-badge mode">英英 / {modeLabel} / {theme}</span>
     </div>
   )
-  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} wordRuby={wordRuby} level={level} theme={theme} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
   if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
   return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
 }
 
+
+// 選択肢下の和訳スロット。回答前も同じ高さを占めるようマスク表示で予約し、
+// 回答後（revealed）に実際の和訳＋ルビへ差し替える（レイアウトシフト防止）。
+// ja が無ければ何も出さない（グレースフル）。
+function OptionJa({ ja, kana, revealed }) {
+  if (!ja) return null
+  if (revealed) {
+    return <span className="quiz-option-ja">{kana ? <RubyText ja={ja} kana={kana} /> : ja}</span>
+  }
+  return (
+    <span className="quiz-option-ja masked" aria-hidden="true">
+      <MaskedRubyText ja={ja} kana={kana} />
+    </span>
+  )
+}
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
 function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
@@ -67,7 +82,9 @@ function PickView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
               }
               return (
                 <button key={i} className={cls} onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}>
-                  <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
+                  {/* ラベルは英語の定義。opt.kana は単語の読みなので QuizOptionLabel には渡さない（定義をルビ扱いしない）。 */}
+                  <QuizOptionLabel opt={{ display: opt.display, variants: opt.variants }} input={q.input} picked={q.picked} hasError={q.hasError} />
+                  <OptionJa ja={opt.ja} kana={opt.kana} revealed={q.picked !== null} />
                 </button>
               )
             })}
@@ -142,7 +159,7 @@ function typeHint(mode, segType) {
 }
 
 // 4択（定義→英単語をタイプ/クリック）
-function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit }) {
+function QuizView({ dict, gloss, wordRuby, level, theme, seed, meta, endCondition, onExit }) {
   const q = useDictQuiz({ dict, level, theme, seed, endCondition, onExit })
   // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
@@ -186,9 +203,11 @@ function QuizView({ dict, gloss, level, theme, seed, meta, endCondition, onExit 
               } else if (q.input) {
                 cls += opt.variants.some((v) => v.startsWith(q.input)) ? ' cand' : ' dim'
               }
+              const ruby = wordRuby?.[opt.display] // 英単語→{ja,kana}
               return (
                 <button key={i} className={cls} onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}>
                   <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
+                  <OptionJa ja={ruby?.ja} kana={ruby?.kana} revealed={q.picked !== null} />
                 </button>
               )
             })}

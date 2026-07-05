@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
-import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords, loadWordGloss } from './content/words.js'
+import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
 import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
@@ -70,6 +70,7 @@ export default function App() {
   const [dictSeed, setDictSeed] = useState(null) // 英英の問題列シード（リプレイ再現用）
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [dictGloss, setDictGloss] = useState(null) // 英英の英→和グロッサリ(回答後の単語和訳表示用)
+  const [dictWordRuby, setDictWordRuby] = useState(null) // 英英の英→{ja,kana}(単語4択の回答後にルビ表示用)
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
@@ -228,9 +229,10 @@ export default function App() {
     setDictMode(modeKey)
     setDictSeed(seed)
     // 対象レベルの英英だけ＋英→和グロッサリを並行ロード（クイズ回答後に選んだ語の和訳を見出し下に出す）
-    const [d, gloss] = await Promise.all([loadDict(level), loadWordGloss()])
+    const [d, gloss, wordRuby] = await Promise.all([loadDict(level), loadWordGloss(), loadWordRuby()])
     setDictData(d)
     setDictGloss(gloss)
+    setDictWordRuby(wordRuby)
     setPhase('dict')
   }, [])
 
@@ -494,6 +496,7 @@ export default function App() {
           key={`${dictLevel}-${dictTheme}-${dictMode}-${dictSeed}`}
           dict={dictData}
           gloss={dictGloss}
+          wordRuby={dictWordRuby}
           level={dictLevel}
           theme={dictTheme}
           mode={dictMode}

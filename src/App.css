@@ -1198,6 +1198,7 @@ h1 {
 .quiz-option {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 16px 18px;
   font-size: 18px;
@@ -1208,6 +1209,23 @@ h1 {
   border-radius: 12px;
   color: var(--text);
   cursor: pointer;
+}
+/* 回答後に選択肢の下へ和訳＋ルビ（控えめトーン）。flex 行を折り返して次行に落とす。 */
+.quiz-option-ja {
+  flex-basis: 100%;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.quiz-option-ja rt {
+  font-size: 0.7em;
+  color: var(--muted-fn);
+}
+/* 回答前の和訳スロット：実物と同じ行数・幅のマスクで高さを予約しつつ控えめに伏せる。 */
+.quiz-option-ja.masked {
+  opacity: 0.35;
+  user-select: none;
 }
 .quiz-option:hover:not(:disabled) {
   border-color: var(--accent);
