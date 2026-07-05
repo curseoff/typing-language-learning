@@ -1,7 +1,8 @@
-// design-sync 用 手書きエントリ（TOP範囲・データ非依存の軽量コンポーネントのみ）
-// 教材データ(words/dict/sentences/stories)を引き込む section 系は 5MB 制限のため一旦除外。
+// design-sync 用 手書きエントリ。アプリrepoのため main=electron を回避し UI だけを window.TLL に載せる。
+// 重いセクション(WordsSection等)は教材データを動的importするため、ビルド時はデータを空スタブに差し替えて 5MB 未満に保つ（NOTES.md 参照）。
 import React from 'react';
 
+// --- 既存(TOP軽量) ---
 export { default as TouchSection } from '../src/ui/ready/TouchSection.jsx';
 export { default as EndConditionSelect } from '../src/ui/ready/EndConditionSelect.jsx';
 export { default as ItemList } from '../src/ui/ready/ItemList.jsx';
@@ -11,8 +12,20 @@ export { Flow } from '../src/ui/shared/Flow.jsx';
 export { Stat, StatsRow } from '../src/ui/shared/Stats.jsx';
 export { RubyText, MaskedRubyText } from '../src/ui/shared/Text.jsx';
 
-// プレビュー用の共通ダーク背景ラッパ（アプリの body 背景＝var(--bg)/文字色＝var(--text) を再現）。
-// ダークテーマ前提の淡色テキストが白カード上で不可視になるのを防ぐ。provider として全プレビューに適用。
+// --- 追加(軽量・データ非依存) ---
+export { default as Keyboard } from '../src/ui/touch/Keyboard.jsx';
+export { default as RecordsTable } from '../src/ui/result/RecordsTable.jsx';
+export { default as SegStatsTable } from '../src/ui/result/SegStatsTable.jsx';
+export { default as SoundToggle } from '../src/ui/sound/SoundToggle.jsx';
+
+// --- 追加(重・教材データ依存＝ビルド時スタブ) ---
+export { default as WordsSection } from '../src/ui/ready/WordsSection.jsx';
+export { default as DictSection } from '../src/ui/ready/DictSection.jsx';
+export { default as WordSentenceSection } from '../src/ui/ready/WordSentenceSection.jsx';
+export { default as StorySection } from '../src/ui/ready/StorySection.jsx';
+export { default as Ready } from '../src/ui/ready/Ready.jsx';
+
+// プレビュー用ダーク背景ラッパ（provider）。ダークテーマ前提の淡色テキストが白カードで不可視になるのを防ぐ。
 export function DSFrame({ children }) {
   return React.createElement(
     'div',

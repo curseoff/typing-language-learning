@@ -36,4 +36,9 @@
 - 準備画面のセクション: `TouchSection` `EndConditionSelect`、収録一覧 `ItemList`。
 - 進行/集計: `Flow`（英日の入力フロー）`StatsRow` `Stat`。
 
+
+- タッチタイピング: `Keyboard`（JIS配列・指の色分け・打鍵ターゲット）。
+- 準備画面の各セクション: `WordsSection``DictSection``WordSentenceSection``StorySection``TouchSection`（レベル/テーマ/モード/終了条件の選択→スタート）。
+- 結果/記録: `RecordsTable`（記録ランキング）`SegStatsTable`（問題ごとの記録）`SoundToggle`（効果音切替）。
+
 各部品の props と例は `components/<group>/<Name>/<Name>.prompt.md` を参照。

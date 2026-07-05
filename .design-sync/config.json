@@ -14,7 +14,16 @@
     "Stat": "src/ui/shared/Stats.jsx",
     "StatsRow": "src/ui/shared/Stats.jsx",
     "RubyText": "src/ui/shared/Text.jsx",
-    "MaskedRubyText": "src/ui/shared/Text.jsx"
+    "MaskedRubyText": "src/ui/shared/Text.jsx",
+    "Keyboard": "src/ui/touch/Keyboard.jsx",
+    "RecordsTable": "src/ui/result/RecordsTable.jsx",
+    "SegStatsTable": "src/ui/result/SegStatsTable.jsx",
+    "SoundToggle": "src/ui/sound/SoundToggle.jsx",
+    "WordsSection": "src/ui/ready/WordsSection.jsx",
+    "DictSection": "src/ui/ready/DictSection.jsx",
+    "WordSentenceSection": "src/ui/ready/WordSentenceSection.jsx",
+    "StorySection": "src/ui/ready/StorySection.jsx",
+    "Ready": "src/ui/ready/Ready.jsx"
   },
   "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
   "provider": {
