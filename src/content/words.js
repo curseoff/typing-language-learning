@@ -49,3 +49,8 @@ export const loadWordGloss = async () => {
     return (await import('./wordGlossData.js')).default
   }
 }
+
+// 単語の英→{ja,kana}（和訳＋読み）。英英4択の回答後にルビ表示するための派生データ。
+export const loadWordRuby = async () => {
+  return (await import('./wordRubyData.js')).default
+}
