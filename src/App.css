@@ -1222,6 +1222,11 @@ h1 {
   font-size: 0.7em;
   color: var(--muted-fn);
 }
+/* 回答前の和訳スロット：実物と同じ行数・幅のマスクで高さを予約しつつ控えめに伏せる。 */
+.quiz-option-ja.masked {
+  opacity: 0.35;
+  user-select: none;
+}
 .quiz-option:hover:not(:disabled) {
   border-color: var(--accent);
 }
