@@ -55,7 +55,8 @@ export default function TouchSection({
 }) {
   return (
     <>
-      <SectionLabel>モード</SectionLabel>
+      {/* 表示見出しは「レベル」＝やさしい/むずかしい（内部識別子は touchMode/'mode' のまま）。 */}
+      <SectionLabel>レベル</SectionLabel>
       <div className="mode-select">
         <div className="mode-group">
           <ModeButtons
@@ -69,7 +70,8 @@ export default function TouchSection({
           />
         </div>
       </div>
-      <SectionLabel>レベル</SectionLabel>
+      {/* 表示見出しは「練習範囲」＝キー範囲（内部識別子は touchLevel/'level' のまま）。 */}
+      <SectionLabel>練習範囲</SectionLabel>
       <div className="rank-select">
         <div className="rank-group">
           <div className="rank-btns">
