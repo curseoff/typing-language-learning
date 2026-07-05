@@ -122,7 +122,7 @@ export default function WordsSection({
           />
         </div>
         <div className="mode-group">
-          <div className="mode-course">4択クイズ</div>
+          <div className="mode-course">4択</div>
           <ModeButtons
             modes={WORD_QUIZ}
             value={wordMode}
