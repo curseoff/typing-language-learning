@@ -55,7 +55,23 @@ export default function TouchSection({
 }) {
   return (
     <>
+      {/* 表示見出しは「レベル」＝やさしい/むずかしい（内部識別子は touchMode/'mode' のまま）。 */}
       <SectionLabel>レベル</SectionLabel>
+      <div className="mode-select">
+        <div className="mode-group">
+          <ModeButtons
+            modes={TOUCH_MODES}
+            value={touchMode}
+            focused={focusSection === 'mode'}
+            onChange={(k) => {
+              onTouchModeChange(k)
+              onFocusSection('mode')
+            }}
+          />
+        </div>
+      </div>
+      {/* 表示見出しは「練習範囲」＝キー範囲（内部識別子は touchLevel/'level' のまま）。 */}
+      <SectionLabel>練習範囲</SectionLabel>
       <div className="rank-select">
         <div className="rank-group">
           <div className="rank-btns">
@@ -72,20 +88,6 @@ export default function TouchSection({
               </button>
             ))}
           </div>
-        </div>
-      </div>
-      <SectionLabel>モード</SectionLabel>
-      <div className="mode-select">
-        <div className="mode-group">
-          <ModeButtons
-            modes={TOUCH_MODES}
-            value={touchMode}
-            focused={focusSection === 'mode'}
-            onChange={(k) => {
-              onTouchModeChange(k)
-              onFocusSection('mode')
-            }}
-          />
         </div>
       </div>
       <p className="mode-desc">
