@@ -32,6 +32,10 @@ export { default as Passage } from '../src/ui/marathon/Passage.jsx';
 export { default as TranslateView } from '../src/ui/marathon/TranslateView.jsx';
 export { default as MarathonView } from '../src/ui/marathon/MarathonView.jsx';
 export { default as StoryView } from '../src/ui/story/StoryView.jsx';
+export { Chars, Typed, Chips, RubyTyped, MaskedText } from '../src/ui/shared/Text.jsx';
+export { ModeButtons, SectionLabel, BottomTabs, StartRow } from '../src/ui/ready/parts.jsx';
+export { default as RecordDetail } from '../src/ui/result/RecordDetail.jsx';
+
 // プレビュー用ヘルパ（コンポーネントではない＝componentSrcMap に入れない）。実 segment を生成する。
 export { buildPassage } from '../src/domain/marathon/passage.js';
 

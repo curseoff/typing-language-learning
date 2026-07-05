@@ -29,7 +29,17 @@
     "Passage": "src/ui/marathon/Passage.jsx",
     "TranslateView": "src/ui/marathon/TranslateView.jsx",
     "MarathonView": "src/ui/marathon/MarathonView.jsx",
-    "StoryView": "src/ui/story/StoryView.jsx"
+    "StoryView": "src/ui/story/StoryView.jsx",
+    "Chars": "src/ui/shared/Text.jsx",
+    "Typed": "src/ui/shared/Text.jsx",
+    "Chips": "src/ui/shared/Text.jsx",
+    "RubyTyped": "src/ui/shared/Text.jsx",
+    "MaskedText": "src/ui/shared/Text.jsx",
+    "ModeButtons": "src/ui/ready/parts.jsx",
+    "SectionLabel": "src/ui/ready/parts.jsx",
+    "BottomTabs": "src/ui/ready/parts.jsx",
+    "StartRow": "src/ui/ready/parts.jsx",
+    "RecordDetail": "src/ui/result/RecordDetail.jsx"
   },
   "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
   "provider": {
@@ -43,6 +53,10 @@
     },
     "TouchView": {
       "cardMode": "column"
+    },
+    "RecordDetail": {
+      "cardMode": "single",
+      "primaryStory": "Detail"
     }
   }
 }
