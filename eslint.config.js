@@ -13,6 +13,10 @@ export default [
       'node_modules',
       '.claude',
       'coverage',
+      // design-sync のツール・生成物・プレビュー入力（アプリのソースではない）は lint 対象外
+      '.design-sync',
+      '.ds-sync',
+      'ds-bundle',
       'src/content/wordsData.js',
       'src/content/dictionaryData.js',
       'src/content/dictMeta.js',

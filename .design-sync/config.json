@@ -1,0 +1,68 @@
+{
+  "pkg": "typing-language-learning",
+  "globalName": "TLL",
+  "shape": "package",
+  "srcDir": "src",
+  "cssEntry": "src/App.css",
+  "componentSrcMap": {
+    "TouchSection": "src/ui/ready/TouchSection.jsx",
+    "EndConditionSelect": "src/ui/ready/EndConditionSelect.jsx",
+    "ItemList": "src/ui/ready/ItemList.jsx",
+    "QuizOptionLabel": "src/ui/shared/QuizOptionLabel.jsx",
+    "OptionJa": "src/ui/shared/OptionJa.jsx",
+    "Flow": "src/ui/shared/Flow.jsx",
+    "Stat": "src/ui/shared/Stats.jsx",
+    "StatsRow": "src/ui/shared/Stats.jsx",
+    "RubyText": "src/ui/shared/Text.jsx",
+    "MaskedRubyText": "src/ui/shared/Text.jsx",
+    "Keyboard": "src/ui/touch/Keyboard.jsx",
+    "RecordsTable": "src/ui/result/RecordsTable.jsx",
+    "SegStatsTable": "src/ui/result/SegStatsTable.jsx",
+    "SoundToggle": "src/ui/sound/SoundToggle.jsx",
+    "WordsSection": "src/ui/ready/WordsSection.jsx",
+    "DictSection": "src/ui/ready/DictSection.jsx",
+    "WordSentenceSection": "src/ui/ready/WordSentenceSection.jsx",
+    "StorySection": "src/ui/ready/StorySection.jsx",
+    "Ready": "src/ui/ready/Ready.jsx",
+    "Result": "src/ui/result/Result.jsx",
+    "TouchView": "src/ui/touch/TouchView.jsx",
+    "Passage": "src/ui/marathon/Passage.jsx",
+    "TranslateView": "src/ui/marathon/TranslateView.jsx",
+    "MarathonView": "src/ui/marathon/MarathonView.jsx",
+    "StoryView": "src/ui/story/StoryView.jsx",
+    "Chars": "src/ui/shared/Text.jsx",
+    "Typed": "src/ui/shared/Text.jsx",
+    "Chips": "src/ui/shared/Text.jsx",
+    "RubyTyped": "src/ui/shared/Text.jsx",
+    "MaskedText": "src/ui/shared/Text.jsx",
+    "ModeButtons": "src/ui/ready/parts.jsx",
+    "SectionLabel": "src/ui/ready/parts.jsx",
+    "BottomTabs": "src/ui/ready/parts.jsx",
+    "StartRow": "src/ui/ready/parts.jsx",
+    "RecordDetail": "src/ui/result/RecordDetail.jsx",
+    "WordRecords": "src/ui/ready/parts.jsx",
+    "RubyChars": "src/ui/shared/Text.jsx",
+    "TopFlow": "src/ui/marathon/TopFlow.jsx"
+  },
+  "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
+  "provider": {
+    "component": "DSFrame"
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "SoundToggle": {
+      "cardMode": "single",
+      "primaryStory": "Toggle"
+    },
+    "TouchView": {
+      "cardMode": "column"
+    },
+    "RecordDetail": {
+      "cardMode": "single",
+      "primaryStory": "Detail"
+    },
+    "TopFlow": {
+      "cardMode": "column"
+    }
+  }
+}
