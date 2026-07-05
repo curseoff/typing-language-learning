@@ -671,40 +671,7 @@ h1 {
   font-size: 13px;
 }
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.stat {
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 10px 8px;
-  text-align: center;
-}
-.stat-label {
-  font-size: 11px;
-  color: var(--muted);
-}
-.stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  margin-top: 4px;
-}
-
-.progress-bar {
-  height: 8px;
-  background: var(--panel);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 28px;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--green));
-  transition: width 0.15s ease;
-}
+/* .stats/.stat/.progress-* は packages/ui (@tll/ui) の stats.css に移設（#233 M1） */
 
 /* ---- 現在文の参照(上:英語 / 下:日本語 を常に表示) ---- */
 .reference {
