@@ -694,20 +694,7 @@ h1 {
 .ref-row.active {
   opacity: 1;
 }
-.ref-tag {
-  font-size: 12px;
-  font-weight: 700;
-  color: #06283d;
-  border-radius: 999px;
-  padding: 2px 10px;
-  white-space: nowrap;
-}
-.ref-tag.en {
-  background: var(--accent);
-}
-.ref-tag.ja {
-  background: var(--gold);
-}
+/* .ref-tag* は Flow として flow.css へ移設（#233 M2） */
 .ref-text {
   font-size: 18px;
   font-weight: 700;
@@ -716,175 +703,9 @@ h1 {
   font-size: 14px;
   color: var(--muted);
 }
-/* 入力済み部分(英語/読みかな) */
-.rdone {
-  color: var(--green);
-}
+/* .rdone/.rerr は packages/ui (@tll/ui) の text.css に移設（#233 M2） */
 
-/* 打鍵に応じた per-char 下線: 入力対象の行(pairs / 単一言語 ticker)でのみ、
-   文字 span(.rch) の border-bottom を1文字ずつ色分けする。
-   未入力=中立(薄いアクセント) / 正解済み(.rdone)=緑 / 現在ミス(.rerr)=赤。
-   span は inline で隣接するため下線は連続して見える(スペースの span も引く)。
-   ふりがな(rt)は rch を付けないので下線は本体文字の下だけに出てルビと干渉しない。 */
-.flow-pair .pair-en.typing .rch,
-.flow-pair .pair-ja.typing .rch,
-.flow.ticker .flow-item.current.typing .rch {
-  border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  padding-bottom: 2px;
-}
-.flow-pair .pair-en.typing .rch.rdone,
-.flow-pair .pair-ja.typing .rch.rdone,
-.flow.ticker .flow-item.current.typing .rch.rdone {
-  border-bottom-color: var(--green);
-}
-.flow-pair .pair-en.typing .rch.rerr,
-.flow-pair .pair-ja.typing .rch.rerr,
-.flow.ticker .flow-item.current.typing .rch.rerr {
-  border-bottom-color: var(--red);
-}
-
-/* ---- 上部: 英語/日本語を横に流す(現在の文が中央、進むと左へ) ---- */
-.flow {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-.flow-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.flow-track {
-  position: relative;
-  flex: 1 1 auto;
-  display: flex;
-  gap: 24px;
-  overflow-x: hidden;
-  white-space: nowrap;
-  padding: 2px 0;
-  /* 両端をフェードさせて流れている感じを出す */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-}
-.flow-item {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  font-size: 15px;
-  transition: opacity 0.15s ease;
-}
-
-/* ティッカー: 現在語の左端を固定し、ストリップ全体を滑らかに左へスライド。
-   完了語は左へ流れて clip+フェード、現在語は常に全文字が見える。 */
-.flow.ticker .flow-track {
-  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。
-     初期描画用のフォールバック値。実行時は Flow.jsx が右端フェードを語境界へスナップして
-     mask-image を上書きする（収まる語はくっきり／はみ出す語だけゴースト＝#108）。 */
-  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
-}
-.flow-strip {
-  position: relative;
-  display: flex;
-  gap: 10px;
-  width: max-content;
-  transition: transform 0.12s linear;
-}
-
-/* 英語・日本語モード: 英語＋和訳を1ペアにまとめ横一列で交互に並べる */
-.flow.pairs {
-  display: block;
-}
-.flow.pairs .flow-strip {
-  gap: 10px;
-  align-items: stretch;
-}
-.flow-pair {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid #334155;
-  opacity: 0.4;
-  transition: opacity 0.15s ease;
-}
-.flow-pair.current {
-  opacity: 1;
-  border-color: var(--accent);
-}
-.flow-pair.past {
-  opacity: 0.22;
-}
-.flow-pair .pair-en {
-  font-weight: 700;
-  font-size: 17px;
-}
-.flow-pair .pair-ja {
-  font-weight: 700;
-  color: var(--gold);
-}
-/* 入力中の言語は per-char 下線(.rch の border-bottom)で「今どちらを打つか」＋打鍵結果を示す。
-   下線の色分けは末尾の「打鍵に応じた per-char 下線」ルールにまとめている。 */
-.flow-item.past,
-.flow-item.future {
-  opacity: 0.3;
-}
-.flow-item.current {
-  opacity: 0.7;
-  font-size: 18px;
-  font-weight: 700;
-}
-.flow-item.current.typing {
-  opacity: 1;
-}
-/* 単語モード(ticker)の英語/日本語: 各単語を「英語・日本語」ペアと同じ枠デザインに揃える。
-   枠は常に付け、現在語は枠色をアクセント＋下線に変えるだけ（枠の出現で見た目が変わらない）。 */
-.flow.ticker .flow-item {
-  font-size: 17px;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid #334155;
-  opacity: 0.4;
-  transition: opacity 0.15s ease, border-color 0.15s ease;
-}
-.flow.ticker .flow-item.past {
-  opacity: 0.22;
-}
-.flow.ticker .flow-item.current {
-  font-size: 17px; /* current でも拡大しない＝前後でサイズを揃える */
-  opacity: 1;
-}
-.flow.ticker .flow-item.current.typing {
-  border-color: var(--accent);
-}
-
-/* 物語モード: 長文は折り返す（横ティッカーをやめる） */
-.flow.wrap .flow-row {
-  align-items: flex-start;
-}
-.flow.wrap .flow-track {
-  display: block;
-  overflow: visible;
-  white-space: normal;
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-.flow.wrap .flow-item {
-  white-space: normal;
-  margin-right: 0.6em;
-  line-height: 1.6;
-}
-
-.flow-ja {
-  font-weight: 700;
-}
+/* Flow の打鍵下線・.flow*・.flow-ja は flow.css へ移設（#233 M2） */
 .flow-kana {
   margin-left: 8px;
   font-size: 13px;
@@ -1151,13 +972,7 @@ h1 {
   margin-top: 14px;
 }
 
-/* 4択の選択肢で、打鍵済みプレフィックスを着色 */
-.opt-typed {
-  color: var(--green);
-}
-.opt-typed.err {
-  color: var(--red);
-}
+/* .opt-typed* は QuizOptionLabel として quiz-option-label.css へ移設（#233 M2） */
 
 /* 説明文4択（選択肢が長文なので縦並び） */
 .pick-options {
@@ -1186,23 +1001,7 @@ h1 {
   color: var(--text);
   cursor: pointer;
 }
-/* 回答後に選択肢の下へ和訳＋ルビ（控えめトーン）。flex 行を折り返して次行に落とす。 */
-.quiz-option-ja {
-  flex-basis: 100%;
-  margin-top: 2px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-}
-.quiz-option-ja rt {
-  font-size: 0.7em;
-  color: var(--muted-fn);
-}
-/* 回答前の和訳スロット：実物と同じ行数・幅のマスクで高さを予約しつつ控えめに伏せる。 */
-.quiz-option-ja.masked {
-  opacity: 0.35;
-  user-select: none;
-}
+/* .quiz-option-ja* は OptionJa として option-ja.css へ移設（#233 M2） */
 .quiz-option:hover:not(:disabled) {
   border-color: var(--accent);
 }
@@ -1246,101 +1045,10 @@ h1 {
   flex-shrink: 0;
 }
 
-/* ---- 翻訳モード(英訳/和訳) ---- */
-.translate {
-  display: flex;
-  flex-direction: column;
-}
-.tr-task {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-.tr-source {
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1.5;
-  margin: 8px 0 4px;
-}
-.tr-next {
-  font-size: 13px;
-  color: var(--muted);
-  opacity: 0.7;
-}
-.tr-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 18px 0 20px;
-  padding: 16px;
-  background: var(--panel);
-  border-radius: 12px;
-}
-.chip {
-  font-size: 15px;
-  color: var(--text);
-  background: var(--panel-2);
-  border: 1px solid #475569;
-  border-bottom-width: 3px;
-  border-radius: 10px;
-  padding: 8px 14px;
-  transition: opacity 0.2s ease;
-}
-/* 打ち終えた単語は薄く消す */
-.chip.used {
-  opacity: 0.15;
-  border-style: dashed;
-  border-bottom-width: 1px;
-  color: var(--muted);
-}
-/* 今打っている単語のチップを強調（打鍵分は .rdone で着色） */
-.chip.current {
-  border-color: var(--accent);
-}
-.tr-input {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 26px;
-  line-height: 1.7;
-  letter-spacing: 0.04em;
-  padding: 20px;
-  min-height: 30px;
-  background: var(--panel-2);
-  border-radius: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.tr-input.error {
-  animation: shake 0.18s;
-}
-.mch.hidden {
-  color: #3b4a5f;
-}
-.mch.typed {
-  color: var(--green);
-}
-.mch.mcur {
-  color: #06283d;
-  background: var(--accent);
-  border-radius: 3px;
-}
-.mch.mcur.err {
-  background: var(--red);
-  color: #fff;
-}
+/* ---- 翻訳モード(英訳/和訳) ---- .translate/.tr-* は translate.css へ、
+   .tr-chips/.chip*・.mch.* は Chips/MaskedText として text.css へ移設（#233 M2） ---- */
 
-/* ---- 下部本文(600文字を最初から全文表示) ---- */
-.passage {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 22px;
-  line-height: 2.5;
-  letter-spacing: 0.02em;
-  padding: 20px;
-  background: var(--panel-2);
-  border-radius: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+/* ---- 下部本文 ---- .passage/.gap/.passage.error は passage.css へ移設（#233 M2） ---- */
 
 /* ふりがな（ルビ）：漢字の上に読みを小さく表示 */
 /* ルビが本文より広い run（着陸/入国審査官 等）で既定の space-around が
@@ -1357,36 +1065,12 @@ ruby > rt {
   letter-spacing: 0;
   user-select: none;
 }
-.flow-ja {
-  line-height: 2.2;
-}
+/* .flow-ja の line-height は flow.css へ統合（#233 M2） */
 .story-en {
   line-height: 2.2;
 }
-.ch {
-  color: var(--muted);
-}
-.ch.done {
-  color: var(--green);
-}
-.ch.cur {
-  color: #06283d;
-  background: var(--accent);
-  border-radius: 3px;
-}
-.ch.cur.err {
-  background: var(--red);
-  color: #fff;
-}
-.ch.over {
-  opacity: 0.35;
-}
-.gap {
-  padding: 0 0.3em;
-}
-.passage.error {
-  animation: shake 0.18s;
-}
+/* .ch* は Chars/RubyChars（Text）として text.css へ移設（#233 M2） */
+/* .gap/.passage.error は passage.css へ移設（#233 M2） */
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -1470,91 +1154,7 @@ kbd {
 }
 
 /* ---- 問題ごとの記録 ---- */
-.seg-stats {
-  margin-top: 36px;
-  text-align: left;
-}
-.seg-stats h3 {
-  font-size: 15px;
-  color: var(--muted);
-  text-align: center;
-}
-.seg-stats table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.seg-stats th,
-.seg-stats td {
-  padding: 7px 8px;
-  border-bottom: 1px solid #334155;
-  text-align: left;
-  vertical-align: top;
-}
-.seg-stats th {
-  color: var(--muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.seg-stats td.speed {
-  font-weight: 700;
-  color: var(--accent);
-  white-space: nowrap;
-}
-.seg-stats td.miss {
-  color: var(--red);
-  font-weight: 700;
-}
-.seg-stats tr.has-miss td.q-label {
-  color: var(--text);
-}
-.q-label {
-  line-height: 1.4;
-}
-.type-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  color: #06283d;
-  border-radius: 6px;
-  padding: 1px 7px;
-}
-.type-badge.en {
-  background: var(--accent);
-}
-.type-badge.ja {
-  background: var(--gold);
-}
-.partial-tag {
-  margin-left: 6px;
-  font-size: 11px;
-  color: var(--muted);
-}
-/* 場面の直後に差し込む「選んだ選択肢」行（問題ごとの記録に統合） */
-.seg-stats tr.choice-row td {
-  padding: 6px 8px 6px 26px;
-  background: rgba(148, 163, 184, 0.06);
-  line-height: 1.4;
-}
-.choice-tag {
-  display: inline-block;
-  margin-right: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  white-space: nowrap;
-}
-.seg-stats .choice-row .choice-ja {
-  font-size: 14px;
-  color: var(--text);
-}
-.seg-stats .choice-row .choice-en {
-  display: block;
-  margin-top: 2px;
-  margin-left: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
+/* .seg-stats/.q-label/.type-badge/.choice-tag は packages/ui (@tll/ui) の seg-stats.css に移設（#233 M2） */
 
 /* ---- records ---- */
 .records {
@@ -1599,10 +1199,7 @@ kbd {
   color: var(--gold);
 }
 
-/* 打鍵中に間違えた「今打つ文字」（漢字本体・ふりがな・英語）を赤く */
-.rerr {
-  color: var(--red);
-}
+/* .rerr は text.css へ移設（#233 M2） */
 
 /* 記録ランキング: クリックで詳細 */
 .records tr.row-click {
@@ -1654,14 +1251,7 @@ kbd {
   margin-top: 6px;
 }
 
-/* 問題ごとの記録: 4択クイズの正誤 */
-.seg-stats td.ok {
-  color: var(--green);
-  font-weight: 700;
-}
-.seg-stats .q-answer {
-  color: var(--muted);
-}
+/* 問題ごとの記録: 4択クイズの正誤（.seg-stats td.ok/.q-answer）は seg-stats.css へ移設（#233 M2） */
 
 /* ---- PWA 更新通知トースト（新しい版を検知したとき画面下部に控えめに出す） ---- */
 .update-toast {
