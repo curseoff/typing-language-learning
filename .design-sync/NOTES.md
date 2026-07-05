@@ -49,3 +49,9 @@
 - `.design-sync/tll-entry.mjs` の export と `cfg.componentSrcMap` は手動同期。コンポーネント追加/削除時は両方を編集。
 - previews の props はコンポーネント API 変更に追随しない（型が無いので検出されない）。API を変えたら previews を目視更新。
 - 新しく重いデータ依存コンポーネントを足す時はスタブ対象の追加漏れに注意（ビルドサイズで確認）。
+
+## 双方向ワークフロー（コマンド）
+- **順方向 App→Design**: `/design-resync`（アプリの部品を直したら Design ミラーを最新化）。中身は本ファイルの「前提」「ビルド手順」を1コマンド化。
+- **逆方向 Design→App**: `/import-design <画面コード|URL>`（Design で組んだ画面を src/ui へ移植）。import 張替えは `componentSrcMap` を共有台帳に使う。データ配線・挙動は `TODO(import-design)` で人に残す（半自動）。
+- 共有の要は **`.design-sync/config.json` の componentSrcMap**（部品名↔src実パス）。両方向がこれを使う。
+- 将来 `packages/ui` 切り出し（Issue #233）が入れば、順方向のハック（スタブ・シンボリックリンク・手書きエントリ）は不要化する見込み。
