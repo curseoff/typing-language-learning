@@ -1,9 +1,17 @@
-// 物語タブ：物語の選択カード＋モード＋記録/一覧。
+// 物語タブ（container）：物語の選択カード＋モード＋記録/一覧。
+// 表示の骨格は @tll/ui の StorySectionView（presenter）。ここは content（STORIES/MODES）・
+// application（loadItemStats/loadStoryRecords）・フック（useRecordDetail）を読み、選択肢と
+// 一覧/記録ノードを組み立てて渡す。外部 API（storyId/onStoryIdChange 等）は従来どおり維持。
+import { StorySectionView } from '@tll/ui'
 import { MODES, modeLabel } from '../../content/modes.js'
 import { STORIES, storyById } from '../../content/stories/index.js'
 import { loadStoryRecords, loadItemStats, storyStatId } from '../../application/records.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
-import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow } from './parts.jsx'
+
+const STORY_MODE_GROUPS = [...new Set(MODES.map((m) => m.group))].map((g) => ({
+  course: g,
+  modes: MODES.filter((m) => m.group === g),
+}))
 
 // 物語の場面一覧（入力した本文）。未プレイの場面は ？？？ で伏せる。
 function StoryScenes({ story, mode }) {
@@ -79,66 +87,46 @@ function StoryRecords({ list, rankText = '物語' }) {
   )
 }
 
-// 物語タブ：物語の選択カード＋モード＋記録/一覧。
-export default function StorySection({ storyId, onStoryIdChange, mode, onModeChange, onStart, bottomTab, onBottomTabChange, focusSection, onFocusSection }) {
+export default function StorySection({
+  storyId,
+  onStoryIdChange,
+  mode,
+  onModeChange,
+  onStart,
+  bottomTab,
+  onBottomTabChange,
+  focusSection,
+  onFocusSection,
+}) {
   const story = storyById(storyId)
+  const stories = STORIES.map((s) => ({
+    id: s.id,
+    title: s.title,
+    sceneCount: Object.keys(s.nodes).length,
+    endingCount: s.endingCount,
+  }))
+  const browseNode =
+    bottomTab === 'list' ? (
+      <StoryScenes story={story} mode={mode} />
+    ) : (
+      <StoryRecords list={loadStoryRecords(storyId)} rankText={story.title} />
+    )
   return (
-    <>
-      <SectionLabel>物語</SectionLabel>
-      <div className="story-select">
-        {STORIES.map((s) => (
-          <button
-            key={s.id}
-            className={`story-card ${selCls(storyId === s.id, focusSection === 'story')}`}
-            onClick={() => {
-              onStoryIdChange(s.id)
-              onFocusSection('story')
-            }}
-          >
-            <span className="story-card-title">📖 {s.title}</span>
-            <span className="story-card-sub">
-              {Object.keys(s.nodes).length} 場面 / {s.endingCount} エンド
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <SectionLabel>モード</SectionLabel>
-      <div className="mode-select">
-        {[...new Set(MODES.map((m) => m.group))].map((g) => (
-          <div className="mode-group" key={g}>
-            <div className="mode-course">{g}</div>
-            <ModeButtons
-              modes={MODES.filter((m) => m.group === g)}
-              value={mode}
-              focused={focusSection === 'mode'}
-              onChange={(k) => {
-                onModeChange(k)
-                onFocusSection('mode')
-              }}
-            />
-          </div>
-        ))}
-      </div>
-      <p className="mode-desc">「{modeLabel(mode)}」で物語を進め、選択肢で分岐します。</p>
-      <p className="pool-count">
-        この物語の収録: {Object.keys(story.nodes).length} 場面 / {story.endingCount} エンド
-      </p>
-
-      <StartRow onStart={onStart} />
-      <BottomTabs
-        value={bottomTab}
-        focused={focusSection === 'bottom'}
-        onChange={(k) => {
-          onBottomTabChange(k)
-          onFocusSection('bottom')
-        }}
-      />
-      {bottomTab === 'list' ? (
-        <StoryScenes story={story} mode={mode} />
-      ) : (
-        <StoryRecords list={loadStoryRecords(storyId)} rankText={story.title} />
-      )}
-    </>
+    <StorySectionView
+      stories={stories}
+      storyId={storyId}
+      onStoryIdChange={onStoryIdChange}
+      modeGroups={STORY_MODE_GROUPS}
+      mode={mode}
+      onModeChange={onModeChange}
+      focusSection={focusSection}
+      onFocusSection={onFocusSection}
+      modeDesc={`「${modeLabel(mode)}」で物語を進め、選択肢で分岐します。`}
+      poolCount={`この物語の収録: ${Object.keys(story.nodes).length} 場面 / ${story.endingCount} エンド`}
+      onStart={onStart}
+      bottomTab={bottomTab}
+      onBottomTabChange={onBottomTabChange}
+      browseNode={browseNode}
+    />
   )
 }

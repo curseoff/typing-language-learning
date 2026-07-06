@@ -1,0 +1,38 @@
+/* 物語タブの選択カード（StorySectionView presenter）。
+   sel/sel-focus（story-card.sel 等）は type-tab と共有のため App.css 側に残す。 */
+.story-select {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.story-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 180px;
+  text-align: left;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.story-card:hover {
+  border-color: var(--gold);
+}
+.story-card.active {
+  border-color: var(--gold);
+  background: var(--panel-2);
+}
+.story-card-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+.story-card-sub {
+  font-size: 11px;
+  color: var(--muted);
+}

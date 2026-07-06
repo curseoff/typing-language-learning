@@ -1,47 +1,19 @@
-// 物語モードの画面（プレゼンテーション）。状態は useStory から受け取る。
+// 物語モードの画面（container）：useStory（状態機械・キー入力配線・記録保存）を呼び、
+// domain（guideText/consumedWords/kanjiDone/segMatches/lookahead/storyFlowProgress）で
+// 進捗・選択肢ビュー・翻訳入力ビューを算出して @tll/ui の StoryView（presenter）へ渡す。
+// 記録ランキング（useRecordDetail フックを使うモーダル）は container 側で描いて node で渡す。
+// 外部 API（mode/modeLabel/storyId/start/onExit）は従来どおり維持。
+import { StoryView as StoryViewPresenter } from '@tll/ui'
 import { useStory } from '../../application/useStory.js'
 import { storyById } from '../../content/stories/index.js'
 import { lookahead } from '../../domain/story/navigation.js'
 import { storyFlowProgress } from '../../domain/story/flowProgress.js'
 import { segMatches } from '../../domain/typing/units.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
-import { Chars, RubyChars, Chips, Flow, MaskedText, StatsRow } from '../shared/index.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
-import SegStatsTable from '../result/SegStatsTable.jsx'
 
-// 現在打っているセグメントの表示
-function ActiveSegment({ seg, input, hasError }) {
-  if (seg.translate) {
-    const source = seg.type === 'en' ? seg.ja : seg.en
-    const target = guideText(seg, input)
-    const used = consumedWords(seg, input) // 打ち終えた単語数
-    return (
-      <>
-        <p className="story-prompt">{source}</p>
-        {seg.chips && <Chips chips={seg.chips} used={used} />}
-        <div className="story-en masked">
-          <MaskedText text={target} pos={input.length} hasError={hasError} />
-        </div>
-      </>
-    )
-  }
-  if (seg.type === 'ja') {
-    const done = kanjiDone(seg, input)
-    return (
-      <div className="story-en">
-        <RubyChars ja={seg.ja} kana={seg.kana} done={done} cursor={done} hasError={hasError} />
-      </div>
-    )
-  }
-  // en（そのまま）
-  return (
-    <div className="story-en">
-      <Chars text={seg.en} done={input.length} cursor={input.length} hasError={hasError} />
-    </div>
-  )
-}
-
-// 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）
+// 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）。useRecordDetail フックを
+// 使うため container 側に置き、presenter へは描画済みノードとして渡す。
 function StoryRecords({ list, highlight, rankText }) {
   const { open, modal } = useRecordDetail()
   if (!list || list.length === 0) return null
@@ -129,131 +101,83 @@ export default function StoryView({ mode, modeLabel, storyId, start, onExit }) {
     input,
   })
 
+  // 翻訳モードの入力欄（原文＋伏せ字）。seg.translate 前提（翻訳モードの units は translate）。
+  const activeInput =
+    isTranslate && units[unitIndex]
+      ? (() => {
+          const seg = units[unitIndex]
+          return {
+            source: seg.type === 'en' ? seg.ja : seg.en,
+            chips: seg.chips,
+            used: consumedWords(seg, input),
+            target: guideText(seg, input),
+            pos: input.length,
+          }
+        })()
+      : null
+
+  // 分岐選択肢のビュー（打鍵中の照合・進捗を domain で算出）。
+  const choices =
+    stage === 'choice'
+      ? node.choices.map((c, i) => {
+          const seg = choiceSegs[i]
+          const matched = segMatches(seg, input)
+          return {
+            key: 'ABC'[i],
+            lang,
+            en: c.en,
+            ja: c.ja,
+            matched,
+            enDone: lang === 'en' && matched ? input.length : 0,
+            enCursor: matched ? input.length : -1,
+            jaDone: lang === 'ja' && matched ? kanjiDone(seg, input) : 0,
+            hasError: matched && hasError,
+          }
+        })
+      : null
+
+  const unitProgress =
+    units.length > 1
+      ? {
+          current: unitIndex + 1,
+          total: units.length,
+          typeLabel: units[unitIndex].type === 'en' ? '英語' : '日本語',
+        }
+      : null
+
   return (
-    <div className="story">
-      <div className="play-meta">
-        <span className="meta-badge rank">{story.title}</span>
-        <span className="meta-badge mode">{modeLabel}</span>
-      </div>
-      <div className="story-found-line">
-        発見エンド {found.length} / {story.endingCount}
-      </div>
-
-      {stage === 'ending' ? (
-        <div className="story-ending">
-          <div className="ending-badge">{node.endLabel}</div>
-          <p className="ending-text">{node.en}</p>
-          <p className="ending-ja">{node.ja}</p>
-          {result && (
-            <div className="result-sub">
-              <span>{result.speed} 打/分</span>
-              <span>{result.keys} 打</span>
-              <span>{result.seconds} 秒</span>
-              <span>ミス {result.mistakes}</span>
-              <span>正確率 {result.accuracy}%</span>
-            </div>
-          )}
-          <div className="ending-actions">
-            <button className="btn-primary" onClick={restart}>
-              最初から
-            </button>
-            <button className="story-exit" onClick={onExit}>
-              トップへ
-            </button>
-          </div>
-          <p className="key-hint">
-            <kbd>Enter</kbd> 最初から / <kbd>Esc</kbd> トップ
-          </p>
-          <SegStatsTable segStats={result?.segStats} />
-          <StoryRecords list={records} highlight={result?.date} rankText={story.title} />
-        </div>
-      ) : (
-        <>
-          <StatsRow
-            stats={[
-              { label: 'タイピング数', value: typedKeys },
-              { label: '速度', value: `${liveSpeed} 打/分` },
-              { label: 'ミス', value: mistakes },
-              { label: '時間', value: `${elapsedSec} 秒` },
-            ]}
-            progress={barProgress}
-          />
-
-          {!isTranslate && (
-            <Flow
-              items={flowItems}
-              cur={0}
-              enDone={enDone}
-              jaDone={jaDone}
-              jaKanaDone={jaKanaDone}
-              hasError={hasError}
-              activeRow={activeRow}
-              showEn
-              showJa
-              // 問題入力中はカード型(ticker)、選択肢表示中は以前の段組み(wrap)に切替
-              ticker={stage === 'text'}
-              wrap={stage === 'choice'}
-              isBoth={isBoth}
-            />
-          )}
-
-          {units.length > 1 && (
-            <div className="story-progress">
-              {unitIndex + 1} / {units.length}（{units[unitIndex].type === 'en' ? '英語' : '日本語'}）
-            </div>
-          )}
-
-          {/* 翻訳モードは Flow が出ないので入力欄が必要。非翻訳（en/ja/both）は Flow が
-              入力進捗を兼ねるため、重複するモノスペース入力欄は出さない。 */}
-          {isTranslate && (
-            <ActiveSegment seg={units[unitIndex]} input={input} hasError={hasError} />
-          )}
-
-          {stage === 'choice' && (
-            <div className="story-choices">
-              {node.choices.map((c, i) => {
-                const seg = choiceSegs[i]
-                const matched = segMatches(seg, input)
-                const enDone = lang === 'en' && matched ? input.length : 0
-                const jaDone = lang === 'ja' && matched ? kanjiDone(seg, input) : 0
-                return (
-                  <div key={i} className={`story-choice ${matched ? '' : 'dim'}`}>
-                    <span className="choice-key">{'ABC'[i]}</span>
-                    <div className="choice-body">
-                      <div className="choice-en">
-                        {lang === 'en' ? (
-                          <Chars
-                            text={c.en}
-                            done={enDone}
-                            cursor={matched ? input.length : -1}
-                            hasError={matched && hasError}
-                          />
-                        ) : (
-                          c.en
-                        )}
-                      </div>
-                      <div className="choice-ja">
-                        {lang === 'ja' ? (
-                          <Chars text={c.ja} done={jaDone} cursor={jaDone} hasError={matched && hasError} />
-                        ) : (
-                          c.ja
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          <p className="hint">
-            {stage === 'text'
-              ? '表示された文を入力。'
-              : '選択肢のどれか1つを最後まで入力すると進みます。'}
-            <kbd>Esc</kbd> でトップへ。
-          </p>
-        </>
-      )}
-    </div>
+    <StoryViewPresenter
+      storyTitle={story.title}
+      modeLabel={modeLabel}
+      foundCount={found.length}
+      endingCount={story.endingCount}
+      stage={stage}
+      hasError={hasError}
+      onRestart={restart}
+      onExit={onExit}
+      endLabel={node.endLabel}
+      endEn={node.en}
+      endJa={node.ja}
+      result={result}
+      segStats={result?.segStats}
+      recordsNode={
+        <StoryRecords list={records} highlight={result?.date} rankText={story.title} />
+      }
+      typedKeys={typedKeys}
+      liveSpeed={liveSpeed}
+      mistakes={mistakes}
+      elapsedSec={elapsedSec}
+      barProgress={barProgress}
+      showFlow={!isTranslate}
+      flowItems={flowItems}
+      enDone={enDone}
+      jaDone={jaDone}
+      jaKanaDone={jaKanaDone}
+      activeRow={activeRow}
+      isBoth={isBoth}
+      unitProgress={unitProgress}
+      activeInput={activeInput}
+      choices={choices}
+    />
   )
 }

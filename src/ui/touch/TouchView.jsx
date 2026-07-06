@@ -1,9 +1,9 @@
-// タッチタイピング練習の画面。打つべきキー・使う指・キーボードを表示。
+// タッチタイピング練習（container）：useTouch（状態機械・キー入力配線・タイマー）を呼び、
+// 完了時の記録保存 effect を持つ。表示の骨格は @tll/ui の TouchView（presenter）。
+// 外部 API（level/levelLabel/mode/modeLabel/onRecord/onExit）は従来どおり維持。
 import { useEffect, useRef } from 'react'
+import { TouchView as TouchViewPresenter } from '@tll/ui'
 import { useTouch } from '../../application/useTouch.js'
-import { FINGER, FINGER_LABEL } from '../../content/keyboard.js'
-import { StatsRow } from '../shared/index.js'
-import Keyboard from './Keyboard.jsx'
 
 export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord, onExit }) {
   const t = useTouch({ level, onExit })
@@ -38,82 +38,23 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
   }, [t.finished])
 
   return (
-    <div className="game">
-      <div className="play-meta">
-        <span className="meta-badge rank">タッチタイピング</span>
-        <span className="meta-badge mode">{levelLabel}</span>
-        {modeLabel ? <span className="meta-badge mode">{modeLabel}</span> : null}
-      </div>
-
-      {t.finished ? (
-        <div className="result">
-          <h2>完了！</h2>
-          <div className="result-main">
-            <div className="result-speed">{t.typedKeys}</div>
-            <div className="result-unit">タイピング数</div>
-          </div>
-          <div className="result-sub">
-            <span>ミス {t.mistakes}</span>
-            <span>{t.elapsedSec} / 60秒</span>
-          </div>
-          <div className="ending-actions">
-            <button className="btn-primary" onClick={t.restart}>
-              もう一度
-            </button>
-            <button className="story-exit" onClick={onExit}>
-              トップへ
-            </button>
-          </div>
-          <p className="key-hint">
-            <kbd>Enter</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
-          </p>
-        </div>
-      ) : (
-        <>
-          <StatsRow
-            stats={[
-              { label: 'タイピング数', value: `${t.typedKeys}` },
-              { label: '速度', value: `${t.liveSpeed} 打/分` },
-              { label: 'ミス', value: t.mistakes },
-              { label: '時間', value: `${t.elapsedSec} / 60秒` },
-            ]}
-            progress={Math.min(1, t.elapsedSec / 60)}
-          />
-
-          <div className="touch-strip">
-            <div
-              className="strip-track"
-              style={{ transform: `translateX(${-Math.max(0, t.index - 3) * 42}px)` }}
-            >
-              {t.targets.map((k, i) => {
-                const cur = i === t.index
-                const cls =
-                  'strip-key' + (i < t.index ? ' done' : '') + (cur ? ` current fg-${FINGER[k]}` : '')
-                return (
-                  <span key={i} className={cls}>
-                    {k.toUpperCase()}
-                  </span>
-                )
-              })}
-            </div>
-          </div>
-
-          <p className="touch-finger">使う指：{FINGER_LABEL[FINGER[t.target]]}</p>
-
-          <Keyboard
-            target={t.target}
-            hasError={t.hasError}
-            showTarget={showTarget}
-            wrongKey={t.wrongKey}
-            pressed={t.pressed}
-          />
-
-          <p className="hint">
-            ハイライトされたキーを、対応する指で打ちます（画面を見ずに打てるように）。
-            <kbd>Esc</kbd> で中断。
-          </p>
-        </>
-      )}
-    </div>
+    <TouchViewPresenter
+      levelLabel={levelLabel}
+      modeLabel={modeLabel}
+      showTarget={showTarget}
+      targets={t.targets}
+      index={t.index}
+      target={t.target}
+      typedKeys={t.typedKeys}
+      liveSpeed={t.liveSpeed}
+      mistakes={t.mistakes}
+      elapsedSec={t.elapsedSec}
+      hasError={t.hasError}
+      wrongKey={t.wrongKey}
+      pressed={t.pressed}
+      finished={t.finished}
+      onRestart={t.restart}
+      onExit={onExit}
+    />
   )
 }

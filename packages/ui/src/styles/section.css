@@ -1,0 +1,15 @@
+/* スタート画面の各セクション View（RankSectionView）の補助テキスト。
+   rank/mode 系の見た目は parts.css、sel/sel-focus は App.css（type-tab 等と共有）。 */
+.mode-desc {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 10px;
+  min-height: 18px;
+}
+.pool-count {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin: -4px 0 0;
+}

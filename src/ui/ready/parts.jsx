@@ -1,65 +1,12 @@
-// スタート画面の共有プリミティブ。各種類 Section から使う小さな部品・定数をまとめる。
+// スタート画面の共有プリミティブ。presenter（ModeButtons/SectionLabel/BottomTabs/StartRow/selCls）は
+// @tll/ui が正本＝ここは再エクスポート。content 依存のヘルパと、記録詳細に依存する WordRecords は app 側に残す。
 import { WORD_LEVELS, WORD_THEMES } from '../../content/words.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 
+export { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow } from '@tll/ui'
+
 export const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 export const dictLevelLabel = (lv) => WORD_LEVELS.find((l) => l.level === lv)?.label ?? ''
-
-// 選択状態のクラス。フォーカス行の選択＝青枠(sel-focus)、非フォーカス行の選択＝青背景(sel)。
-export const selCls = (selected, focused) => (selected ? (focused ? 'sel-focus' : 'sel') : '')
-
-export function ModeButtons({ modes, value, onChange, focused }) {
-  return (
-    <div className="mode-btns">
-      {modes.map((m) => (
-        <button
-          key={m.key}
-          className={`mode-btn ${selCls(value === m.key, focused)}`}
-          onClick={() => onChange(m.key)}
-        >
-          {m.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-export function SectionLabel({ children }) {
-  return <div className="section-label">{children}</div>
-}
-
-// 下部の「記録ランキング / 収録一覧」切り替え
-export function BottomTabs({ value, onChange, focused }) {
-  return (
-    <div className="bottom-tabs">
-      {[
-        ['records', '記録ランキング'],
-        ['list', '収録一覧'],
-      ].map(([k, label]) => (
-        <button
-          key={k}
-          className={`bottom-tab ${selCls(value === k, focused)}`}
-          onClick={() => onChange(k)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-export function StartRow({ onStart }) {
-  return (
-    <>
-      <button className="btn-primary" onClick={onStart}>
-        スタート
-      </button>
-      <p className="key-hint">
-        <kbd>↑</kbd> <kbd>↓</kbd> 項目 / <kbd>←</kbd> <kbd>→</kbd> 選択 / <kbd>Enter</kbd> スタート
-      </p>
-    </>
-  )
-}
 
 // 単語の記録（入力=速度、4択=正解数）。行クリックで詳細。単語・英英で共用。
 // 問題数制（items）・サドンデス（life）は「正解数」順のランキング＝主列を正解数に切替える（#208 段3b/5b）。

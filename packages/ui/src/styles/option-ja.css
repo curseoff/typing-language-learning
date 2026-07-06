@@ -1,0 +1,18 @@
+/* OptionJa（4択の反対側スロット）。@tll/ui へ移設（#233 M2） */
+/* 回答後に選択肢の下へ和訳＋ルビ（控えめトーン）。flex 行を折り返して次行に落とす。 */
+.quiz-option-ja {
+  flex-basis: 100%;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.quiz-option-ja rt {
+  font-size: 0.7em;
+  color: var(--muted-fn);
+}
+/* 回答前の和訳スロット：実物と同じ行数・幅のマスクで高さを予約しつつ控えめに伏せる。 */
+.quiz-option-ja.masked {
+  opacity: 0.35;
+  user-select: none;
+}

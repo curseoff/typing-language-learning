@@ -190,6 +190,27 @@ describe('compareRecords（#208 段0b・Array.sort 準拠）', () => {
     expect(sign(compareRecords(ec, { speed: 100, mistakes: 0 }, { mistakes: 0 }))).toBe(-1)
   })
 
+  it('endless: a.speed 欠損は 0 扱いで下位（相手が speed を持てば相手が上位）', () => {
+    const ec = { kind: 'endless', value: null }
+    // a は欠損(=0)・b は speed あり(100) → b が上位（正）。a.speed?? の右辺を踏む。
+    expect(sign(compareRecords(ec, { mistakes: 0 }, { speed: 100, mistakes: 0 }))).toBe(1)
+  })
+
+  it('endless: 同速で a.mistakes 欠損は 0 扱い（相手のミスが多いと a が上位）', () => {
+    const ec = { kind: 'endless', value: null }
+    expect(sign(compareRecords(ec, { speed: 100 }, { speed: 100, mistakes: 3 }))).toBe(-1)
+  })
+
+  it('endless: 同速で b.mistakes 欠損は 0 扱い（a のミスが多いと a が下位）', () => {
+    const ec = { kind: 'endless', value: null }
+    expect(sign(compareRecords(ec, { speed: 100, mistakes: 3 }, { speed: 100 }))).toBe(1)
+  })
+
+  it('time: 同 keys で b.mistakes 欠損は 0 扱い（a のミスが多いと a が下位）', () => {
+    const ec = { kind: 'time', value: 60 }
+    expect(sign(compareRecords(ec, { keys: 20, mistakes: 3 }, { keys: 20 }))).toBe(1)
+  })
+
   it('反対称性：endless で sign(cmp(a,b)) === -sign(cmp(b,a))（#208 段6）', () => {
     const ec = { kind: 'endless', value: null }
     const a = { speed: 300, mistakes: 2 }

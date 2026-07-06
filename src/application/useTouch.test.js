@@ -86,6 +86,43 @@ describe('useTouch（タッチタイピング・結合）', () => {
     expect(result.current.index).toBe(0)
   })
 
+  it('未知のレベルは先頭レベルへフォールバックして出題される', () => {
+    // TOUCH_LEVELS に無いキーを渡しても target が生成され、正打鍵で進む。
+    const { result } = renderHook(() => useTouch({ level: 'no-such-level', onExit: vi.fn() }))
+    expect(result.current.target).toBeDefined()
+    expect(result.current.total).toBeGreaterThan(0)
+    typeTarget(result)
+    expect(result.current.index).toBe(1)
+  })
+
+  it('finished 後に Enter を打つと restart される', () => {
+    const { result } = renderHook(() => useTouch({ level: 'home', onExit: vi.fn() }))
+    typeTarget(result)
+    runOutClock()
+    expect(result.current.finished).toBe(true)
+    press('Enter')
+    expect(result.current.finished).toBe(false)
+    expect(result.current.index).toBe(0)
+  })
+
+  it('finished 後に Enter 以外のキーを打っても何も起きない（無視される）', () => {
+    const { result } = renderHook(() => useTouch({ level: 'home', onExit: vi.fn() }))
+    typeTarget(result) // 最初の打鍵で計時開始（index=1）
+    runOutClock()
+    expect(result.current.finished).toBe(true)
+    const key = result.current.target
+    press(key) // 通常キーでも finished 中は index を進めない
+    expect(result.current.finished).toBe(true)
+    expect(result.current.index).toBe(1)
+  })
+
+  it('単一文字でないキー（Enter 等）はプレイ中に無視され index が進まない', () => {
+    const { result } = renderHook(() => useTouch({ level: 'home', onExit: vi.fn() }))
+    press('Enter') // まだ finished ではない → length!==1 で無視
+    expect(result.current.index).toBe(0)
+    expect(result.current.mistakes).toBe(0)
+  })
+
   it('Escape で onExit が呼ばれる', () => {
     const onExit = vi.fn()
     renderHook(() => useTouch({ level: 'home', onExit }))

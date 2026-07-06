@@ -1,0 +1,79 @@
+/* Text（Chars/RubyChars/RubyTyped/Typed/MaskedText/Chips 等）の文字色分け。@tll/ui へ移設（#233 M2） */
+
+/* 入力済み部分(英語/読みかな) */
+.rdone {
+  color: var(--green);
+}
+/* 打鍵中に間違えた「今打つ文字」（漢字本体・ふりがな・英語）を赤く */
+.rerr {
+  color: var(--red);
+}
+
+/* 下部本文・4択などの打鍵色分け */
+.ch {
+  color: var(--muted);
+}
+.ch.done {
+  color: var(--green);
+}
+.ch.cur {
+  color: #06283d;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.ch.cur.err {
+  background: var(--red);
+  color: #fff;
+}
+.ch.over {
+  opacity: 0.35;
+}
+
+/* 翻訳モードのチップ（Chips） */
+.tr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 20px;
+  padding: 16px;
+  background: var(--panel);
+  border-radius: 12px;
+}
+.chip {
+  font-size: 15px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid #475569;
+  border-bottom-width: 3px;
+  border-radius: 10px;
+  padding: 8px 14px;
+  transition: opacity 0.2s ease;
+}
+/* 打ち終えた単語は薄く消す */
+.chip.used {
+  opacity: 0.15;
+  border-style: dashed;
+  border-bottom-width: 1px;
+  color: var(--muted);
+}
+/* 今打っている単語のチップを強調（打鍵分は .rdone で着色） */
+.chip.current {
+  border-color: var(--accent);
+}
+
+/* 翻訳モードの伏せ字（MaskedText） */
+.mch.hidden {
+  color: #3b4a5f;
+}
+.mch.typed {
+  color: var(--green);
+}
+.mch.mcur {
+  color: #06283d;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.mch.mcur.err {
+  background: var(--red);
+  color: #fff;
+}

@@ -8,12 +8,37 @@ import {
   FINGER,
   HOME_KEYS,
   BUMP_KEYS,
-} from '../../content/keyboard.js'
+} from './keyboardLayout'
 
 // 数字段・記号キーは英字キーと違って main が大きい一文字でないため、刻印の出し分けに使う。
 const ALPHA = /^[a-z]$/
 
-function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey, isPressed, isCorrect }) {
+export interface KeyboardPressed {
+  key: string | null
+  tick: number
+  ok?: boolean
+}
+
+export interface KeyboardProps {
+  target?: string | null
+  hasError?: boolean
+  showTarget?: boolean
+  wrongKey?: string | null
+  pressed?: KeyboardPressed
+}
+
+interface KeyCapProps {
+  k: string
+  target?: string | null
+  hasError?: boolean
+  handSplit: boolean
+  showTarget: boolean
+  wrongKey?: string | null
+  isPressed: boolean
+  isCorrect: boolean
+}
+
+function KeyCap({ k, target, hasError, handSplit, showTarget, wrongKey, isPressed, isCorrect }: KeyCapProps) {
   const legend = KEY_LEGENDS[k] ?? {}
   const isTarget = k === target
   const isDisplayOnly = DISPLAY_ONLY_KEYS.includes(k)
@@ -49,7 +74,7 @@ export default function Keyboard({
   showTarget = true,
   wrongKey = null,
   pressed = { key: null, tick: 0 },
-}) {
+}: KeyboardProps) {
   return (
     <div className="kb">
       {KEY_ROWS.map((row, r) => (
@@ -70,7 +95,7 @@ export default function Keyboard({
                 showTarget={showTarget}
                 wrongKey={wrongKey}
                 isPressed={isPressed}
-                isCorrect={isPressed && pressed.ok}
+                isCorrect={isPressed && !!pressed.ok}
               />
             )
           })}
