@@ -4,6 +4,7 @@ import './styles/text.css'
 import './styles/option-ja.css'
 import './styles/quiz-option-label.css'
 import './styles/quiz.css'
+import './styles/dict.css'
 import './styles/flow.css'
 import './styles/passage.css'
 import './styles/translate.css'
@@ -113,4 +114,12 @@ export type {
   WordQuizViewProps,
   WordQuizOption,
 } from './words/WordsView'
+export { DictTypeView, DictQuizView, DictPickView } from './dictionary/DictView'
+export type {
+  DictTypeViewProps,
+  DictQuizViewProps,
+  DictPickViewProps,
+  DictOption,
+  DictWordRuby,
+} from './dictionary/DictView'
 

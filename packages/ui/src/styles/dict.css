@@ -1,0 +1,66 @@
+/* 英英辞典画面（DictTypeView/DictQuizView/DictPickView presenter）の専用スタイル。
+   共有の 4択カード（word-card/quiz-option 等）は quiz.css、result/records は App 側に残置。 */
+/* 問題文のすぐ上に出す「対応単語」ラベル（英語/日本語入力モード） */
+.seg-word {
+  text-align: center;
+  margin: 14px 0 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.seg-word strong {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 15px;
+}
+.seg-word-ja {
+  color: var(--muted);
+  font-size: 13px;
+}
+/* 4択クイズの回答後、選んだ語の和訳を見出しのすぐ下に控えめに併記 */
+.word-input-ja {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+/* 回答後だけ出る reveal 行の高さを回答前から確保し、回答時のカード伸縮を防ぐ。
+   中身は描画したまま不可視化（視覚ノイズ無し）＋ aria-hidden で SR にも漏らさない。 */
+.reveal-pending {
+  visibility: hidden;
+}
+/* 英英辞典カード */
+.dict-head {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+/* 説明4択：回答後に見出し語の真下へ出す単語の和訳 */
+.dict-head-ja {
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  margin: -6px 0 0;
+}
+.dict-def {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.dict-ref {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 8px 0 0;
+}
+/* 説明文4択（選択肢が長文なので縦並び） */
+.pick-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.pick-option {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}

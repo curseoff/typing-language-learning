@@ -246,22 +246,7 @@ h1 {
   color: #06283d;
   background: var(--accent);
 }
-/* 問題文のすぐ上に出す「対応単語」ラベル */
-.seg-word {
-  text-align: center;
-  margin: 14px 0 6px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.seg-word strong {
-  color: var(--accent);
-  font-weight: 800;
-  font-size: 15px;
-}
-.seg-word-ja {
-  color: var(--muted);
-  font-size: 13px;
-}
+/* 「対応単語」ラベル（.seg-word/.seg-word-ja）は @tll/ui の DictTypeView presenter へ移設＝dict.css */
 
 /* .stats/.stat/.progress-* は packages/ui (@tll/ui) の stats.css に移設（#233 M1） */
 
@@ -347,13 +332,7 @@ h1 {
 /* ---- 単語モード ---- */
 /* 4択カード・入力欄・選択肢（.word-card/.word-dir/.word-prompt/.word-input/.quiz-options/
    .quiz-option 系/.caret）は @tll/ui の WordQuizView/DictQuizView presenter へ移設＝quiz.css。 */
-/* 4択クイズの回答後、選んだ語の和訳を見出しのすぐ下に控えめに併記 */
-.word-input-ja {
-  text-align: center;
-  color: var(--muted);
-  font-size: 14px;
-  margin: 4px 0 0;
-}
+/* 選んだ語の和訳（.word-input-ja）は @tll/ui の DictQuizView presenter へ移設＝dict.css */
 
 /* 次の候補（先読み） */
 .word-next {
@@ -383,31 +362,8 @@ h1 {
   opacity: 0.5;
 }
 
-/* 回答後だけ出る reveal 行の高さを回答前から確保し、回答時のカード伸縮を防ぐ。
-   中身は描画したまま不可視化（視覚ノイズ無し）＋ aria-hidden で SR にも漏らさない。 */
-.reveal-pending {
-  visibility: hidden;
-}
-
-/* 英英辞典カード */
-.dict-head {
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0 0 12px;
-}
-/* 説明4択：回答後に見出し語の真下へ出す単語の和訳 */
-.dict-head-ja {
-  text-align: center;
-  color: var(--muted);
-  font-size: 15px;
-  margin: -6px 0 0;
-}
-.dict-def {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.6;
-  margin: 0 0 10px;
-}
+/* .reveal-pending・英英カード（.dict-head/.dict-head-ja/.dict-def/.dict-ref）・説明文4択
+   （.pick-options/.pick-option）は @tll/ui の DictView presenter へ移設＝dict.css */
 .dict-type {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 22px;
@@ -415,27 +371,9 @@ h1 {
   line-height: 1.6;
   margin: 6px 0;
 }
-.dict-ref {
-  color: var(--muted);
-  font-size: 15px;
-  margin: 8px 0 0;
-}
 
 /* .quiz-options は @tll/ui presenter へ移設＝quiz.css */
 /* .opt-typed* は QuizOptionLabel として quiz-option-label.css へ移設（#233 M2） */
-
-/* 説明文4択（選択肢が長文なので縦並び） */
-.pick-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
-}
-.pick-option {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-}
 /* .quiz-option 系（hover/disabled/cand/dim/correct/wrong）・.caret・@keyframes blink は
    @tll/ui の WordQuizView/DictQuizView presenter へ移設＝quiz.css */
 /* .quiz-option-ja* は OptionJa として option-ja.css へ移設（#233 M2） */
