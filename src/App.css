@@ -183,43 +183,8 @@ h1 {
   margin-top: 16px;
 }
 
-/* 物語の選択カード */
-.story-select {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.story-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 180px;
-  text-align: left;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.story-card:hover {
-  border-color: var(--gold);
-}
-.story-card.active {
-  border-color: var(--gold);
-  background: var(--panel-2);
-}
-.story-card-title {
-  font-weight: 700;
-  font-size: 14px;
-}
-.story-card-sub {
-  font-size: 11px;
-  color: var(--muted);
-}
+/* 物語の選択カード（.story-select/.story-card 系）は @tll/ui の StorySectionView presenter へ
+   移設＝story-section.css。sel/sel-focus は下の共有ブロックに残す。 */
 
 /* レベル選択（rank 系）とモード選択（mode-select/mode-group/mode-course/mode-btns/mode-btn）は
    @tll/ui packages/ui/src/styles/parts.css へ移設。sel/sel-focus は type-tab/story-card と共有のため下に残す。 */
