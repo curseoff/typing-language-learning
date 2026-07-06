@@ -1,4 +1,4 @@
-import { StatsRow } from 'typing-language-learning';
+import { StatsRow } from '@tll/ui';
 const stats = [
   { label: '経過', value: '32秒' },
   { label: '入力', value: '128字' },

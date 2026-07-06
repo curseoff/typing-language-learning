@@ -1,4 +1,4 @@
-import { ModeButtons } from 'typing-language-learning';
+import { ModeButtons } from '@tll/ui';
 const noop = () => {};
 const modes = [
   { key: 'both', label: '英語・日本語' },

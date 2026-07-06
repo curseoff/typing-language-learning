@@ -1,2 +1,2 @@
-import { SectionLabel } from 'typing-language-learning';
+import { SectionLabel } from '@tll/ui';
 export const Label = () => <SectionLabel>レベル</SectionLabel>;

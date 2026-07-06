@@ -1,4 +1,4 @@
-import { RecordsTable } from 'typing-language-learning';
+import { RecordsTable } from '@tll/ui';
 const recs = [
   { keys: 240, speed: 240, correctCount: 23, accuracy: 98, seconds: 60, endLabel: "60秒", date: "2026-07-05 21:00" },
   { keys: 210, speed: 210, correctCount: 20, accuracy: 95, seconds: 60, endLabel: "60秒", date: "2026-07-04 10:00" },

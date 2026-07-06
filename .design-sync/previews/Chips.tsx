@@ -1,4 +1,4 @@
-import { Chips } from 'typing-language-learning';
+import { Chips } from '@tll/ui';
 const chips = [
   { text: 'I', i: 0 },
   { text: 'like', i: 1 },
