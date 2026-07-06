@@ -24,6 +24,9 @@ out
 # Vite / cache
 .vite
 
+# Storybook build output
+storybook-static
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json

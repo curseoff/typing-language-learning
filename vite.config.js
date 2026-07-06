@@ -37,6 +37,7 @@ export default defineConfig({
         'src/main.jsx',
         'src/infrastructure/pwa/registerSW.js',
         'packages/*/src/**/*.test.{ts,tsx}',
+        'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
         'packages/*/src/**/*.d.ts',
       ],
