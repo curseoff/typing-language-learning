@@ -43,7 +43,10 @@ export default defineConfig({
       // #233 M4（container/presenter 分離：ItemList/RecordsTable/Result/各 Section の JSX を @tll/ui の
       // presenter へ移設）で未被覆の JSX が src 計測から外れ、src 実測が上振れ（S82.69/B65.82/F81.35/L83.59）。
       // 実測直下へラチェット（上げる方向のみ）。
-      thresholds: { statements: 82.0, branches: 65.0, functions: 80.0, lines: 83.0 },
+      // #233 M5（L4 Views: SoundToggle/TouchView/StoryView/WordsView/DictView の JSX を @tll/ui の
+      // presenter へ移設、結果は共有 PlayResultView へ集約）で未被覆の分岐（4択の着色・結果内訳など）が
+      // src 計測から外れ、src 実測が大きく上振れ（S84.4/B74.36/F82.85/L85.28）。実測直下へラチェット。
+      thresholds: { statements: 84.0, branches: 74.0, functions: 82.0, lines: 85.0 },
     },
   },
 })
