@@ -15,6 +15,8 @@ export default [
       'packages/*/dist',
       '.claude',
       'coverage',
+      // Storybook のビルド出力（storybook build の生成物）は lint 対象外
+      'storybook-static',
       // design-sync のツール・生成物・プレビュー入力（アプリのソースではない）は lint 対象外
       '.design-sync',
       '.ds-sync',

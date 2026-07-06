@@ -17,22 +17,29 @@ export default defineConfig({
     // ドメイン層は純粋関数なので node 環境（既定）。UIテストは各ファイル先頭の
     // `// @vitest-environment jsdom` で個別に jsdom を指定する（vitest 4 で environmentMatchGlobs 廃止）。
     environment: 'node',
-    include: ['src/**/*.test.{js,jsx}'],
+    // #233 M7: @tll/ui（packages/ui）の presenter テスト（.tsx・各先頭で jsdom 指定）も拾う。
+    include: ['src/**/*.test.{js,jsx}', 'packages/*/src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/test/setup.js'],
     globals: true,
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'html'],
       // コード（ロジック）のみ対象。データ/エントリ/テストは除外。
-      include: ['src/**/*.{js,jsx}'],
+      // #233 M7: 移設済みの @tll/ui presenter（packages/*/src）も計測対象に含める。
+      include: ['src/**/*.{js,jsx}', 'packages/*/src/**/*.{ts,tsx}'],
       // registerSW.js は import.meta.env.PROD で本番のみ走るブラウザ SW 配線（main.jsx と同種の
       // エントリ配線）で jsdom 単体テストの対象外。UI ロジックは UpdateToast.test.jsx で被覆する。
+      // packages 側は re-export の barrel（index.ts）・型宣言・テストを計測から外す。
       exclude: [
         'src/**/*.test.{js,jsx}',
         'src/content/**',
         'src/test/**',
         'src/main.jsx',
         'src/infrastructure/pwa/registerSW.js',
+        'packages/*/src/**/*.test.{ts,tsx}',
+        'packages/*/src/**/*.stories.tsx',
+        'packages/*/src/index.ts',
+        'packages/*/src/**/*.d.ts',
       ],
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
       // #233 M2（romaji/progress を @tll/core へ、Text系/Flow/marathon を @tll/ui へ移設）で
@@ -46,7 +53,9 @@ export default defineConfig({
       // #233 M5（L4 Views: SoundToggle/TouchView/StoryView/WordsView/DictView の JSX を @tll/ui の
       // presenter へ移設、結果は共有 PlayResultView へ集約）で未被覆の分岐（4択の着色・結果内訳など）が
       // src 計測から外れ、src 実測が大きく上振れ（S84.4/B74.36/F82.85/L85.28）。実測直下へラチェット。
-      thresholds: { statements: 84.0, branches: 74.0, functions: 82.0, lines: 85.0 },
+      // #233 M7: packages/*/src（@tll/ui presenter）を計測対象に加え、代表 props の smoke テストで主要
+      // 描画パスを通した。全体実測は S84.78/B75.37/F83.76/L85.95 → 実測直下へラチェット（up-only）。
+      thresholds: { statements: 84.2, branches: 74.8, functions: 83.0, lines: 85.4 },
     },
   },
 })
