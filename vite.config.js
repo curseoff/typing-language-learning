@@ -40,7 +40,10 @@ export default defineConfig({
       // #233 M3（Keyboard/parts presenter/EndConditionSelect presenter を @tll/ui へ移設）で
       // branches 実測が一時微減したが、src 側 domain/application の未被覆分岐にテストを追加して回復
       // （branches 64.67%）。閾値は下げず 64.0 へ戻す（実測直下）。
-      thresholds: { statements: 81.0, branches: 64.0, functions: 78.0, lines: 82.0 },
+      // #233 M4（container/presenter 分離：ItemList/RecordsTable/Result/各 Section の JSX を @tll/ui の
+      // presenter へ移設）で未被覆の JSX が src 計測から外れ、src 実測が上振れ（S82.69/B65.82/F81.35/L83.59）。
+      // 実測直下へラチェット（上げる方向のみ）。
+      thresholds: { statements: 82.0, branches: 65.0, functions: 80.0, lines: 83.0 },
     },
   },
 })
