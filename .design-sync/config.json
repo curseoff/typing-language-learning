@@ -7,6 +7,10 @@
     "component": "DSFrame"
   },
   "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "SoundToggle": { "cardMode": "single", "primaryStory": "On" },
+    "TouchView": { "cardMode": "column" }
+  },
   "componentSrcMap": {
     "Stat": "packages/ui/src/shared/Stats.tsx",
     "StatsRow": "packages/ui/src/shared/Stats.tsx",
