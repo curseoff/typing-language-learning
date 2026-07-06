@@ -8,8 +8,13 @@
   },
   "readmeHeader": ".design-sync/conventions.md",
   "overrides": {
-    "SoundToggle": { "cardMode": "single", "primaryStory": "On" },
-    "TouchView": { "cardMode": "column" }
+    "SoundToggle": {
+      "cardMode": "single",
+      "primaryStory": "On"
+    },
+    "TouchView": {
+      "cardMode": "column"
+    }
   },
   "componentSrcMap": {
     "Stat": "packages/ui/src/shared/Stats.tsx",
@@ -49,5 +54,6 @@
     "DictTypeView": "packages/ui/src/dictionary/DictView.tsx",
     "DictQuizView": "packages/ui/src/dictionary/DictView.tsx",
     "DictPickView": "packages/ui/src/dictionary/DictView.tsx"
-  }
+  },
+  "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695"
 }
