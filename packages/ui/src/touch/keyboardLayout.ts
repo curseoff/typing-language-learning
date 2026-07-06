@@ -97,6 +97,18 @@ export const FINGER: Record<string, Finger> = {
   '-': 'rp', '^': 'rp', '¥': 'rp', '@': 'rp', '[': 'rp', ':': 'rp', ']': 'rp', _: 'rp',
 }
 
+// 各指の日本語ラベル（打鍵ガイド用）。
+export const FINGER_LABEL: Record<Finger, string> = {
+  lp: '左 小指',
+  lr: '左 薬指',
+  lm: '左 中指',
+  li: '左 人差し指',
+  ri: '右 人差し指',
+  rm: '右 中指',
+  rr: '右 薬指',
+  rp: '右 小指',
+}
+
 // ホームポジション（印を付ける）
 export const HOME_KEYS: string[] = ['a', 's', 'd', 'f', 'j', 'k', 'l', ';']
 

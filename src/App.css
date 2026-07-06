@@ -115,55 +115,8 @@ h1 {
   color: var(--muted);
   margin-bottom: 6px;
 }
-.touch-finger {
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 4px;
-}
-.touch-strip {
-  width: 372px;
-  height: 52px;
-  margin: 14px auto 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 4%, #000 86%, transparent);
-  mask-image: linear-gradient(90deg, transparent 0, #000 4%, #000 86%, transparent);
-}
-.strip-track {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 160ms ease;
-  will-change: transform;
-}
-.strip-key {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  background: var(--panel-2);
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 15px;
-  transition:
-    transform 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease;
-}
-.strip-key.done {
-  opacity: 0.4;
-}
-.strip-key.current {
-  transform: scale(1.28);
-  color: #0b1220;
-  font-weight: 800;
-}
+/* タッチの指ガイド・打鍵ストリップ（.touch-finger/.touch-strip/.strip-* 系）は
+   @tll/ui の TouchView presenter へ移設＝touch.css */
 
 /* キーボード表示（kb 系・fg 系）は @tll/ui packages/ui/src/styles/keyboard.css へ移設 */
 /* 下部トグル（bottom-tabs 系）は @tll/ui packages/ui/src/styles/parts.css へ移設 */

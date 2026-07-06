@@ -7,6 +7,7 @@ import './styles/flow.css'
 import './styles/passage.css'
 import './styles/translate.css'
 import './styles/keyboard.css'
+import './styles/touch.css'
 import './styles/parts.css'
 import './styles/browse.css'
 import './styles/records.css'
@@ -55,12 +56,15 @@ export { default as TopFlow } from './marathon/TopFlow'
 export type { TopFlowProps } from './marathon/TopFlow'
 export { default as Keyboard } from './touch/Keyboard'
 export type { KeyboardProps, KeyboardPressed } from './touch/Keyboard'
+export { default as TouchView } from './touch/TouchView'
+export type { TouchViewProps } from './touch/TouchView'
 export {
   KEY_ROWS,
   KEY_LEGENDS,
   ROW_OFFSET,
   DISPLAY_ONLY_KEYS,
   FINGER,
+  FINGER_LABEL,
   HOME_KEYS,
   BUMP_KEYS,
 } from './touch/keyboardLayout'
