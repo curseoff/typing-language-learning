@@ -37,7 +37,10 @@ export default defineConfig({
       // 退行防止のゲート（coverage-v8 4 の計測基準での現状値の少し下）。
       // #233 M2（romaji/progress を @tll/core へ、Text系/Flow/marathon を @tll/ui へ移設）で
       // 未使用だった Passage.jsx が src 計測から外れ、薄板化で src の実測が上振れ。実測直下へ追従。
-      thresholds: { statements: 81.0, branches: 64.0, functions: 78.0, lines: 82.0 },
+      // #233 M3（Keyboard/parts presenter/EndConditionSelect presenter を @tll/ui へ移設）で、
+      // 分岐が濃く十分被覆されていたそれらが src 計測外へ出たため branches 実測が微減（64.15→63.44）。
+      // 移設先 .tsx は app のテスト経由で実行され続ける（計測 include が src 限定なだけ）。実測直下へ追従。
+      thresholds: { statements: 81.0, branches: 63.0, functions: 78.0, lines: 82.0 },
     },
   },
 })

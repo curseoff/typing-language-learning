@@ -6,6 +6,8 @@ import './styles/quiz-option-label.css'
 import './styles/flow.css'
 import './styles/passage.css'
 import './styles/translate.css'
+import './styles/keyboard.css'
+import './styles/parts.css'
 export { Stat, StatsRow } from './shared/Stats'
 export type { StatProps, StatsRowProps } from './shared/Stats'
 export { default as SegStatsTable } from './result/SegStatsTable'
@@ -45,4 +47,26 @@ export { default as TranslateView } from './marathon/TranslateView'
 export type { TranslateViewProps } from './marathon/TranslateView'
 export { default as TopFlow } from './marathon/TopFlow'
 export type { TopFlowProps } from './marathon/TopFlow'
+export { default as Keyboard } from './touch/Keyboard'
+export type { KeyboardProps, KeyboardPressed } from './touch/Keyboard'
+export {
+  KEY_ROWS,
+  KEY_LEGENDS,
+  ROW_OFFSET,
+  DISPLAY_ONLY_KEYS,
+  FINGER,
+  HOME_KEYS,
+  BUMP_KEYS,
+} from './touch/keyboardLayout'
+export type { Finger, KeyLegend } from './touch/keyboardLayout'
+export { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow } from './ready/parts'
+export type {
+  Mode,
+  ModeButtonsProps,
+  SectionLabelProps,
+  BottomTabsProps,
+  StartRowProps,
+} from './ready/parts'
+export { default as EndConditionSelect } from './ready/EndConditionSelect'
+export type { EndConditionSelectProps, EndKindOption } from './ready/EndConditionSelect'
 
