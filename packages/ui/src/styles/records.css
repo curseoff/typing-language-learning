@@ -1,0 +1,62 @@
+/* 記録ランキングテーブル（RecordsTable presenter）の見た目。
+   .records 系は WordRecords / StoryRecords（app 側 container）とも共有＝global。
+   :root トークン・sel 系は App.css 側。 */
+.records-mode {
+  color: var(--accent);
+  margin-left: 6px;
+}
+.records-sub {
+  margin-left: 6px;
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.records {
+  margin-top: 36px;
+}
+.records h3 {
+  font-size: 15px;
+  color: var(--muted);
+  text-align: center;
+}
+.no-records {
+  text-align: center;
+  color: var(--muted);
+}
+.records table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.records th,
+.records td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+.records th {
+  color: var(--muted);
+  font-weight: 600;
+}
+.records td.speed {
+  font-weight: 700;
+  color: var(--accent);
+}
+.records td.date {
+  color: var(--muted);
+  font-size: 12px;
+}
+.records tr.me td {
+  background: rgba(251, 191, 36, 0.12);
+}
+.records tbody tr:nth-child(1) td.speed {
+  color: var(--gold);
+}
+
+/* 記録ランキング: クリックで詳細 */
+.records tr.row-click {
+  cursor: pointer;
+}
+.records tbody tr.row-click:hover {
+  background: var(--panel-2);
+}
