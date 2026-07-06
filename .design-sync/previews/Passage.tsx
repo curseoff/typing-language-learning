@@ -1,11 +1,16 @@
-import { Passage, buildPassage } from 'typing-language-learning';
-const pool = [
-  { word: 'travel', en: 'travel', ja: '旅行', kana: 'りょこう' },
-  { word: 'dictionary', en: 'dictionary', ja: '辞書', kana: 'じしょ' },
-  { word: 'picture', en: 'picture', ja: '写真', kana: 'しゃしん' },
-  { word: 'morning', en: 'morning', ja: '朝', kana: 'あさ' },
+import { Passage } from '@tll/ui';
+// 下部本文フロー。seg は type/canonical/variants（＋和文は ja/kana）。buildPassage は app 側 domain
+// なので @tll/ui からは来ない → 出題相当のセグメント列を手で組む。
+const segments = [
+  { type: 'en', canonical: 'good morning', variants: ['good morning'] },
+  { type: 'ja', ja: 'おはよう', kana: 'おはよう', canonical: 'ohayou', variants: ['ohayou'] },
+  { type: 'en', canonical: 'dictionary', variants: ['dictionary'] },
+  { type: 'ja', ja: '辞書', kana: 'じしょ', canonical: 'jisho', variants: ['jisho', 'zisyo'] },
+  { type: 'en', canonical: 'picture', variants: ['picture'] },
 ];
-const segments = buildPassage('en', pool, { target: 50 });
 export const Typing = () => (
-  <Passage segments={segments} segIndex={2} segInput="pi" completed={{}} hasError={false} />
+  <Passage segments={segments} segIndex={2} segInput="dic" completed={{}} hasError={false} />
+);
+export const Error = () => (
+  <Passage segments={segments} segIndex={2} segInput="dix" completed={{}} hasError={true} />
 );

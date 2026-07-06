@@ -1,57 +1,52 @@
 # design-sync ノート（typing-language-learning）
 
-このリポジトリは**アプリ**（配布用コンポーネントライブラリではない）。design-sync の package 形式を
-エスケープハッチで通している。再シンク時は以下を守ること。
+design-sync の入力を**正本パッケージ `@tll/ui`**（`packages/ui`・TS presenter・vite lib build）に切り替えた（Issue #233 / M6）。
+これにより旧来のハック（自己シンボリックリンク・手書き全 src 列挙エントリ・データスタブ）は**すべて不要**になった。
+`@tll/ui` は正規の workspace パッケージで、重い教材データを import せず、tsc 生成の**実 .d.ts 型**を持つ。
 
-## 前提（毎回・特にフレッシュclone後）
-- **自己インストールの擬似シンボリックリンク**：`ln -sfn "$(pwd)" node_modules/typing-language-learning`
-  （コンバータが node_modules/<pkg>/package.json を要求するため。node_modules は gitignore なので毎clone再作成）。
-- **手書きエントリ** `.design-sync/tll-entry.mjs` を `--entry` で渡す（package.json の main が
-  electron/main.cjs なので、放置すると Electron/Node 組込みを bundle しようとして失敗する）。
-- 型なし（TS不使用）なので .d.ts は空。@types/react は repo の node_modules に無く props は空ボディ。これは想定内。
+## 前提（毎回）
+- **ビルド**：`@tll/ui` を先にビルドしておく（`npm run -w @tll/ui build`＝vite lib + tsc d.ts）。
+  design-sync は `pkg: "@tll/ui"` を解決し、`cssEntry: packages/ui/dist/styles.css` を読む。
+- **エントリ** `.design-sync/entry.mjs`：`export * from '@tll/ui'` ＋ プレビュー用 provider `DSFrame` だけ。
+  electron 回避のための手書き列挙はもう無い（main が electron/main.cjs でも `@tll/ui` を解決するので影響しない）。
+- シンボリックリンク・データスタブは**不要**。フレッシュ clone 後も `@tll/ui` の build だけでよい。
 
-## スコープ（38コンポーネント）
-- general: Ready / Result ／ 追加小部品: WordRecords(ready) / RubyChars(shared) / TopFlow(marathon,cardMode:column)
-- shared: Flow / Stat / StatsRow / RubyText / MaskedRubyText / OptionJa / QuizOptionLabel / Chars / Typed / MaskedText / RubyTyped / Chips
-- ready: TouchSection / EndConditionSelect / ItemList / WordsSection / DictSection / WordSentenceSection / StorySection / ModeButtons / SectionLabel / BottomTabs / StartRow
-- result: RecordsTable / SegStatsTable / RecordDetail ・ sound: SoundToggle ・ touch: Keyboard / TouchView
-- marathon: Passage / TranslateView / MarathonView ・ story: StoryView
-- **cfg.overrides**: SoundToggle={cardMode:single}, TouchView={cardMode:column}, RecordDetail={cardMode:single}。GRID_OVERFLOW 対策。
-- **プレビュー helper**: `buildPassage`（domain/marathon）をエントリで非コンポーネント export。Passage/TranslateView/MarathonView は
-  pool `{word,en,ja,kana}` から `buildPassage(mode,pool,{target})` で**実 segment を生成**して描画（mode: 'en'/'both'/'en-tr' 等）。
-- **RecordDetail**: `.record-page` は `position:fixed; inset:0` の全画面。プレビューは **transform:translateZ(0) の高さ固定器**で包んで
-  包含ブロックを作りカードに収める。props は `initial={{record, position}}`（record 直接ではない）＋ list=record配列。record に segStats/choices/words 等。
-- **PWA系（InstallButton/OfflineBanner/UpdateToast/ContentFallbackNotice）は除外**：hook 状態が無いと null 返し＝静的描画不可。
-- **未同期候補**: DictView/WordsView（hook+データ依存の全画面クイズ）。追加は useWords/useDict のスタブが要る。
+## スコープ（37 コンポーネント）
+`cfg.componentSrcMap`（部品名↔`packages/ui/src` 実パス）が正本一覧。両方向コマンドもこれを共有台帳に使う。
+- shared: Stat / StatsRow（Stats.tsx）/ Chars / RubyChars / RubyTyped / RubyText / MaskedRubyText / Typed / MaskedText / Chips（Text.tsx）/ OptionJa / QuizOptionLabel / Flow / PlayResultView
+- ready: ModeButtons / SectionLabel / BottomTabs / StartRow（parts.tsx）/ EndConditionSelect / ItemList / RankSectionView / StorySectionView
+- result: RecordsTable / SegStatsTable / Result ・ sound: SoundToggle ・ story: StoryView
+- marathon: Passage / TranslateView / TopFlow ・ touch: Keyboard / TouchView
+- words: WordTypeView / WordQuizView（WordsView.tsx）・ dictionary: DictTypeView / DictQuizView / DictPickView（DictView.tsx）
+- **cfg.overrides**：SoundToggle={cardMode:single, primaryStory:On}, TouchView={cardMode:column}。GRID_OVERFLOW 対策。
 
-## ビルド手順（重いデータはスタブ必須）
-重いセクション（WordsSection/DictSection/WordSentenceSection）は教材データを動的importするため、
-そのままだと _ds_bundle.js が 18.9MB になりアップロード上限 5MB を超える。ビルド時だけデータを空スタブに
-差し替え、直後に content-build で再生成して復元する（trap で必ず復元）。
-
-- スタブ対象: src/content/{wordsData,dictionaryData}.js=空配列 / {wordRubyData,wordGlossData}.js=空オブジェクト / wordSentences/L1-L4.js=空配列
-- **stories はスタブ不要**（小さいので実データのまま含めてよい。StorySection は実データで描画）
-- スタブ後の _ds_bundle.js は約660KB（<5MB）
-- 復元コマンド: `node scripts/content-build.mjs`（生成データを再生成。gitignore なので commit されない）
-- 手順スクリプト例: スタブ→package-build.mjs（--entry ./.design-sync/tll-entry.mjs）→content-build 再生成、を trap 付きシェルで実行
+## container/presenter 分離
+`@tll/ui` は純粋 presenter（フック非依存）。フック state は container が props で渡す。
+`RankSectionView`/`StorySectionView` は `EndConditionSelect`/`ItemList`/`RecordsTable` を
+`endConditionNode`/`browseNode`（React node prop）として受ける「browseNode」パターン。
+プレビューは pool/固定 props から node を組んで渡す（データ配線は不要）。
 
 ## プレビュー（provider）
-- **DSFrame**（tll-entry.mjs 内で定義・cfg.provider）が全プレビューを background:var(--bg)/color:var(--text) の
-  ダーク地で包む。ダークテーマ前提の淡色テキストが白カード上で不可視になるのを防ぐため必須。
+- **DSFrame**（`entry.mjs` 内で定義・`cfg.provider`）が全プレビューをダーク地で包む。
+  `@tll/ui` は「ダークテーマ専用」で `var(--*)` を前提に描くが、`dist/styles.css` は**コンポーネント CSS だけ**で
+  `:root` トークンを含まない設計。そのため DSFrame のラッパ要素に `--bg`/`--text` 等のパレットを定義して
+  子孫へ継承させる（値は `src/App.css` の `:root` と同一）。これが無いと白カード上で淡色テキストが不可視になる。
 
 ## Known render warns
 - bad/thin/variantsIdentical=0（floor card なし＝全コンポーネント authored）。
 - MaskedRubyText/OptionJa は仕様上「淡色/マスク」表示で正常。SectionLabel/StartRow/Chars/Typed 等の小部品は本質的に小さい表示で正常。
 
 ## Re-sync risks（次回が黙って古くなる箇所）
-- **シンボリックリンクと手書きエントリ**が無いと即失敗する（上記「前提」を必ず実施）。
-- **データスタブを忘れると 5MB 超過**で `[FILE_OVER_5MB]`。重いセクションを触る時は必ずスタブ→ビルド→再生成。
-- `.design-sync/tll-entry.mjs` の export と `cfg.componentSrcMap` は手動同期。コンポーネント追加/削除時は両方を編集。
-- previews の props はコンポーネント API 変更に追随しない（型が無いので検出されない）。API を変えたら previews を目視更新。
-- 新しく重いデータ依存コンポーネントを足す時はスタブ対象の追加漏れに注意（ビルドサイズで確認）。
+- **`@tll/ui` の build 忘れ**：`dist/` が古いとプレビューも古い。再シンク前に必ず build。
+- **componentSrcMap の手動同期**：`packages/ui` に部品を足す/消す/移す時は `config.json` の componentSrcMap を編集。
+  `entry.mjs` は `export *` なので追随するが、map に無い部品はカード化されない。
+- **presenter API 変更**：`.tsx` の props を変えたら、対応する `_preview/*.js`（design-sync が生成）は
+  次回シンクで再生成されるが、プレビューの与える props はコマンド/skill 側の生成ロジック依存。API を大きく変えたら目視確認。
+- 削除した部品（旧 Ready/MarathonView/DictSection/StorySection/TouchSection/WordRecords/WordSentenceSection/WordsSection/RecordDetail）は
+  M6 で presenter 化・統合済み。復活させない。
 
 ## 双方向ワークフロー（コマンド）
-- **順方向 App→Design**: `/design-resync`（アプリの部品を直したら Design ミラーを最新化）。中身は本ファイルの「前提」「ビルド手順」を1コマンド化。
-- **逆方向 Design→App**: `/import-design <画面コード|URL>`（Design で組んだ画面を src/ui へ移植）。import 張替えは `componentSrcMap` を共有台帳に使う。データ配線・挙動は `TODO(import-design)` で人に残す（半自動）。
-- 共有の要は **`.design-sync/config.json` の componentSrcMap**（部品名↔src実パス）。両方向がこれを使う。
-- 将来 `packages/ui` 切り出し（Issue #233）が入れば、順方向のハック（スタブ・シンボリックリンク・手書きエントリ）は不要化する見込み。
+- **順方向 App→Design**: `/design-resync`（`@tll/ui` を直したら Design ミラーを最新化）。build→シンクを1コマンド化。
+- **逆方向 Design→App**: `/import-design <画面コード|URL>`（Design で組んだ画面を `packages/ui`/`src` へ移植）。
+  import 張替えは `componentSrcMap` を共有台帳に使う。データ配線・挙動は `TODO(import-design)` で人に残す（半自動）。
+- 共有の要は **`.design-sync/config.json` の componentSrcMap**（部品名↔`packages/ui/src` 実パス）。両方向がこれを使う。

@@ -1,50 +1,8 @@
 {
-  "pkg": "typing-language-learning",
-  "globalName": "TLL",
+  "pkg": "@tll/ui",
+  "globalName": "TLLUI",
   "shape": "package",
-  "srcDir": "src",
-  "cssEntry": "src/App.css",
-  "componentSrcMap": {
-    "TouchSection": "src/ui/ready/TouchSection.jsx",
-    "EndConditionSelect": "src/ui/ready/EndConditionSelect.jsx",
-    "ItemList": "src/ui/ready/ItemList.jsx",
-    "QuizOptionLabel": "src/ui/shared/QuizOptionLabel.jsx",
-    "OptionJa": "src/ui/shared/OptionJa.jsx",
-    "Flow": "src/ui/shared/Flow.jsx",
-    "Stat": "src/ui/shared/Stats.jsx",
-    "StatsRow": "src/ui/shared/Stats.jsx",
-    "RubyText": "src/ui/shared/Text.jsx",
-    "MaskedRubyText": "src/ui/shared/Text.jsx",
-    "Keyboard": "src/ui/touch/Keyboard.jsx",
-    "RecordsTable": "src/ui/result/RecordsTable.jsx",
-    "SegStatsTable": "src/ui/result/SegStatsTable.jsx",
-    "SoundToggle": "src/ui/sound/SoundToggle.jsx",
-    "WordsSection": "src/ui/ready/WordsSection.jsx",
-    "DictSection": "src/ui/ready/DictSection.jsx",
-    "WordSentenceSection": "src/ui/ready/WordSentenceSection.jsx",
-    "StorySection": "src/ui/ready/StorySection.jsx",
-    "Ready": "src/ui/ready/Ready.jsx",
-    "Result": "src/ui/result/Result.jsx",
-    "TouchView": "src/ui/touch/TouchView.jsx",
-    "Passage": "src/ui/marathon/Passage.jsx",
-    "TranslateView": "src/ui/marathon/TranslateView.jsx",
-    "MarathonView": "src/ui/marathon/MarathonView.jsx",
-    "StoryView": "src/ui/story/StoryView.jsx",
-    "Chars": "src/ui/shared/Text.jsx",
-    "Typed": "src/ui/shared/Text.jsx",
-    "Chips": "src/ui/shared/Text.jsx",
-    "RubyTyped": "src/ui/shared/Text.jsx",
-    "MaskedText": "src/ui/shared/Text.jsx",
-    "ModeButtons": "src/ui/ready/parts.jsx",
-    "SectionLabel": "src/ui/ready/parts.jsx",
-    "BottomTabs": "src/ui/ready/parts.jsx",
-    "StartRow": "src/ui/ready/parts.jsx",
-    "RecordDetail": "src/ui/result/RecordDetail.jsx",
-    "WordRecords": "src/ui/ready/parts.jsx",
-    "RubyChars": "src/ui/shared/Text.jsx",
-    "TopFlow": "src/ui/marathon/TopFlow.jsx"
-  },
-  "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695",
+  "cssEntry": "packages/ui/dist/styles.css",
   "provider": {
     "component": "DSFrame"
   },
@@ -52,17 +10,50 @@
   "overrides": {
     "SoundToggle": {
       "cardMode": "single",
-      "primaryStory": "Toggle"
+      "primaryStory": "On"
     },
     "TouchView": {
       "cardMode": "column"
-    },
-    "RecordDetail": {
-      "cardMode": "single",
-      "primaryStory": "Detail"
-    },
-    "TopFlow": {
-      "cardMode": "column"
     }
-  }
+  },
+  "componentSrcMap": {
+    "Stat": "packages/ui/src/shared/Stats.tsx",
+    "StatsRow": "packages/ui/src/shared/Stats.tsx",
+    "SegStatsTable": "packages/ui/src/result/SegStatsTable.tsx",
+    "Chars": "packages/ui/src/shared/Text.tsx",
+    "RubyChars": "packages/ui/src/shared/Text.tsx",
+    "RubyTyped": "packages/ui/src/shared/Text.tsx",
+    "RubyText": "packages/ui/src/shared/Text.tsx",
+    "MaskedRubyText": "packages/ui/src/shared/Text.tsx",
+    "Typed": "packages/ui/src/shared/Text.tsx",
+    "MaskedText": "packages/ui/src/shared/Text.tsx",
+    "Chips": "packages/ui/src/shared/Text.tsx",
+    "OptionJa": "packages/ui/src/shared/OptionJa.tsx",
+    "QuizOptionLabel": "packages/ui/src/shared/QuizOptionLabel.tsx",
+    "Flow": "packages/ui/src/shared/Flow.tsx",
+    "Passage": "packages/ui/src/marathon/Passage.tsx",
+    "TranslateView": "packages/ui/src/marathon/TranslateView.tsx",
+    "TopFlow": "packages/ui/src/marathon/TopFlow.tsx",
+    "Keyboard": "packages/ui/src/touch/Keyboard.tsx",
+    "TouchView": "packages/ui/src/touch/TouchView.tsx",
+    "ModeButtons": "packages/ui/src/ready/parts.tsx",
+    "SectionLabel": "packages/ui/src/ready/parts.tsx",
+    "BottomTabs": "packages/ui/src/ready/parts.tsx",
+    "StartRow": "packages/ui/src/ready/parts.tsx",
+    "EndConditionSelect": "packages/ui/src/ready/EndConditionSelect.tsx",
+    "ItemList": "packages/ui/src/ready/ItemList.tsx",
+    "RecordsTable": "packages/ui/src/result/RecordsTable.tsx",
+    "Result": "packages/ui/src/result/Result.tsx",
+    "RankSectionView": "packages/ui/src/ready/RankSectionView.tsx",
+    "StorySectionView": "packages/ui/src/ready/StorySectionView.tsx",
+    "SoundToggle": "packages/ui/src/sound/SoundToggle.tsx",
+    "StoryView": "packages/ui/src/story/StoryView.tsx",
+    "PlayResultView": "packages/ui/src/shared/PlayResultView.tsx",
+    "WordTypeView": "packages/ui/src/words/WordsView.tsx",
+    "WordQuizView": "packages/ui/src/words/WordsView.tsx",
+    "DictTypeView": "packages/ui/src/dictionary/DictView.tsx",
+    "DictQuizView": "packages/ui/src/dictionary/DictView.tsx",
+    "DictPickView": "packages/ui/src/dictionary/DictView.tsx"
+  },
+  "projectId": "b889564e-e2b8-4916-9f8b-4544e070e695"
 }

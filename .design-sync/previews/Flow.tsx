@@ -1,4 +1,4 @@
-import { Flow } from 'typing-language-learning';
+import { Flow } from '@tll/ui';
 const items = [
   { en: 'Good morning', ja: 'おはよう', kana: 'おはよう' },
   { en: 'How are you?', ja: '元気ですか', kana: 'げんきですか' },

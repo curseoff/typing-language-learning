@@ -1,4 +1,4 @@
-import { QuizOptionLabel } from 'typing-language-learning';
+import { QuizOptionLabel } from '@tll/ui';
 const jaOpt = { display: '辞書', variants: ['じしょ'], kana: 'じしょ' };
 const enOpt = { display: 'dictionary', variants: ['dictionary'] };
 export const JapaneseOption = () => <QuizOptionLabel opt={jaOpt} input="" picked={null} hasError={false} />;

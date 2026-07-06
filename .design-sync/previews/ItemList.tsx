@@ -1,4 +1,4 @@
-import { ItemList } from 'typing-language-learning';
+import { ItemList } from '@tll/ui';
 const words = [
   { en: 'dictionary', ja: '辞書', freq: 1200 },
   { en: 'picture', ja: '写真', freq: 800 },
