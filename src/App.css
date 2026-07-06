@@ -168,43 +168,7 @@ h1 {
 /* キーボード表示（kb 系・fg 系）は @tll/ui packages/ui/src/styles/keyboard.css へ移設 */
 /* 下部トグル（bottom-tabs 系）は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
-/* 収録一覧 */
-.browse-list {
-  list-style: none;
-  padding: 0;
-  margin: 10px 0 48px;
-}
-.browse-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--panel-2);
-}
-.bi-en {
-  font-weight: 700;
-}
-.bi-def {
-  color: var(--muted);
-  font-size: 14px;
-}
-.bi-ja {
-  color: var(--muted);
-  font-size: 14px;
-}
-.browse-note {
-  list-style: none;
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-  padding: 8px 0;
-}
-.bi-stat {
-  font-size: 12px;
-  color: var(--accent);
-  margin-top: 2px;
-}
+/* 収録一覧（.browse-* / .bi-* は @tll/ui の ItemList presenter へ移設＝browse.css） */
 
 /* 選択中の条件の収録数 */
 .pool-count {
