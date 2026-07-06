@@ -1,0 +1,37 @@
+/* 効果音のミュート切替ボタン（SoundToggle presenter）。左上に控えめに固定表示（オフライン=上部中央／
+   更新トースト=下部中央／インストール=右下／フォールバック告知・DEVパネル=左下 と位置で棲み分け）。常時表示。 */
+.sound-toggle {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid #334155;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.sound-toggle:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.sound-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* ミュート中は状態が分かるよう控えめに赤みを差す */
+.sound-toggle[aria-pressed='true'] {
+  color: var(--red);
+}
+.sound-toggle__icon {
+  display: inline-flex;
+  line-height: 0;
+}
