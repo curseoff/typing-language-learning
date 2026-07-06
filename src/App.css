@@ -171,12 +171,7 @@ h1 {
 /* 収録一覧（.browse-* / .bi-* は @tll/ui の ItemList presenter へ移設＝browse.css） */
 
 /* 選択中の条件の収録数 */
-.pool-count {
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-  margin: -4px 0 0;
-}
+/* .pool-count は @tll/ui の RankSectionView presenter へ移設＝section.css */
 
 /* 物語の選択中ヘッダ */
 .story-pick {
@@ -255,13 +250,7 @@ h1 {
   color: #06283d;
   opacity: 0.85;
 }
-.mode-desc {
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 10px;
-  min-height: 18px;
-}
+/* .mode-desc は @tll/ui の RankSectionView presenter へ移設＝section.css */
 
 .btn-primary {
   display: block;
