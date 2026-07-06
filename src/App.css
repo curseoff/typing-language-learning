@@ -788,47 +788,8 @@ kbd {
 }
 
 /* ---- result ---- */
-.result {
-  text-align: center;
-}
-.result h2 {
-  margin-bottom: 8px;
-}
-.result-mode {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--accent);
-  background: rgba(56, 189, 248, 0.12);
-  border-radius: 999px;
-  padding: 3px 14px;
-  margin-bottom: 8px;
-}
+/* .result / .result-mode/main/speed/unit/sub は @tll/ui の Result presenter へ移設＝result.css */
 /* .records-mode/.records-sub は @tll/ui の RecordsTable presenter へ移設＝records.css */
-.result-main {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 8px;
-  margin: 8px 0;
-}
-.result-speed {
-  font-size: 72px;
-  font-weight: 900;
-  color: var(--accent);
-  line-height: 1;
-}
-.result-unit {
-  font-size: 20px;
-  color: var(--muted);
-}
-.result-sub {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  color: var(--muted);
-  font-size: 14px;
-}
 
 /* ---- 問題ごとの記録 ---- */
 /* .seg-stats/.q-label/.type-badge/.choice-tag は packages/ui (@tll/ui) の seg-stats.css に移設（#233 M2） */
