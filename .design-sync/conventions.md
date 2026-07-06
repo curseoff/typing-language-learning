@@ -1,7 +1,7 @@
 # Typing Language Learning — UI コンポーネント
 
 日本語話者向けの英語タイピング学習アプリ（英単語・英英辞典・単語例文・物語・タッチタイピング）の UI 部品。
-**ダークテーマ専用**。`window.TLL.*`（例 `TLL.MarathonView`）で提供。プロバイダ不要（React context に非依存）。
+**ダークテーマ専用**。`window.TLLUI.*`（例 `TLLUI.StatsRow`）で提供。React context には非依存（プレビューは `DSFrame` provider がダーク地＝トークンを供給する）。
 
 ## セットアップ（必須）
 
@@ -10,7 +10,7 @@
 
 ```jsx
 <div style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100vh', padding: 20 }}>
-  <TLL.StatsRow stats={[{ label: '経過', value: '32秒' }, { label: '速度', value: '4.2 打/秒' }]} progress={0.55} />
+  <TLLUI.StatsRow stats={[{ label: '経過', value: '32秒' }, { label: '速度', value: '4.2 打/秒' }]} progress={0.55} />
 </div>
 ```
 
@@ -38,9 +38,9 @@ Tailwind でも props スタイルでもない。各部品は自前の className
 
 ## 使い分け
 
-- テキスト: `RubyText`(ふりがな) `MaskedRubyText`(伏字で高さ予約)。4択: `QuizOptionLabel` `OptionJa`。
-- 準備画面: `Ready`(種類タブ→各セクション) と各セクション `WordsSection`/`DictSection`/`WordSentenceSection`/`StorySection`/`TouchSection`、`EndConditionSelect`、`ItemList`(収録一覧)。
-- プレイ画面: `MarathonView`(単語/辞書/例文の連続入力) `Passage`(文章フロー) `TranslateView`(和文→英訳) `StoryView`(物語) `TouchView`(タッチ練習) `Keyboard`。
-- 結果/集計: `Result` `RecordsTable` `SegStatsTable` `StatsRow` `Stat`・`SoundToggle`(効果音)。
+- テキスト: `RubyText`(ふりがな) `MaskedRubyText`(伏字で高さ予約) `Chars`/`Typed`/`MaskedText`(打鍵着色) `Chips`(単語チップ)。4択: `QuizOptionLabel` `OptionJa`。
+- 準備画面（presenter）: `RankSectionView`(単語/英英/単語例文の共通セクション＝レベル×テーマ×モード) と `StorySectionView`(物語)。どちらも `EndConditionSelect`(終了条件)や `ItemList`/`RecordsTable`(収録一覧/記録) を `endConditionNode`/`browseNode` として container から受ける。共有部品は `ModeButtons` `SectionLabel` `BottomTabs` `StartRow`。
+- プレイ画面（presenter）: 単語 `WordTypeView`(入力)/`WordQuizView`(4択)、英英 `DictTypeView`(定義入力)/`DictQuizView`(単語4択)/`DictPickView`(説明4択)。共通の上部フローは `TopFlow`(ティッカー) `Flow`。連続文入力は `Passage`、和文→英訳は `TranslateView`、物語は `StoryView`、タッチ練習は `TouchView`＋`Keyboard`。
+- 結果/集計: `Result`(単語例文) `PlayResultView`(単語/英英) `RecordsTable` `SegStatsTable` `StatsRow` `Stat`・`SoundToggle`(効果音)。
 
-各部品の props と例は `components/<group>/<Name>/<Name>.prompt.md` を参照。
+各部品の props と例は `components/<group>/<Name>/<Name>.prompt.md` を参照。View presenter（`WordTypeView` 等）はフックの state を container が props で渡す純粋描画。
