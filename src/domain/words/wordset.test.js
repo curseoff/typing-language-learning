@@ -98,6 +98,32 @@ describe('makeQuiz (4択)', () => {
     }
   })
 
+  it('誤答候補の綴りが相互に前方一致するクラスタは1語しか採らない（衝突スキップ）', () => {
+    // en が入れ子で前方一致（be ⊂ bee ⊂ beef）→ どれか1語しか採れず以降はスキップ。
+    const answer = { en: 'zoo', ja: 'どうぶつえん', kana: 'ずー', level: 1, theme: '日常' }
+    const pool = [
+      answer,
+      { en: 'be', ja: 'ある', kana: 'びー', level: 1, theme: '日常' },
+      { en: 'bee', ja: 'はち', kana: 'びー', level: 1, theme: '日常' },
+      { en: 'beef', ja: 'ぎゅうにく', kana: 'びーふ', level: 1, theme: '日常' },
+    ]
+    const [q] = makeQuiz([answer], pool, 'en', 4, { rng: mulberry32(3) })
+    // be クラスタからは1語しか採れないので正解+誤答1の計2択に収まる。
+    expect(q.options.length).toBeLessThanOrEqual(2)
+    expect(q.options.filter((o) => o.answer).length).toBe(1)
+    for (const a of q.options) {
+      for (const b of q.options) {
+        if (a === b) continue
+        for (const va of a.variants) {
+          for (const vb of b.variants) {
+            if (va === vb) continue
+            expect(va.startsWith(vb) || vb.startsWith(va)).toBe(false)
+          }
+        }
+      }
+    }
+  })
+
   // #221: 回答後に「反対側」を表示するため、各選択肢に元エントリの
   // en/ja/jaKana を付与する。dir に関わらず全 option に載せる。
   describe('選択肢に反対側データ（en/ja/jaKana）を付与する (#221)', () => {

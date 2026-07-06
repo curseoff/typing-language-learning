@@ -103,6 +103,79 @@ describe('makeDictPick の各 option は和訳(ja)と読み(kana)を持つ（#21
   })
 })
 
+describe('pool のフォールバック（レベル×テーマで絞れないとき）', () => {
+  // level1・theme=日常 のみのミニ辞書。フォールバック分岐をピンポイントで踏む。
+  const MINI = [
+    { word: 'apple', def: 'a red round fruit here', ja: 'りんご', kana: 'りんご', level: 1, theme: '日常' },
+  ]
+
+  it('レベルは在るがテーマが空なら同レベル全体へフォールバックする', () => {
+    // theme='旅行' は level1 に存在しない → テーマ絞りが空 → 同レベル(level1)へ落ちる。
+    const set = buildDictSet(MINI, 1, '旅行', 3)
+    expect(set).toHaveLength(3)
+    expect(set.every((e) => e.word === 'apple')).toBe(true)
+  })
+
+  it('同レベルも空ならデータ全体へフォールバックする', () => {
+    // level5 の語は無い → テーマ絞りも同レベル絞りも空 → 全辞書へ落ちる。
+    const set = buildDictSet(MINI, 5, 'すべて', 3)
+    expect(set).toHaveLength(3)
+    expect(set.every((e) => e.word === 'apple')).toBe(true)
+  })
+})
+
+describe('makeDictQuiz は誤答同士の前方一致も避ける（word ベース）', () => {
+  // 誤答候補の word が入れ子で前方一致するクラスタ（be ⊂ bee ⊂ beef）。
+  // どれか1つしか採れず、以降は衝突スキップ（continue）が必ず走る。
+  const COLLIDE = [
+    { word: 'zebra', def: 'a striped wild animal', ja: 'しまうま', kana: 'しまうま', level: 1, theme: '日常' },
+    { word: 'be', def: 'aaa def one', ja: 'ある', kana: 'びー', level: 1, theme: '日常' },
+    { word: 'bee', def: 'bbb def two', ja: 'はち', kana: 'びー', level: 1, theme: '日常' },
+    { word: 'beef', def: 'ccc def three', ja: 'ぎゅうにく', kana: 'びーふ', level: 1, theme: '日常' },
+  ]
+
+  it('前方一致で埋まらない分は捨て、残った選択肢は互いに前方一致しない', () => {
+    const items = makeDictQuiz([COLLIDE[0]], COLLIDE, 3, 4, { rng: mulberry32(9) })
+    expect(items.length).toBe(3)
+    for (const q of items) {
+      // be クラスタからは1語しか採れないので正解+誤答1の計2択に収まる。
+      expect(q.options.length).toBeLessThanOrEqual(2)
+      expect(q.options.filter((o) => o.answer).length).toBe(1)
+      for (const a of q.options) {
+        for (const b of q.options) {
+          if (a === b) continue
+          expect(a.display.startsWith(b.display) || b.display.startsWith(a.display)).toBe(false)
+        }
+      }
+    }
+  })
+})
+
+describe('makeDictPick は誤答同士の前方一致も避ける（def ベース）', () => {
+  // 誤答候補の def が相互に前方一致するクラスタ。
+  const COLLIDE_DEF = [
+    { word: 'apple', def: 'red round sweet fruit', ja: 'りんご', kana: 'りんご', level: 1, theme: '日常' },
+    { word: 'w1', def: 'aaa base', ja: 'いち', kana: 'いち', level: 1, theme: '日常' },
+    { word: 'w2', def: 'aaa base longer', ja: 'に', kana: 'に', level: 1, theme: '日常' },
+    { word: 'w3', def: 'aaa base longer more', ja: 'さん', kana: 'さん', level: 1, theme: '日常' },
+  ]
+
+  it('前方一致で埋まらない分は捨て、残った定義は互いに前方一致しない', () => {
+    const items = makeDictPick([COLLIDE_DEF[0]], COLLIDE_DEF, 3, 4, { rng: mulberry32(4) })
+    expect(items.length).toBe(3)
+    for (const q of items) {
+      expect(q.options.length).toBeLessThanOrEqual(2)
+      expect(q.options.filter((o) => o.answer).length).toBe(1)
+      for (const a of q.options) {
+        for (const b of q.options) {
+          if (a === b) continue
+          expect(a.display.startsWith(b.display) || b.display.startsWith(a.display)).toBe(false)
+        }
+      }
+    }
+  })
+})
+
 describe('makeDictQuiz', () => {
   it('定義→英単語の4択。選択肢に正解を含み、前方一致が衝突しない', () => {
     const lv = DICT_AVAILABLE_LEVELS[0]
