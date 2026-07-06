@@ -1,23 +1,27 @@
-// 英英辞典タブ：レベル・テーマ・モード（入力/4択）の選択＋記録/収録一覧。
+// 英英辞典タブ（container）：レベル・テーマ・モード（入力/4択）の選択＋記録/収録一覧。
+// 表示の骨格は @tll/ui の RankSectionView（presenter）。ここは content（英英データ・件数・レベル）・
+// application（dictRanking）を読み、選択肢・収録件数・一覧/記録ノードを組み立てて渡す。
+// 外部 API（dictLevel/onDictLevelChange 等）は従来どおり維持し、呼び出し側は無改変で通る。
 import { useState, useEffect } from 'react'
+import { RankSectionView } from '@tll/ui'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { dictRanking } from '../../application/records.js'
 import ItemList from './ItemList.jsx'
 import EndConditionSelect from './EndConditionSelect.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
-import {
-  selCls,
-  ModeButtons,
-  SectionLabel,
-  BottomTabs,
-  StartRow,
-  WordRecords,
-  THEME_OPTIONS,
-  dictLevelLabel,
-} from './parts.jsx'
+import { WordRecords, THEME_OPTIONS, dictLevelLabel } from './parts.jsx'
 
 const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz' || m.key === 'pick')
 const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'both' || m.key === 'en' || m.key === 'ja')
+const DICT_MODE_GROUPS = [
+  { course: '通常入力', modes: DICT_INPUT },
+  { course: '4択', modes: DICT_QUIZ },
+]
+const DICT_LEVEL_OPTIONS = DICT_AVAILABLE_LEVELS.map((lv) => ({
+  value: lv,
+  no: `L${lv}`,
+  label: dictLevelLabel(lv),
+}))
 
 // 英英の収録一覧。英英データを遅延読み込みしてレベル×テーマで絞る。
 function DictList({ level, theme, mode }) {
@@ -64,105 +68,44 @@ export default function DictSection({
   endCondition,
   onEndConditionChange,
 }) {
-  return (
-    <>
-      <SectionLabel>レベル</SectionLabel>
-      <div className="rank-select">
-        <div className="rank-group">
-          <div className="rank-btns">
-            {DICT_AVAILABLE_LEVELS.map((lv) => (
-              <button
-                key={lv}
-                className={`rank-btn ${selCls(dictLevel === lv, focusSection === 'level')}`}
-                onClick={() => {
-                  onDictLevelChange(lv)
-                  onFocusSection('level')
-                }}
-              >
-                <span className="rank-no">L{lv}</span>
-                {dictLevelLabel(lv)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <SectionLabel>テーマ</SectionLabel>
-      <div className="mode-select">
-        <div className="mode-group">
-          <div className="mode-btns">
-            {THEME_OPTIONS.map((t) => (
-              <button
-                key={t}
-                className={`mode-btn ${selCls(dictTheme === t, focusSection === 'theme')}`}
-                onClick={() => {
-                  onDictThemeChange(t)
-                  onFocusSection('theme')
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <SectionLabel>モード</SectionLabel>
-      <div className="mode-select">
-        <div className="mode-group">
-          <div className="mode-course">通常入力</div>
-          <ModeButtons
-            modes={DICT_INPUT}
-            value={dictMode}
-            focused={focusSection === 'mode'}
-            onChange={(k) => {
-              onDictModeChange(k)
-              onFocusSection('mode')
-            }}
-          />
-        </div>
-        <div className="mode-group">
-          <div className="mode-course">4択</div>
-          <ModeButtons
-            modes={DICT_QUIZ}
-            value={dictMode}
-            focused={focusSection === 'mode'}
-            onChange={(k) => {
-              onDictModeChange(k)
-              onFocusSection('mode')
-            }}
-          />
-        </div>
-      </div>
-      <p className="mode-desc">{dictModeDesc(dictMode, endConditionSummary(endCondition))}</p>
-      <p className="pool-count">この条件の収録: {DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語</p>
-
-      <EndConditionSelect
+  const browseNode =
+    bottomTab === 'list' ? (
+      <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
+    ) : (
+      <WordRecords
+        list={dictRanking(dictLevel, dictTheme, dictMode, endCondition)}
+        isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
+        rankText={`英英 ${dictLevelLabel(dictLevel)} ${dictTheme}`}
         endCondition={endCondition}
-        onChange={onEndConditionChange}
-        focusSection={focusSection}
-        onFocusSection={onFocusSection}
       />
-
-      <StartRow onStart={onStart} />
-      <BottomTabs
-        value={bottomTab}
-        focused={focusSection === 'bottom'}
-        onChange={(k) => {
-          onBottomTabChange(k)
-          onFocusSection('bottom')
-        }}
-      />
-      {bottomTab === 'list' ? (
-        <DictList level={dictLevel} theme={dictTheme} mode={dictMode} />
-      ) : (
-        <WordRecords
-          list={dictRanking(dictLevel, dictTheme, dictMode, endCondition)}
-          isQuiz={dictMode === 'quiz' || dictMode === 'pick'}
-          rankText={`英英 ${dictLevelLabel(dictLevel)} ${dictTheme}`}
+    )
+  return (
+    <RankSectionView
+      levels={DICT_LEVEL_OPTIONS}
+      level={dictLevel}
+      onLevelChange={onDictLevelChange}
+      themes={THEME_OPTIONS}
+      theme={dictTheme}
+      onThemeChange={onDictThemeChange}
+      modeGroups={DICT_MODE_GROUPS}
+      mode={dictMode}
+      onModeChange={onDictModeChange}
+      focusSection={focusSection}
+      onFocusSection={onFocusSection}
+      modeDesc={dictModeDesc(dictMode, endConditionSummary(endCondition))}
+      poolCount={`この条件の収録: ${DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語`}
+      endConditionNode={
+        <EndConditionSelect
           endCondition={endCondition}
+          onChange={onEndConditionChange}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
         />
-      )}
-    </>
+      }
+      onStart={onStart}
+      bottomTab={bottomTab}
+      onBottomTabChange={onBottomTabChange}
+      browseNode={browseNode}
+    />
   )
 }
