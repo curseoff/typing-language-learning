@@ -306,18 +306,11 @@ h1 {
 }
 
 /* ---- 物語モード本体 ---- */
-.story {
-  display: flex;
-  flex-direction: column;
-}
-.story-found-line {
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  margin: -4px 0 18px;
-}
-/* エンディングの「トップへ」ボタン */
+/* 物語モードの本体スタイル（.story 系・.story-found-line・.story-prompt・.story-progress・
+   .story-en・.story-choices・.story-choice・.choice 系・.story-ending・.ending-badge・
+   .ending-text・.ending-ja）は @tll/ui の StoryView presenter へ移設＝story.css。
+   共有の .story-exit・.ending-actions は下に残置。 */
+/* エンディングの「トップへ」ボタン（touch/words/dict/story 共用） */
 .story-exit {
   font-size: 13px;
   color: var(--muted);
@@ -330,111 +323,6 @@ h1 {
 .story-exit:hover {
   color: var(--text);
   border-color: var(--accent);
-}
-.story-ja {
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.7;
-  margin: 0 0 10px;
-}
-/* 翻訳モードの原文プロンプト */
-.story-prompt {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.6;
-  margin: 0 0 10px;
-}
-/* 参照（薄め）／進行表示 */
-.story-ref {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
-  margin: 10px 0 0;
-}
-.story-progress {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  margin-bottom: 8px;
-}
-.story-en.masked {
-  font-size: 22px;
-}
-.story-en {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 22px;
-  line-height: 1.8;
-  padding: 20px;
-  background: var(--panel-2);
-  border-radius: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.story-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
-.story-choice {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 12px 14px;
-  transition: opacity 0.15s ease;
-}
-.story-choice.dim {
-  opacity: 0.4;
-}
-.choice-key {
-  font-size: 13px;
-  font-weight: 800;
-  color: #06283d;
-  background: var(--gold);
-  border-radius: 6px;
-  padding: 2px 9px;
-  margin-top: 2px;
-}
-.choice-body {
-  flex: 1;
-}
-.choice-en {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 17px;
-  line-height: 1.6;
-}
-.choice-ja {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-
-/* 物語エンディング */
-.story-ending {
-  text-align: center;
-  padding: 10px 0;
-}
-.ending-badge {
-  display: inline-block;
-  font-size: 16px;
-  font-weight: 800;
-  color: #06283d;
-  background: var(--gold);
-  border-radius: 999px;
-  padding: 8px 22px;
-  margin-bottom: 18px;
-}
-.ending-text {
-  font-size: 18px;
-  line-height: 1.7;
-}
-.ending-ja {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
 }
 .ending-actions {
   display: flex;
@@ -658,9 +546,7 @@ ruby > rt {
   user-select: none;
 }
 /* .flow-ja の line-height は flow.css へ統合（#233 M2） */
-.story-en {
-  line-height: 2.2;
-}
+/* .story-en（line-height 込み）は @tll/ui の StoryView presenter へ移設＝story.css */
 /* .ch* は Chars/RubyChars（Text）として text.css へ移設（#233 M2） */
 /* .gap/.passage.error は passage.css へ移設（#233 M2） */
 

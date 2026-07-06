@@ -14,6 +14,7 @@ import './styles/records.css'
 import './styles/result.css'
 import './styles/section.css'
 import './styles/story-section.css'
+import './styles/story.css'
 import './styles/sound.css'
 export { Stat, StatsRow } from './shared/Stats'
 export type { StatProps, StatsRowProps } from './shared/Stats'
@@ -91,4 +92,12 @@ export { default as StorySectionView } from './ready/StorySectionView'
 export type { StoryOption, StorySectionViewProps } from './ready/StorySectionView'
 export { default as SoundToggle } from './sound/SoundToggle'
 export type { SoundToggleProps } from './sound/SoundToggle'
+export { default as StoryView } from './story/StoryView'
+export type {
+  StoryViewProps,
+  StoryEndResult,
+  StoryActiveInput,
+  StoryChoiceView,
+  StoryUnitProgress,
+} from './story/StoryView'
 
