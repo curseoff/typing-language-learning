@@ -3,6 +3,7 @@ import './styles/seg-stats.css'
 import './styles/text.css'
 import './styles/option-ja.css'
 import './styles/quiz-option-label.css'
+import './styles/quiz.css'
 import './styles/flow.css'
 import './styles/passage.css'
 import './styles/translate.css'
@@ -54,7 +55,7 @@ export type { PassageProps } from './marathon/Passage'
 export { default as TranslateView } from './marathon/TranslateView'
 export type { TranslateViewProps } from './marathon/TranslateView'
 export { default as TopFlow } from './marathon/TopFlow'
-export type { TopFlowProps } from './marathon/TopFlow'
+export type { TopFlowProps, TopSeg } from './marathon/TopFlow'
 export { default as Keyboard } from './touch/Keyboard'
 export type { KeyboardProps, KeyboardPressed } from './touch/Keyboard'
 export { default as TouchView } from './touch/TouchView'
@@ -100,4 +101,16 @@ export type {
   StoryChoiceView,
   StoryUnitProgress,
 } from './story/StoryView'
+export { default as PlayResultView } from './shared/PlayResultView'
+export type {
+  PlayResultData,
+  PlayRecordRow,
+  PlayResultViewProps,
+} from './shared/PlayResultView'
+export { WordTypeView, WordQuizView } from './words/WordsView'
+export type {
+  WordTypeViewProps,
+  WordQuizViewProps,
+  WordQuizOption,
+} from './words/WordsView'
 

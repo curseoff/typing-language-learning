@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '@tll/core'
 import { Flow } from '../shared/Flow'
 
-interface TopSeg {
+export interface TopSeg {
   type: 'ja' | 'en'
   ja: string
   en: string
