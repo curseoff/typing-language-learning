@@ -1,12 +1,28 @@
 # 設計（ARCHITECTURE）
 
 ドメイン駆動設計（DDD）のレイヤード構成です。React から純粋なドメインロジックを隔離しています。
+共有部品は workspace パッケージ（`@tll/core` / `@tll/ui`）へ切り出し、アプリと claude.ai/design が同じ正本を参照します（Issue #233）。
 
 ## 依存方向と規約
 
 - 依存は内向き：`ui → application → domain`、`application → infrastructure`、各層 → `content`（データ）
-- `domain` は React/DOM に依存しない純粋ロジック
-- 命名規約：**`.js` = ドメイン/データ、`.jsx` = UI**
+- パッケージ方向：`app(src) → @tll/ui → @tll/core`、`app → @tll/core`（外向きに `@tll/*` を参照しない＝正）
+- `domain` と `@tll/core` は React/DOM に依存しない純粋ロジック
+- `@tll/ui` の presenter は**純粋描画**：`content`/`application`/`infrastructure`/フックを import しない（props と node prop だけで描く）
+- 命名規約：**`.js` = ドメイン/データ、`.jsx` = UI（app）／`.ts`・`.tsx` = パッケージ（`@tll/core` は既存 `.js` のまま）**
+
+## パッケージ（共有正本）
+
+`packages/*` は npm workspace。アプリはこれを **薄板（re-export shim）** と **container** から参照する。
+
+- **`@tll/core`（`packages/core`, JS）** … React/DOM 非依存の純粋ドメイン。`romaji`（かな⇄ローマ字）と `typing/progress`（入力進捗・漢字アライメント）を公開。app と `@tll/ui` の両方が参照する。
+- **`@tll/ui`（`packages/ui`, TS）** … プレイ/準備/結果画面の **presenter**（純粋描画・37部品）。vite lib build ＋ `tsc --emitDeclarationOnly` で `dist/`（`index.js` / `index.d.ts` / `styles.css`）を出力。`npm run build:pkgs` で生成し、`npm run check` が型ゲートとして通す。
+- **container/presenter 分離** … フックの状態機械と data 配線は app 側の container（`src/ui/**`）に残し、presenter へ props で渡す。収録一覧や記録テーブルのような子は container が組み立てて `endConditionNode`/`browseNode`（React node prop）として presenter に渡す（browseNode パターン）。app の `src/ui/**` は presenter を再エクスポートする薄板か、上記 container のいずれか。
+
+## 視覚カタログ（@tll/ui の閲覧）
+
+- **design-sync**（`.design-sync/`）… `@tll/ui` を入力に claude.ai/design プロジェクトへ同期する共有正本。`componentSrcMap`（部品名↔`packages/ui/src`）を台帳に、順方向 `/design-resync`・逆方向 `/import-design` の双方向で使う。詳細は `.design-sync/NOTES.md`。
+- **Storybook**（`.storybook/`）… `packages/ui/src/**/*.stories.tsx` を開発中に閲覧する部品ギャラリー。`npm run storybook`（dev）/ `npm run build-storybook`（静的）。どちらもダークテーマ地で描く（`src/App.css` の `:root` トークンを供給）。
 
 ## ディレクトリ構成
 
@@ -17,6 +33,15 @@
 ├─ electron/main.cjs               Electronメインプロセス
 ├─ scripts/validate-sentences.mjs  教材データの整合性チェック（npm run validate）
 ├─ .github/workflows/              ci.yml（check）/ deploy.yml（Pages公開）
+├─ .storybook/                     Storybook 設定（@tll/ui の部品ギャラリー）
+├─ .design-sync/                   claude.ai/design 同期（@tll/ui を共有正本に）
+├─ packages/
+│  ├─ core/src/                    @tll/core：純粋ドメイン（romaji / typing/progress）
+│  └─ ui/src/                      @tll/ui：presenter（TS・純粋描画・*.test.tsx / *.stories.tsx を colocate）
+│     ├─ shared/{Text,Stats,Flow,QuizOptionLabel,OptionJa,PlayResultView}.tsx
+│     ├─ ready/{parts,EndConditionSelect,ItemList,RankSectionView,StorySectionView}.tsx
+│     ├─ marathon/{Passage,TopFlow,TranslateView}.tsx ・ result/{Result,RecordsTable,SegStatsTable}.tsx
+│     └─ story/StoryView.tsx ・ words/WordsView.tsx ・ dictionary/DictView.tsx ・ touch/{TouchView,Keyboard}.tsx ・ sound/SoundToggle.tsx
 └─ src/
    ├─ main.jsx / App.jsx           エントリ／合成（状態・ナビ・画面ルーティング）
    ├─ App.css
@@ -50,16 +75,13 @@
    │  ├─ useTouch.js               タッチタイピング
    │  └─ itemTracker.js            問題ごとの打鍵/ミス/時間を集計し記録
    │
-   └─ ui/                          プレゼンテーション
-      ├─ shared/{Text,Stats,Flow,QuizOptionLabel}.jsx + index.js
-      ├─ ready/{Ready,ItemList}.jsx  スタート画面（種類タブ／記録ランキング・収録一覧）
-      ├─ marathon/{MarathonView,TopFlow,TranslateView,Passage}.jsx
-      ├─ result/{Result,RecordsTable,SegStatsTable}.jsx
-      ├─ story/StoryView.jsx
-      ├─ words/WordsView.jsx
-      ├─ dictionary/DictView.jsx
-      └─ touch/{TouchView,Keyboard}.jsx
+   └─ ui/                          プレゼンテーション（container ＋ 薄板 shim）
+      ├─ shared/ ・ ready/{Ready,各Section}.jsx ・ marathon/{MarathonView,…}.jsx
+      ├─ result/{Result,RecordDetail,…}.jsx ・ story/ ・ words/ ・ dictionary/ ・ touch/
+      └─ pwa/                       PWA 配線（InstallButton/OfflineBanner/UpdateToast ＋ hooks）
 ```
+
+> `src/ui/**` の純粋描画部分は `@tll/ui` の presenter へ移設済み（上記パッケージ参照）。app 側は presenter を再エクスポートする薄板か、フック/データを配線して presenter を合成する container。PWA 配線は app 固有なので app 側に残す。
 
 ## 画面の流れ
 
@@ -83,4 +105,4 @@
 
 ## テスト
 
-ドメイン層に回帰テスト（`src/domain/**/*.test.js`）を置いています。過去の不具合（漢字アライメント・600文字到達・4択の前方一致衝突 など）をテストで固定しています。実行は `npm run test`。
+ドメイン層に回帰テスト（`src/domain/**/*.test.js`）を置き、過去の不具合（漢字アライメント・600文字到達・4択の前方一致衝突 など）を固定しています。`@tll/ui` の presenter は代表 props で描画が落ちないことを確かめる smoke テスト（`packages/ui/src/**/*.test.tsx`）を colocate。coverage は `src/**` と `packages/*/src/**` を計測対象にし（`*.test.*`/`*.stories.*`/barrel は除外）、閾値は実測直下へ up-only でラチェットします。実行は `npm run test`／計測は `npm run coverage`（`npm run check` に含む）。

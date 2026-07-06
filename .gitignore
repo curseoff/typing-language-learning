@@ -24,6 +24,9 @@ out
 # Vite / cache
 .vite
 
+# Storybook build output
+storybook-static
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json
@@ -71,3 +74,8 @@ coverage
 
 # 打鍵ミス効果音（scripts/gen-miss-sound.mjs で生成・prebuild/predev で自動生成）
 /public/miss.wav
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

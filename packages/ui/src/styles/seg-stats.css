@@ -1,0 +1,95 @@
+/* SegStatsTable（問題ごとの記録テーブル）。@tll/ui へ移設（#233 M2） */
+.seg-stats {
+  margin-top: 36px;
+  text-align: left;
+}
+.seg-stats h3 {
+  font-size: 15px;
+  color: var(--muted);
+  text-align: center;
+}
+.seg-stats table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.seg-stats th,
+.seg-stats td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #334155;
+  text-align: left;
+  vertical-align: top;
+}
+.seg-stats th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.seg-stats td.speed {
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.seg-stats td.miss {
+  color: var(--red);
+  font-weight: 700;
+}
+.seg-stats tr.has-miss td.q-label {
+  color: var(--text);
+}
+.q-label {
+  line-height: 1.4;
+}
+.type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #06283d;
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+.type-badge.en {
+  background: var(--accent);
+}
+.type-badge.ja {
+  background: var(--gold);
+}
+.partial-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+/* 場面の直後に差し込む「選んだ選択肢」行（問題ごとの記録に統合） */
+.seg-stats tr.choice-row td {
+  padding: 6px 8px 6px 26px;
+  background: rgba(148, 163, 184, 0.06);
+  line-height: 1.4;
+}
+.choice-tag {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.seg-stats .choice-row .choice-ja {
+  font-size: 14px;
+  color: var(--text);
+}
+.seg-stats .choice-row .choice-en {
+  display: block;
+  margin-top: 2px;
+  margin-left: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* 問題ごとの記録: 4択クイズの正誤 */
+.seg-stats td.ok {
+  color: var(--green);
+  font-weight: 700;
+}
+.seg-stats .q-answer {
+  color: var(--muted);
+}

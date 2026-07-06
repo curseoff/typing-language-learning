@@ -1,0 +1,42 @@
+/* 結果画面（Result presenter）の見た目。.result 系は他の結果表示（Words/Dict/Touch の
+   結果パネル）とも共有＝global。:root トークンは App.css 側。.result-date は RecordDetail 側。 */
+.result {
+  text-align: center;
+}
+.result h2 {
+  margin-bottom: 8px;
+}
+.result-mode {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+  border-radius: 999px;
+  padding: 3px 14px;
+  margin-bottom: 8px;
+}
+.result-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.result-speed {
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+}
+.result-unit {
+  font-size: 20px;
+  color: var(--muted);
+}
+.result-sub {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}

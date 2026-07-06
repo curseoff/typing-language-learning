@@ -62,14 +62,7 @@ h1 {
   margin-top: 40px;
 }
 
-.section-label {
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 24px 0 10px;
-}
+/* .section-label は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
 /* 種類タブ（文章 / 物語 / 単語 / 英英辞典 / タッチ） */
 .type-tabs {
@@ -122,281 +115,16 @@ h1 {
   color: var(--muted);
   margin-bottom: 6px;
 }
-.touch-finger {
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 4px;
-}
-.touch-strip {
-  width: 372px;
-  height: 52px;
-  margin: 14px auto 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 4%, #000 86%, transparent);
-  mask-image: linear-gradient(90deg, transparent 0, #000 4%, #000 86%, transparent);
-}
-.strip-track {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: transform 160ms ease;
-  will-change: transform;
-}
-.strip-key {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 7px;
-  background: var(--panel-2);
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 15px;
-  transition:
-    transform 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease;
-}
-.strip-key.done {
-  opacity: 0.4;
-}
-.strip-key.current {
-  transform: scale(1.28);
-  color: #0b1220;
-  font-weight: 800;
-}
+/* タッチの指ガイド・打鍵ストリップ（.touch-finger/.touch-strip/.strip-* 系）は
+   @tll/ui の TouchView presenter へ移設＝touch.css */
 
-/* キーボード表示（JIS 日本語キーボードを参照に刻印・段差・ギャップを作り込む） */
-.kb {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start; /* スタガードは左端オフセットで表現するので左寄せ */
-  margin: 8px auto;
-  /* 押下時の枠(outline)や沈み込み(transform)がはみ出してもクリップ／スクロールバーを生まないよう内側に余白を確保。
-     overflow-x:auto は overflow-y も auto 化して上下左右をクリップするため、この余白で枠と沈み込み分を箱内に収める。 */
-  padding: 10px;
-  width: fit-content;
-  max-width: 100%;
-  overflow-x: auto;
-}
-.kb-row {
-  display: flex;
-  gap: 6px; /* キー間ギャップ */
-}
-/* 左手・右手の担当の境目（最初の右手キー）に広めの間隔を空けて視覚化する */
-.kb-key.hand-split {
-  margin-left: 8px;
-}
-.kb-key {
-  position: relative;
-  width: 46px;
-  height: 46px;
-  border-radius: 8px;
-  color: #0b1220;
-  background: #cbd5e1;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
-  flex: none;
-}
-/* 主たる英字／数字（左・中央。実機 JIS の配置に合わせる） */
-.kb-main {
-  position: absolute;
-  top: 50%;
-  left: 6px;
-  transform: translateY(-50%);
-  font-weight: 800;
-  font-size: 15px;
-  line-height: 1;
-}
-/* 主たる文字を上中央に置くキー（_ など） */
-.kb-key.main-top .kb-main {
-  top: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-/* シフト記号（上・中央） */
-.kb-shift {
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  font-weight: 700;
-  opacity: 0.72;
-  line-height: 1;
-}
-/* JIS かな（下・中央） */
-.kb-kana {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  font-weight: 700;
-  opacity: 0.85;
-  line-height: 1;
-}
-/* 小書きかな（右・中央） */
-.kb-kana-small {
-  position: absolute;
-  top: 50%;
-  right: 5px;
-  transform: translateY(-50%);
-  font-size: 9px;
-  font-weight: 700;
-  opacity: 0.7;
-  line-height: 1;
-}
-/* ホームポジション（運指の基準＝下バー） */
-.kb-key.home {
-  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.4);
-}
-/* F/J の突起（中黒）。実機のホームポジション・バーに相当。キー中央に置く（下中央のカナと重ねない） */
-.kb-key.bump::after {
-  content: '・';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 14px;
-  font-weight: 900;
-  color: rgba(11, 18, 32, 0.85);
-  line-height: 1;
-  pointer-events: none;
-}
-.kb-key.target {
-  outline: 3px solid var(--text);
-  filter: brightness(1.12);
-  transform: translateY(-2px);
-}
-/* ミス時に「押した（誤った）キー」の枠を赤く光らせる */
-.kb-key.wrong {
-  outline: 3px solid var(--red);
-  filter: brightness(1.12);
-  transform: translateY(-2px);
-}
-/* 押したキーの沈み込みアニメ（物理キーが押し込まれる感じ） */
-@keyframes kb-press {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-  35% {
-    transform: translateY(5px) scale(0.95);
-    filter: brightness(0.82);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-.kb-key.pressed {
-  animation: kb-press 130ms ease-out;
-}
-/* 正解のキーを押せた瞬間：緑の枠を一瞬光らせる（outline 使用＝元のキーの影を消さない） */
-@keyframes kb-correct {
-  0% {
-    outline: 3px solid var(--green);
-  }
-  100% {
-    outline: 3px solid rgba(74, 222, 128, 0);
-  }
-}
-.kb-key.correct {
-  animation:
-    kb-press 130ms ease-out,
-    kb-correct 360ms ease-out;
-}
-/* 指ごとの色（左右ミラー＝同じ指は左右同色）。keyboard.js の FINGER_COLOR と同値を保つ。 */
-.fg-lp,
-.fg-rp {
-  background: #e9e4a4; /* 小指 */
-}
-.fg-lr,
-.fg-rr {
-  background: #6fb1a2; /* 薬指 */
-}
-.fg-lm,
-.fg-rm {
-  background: #f3a8b0; /* 中指 */
-}
-.fg-li,
-.fg-ri {
-  background: #a9dde3; /* 人差し指 */
-}
+/* キーボード表示（kb 系・fg 系）は @tll/ui packages/ui/src/styles/keyboard.css へ移設 */
+/* 下部トグル（bottom-tabs 系）は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
-/* 下部トグル（記録ランキング / 収録一覧） */
-.bottom-tabs {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 28px 0 4px;
-}
-.bottom-tab {
-  padding: 6px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--muted);
-  background: var(--panel);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  cursor: pointer;
-}
-.bottom-tab.active {
-  color: var(--text);
-  background: var(--panel-2);
-  border-color: var(--accent);
-}
-
-/* 収録一覧 */
-.browse-list {
-  list-style: none;
-  padding: 0;
-  margin: 10px 0 48px;
-}
-.browse-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--panel-2);
-}
-.bi-en {
-  font-weight: 700;
-}
-.bi-def {
-  color: var(--muted);
-  font-size: 14px;
-}
-.bi-ja {
-  color: var(--muted);
-  font-size: 14px;
-}
-.browse-note {
-  list-style: none;
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-  padding: 8px 0;
-}
-.bi-stat {
-  font-size: 12px;
-  color: var(--accent);
-  margin-top: 2px;
-}
+/* 収録一覧（.browse-* / .bi-* は @tll/ui の ItemList presenter へ移設＝browse.css） */
 
 /* 選択中の条件の収録数 */
-.pool-count {
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-  margin: -4px 0 0;
-}
+/* .pool-count は @tll/ui の RankSectionView presenter へ移設＝section.css */
 
 /* 物語の選択中ヘッダ */
 .story-pick {
@@ -408,141 +136,11 @@ h1 {
   margin-top: 16px;
 }
 
-/* 物語の選択カード */
-.story-select {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.story-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  min-width: 180px;
-  text-align: left;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.story-card:hover {
-  border-color: var(--gold);
-}
-.story-card.active {
-  border-color: var(--gold);
-  background: var(--panel-2);
-}
-.story-card-title {
-  font-weight: 700;
-  font-size: 14px;
-}
-.story-card-sub {
-  font-size: 11px;
-  color: var(--muted);
-}
+/* 物語の選択カード（.story-select/.story-card 系）は @tll/ui の StorySectionView presenter へ
+   移設＝story-section.css。sel/sel-focus は下の共有ブロックに残す。 */
 
-/* レベル選択 */
-.rank-select {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.rank-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.rank-course {
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-}
-.rank-btns {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.rank-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 10px;
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.rank-btn:hover {
-  border-color: var(--accent);
-}
-.rank-btn.active {
-  color: #06283d;
-  background: var(--accent);
-  border-color: var(--accent);
-}
-.rank-no {
-  font-size: 11px;
-  font-weight: 800;
-  opacity: 0.8;
-}
-.rank-btn.story.active {
-  color: #06283d;
-  background: var(--gold);
-  border-color: var(--gold);
-}
-
-.mode-select {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-.mode-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.mode-course {
-  font-size: 11px;
-  color: var(--muted);
-  text-align: center;
-}
-.mode-btns {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.mode-btn {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 999px;
-  padding: 8px 18px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.mode-btn:hover {
-  border-color: var(--accent);
-}
-.mode-btn.active {
-  color: #06283d;
-  background: var(--accent);
-  border-color: var(--accent);
-}
+/* レベル選択（rank 系）とモード選択（mode-select/mode-group/mode-course/mode-btns/mode-btn）は
+   @tll/ui packages/ui/src/styles/parts.css へ移設。sel/sel-focus は type-tab/story-card と共有のため下に残す。 */
 
 /* ── TOP画面の選択状態（↑↓=行移動 / ←→=行内の選択移動） ──
    フォーカス中の行の選択＝青枠（塗らない）／非フォーカス行の選択＝青背景（塗る） */
@@ -570,13 +168,7 @@ h1 {
   color: #06283d;
   opacity: 0.85;
 }
-.mode-desc {
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 10px;
-  min-height: 18px;
-}
+/* .mode-desc は @tll/ui の RankSectionView presenter へ移設＝section.css */
 
 .btn-primary {
   display: block;
@@ -654,57 +246,9 @@ h1 {
   color: #06283d;
   background: var(--accent);
 }
-/* 問題文のすぐ上に出す「対応単語」ラベル */
-.seg-word {
-  text-align: center;
-  margin: 14px 0 6px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.seg-word strong {
-  color: var(--accent);
-  font-weight: 800;
-  font-size: 15px;
-}
-.seg-word-ja {
-  color: var(--muted);
-  font-size: 13px;
-}
+/* 「対応単語」ラベル（.seg-word/.seg-word-ja）は @tll/ui の DictTypeView presenter へ移設＝dict.css */
 
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
-}
-.stat {
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 10px 8px;
-  text-align: center;
-}
-.stat-label {
-  font-size: 11px;
-  color: var(--muted);
-}
-.stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  margin-top: 4px;
-}
-
-.progress-bar {
-  height: 8px;
-  background: var(--panel);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 28px;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--green));
-  transition: width 0.15s ease;
-}
+/* .stats/.stat/.progress-* は packages/ui (@tll/ui) の stats.css に移設（#233 M1） */
 
 /* ---- 現在文の参照(上:英語 / 下:日本語 を常に表示) ---- */
 .reference {
@@ -727,20 +271,7 @@ h1 {
 .ref-row.active {
   opacity: 1;
 }
-.ref-tag {
-  font-size: 12px;
-  font-weight: 700;
-  color: #06283d;
-  border-radius: 999px;
-  padding: 2px 10px;
-  white-space: nowrap;
-}
-.ref-tag.en {
-  background: var(--accent);
-}
-.ref-tag.ja {
-  background: var(--gold);
-}
+/* .ref-tag* は Flow として flow.css へ移設（#233 M2） */
 .ref-text {
   font-size: 18px;
   font-weight: 700;
@@ -749,175 +280,9 @@ h1 {
   font-size: 14px;
   color: var(--muted);
 }
-/* 入力済み部分(英語/読みかな) */
-.rdone {
-  color: var(--green);
-}
+/* .rdone/.rerr は packages/ui (@tll/ui) の text.css に移設（#233 M2） */
 
-/* 打鍵に応じた per-char 下線: 入力対象の行(pairs / 単一言語 ticker)でのみ、
-   文字 span(.rch) の border-bottom を1文字ずつ色分けする。
-   未入力=中立(薄いアクセント) / 正解済み(.rdone)=緑 / 現在ミス(.rerr)=赤。
-   span は inline で隣接するため下線は連続して見える(スペースの span も引く)。
-   ふりがな(rt)は rch を付けないので下線は本体文字の下だけに出てルビと干渉しない。 */
-.flow-pair .pair-en.typing .rch,
-.flow-pair .pair-ja.typing .rch,
-.flow.ticker .flow-item.current.typing .rch {
-  border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  padding-bottom: 2px;
-}
-.flow-pair .pair-en.typing .rch.rdone,
-.flow-pair .pair-ja.typing .rch.rdone,
-.flow.ticker .flow-item.current.typing .rch.rdone {
-  border-bottom-color: var(--green);
-}
-.flow-pair .pair-en.typing .rch.rerr,
-.flow-pair .pair-ja.typing .rch.rerr,
-.flow.ticker .flow-item.current.typing .rch.rerr {
-  border-bottom-color: var(--red);
-}
-
-/* ---- 上部: 英語/日本語を横に流す(現在の文が中央、進むと左へ) ---- */
-.flow {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--panel);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-.flow-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.flow-track {
-  position: relative;
-  flex: 1 1 auto;
-  display: flex;
-  gap: 24px;
-  overflow-x: hidden;
-  white-space: nowrap;
-  padding: 2px 0;
-  /* 両端をフェードさせて流れている感じを出す */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-}
-.flow-item {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  font-size: 15px;
-  transition: opacity 0.15s ease;
-}
-
-/* ティッカー: 現在語の左端を固定し、ストリップ全体を滑らかに左へスライド。
-   完了語は左へ流れて clip+フェード、現在語は常に全文字が見える。 */
-.flow.ticker .flow-track {
-  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。
-     初期描画用のフォールバック値。実行時は Flow.jsx が右端フェードを語境界へスナップして
-     mask-image を上書きする（収まる語はくっきり／はみ出す語だけゴースト＝#108）。 */
-  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
-}
-.flow-strip {
-  position: relative;
-  display: flex;
-  gap: 10px;
-  width: max-content;
-  transition: transform 0.12s linear;
-}
-
-/* 英語・日本語モード: 英語＋和訳を1ペアにまとめ横一列で交互に並べる */
-.flow.pairs {
-  display: block;
-}
-.flow.pairs .flow-strip {
-  gap: 10px;
-  align-items: stretch;
-}
-.flow-pair {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid #334155;
-  opacity: 0.4;
-  transition: opacity 0.15s ease;
-}
-.flow-pair.current {
-  opacity: 1;
-  border-color: var(--accent);
-}
-.flow-pair.past {
-  opacity: 0.22;
-}
-.flow-pair .pair-en {
-  font-weight: 700;
-  font-size: 17px;
-}
-.flow-pair .pair-ja {
-  font-weight: 700;
-  color: var(--gold);
-}
-/* 入力中の言語は per-char 下線(.rch の border-bottom)で「今どちらを打つか」＋打鍵結果を示す。
-   下線の色分けは末尾の「打鍵に応じた per-char 下線」ルールにまとめている。 */
-.flow-item.past,
-.flow-item.future {
-  opacity: 0.3;
-}
-.flow-item.current {
-  opacity: 0.7;
-  font-size: 18px;
-  font-weight: 700;
-}
-.flow-item.current.typing {
-  opacity: 1;
-}
-/* 単語モード(ticker)の英語/日本語: 各単語を「英語・日本語」ペアと同じ枠デザインに揃える。
-   枠は常に付け、現在語は枠色をアクセント＋下線に変えるだけ（枠の出現で見た目が変わらない）。 */
-.flow.ticker .flow-item {
-  font-size: 17px;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid #334155;
-  opacity: 0.4;
-  transition: opacity 0.15s ease, border-color 0.15s ease;
-}
-.flow.ticker .flow-item.past {
-  opacity: 0.22;
-}
-.flow.ticker .flow-item.current {
-  font-size: 17px; /* current でも拡大しない＝前後でサイズを揃える */
-  opacity: 1;
-}
-.flow.ticker .flow-item.current.typing {
-  border-color: var(--accent);
-}
-
-/* 物語モード: 長文は折り返す（横ティッカーをやめる） */
-.flow.wrap .flow-row {
-  align-items: flex-start;
-}
-.flow.wrap .flow-track {
-  display: block;
-  overflow: visible;
-  white-space: normal;
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-.flow.wrap .flow-item {
-  white-space: normal;
-  margin-right: 0.6em;
-  line-height: 1.6;
-}
-
-.flow-ja {
-  font-weight: 700;
-}
+/* Flow の打鍵下線・.flow*・.flow-ja は flow.css へ移設（#233 M2） */
 .flow-kana {
   margin-left: 8px;
   font-size: 13px;
@@ -926,18 +291,11 @@ h1 {
 }
 
 /* ---- 物語モード本体 ---- */
-.story {
-  display: flex;
-  flex-direction: column;
-}
-.story-found-line {
-  text-align: center;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  margin: -4px 0 18px;
-}
-/* エンディングの「トップへ」ボタン */
+/* 物語モードの本体スタイル（.story 系・.story-found-line・.story-prompt・.story-progress・
+   .story-en・.story-choices・.story-choice・.choice 系・.story-ending・.ending-badge・
+   .ending-text・.ending-ja）は @tll/ui の StoryView presenter へ移設＝story.css。
+   共有の .story-exit・.ending-actions は下に残置。 */
+/* エンディングの「トップへ」ボタン（touch/words/dict/story 共用） */
 .story-exit {
   font-size: 13px;
   color: var(--muted);
@@ -950,111 +308,6 @@ h1 {
 .story-exit:hover {
   color: var(--text);
   border-color: var(--accent);
-}
-.story-ja {
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.7;
-  margin: 0 0 10px;
-}
-/* 翻訳モードの原文プロンプト */
-.story-prompt {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.6;
-  margin: 0 0 10px;
-}
-/* 参照（薄め）／進行表示 */
-.story-ref {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
-  margin: 10px 0 0;
-}
-.story-progress {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  margin-bottom: 8px;
-}
-.story-en.masked {
-  font-size: 22px;
-}
-.story-en {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 22px;
-  line-height: 1.8;
-  padding: 20px;
-  background: var(--panel-2);
-  border-radius: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.story-choices {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
-.story-choice {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 12px 14px;
-  transition: opacity 0.15s ease;
-}
-.story-choice.dim {
-  opacity: 0.4;
-}
-.choice-key {
-  font-size: 13px;
-  font-weight: 800;
-  color: #06283d;
-  background: var(--gold);
-  border-radius: 6px;
-  padding: 2px 9px;
-  margin-top: 2px;
-}
-.choice-body {
-  flex: 1;
-}
-.choice-en {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 17px;
-  line-height: 1.6;
-}
-.choice-ja {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-
-/* 物語エンディング */
-.story-ending {
-  text-align: center;
-  padding: 10px 0;
-}
-.ending-badge {
-  display: inline-block;
-  font-size: 16px;
-  font-weight: 800;
-  color: #06283d;
-  background: var(--gold);
-  border-radius: 999px;
-  padding: 8px 22px;
-  margin-bottom: 18px;
-}
-.ending-text {
-  font-size: 18px;
-  line-height: 1.7;
-}
-.ending-ja {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.7;
 }
 .ending-actions {
   display: flex;
@@ -1077,38 +330,9 @@ h1 {
 }
 
 /* ---- 単語モード ---- */
-.word-card {
-  text-align: center;
-  background: var(--panel-2);
-  border-radius: 16px;
-  padding: 36px 20px;
-  margin-top: 6px;
-}
-.word-dir {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-.word-prompt {
-  font-size: 26px;
-  font-weight: 800;
-  margin: 0 0 18px;
-}
-.word-input {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 40px;
-  letter-spacing: 0.06em;
-  /* クリックで回答すると入力欄が空（空白のみ）になり行高が潰れてカードが縮む。
-     1行分の高さを常に確保して回答前後のレイアウトシフトを防ぐ。 */
-  min-height: 1.2em;
-}
-/* 4択クイズの回答後、選んだ語の和訳を見出しのすぐ下に控えめに併記 */
-.word-input-ja {
-  text-align: center;
-  color: var(--muted);
-  font-size: 14px;
-  margin: 4px 0 0;
-}
+/* 4択カード・入力欄・選択肢（.word-card/.word-dir/.word-prompt/.word-input/.quiz-options/
+   .quiz-option 系/.caret）は @tll/ui の WordQuizView/DictQuizView presenter へ移設＝quiz.css。 */
+/* 選んだ語の和訳（.word-input-ja）は @tll/ui の DictQuizView presenter へ移設＝dict.css */
 
 /* 次の候補（先読み） */
 .word-next {
@@ -1138,31 +362,8 @@ h1 {
   opacity: 0.5;
 }
 
-/* 回答後だけ出る reveal 行の高さを回答前から確保し、回答時のカード伸縮を防ぐ。
-   中身は描画したまま不可視化（視覚ノイズ無し）＋ aria-hidden で SR にも漏らさない。 */
-.reveal-pending {
-  visibility: hidden;
-}
-
-/* 英英辞典カード */
-.dict-head {
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0 0 12px;
-}
-/* 説明4択：回答後に見出し語の真下へ出す単語の和訳 */
-.dict-head-ja {
-  text-align: center;
-  color: var(--muted);
-  font-size: 15px;
-  margin: -6px 0 0;
-}
-.dict-def {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.6;
-  margin: 0 0 10px;
-}
+/* .reveal-pending・英英カード（.dict-head/.dict-head-ja/.dict-def/.dict-ref）・説明文4択
+   （.pick-options/.pick-option）は @tll/ui の DictView presenter へ移設＝dict.css */
 .dict-type {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 22px;
@@ -1170,103 +371,12 @@ h1 {
   line-height: 1.6;
   margin: 6px 0;
 }
-.dict-ref {
-  color: var(--muted);
-  font-size: 15px;
-  margin: 8px 0 0;
-}
 
-/* 4択クイズ */
-.quiz-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-/* 4択の選択肢で、打鍵済みプレフィックスを着色 */
-.opt-typed {
-  color: var(--green);
-}
-.opt-typed.err {
-  color: var(--red);
-}
-
-/* 説明文4択（選択肢が長文なので縦並び） */
-.pick-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
-}
-.pick-option {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-.quiz-option {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 16px 18px;
-  font-size: 18px;
-  font-weight: 700;
-  text-align: left;
-  background: var(--panel-2);
-  border: 2px solid transparent;
-  border-radius: 12px;
-  color: var(--text);
-  cursor: pointer;
-}
-/* 回答後に選択肢の下へ和訳＋ルビ（控えめトーン）。flex 行を折り返して次行に落とす。 */
-.quiz-option-ja {
-  flex-basis: 100%;
-  margin-top: 2px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-}
-.quiz-option-ja rt {
-  font-size: 0.7em;
-  color: var(--muted-fn);
-}
-/* 回答前の和訳スロット：実物と同じ行数・幅のマスクで高さを予約しつつ控えめに伏せる。 */
-.quiz-option-ja.masked {
-  opacity: 0.35;
-  user-select: none;
-}
-.quiz-option:hover:not(:disabled) {
-  border-color: var(--accent);
-}
-.quiz-option:disabled {
-  cursor: default;
-}
-.quiz-option.cand {
-  border-color: var(--accent);
-}
-.quiz-option.dim {
-  opacity: 0.4;
-}
-.quiz-option.correct {
-  border-color: var(--green);
-  background: rgba(74, 222, 128, 0.16);
-  opacity: 1;
-}
-.quiz-option.wrong {
-  border-color: var(--red);
-  background: rgba(248, 113, 113, 0.16);
-  opacity: 1;
-}
-.caret {
-  color: var(--accent);
-  animation: blink 1s step-end infinite;
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
-}
+/* .quiz-options は @tll/ui presenter へ移設＝quiz.css */
+/* .opt-typed* は QuizOptionLabel として quiz-option-label.css へ移設（#233 M2） */
+/* .quiz-option 系（hover/disabled/cand/dim/correct/wrong）・.caret・@keyframes blink は
+   @tll/ui の WordQuizView/DictQuizView presenter へ移設＝quiz.css */
+/* .quiz-option-ja* は OptionJa として option-ja.css へ移設（#233 M2） */
 .quiz-no {
   display: inline-flex;
   align-items: center;
@@ -1279,101 +389,10 @@ h1 {
   flex-shrink: 0;
 }
 
-/* ---- 翻訳モード(英訳/和訳) ---- */
-.translate {
-  display: flex;
-  flex-direction: column;
-}
-.tr-task {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-}
-.tr-source {
-  font-size: 26px;
-  font-weight: 800;
-  line-height: 1.5;
-  margin: 8px 0 4px;
-}
-.tr-next {
-  font-size: 13px;
-  color: var(--muted);
-  opacity: 0.7;
-}
-.tr-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 18px 0 20px;
-  padding: 16px;
-  background: var(--panel);
-  border-radius: 12px;
-}
-.chip {
-  font-size: 15px;
-  color: var(--text);
-  background: var(--panel-2);
-  border: 1px solid #475569;
-  border-bottom-width: 3px;
-  border-radius: 10px;
-  padding: 8px 14px;
-  transition: opacity 0.2s ease;
-}
-/* 打ち終えた単語は薄く消す */
-.chip.used {
-  opacity: 0.15;
-  border-style: dashed;
-  border-bottom-width: 1px;
-  color: var(--muted);
-}
-/* 今打っている単語のチップを強調（打鍵分は .rdone で着色） */
-.chip.current {
-  border-color: var(--accent);
-}
-.tr-input {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 26px;
-  line-height: 1.7;
-  letter-spacing: 0.04em;
-  padding: 20px;
-  min-height: 30px;
-  background: var(--panel-2);
-  border-radius: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.tr-input.error {
-  animation: shake 0.18s;
-}
-.mch.hidden {
-  color: #3b4a5f;
-}
-.mch.typed {
-  color: var(--green);
-}
-.mch.mcur {
-  color: #06283d;
-  background: var(--accent);
-  border-radius: 3px;
-}
-.mch.mcur.err {
-  background: var(--red);
-  color: #fff;
-}
+/* ---- 翻訳モード(英訳/和訳) ---- .translate/.tr-* は translate.css へ、
+   .tr-chips/.chip*・.mch.* は Chips/MaskedText として text.css へ移設（#233 M2） ---- */
 
-/* ---- 下部本文(600文字を最初から全文表示) ---- */
-.passage {
-  font-family: 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 22px;
-  line-height: 2.5;
-  letter-spacing: 0.02em;
-  padding: 20px;
-  background: var(--panel-2);
-  border-radius: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+/* ---- 下部本文 ---- .passage/.gap/.passage.error は passage.css へ移設（#233 M2） ---- */
 
 /* ふりがな（ルビ）：漢字の上に読みを小さく表示 */
 /* ルビが本文より広い run（着陸/入国審査官 等）で既定の space-around が
@@ -1390,36 +409,10 @@ ruby > rt {
   letter-spacing: 0;
   user-select: none;
 }
-.flow-ja {
-  line-height: 2.2;
-}
-.story-en {
-  line-height: 2.2;
-}
-.ch {
-  color: var(--muted);
-}
-.ch.done {
-  color: var(--green);
-}
-.ch.cur {
-  color: #06283d;
-  background: var(--accent);
-  border-radius: 3px;
-}
-.ch.cur.err {
-  background: var(--red);
-  color: #fff;
-}
-.ch.over {
-  opacity: 0.35;
-}
-.gap {
-  padding: 0 0.3em;
-}
-.passage.error {
-  animation: shake 0.18s;
-}
+/* .flow-ja の line-height は flow.css へ統合（#233 M2） */
+/* .story-en（line-height 込み）は @tll/ui の StoryView presenter へ移設＝story.css */
+/* .ch* は Chars/RubyChars（Text）として text.css へ移設（#233 M2） */
+/* .gap/.passage.error は passage.css へ移設（#233 M2） */
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -1452,198 +445,15 @@ kbd {
 }
 
 /* ---- result ---- */
-.result {
-  text-align: center;
-}
-.result h2 {
-  margin-bottom: 8px;
-}
-.result-mode {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--accent);
-  background: rgba(56, 189, 248, 0.12);
-  border-radius: 999px;
-  padding: 3px 14px;
-  margin-bottom: 8px;
-}
-.records-mode {
-  color: var(--accent);
-  margin-left: 6px;
-}
-.records-sub {
-  margin-left: 6px;
-  font-weight: 400;
-  opacity: 0.8;
-}
-.result-main {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 8px;
-  margin: 8px 0;
-}
-.result-speed {
-  font-size: 72px;
-  font-weight: 900;
-  color: var(--accent);
-  line-height: 1;
-}
-.result-unit {
-  font-size: 20px;
-  color: var(--muted);
-}
-.result-sub {
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  color: var(--muted);
-  font-size: 14px;
-}
+/* .result / .result-mode/main/speed/unit/sub は @tll/ui の Result presenter へ移設＝result.css */
+/* .records-mode/.records-sub は @tll/ui の RecordsTable presenter へ移設＝records.css */
 
 /* ---- 問題ごとの記録 ---- */
-.seg-stats {
-  margin-top: 36px;
-  text-align: left;
-}
-.seg-stats h3 {
-  font-size: 15px;
-  color: var(--muted);
-  text-align: center;
-}
-.seg-stats table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.seg-stats th,
-.seg-stats td {
-  padding: 7px 8px;
-  border-bottom: 1px solid #334155;
-  text-align: left;
-  vertical-align: top;
-}
-.seg-stats th {
-  color: var(--muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.seg-stats td.speed {
-  font-weight: 700;
-  color: var(--accent);
-  white-space: nowrap;
-}
-.seg-stats td.miss {
-  color: var(--red);
-  font-weight: 700;
-}
-.seg-stats tr.has-miss td.q-label {
-  color: var(--text);
-}
-.q-label {
-  line-height: 1.4;
-}
-.type-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  color: #06283d;
-  border-radius: 6px;
-  padding: 1px 7px;
-}
-.type-badge.en {
-  background: var(--accent);
-}
-.type-badge.ja {
-  background: var(--gold);
-}
-.partial-tag {
-  margin-left: 6px;
-  font-size: 11px;
-  color: var(--muted);
-}
-/* 場面の直後に差し込む「選んだ選択肢」行（問題ごとの記録に統合） */
-.seg-stats tr.choice-row td {
-  padding: 6px 8px 6px 26px;
-  background: rgba(148, 163, 184, 0.06);
-  line-height: 1.4;
-}
-.choice-tag {
-  display: inline-block;
-  margin-right: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--gold);
-  white-space: nowrap;
-}
-.seg-stats .choice-row .choice-ja {
-  font-size: 14px;
-  color: var(--text);
-}
-.seg-stats .choice-row .choice-en {
-  display: block;
-  margin-top: 2px;
-  margin-left: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
+/* .seg-stats/.q-label/.type-badge/.choice-tag は packages/ui (@tll/ui) の seg-stats.css に移設（#233 M2） */
 
 /* ---- records ---- */
-.records {
-  margin-top: 36px;
-}
-.records h3 {
-  font-size: 15px;
-  color: var(--muted);
-  text-align: center;
-}
-.no-records {
-  text-align: center;
-  color: var(--muted);
-}
-.records table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.records th,
-.records td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid #334155;
-}
-.records th {
-  color: var(--muted);
-  font-weight: 600;
-}
-.records td.speed {
-  font-weight: 700;
-  color: var(--accent);
-}
-.records td.date {
-  color: var(--muted);
-  font-size: 12px;
-}
-.records tr.me td {
-  background: rgba(251, 191, 36, 0.12);
-}
-.records tbody tr:nth-child(1) td.speed {
-  color: var(--gold);
-}
-
-/* 打鍵中に間違えた「今打つ文字」（漢字本体・ふりがな・英語）を赤く */
-.rerr {
-  color: var(--red);
-}
-
-/* 記録ランキング: クリックで詳細 */
-.records tr.row-click {
-  cursor: pointer;
-}
-.records tbody tr.row-click:hover {
-  background: var(--panel-2);
-}
+/* .records 系（テーブル・row-click・me 等）は @tll/ui の RecordsTable presenter へ移設＝records.css */
+/* .rerr は text.css へ移設（#233 M2） */
 
 /* 記録の結果ページ（全画面） */
 .record-page {
@@ -1687,14 +497,7 @@ kbd {
   margin-top: 6px;
 }
 
-/* 問題ごとの記録: 4択クイズの正誤 */
-.seg-stats td.ok {
-  color: var(--green);
-  font-weight: 700;
-}
-.seg-stats .q-answer {
-  color: var(--muted);
-}
+/* 問題ごとの記録: 4択クイズの正誤（.seg-stats td.ok/.q-answer）は seg-stats.css へ移設（#233 M2） */
 
 /* ---- PWA 更新通知トースト（新しい版を検知したとき画面下部に控えめに出す） ---- */
 .update-toast {
@@ -1779,43 +582,7 @@ kbd {
   flex: none;
 }
 
-/* 効果音のミュート切替ボタン。左上に控えめに固定表示（オフライン=上部中央／更新トースト=下部中央／
-   インストール=右下／フォールバック告知・DEVパネル=左下 と位置で棲み分け）。常時表示。 */
-.sound-toggle {
-  position: fixed;
-  top: 12px;
-  left: 16px;
-  z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  color: var(--muted);
-  background: var(--panel);
-  border: 1px solid #334155;
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.sound-toggle:hover {
-  color: var(--text);
-  background: var(--panel-2);
-}
-.sound-toggle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-/* ミュート中は状態が分かるよう控えめに赤みを差す */
-.sound-toggle[aria-pressed='true'] {
-  color: var(--red);
-}
-.sound-toggle__icon {
-  display: inline-flex;
-  line-height: 0;
-}
+/* 効果音のミュート切替ボタン（.sound-toggle 系）は @tll/ui の SoundToggle presenter へ移設＝sound.css */
 
 /* 「アプリとして追加」ボタン。右下に控えめに固定表示（オフラインバナーは上部・更新トーストは
    下部中央なので位置で棲み分け）。beforeinstallprompt を捕捉できたときだけ描画される。 */

@@ -1,23 +1,23 @@
-// 単語タブ：レベル・テーマ・モード（入力/4択）の選択＋記録/収録一覧。
+// 単語タブ（container）：レベル・テーマ・モード（入力/4択）の選択＋記録/収録一覧。
+// 表示の骨格は @tll/ui の RankSectionView（presenter）。ここは content（単語データ・件数）・
+// application（wordRanking）を読み、選択肢・収録件数・一覧/記録ノードを組み立てて渡す。
+// 外部 API（wordLevel/onWordLevelChange 等）は従来どおり維持し、呼び出し側は無改変で通る。
 import { useState, useEffect } from 'react'
+import { RankSectionView } from '@tll/ui'
 import { WORD_LEVELS, WORD_MODES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { wordRanking } from '../../application/records.js'
 import ItemList from './ItemList.jsx'
 import EndConditionSelect from './EndConditionSelect.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
-import {
-  selCls,
-  ModeButtons,
-  SectionLabel,
-  BottomTabs,
-  StartRow,
-  WordRecords,
-  THEME_OPTIONS,
-  dictLevelLabel,
-} from './parts.jsx'
+import { WordRecords, THEME_OPTIONS, dictLevelLabel } from './parts.jsx'
 
 const WORD_INPUT = WORD_MODES.filter((m) => !m.key.startsWith('quiz'))
 const WORD_QUIZ = WORD_MODES.filter((m) => m.key.startsWith('quiz'))
+const WORD_MODE_GROUPS = [
+  { course: '通常入力', modes: WORD_INPUT },
+  { course: '4択', modes: WORD_QUIZ },
+]
+const WORD_LEVEL_OPTIONS = WORD_LEVELS.map((l) => ({ value: l.level, no: `W${l.level}`, label: l.label }))
 
 // 単語の収録一覧。単語データを遅延読み込みしてレベル×テーマで絞る。
 function WordsList({ level, theme, mode }) {
@@ -64,107 +64,44 @@ export default function WordsSection({
   endCondition,
   onEndConditionChange,
 }) {
-  return (
-    <>
-      <SectionLabel>レベル</SectionLabel>
-      <div className="rank-select">
-        <div className="rank-group">
-          <div className="rank-btns">
-            {WORD_LEVELS.map((l) => (
-              <button
-                key={l.level}
-                className={`rank-btn ${selCls(wordLevel === l.level, focusSection === 'level')}`}
-                onClick={() => {
-                  onWordLevelChange(l.level)
-                  onFocusSection('level')
-                }}
-              >
-                <span className="rank-no">W{l.level}</span>
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <SectionLabel>テーマ</SectionLabel>
-      <div className="mode-select">
-        <div className="mode-group">
-          <div className="mode-btns">
-            {THEME_OPTIONS.map((t) => (
-              <button
-                key={t}
-                className={`mode-btn ${selCls(wordTheme === t, focusSection === 'theme')}`}
-                onClick={() => {
-                  onThemeChange(t)
-                  onFocusSection('theme')
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <SectionLabel>モード</SectionLabel>
-      <div className="mode-select">
-        <div className="mode-group">
-          <div className="mode-course">通常入力</div>
-          <ModeButtons
-            modes={WORD_INPUT}
-            value={wordMode}
-            focused={focusSection === 'mode'}
-            onChange={(k) => {
-              onWordModeChange(k)
-              onFocusSection('mode')
-            }}
-          />
-        </div>
-        <div className="mode-group">
-          <div className="mode-course">4択</div>
-          <ModeButtons
-            modes={WORD_QUIZ}
-            value={wordMode}
-            focused={focusSection === 'mode'}
-            onChange={(k) => {
-              onWordModeChange(k)
-              onFocusSection('mode')
-            }}
-          />
-        </div>
-      </div>
-      <p className="mode-desc">{wordModeDesc(wordMode, endConditionSummary(endCondition))}</p>
-      <p className="pool-count">
-        この条件の収録: {WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0} 語
-      </p>
-
-      <EndConditionSelect
+  const browseNode =
+    bottomTab === 'list' ? (
+      <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
+    ) : (
+      <WordRecords
+        list={wordRanking(wordLevel, wordTheme, wordMode, endCondition)}
+        isQuiz={wordMode.startsWith('quiz')}
+        rankText={`単語 ${dictLevelLabel(wordLevel)} ${wordTheme}`}
         endCondition={endCondition}
-        onChange={onEndConditionChange}
-        focusSection={focusSection}
-        onFocusSection={onFocusSection}
       />
-
-      <StartRow onStart={onStart} />
-      <BottomTabs
-        value={bottomTab}
-        focused={focusSection === 'bottom'}
-        onChange={(k) => {
-          onBottomTabChange(k)
-          onFocusSection('bottom')
-        }}
-      />
-      {bottomTab === 'list' ? (
-        <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} />
-      ) : (
-        <WordRecords
-          list={wordRanking(wordLevel, wordTheme, wordMode, endCondition)}
-          isQuiz={wordMode.startsWith('quiz')}
-          rankText={`単語 ${dictLevelLabel(wordLevel)} ${wordTheme}`}
+    )
+  return (
+    <RankSectionView
+      levels={WORD_LEVEL_OPTIONS}
+      level={wordLevel}
+      onLevelChange={onWordLevelChange}
+      themes={THEME_OPTIONS}
+      theme={wordTheme}
+      onThemeChange={onThemeChange}
+      modeGroups={WORD_MODE_GROUPS}
+      mode={wordMode}
+      onModeChange={onWordModeChange}
+      focusSection={focusSection}
+      onFocusSection={onFocusSection}
+      modeDesc={wordModeDesc(wordMode, endConditionSummary(endCondition))}
+      poolCount={`この条件の収録: ${WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0} 語`}
+      endConditionNode={
+        <EndConditionSelect
           endCondition={endCondition}
+          onChange={onEndConditionChange}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
         />
-      )}
-    </>
+      }
+      onStart={onStart}
+      bottomTab={bottomTab}
+      onBottomTabChange={onBottomTabChange}
+      browseNode={browseNode}
+    />
   )
 }

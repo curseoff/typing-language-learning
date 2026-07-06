@@ -1,20 +1,16 @@
-// 単語問題の画面。入力モード（英語/日本語/英語・日本語）と4択クイズを振り分ける。
+// 単語問題の画面（container）：入力モードと4択クイズを振り分け、useWords/useWordQuiz を呼ぶ。
+// HUD 値（endHudStat）を content で算出し、@tll/ui の WordTypeView/WordQuizView（presenter）へ渡す。
+// 結果は共有 PlayResultView へ、記録詳細モーダル（useRecordDetail）は WordResult container で配線。
+// 外部 API（words/level/theme/mode/seed/levelLabel/modeLabel/endCondition/onExit）は不変。
+import { WordTypeView, WordQuizView, PlayResultView } from '@tll/ui'
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.js'
-import { StatsRow, QuizOptionLabel, RubyText, OptionJa } from '../shared/index.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
-import SegStatsTable from '../result/SegStatsTable.jsx'
-import TopFlow from '../marathon/TopFlow.jsx'
 
 export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
-  const meta = (
-    <div className="play-meta">
-      <span className="meta-badge rank">{levelLabel}</span>
-      <span className="meta-badge mode">{modeLabel} / {theme}</span>
-    </div>
-  )
+  const metaSub = `${modeLabel} / ${theme}`
   return mode.startsWith('quiz') ? (
     <QuizView
       words={words}
@@ -23,17 +19,46 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
       mode={mode}
       dir={mode === 'quiz-ja' ? 'ja' : 'en'}
       seed={seed}
-      meta={meta}
+      levelLabel={levelLabel}
+      metaSub={metaSub}
       endCondition={endCondition}
       onExit={onExit}
     />
   ) : (
-    <TypeView words={words} level={level} theme={theme} mode={mode} seed={seed} meta={meta} endCondition={endCondition} onExit={onExit} />
+    <TypeView
+      words={words}
+      level={level}
+      theme={theme}
+      mode={mode}
+      seed={seed}
+      levelLabel={levelLabel}
+      metaSub={metaSub}
+      endCondition={endCondition}
+      onExit={onExit}
+    />
+  )
+}
+
+// 単語の記録ランキング（useRecordDetail フックを使うため container 側）。finished 時だけマウント。
+function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
+  const list = records[wordRecKey(level, theme, mode, result.endCondition)] || []
+  const { open, modal } = useRecordDetail()
+  const isQuiz = mode.startsWith('quiz')
+  return (
+    <PlayResultView
+      result={result}
+      list={list}
+      isQuiz={isQuiz}
+      onRetry={onRetry}
+      onExit={onExit}
+      onRowClick={(r, rank) => open(r, rank, { rankText: '単語', list, isQuiz })}
+      modal={modal}
+    />
   )
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
-function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit }) {
+function TypeView({ words, level, theme, mode, seed, levelLabel, metaSub, endCondition, onExit }) {
   const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, onExit })
   // items 制の HUD 進捗＝完了語数（segIndex）、life 制は残りライフ（missedItems）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex, missedItems: w.missedItems })
@@ -41,9 +66,11 @@ function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit 
   const progress = (endCondition?.kind ?? 'time') === 'time' ? w.progress : endStat.progress
 
   return (
-    <div className="game">
-      {meta}
-      {w.finished ? (
+    <WordTypeView
+      levelLabel={levelLabel}
+      metaSub={metaSub}
+      finished={w.finished}
+      resultNode={
         <WordResult
           result={w.result}
           records={w.records}
@@ -53,44 +80,33 @@ function TypeView({ words, level, theme, mode, seed, meta, endCondition, onExit 
           onRetry={w.restart}
           onExit={onExit}
         />
-      ) : (
-        <>
-          <StatsRow
-            stats={[
-              { label: 'タイピング数', value: `${w.typedKeys}` },
-              { label: '速度', value: `${w.liveSpeed} 打/分` },
-              { label: 'ミス', value: w.mistakes },
-              { label: endStat.label, value: endStat.value },
-            ]}
-            progress={progress}
-          />
-          <TopFlow
-            segments={w.segments}
-            segIndex={w.segIndex}
-            segInput={w.segInput}
-            hasError={w.hasError}
-            ticker
-          />
-          <p className="hint">
-            英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
-            <kbd>Esc</kbd> で中断してトップへ。
-          </p>
-        </>
-      )}
-    </div>
+      }
+      typedKeys={w.typedKeys}
+      liveSpeed={w.liveSpeed}
+      mistakes={w.mistakes}
+      endStatLabel={endStat.label}
+      endStatValue={endStat.value}
+      progress={progress}
+      segments={w.segments}
+      segIndex={w.segIndex}
+      segInput={w.segInput}
+      hasError={w.hasError}
+    />
   )
 }
 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
-function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, onExit }) {
+function QuizView({ words, level, theme, mode, dir, seed, levelLabel, metaSub, endCondition, onExit }) {
   const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit })
   // items 制の HUD 進捗＝完答した設問数（index）、life 制は残りライフ（missedItems）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
 
   return (
-    <div className="game">
-      {meta}
-      {q.finished ? (
+    <WordQuizView
+      levelLabel={levelLabel}
+      metaSub={metaSub}
+      finished={q.finished}
+      resultNode={
         <WordResult
           result={q.result}
           records={q.records}
@@ -100,165 +116,22 @@ function QuizView({ words, level, theme, mode, dir, seed, meta, endCondition, on
           onRetry={q.restart}
           onExit={onExit}
         />
-      ) : (
-        <>
-          <StatsRow
-            stats={[
-              { label: 'タイピング数', value: `${q.typedKeys}` },
-              { label: '正解', value: q.correct },
-              { label: 'ミス', value: q.mistakes },
-              { label: endStat.label, value: endStat.value },
-            ]}
-            progress={endStat.progress}
-          />
-          <div className="word-card">
-            <div className="word-dir">
-              {dir === 'ja' ? '英単語に合う和訳をローマ字で入力' : '意味に合う英単語を入力'}
-            </div>
-            <p className="word-prompt">
-              {q.question.promptKana ? (
-                <RubyText ja={q.question.prompt} kana={q.question.promptKana} />
-              ) : (
-                q.question.prompt
-              )}
-            </p>
-            <div className={`word-input ${q.hasError ? 'error' : ''}`}>
-              {q.input ? q.input : ' '}
-              {q.picked === null && <span className="caret">▍</span>}
-            </div>
-          </div>
-          <div className="quiz-options">
-            {q.question.options.map((opt, i) => {
-              let cls = 'quiz-option'
-              if (q.picked !== null) {
-                if (opt.answer) cls += ' correct'
-                else if (opt === q.picked) cls += ' wrong'
-                else cls += ' dim'
-              } else if (q.input) {
-                cls += opt.variants.some((v) => v.startsWith(q.input)) ? ' cand' : ' dim'
-              }
-              return (
-                <button
-                  key={i}
-                  className={cls}
-                  onClick={() => (q.picked === null ? q.pick(opt) : q.advance())}
-                >
-                  <QuizOptionLabel opt={opt} input={q.input} picked={q.picked} hasError={q.hasError} />
-                  {/* 回答後に反対側を表示（#221）。英語訳→和訳＋ルビ／日本語訳→英語(プレーン)。 */}
-                  {dir === 'ja' ? (
-                    <OptionJa ja={opt.en} kana={undefined} revealed={q.picked !== null} />
-                  ) : (
-                    <OptionJa ja={opt.ja} kana={opt.jaKana} revealed={q.picked !== null} />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-          <p className="hint">
-            {q.picked === null ? (
-              <>{dir === 'ja' ? '和訳をローマ字で入力' : '英単語を入力'}（クリックでも選択可）。</>
-            ) : (
-              <>
-                <kbd>Enter</kbd> / <kbd>Space</kbd> で次へ。
-              </>
-            )}
-            <kbd>Esc</kbd> で中断。
-          </p>
-        </>
-      )}
-    </div>
-  )
-}
-
-function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[wordRecKey(level, theme, mode, result.endCondition)] || []
-  const { open, modal } = useRecordDetail()
-  const isQuiz = mode.startsWith('quiz')
-  // 問題数制・サドンデス（life）は主成績＝正解数。エンドレスは主成績＝速度（#208 段6）。時間/文字数制はタイピング数。
-  const kind = result.endCondition?.kind ?? 'time'
-  const isItems = kind === 'items'
-  const isCorrect = isItems || kind === 'life' // items は分母つき、life は分母なしで正解数を表示
-  const isEndless = kind === 'endless'
-  return (
-    <div className="result">
-      <h2>記録</h2>
-      <div className="result-main">
-        <div className="result-speed">
-          {isCorrect ? (result.correctCount ?? 0) : isEndless ? (result.speed ?? 0) : (result.keys ?? 0)}
-        </div>
-        <div className="result-unit">
-          {isCorrect ? '正解（問）' : isEndless ? '打/分（速度）' : 'タイピング数'}
-        </div>
-      </div>
-      {isCorrect ? (
-        <div className="result-sub">
-          <span>正解 {result.correctCount ?? 0}{isItems ? `/${result.endCondition?.value ?? 0}` : ''}問</span>
-          <span>正確率 {result.accuracy}%</span>
-          <span>{result.seconds} 秒</span>
-        </div>
-      ) : isQuiz ? (
-        <div className="result-sub">
-          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
-          <span>正解 {result.correct}/{result.words}</span>
-          <span>正確率 {result.accuracy}%</span>
-          <span>{result.seconds} 秒</span>
-        </div>
-      ) : (
-        <div className="result-sub">
-          <span>{isEndless ? `タイピング ${result.keys ?? 0}` : `速度 ${result.speed} 打/分`}</span>
-          <span>ミス {result.mistakes}</span>
-          <span>正確率 {result.accuracy}%</span>
-          <span>{result.seconds} 秒</span>
-        </div>
-      )}
-      <div className="ending-actions">
-        <button className="btn-primary" onClick={onRetry}>
-          もう一度
-        </button>
-        <button className="story-exit" onClick={onExit}>
-          トップへ
-        </button>
-      </div>
-      <p className="key-hint">
-        <kbd>Enter</kbd> でもう一度 / <kbd>Esc</kbd> でトップへ
-      </p>
-
-      <SegStatsTable segStats={result.segStats} />
-      <div className="records">
-        <h3>記録ランキング（最大15件）</h3>
-        {list.length === 0 ? (
-          <p className="no-records">まだ記録がありません。</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>{isCorrect ? '正解' : isEndless ? '速度' : 'タイピング数'}</th>
-                <th>正確率</th>
-                <th>時間</th>
-                <th>日時</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((r, i) => (
-                <tr
-                  key={i}
-                  className={`row-click ${r.date === result.date ? 'me' : ''}`}
-                  onClick={() => open(r, i + 1, { rankText: '単語', list, isQuiz })}
-                  title="クリックで記録の詳細"
-                >
-                  <td>{i + 1}</td>
-                  <td className="speed">{isCorrect ? (r.correctCount ?? 0) : isEndless ? (r.speed ?? 0) : (r.keys ?? 0)}</td>
-                  <td>{r.accuracy}%</td>
-                  <td>{r.seconds}秒</td>
-                  <td className="date">{r.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      {modal}
-    </div>
+      }
+      dir={dir}
+      typedKeys={q.typedKeys}
+      correct={q.correct}
+      mistakes={q.mistakes}
+      endStatLabel={endStat.label}
+      endStatValue={endStat.value}
+      progress={endStat.progress}
+      prompt={q.question.prompt}
+      promptKana={q.question.promptKana}
+      options={q.question.options}
+      input={q.input}
+      picked={q.picked}
+      hasError={q.hasError}
+      onPick={q.pick}
+      onAdvance={q.advance}
+    />
   )
 }

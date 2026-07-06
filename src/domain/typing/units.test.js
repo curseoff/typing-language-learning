@@ -72,6 +72,30 @@ describe('buildUnits の word 付与（単語例文の対応単語）', () => {
   })
 })
 
+describe('ja-tr チップの読み(kana)付与（withWordKana）', () => {
+  it('kana と jaWords が整合するとき、各チップに読みが割り当てられる', () => {
+    const wordItem = {
+      en: 'The clouds are above the mountain.',
+      ja: '雲は山の上にあります。',
+      kana: 'くもはやまのうえにあります。',
+      jaWords: ['雲', 'は', '山', 'の', '上', 'に', 'あり', 'ます'],
+    }
+    const seg = buildUnits(wordItem, 'ja-tr', { rng: mulberry32(7) })[0]
+    // どのチップも読みを持ち、連結すると元の kana（句読点は末尾チップ）に一致する。
+    const byIndex = [...seg.chips].sort((a, b) => a.i - b.i)
+    expect(byIndex.every((c) => typeof c.kana === 'string')).toBe(true)
+    expect(byIndex.map((c) => c.kana).join('')).toBe('くもはやまのうえにあります。')
+  })
+
+  it('words が ja を再構成できないとき（不整合）は読みを付けない（text-only）', () => {
+    // jaWords を連結しても ja に一致せず、末尾句読点でも埋まらない → 各チップは text/i のみ。
+    const mismatch = { en: 'x.', ja: 'あいう', kana: 'あいう', jaWords: ['か', 'き'] }
+    const seg = buildUnits(mismatch, 'ja-tr', { rng: mulberry32(1) })[0]
+    expect(seg.chips.every((c) => c.kana === undefined)).toBe(true)
+    expect(seg.chips.every((c) => typeof c.text === 'string' && typeof c.i === 'number')).toBe(true)
+  })
+})
+
 describe('segMatches', () => {
   it('途中入力の前方一致を判定する', () => {
     const seg = buildUnits(item, 'ja')[0]

@@ -1,0 +1,8 @@
+/* QuizOptionLabel（4択の選択肢ラベル）。@tll/ui へ移設（#233 M2） */
+/* 4択の選択肢で、打鍵済みプレフィックスを着色 */
+.opt-typed {
+  color: var(--green);
+}
+.opt-typed.err {
+  color: var(--red);
+}

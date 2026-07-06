@@ -1,0 +1,182 @@
+/* Flow（上部の英語/日本語フロー表示・ティッカー/ペア/折返し）。@tll/ui へ移設（#233 M2） */
+
+.ref-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #06283d;
+  border-radius: 999px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+.ref-tag.en {
+  background: var(--accent);
+}
+.ref-tag.ja {
+  background: var(--gold);
+}
+
+/* 打鍵に応じた per-char 下線: 入力対象の行(pairs / 単一言語 ticker)でのみ、
+   文字 span(.rch) の border-bottom を1文字ずつ色分けする。
+   未入力=中立(薄いアクセント) / 正解済み(.rdone)=緑 / 現在ミス(.rerr)=赤。
+   span は inline で隣接するため下線は連続して見える(スペースの span も引く)。
+   ふりがな(rt)は rch を付けないので下線は本体文字の下だけに出てルビと干渉しない。 */
+.flow-pair .pair-en.typing .rch,
+.flow-pair .pair-ja.typing .rch,
+.flow.ticker .flow-item.current.typing .rch {
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  padding-bottom: 2px;
+}
+.flow-pair .pair-en.typing .rch.rdone,
+.flow-pair .pair-ja.typing .rch.rdone,
+.flow.ticker .flow-item.current.typing .rch.rdone {
+  border-bottom-color: var(--green);
+}
+.flow-pair .pair-en.typing .rch.rerr,
+.flow-pair .pair-ja.typing .rch.rerr,
+.flow.ticker .flow-item.current.typing .rch.rerr {
+  border-bottom-color: var(--red);
+}
+
+/* ---- 上部: 英語/日本語を横に流す(現在の文が中央、進むと左へ) ---- */
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.flow-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.flow-track {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  gap: 24px;
+  overflow-x: hidden;
+  white-space: nowrap;
+  padding: 2px 0;
+  /* 両端をフェードさせて流れている感じを出す */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.flow-item {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 15px;
+  transition: opacity 0.15s ease;
+}
+
+/* ティッカー: 現在語の左端を固定し、ストリップ全体を滑らかに左へスライド。
+   完了語は左へ流れて clip+フェード、現在語は常に全文字が見える。 */
+.flow.ticker .flow-track {
+  /* 左端はフェードさせない（現在語を欠けさせない）。右端だけフェードで先読みが現れる感じに。
+     初期描画用のフォールバック値。実行時は Flow.jsx が右端フェードを語境界へスナップして
+     mask-image を上書きする（収まる語はくっきり／はみ出す語だけゴースト＝#108）。 */
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent 100%);
+}
+.flow-strip {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  transition: transform 0.12s linear;
+}
+
+/* 英語・日本語モード: 英語＋和訳を1ペアにまとめ横一列で交互に並べる */
+.flow.pairs {
+  display: block;
+}
+.flow.pairs .flow-strip {
+  gap: 10px;
+  align-items: stretch;
+}
+.flow-pair {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid #334155;
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+}
+.flow-pair.current {
+  opacity: 1;
+  border-color: var(--accent);
+}
+.flow-pair.past {
+  opacity: 0.22;
+}
+.flow-pair .pair-en {
+  font-weight: 700;
+  font-size: 17px;
+}
+.flow-pair .pair-ja {
+  font-weight: 700;
+  color: var(--gold);
+}
+/* 入力中の言語は per-char 下線(.rch の border-bottom)で「今どちらを打つか」＋打鍵結果を示す。
+   下線の色分けは末尾の「打鍵に応じた per-char 下線」ルールにまとめている。 */
+.flow-item.past,
+.flow-item.future {
+  opacity: 0.3;
+}
+.flow-item.current {
+  opacity: 0.7;
+  font-size: 18px;
+  font-weight: 700;
+}
+.flow-item.current.typing {
+  opacity: 1;
+}
+/* 単語モード(ticker)の英語/日本語: 各単語を「英語・日本語」ペアと同じ枠デザインに揃える。
+   枠は常に付け、現在語は枠色をアクセント＋下線に変えるだけ（枠の出現で見た目が変わらない）。 */
+.flow.ticker .flow-item {
+  font-size: 17px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid #334155;
+  opacity: 0.4;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
+}
+.flow.ticker .flow-item.past {
+  opacity: 0.22;
+}
+.flow.ticker .flow-item.current {
+  font-size: 17px; /* current でも拡大しない＝前後でサイズを揃える */
+  opacity: 1;
+}
+.flow.ticker .flow-item.current.typing {
+  border-color: var(--accent);
+}
+
+/* 物語モード: 長文は折り返す（横ティッカーをやめる） */
+.flow.wrap .flow-row {
+  align-items: flex-start;
+}
+.flow.wrap .flow-track {
+  display: block;
+  overflow: visible;
+  white-space: normal;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.flow.wrap .flow-item {
+  white-space: normal;
+  margin-right: 0.6em;
+  line-height: 1.6;
+}
+
+.flow-ja {
+  font-weight: 700;
+  line-height: 2.2;
+}
