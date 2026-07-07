@@ -57,6 +57,21 @@ describe('segTracker（問題ごとの記録）', () => {
     segPush(tr, { type: 'en', label: 'both', keys: 3, t: 6000 })
     expect('sentenceIndex' in tr.list[0]).toBe(false)
   })
+
+  it('en/ja/kana を渡すと透過保存し、渡さなければキー自体が付かない（#240）', () => {
+    const tr = newSegTracker()
+    segMark(tr, 0)
+    segPush(tr, { type: 'en', label: 'good', keys: 4, t: 6000, en: 'good', ja: '良い', kana: 'よい' })
+    expect(tr.list[0].en).toBe('good')
+    expect(tr.list[0].ja).toBe('良い')
+    expect(tr.list[0].kana).toBe('よい')
+    // 未指定ならキー自体が付かない（旧形状を維持）
+    segMark(tr, 8000)
+    segPush(tr, { type: 'ja', label: 'x', keys: 1, t: 9000 })
+    expect('en' in tr.list[1]).toBe(false)
+    expect('ja' in tr.list[1]).toBe(false)
+    expect('kana' in tr.list[1]).toBe(false)
+  })
 })
 
 describe('segMissedItems（ライフ制のミスした問題数・#208 段5）', () => {
