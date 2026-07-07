@@ -126,6 +126,9 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         segPush(segTrackerRef.current, {
           type: seg.type,
           label: seg.type === 'en' ? seg.en : seg.ja,
+          en: seg.en,
+          ja: seg.ja,
+          kana: seg.kana,
           keys: partialLen,
           t,
           partial: true,
@@ -145,6 +148,9 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         segPush(segTrackerRef.current, {
           type: seg.type,
           label: seg.type === 'en' ? seg.en : seg.ja,
+          en: seg.en,
+          ja: seg.ja,
+          kana: seg.kana,
           keys: input.length,
           t,
           partial: true,
@@ -189,6 +195,9 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
           segPush(segTrackerRef.current, {
             type: seg.type,
             label: seg.type === 'en' ? seg.en : seg.ja,
+            en: seg.en,
+            ja: seg.ja,
+            kana: seg.kana,
             keys: candidate.length,
             t,
             partial: false,
@@ -233,6 +242,9 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
       segPush(segTrackerRef.current, {
         type: seg.type,
         label: seg.type === 'en' ? seg.en : seg.ja,
+        en: seg.en,
+        ja: seg.ja,
+        kana: seg.kana,
         keys: input.length,
         t: endTime,
         partial: true,

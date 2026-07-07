@@ -159,6 +159,9 @@ export function useStory({ mode, storyId, start, onExit }) {
           segPush(segTrackerRef.current, {
             type: seg.type,
             label: seg.type === 'en' ? seg.en : seg.ja,
+            en: seg.en,
+            ja: seg.ja,
+            kana: seg.kana,
             keys: candidate.length,
             t: _t,
           })

@@ -112,6 +112,29 @@ describe('App スモーク', () => {
     expect(tabs.querySelector('.type-tab.sel-focus').textContent).not.toBe(before)
   })
 
+  it('「このアプリについて」で紹介ページへ、「はじめる」でトップへ戻る', () => {
+    const { container } = render(<App />)
+    // TOP に控えめな導線が出ている
+    fireEvent.click(screen.getByRole('button', { name: 'このアプリについて' }))
+    // 紹介ページ（LP）が描画され、TOP のタブ列は消える
+    expect(container.querySelector('.about')).not.toBeNull()
+    expect(container.querySelector('.type-tabs')).toBeNull()
+    expect(screen.getByText('打って、覚える。')).toBeInTheDocument()
+    // 「はじめる」でトップへ戻る
+    fireEvent.click(screen.getAllByRole('button', { name: 'はじめる' })[0])
+    expect(container.querySelector('.about')).toBeNull()
+    expect(container.querySelector('.type-tabs')).not.toBeNull()
+  })
+
+  it('紹介ページで Esc を押すとトップへ戻る', () => {
+    const { container } = render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'このアプリについて' }))
+    expect(container.querySelector('.about')).not.toBeNull()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(container.querySelector('.about')).toBeNull()
+    expect(container.querySelector('.type-tabs')).not.toBeNull()
+  })
+
   it('タッチタイピングを数打したあと60秒で完了し記録ランキングに保存される', () => {
     // 60秒制：時間経過をシミュレートして完了させるため、このテストだけ fake timer を使う。
     vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
