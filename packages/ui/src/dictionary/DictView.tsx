@@ -200,7 +200,8 @@ export function DictQuizView({
               const ruby = wordRuby?.[opt.display] // 英単語→{ja,kana}
               return (
                 <button key={i} className={cls} onClick={() => (picked === null ? onPick(opt) : onAdvance())}>
-                  <QuizOptionLabel opt={opt} input={input} picked={picked} hasError={hasError} />
+                  {/* ラベルは英単語。opt.kana は定義の読みなので QuizOptionLabel に渡さない（定義をルビ扱いしない）。DictPickView と同様。 */}
+                  <QuizOptionLabel opt={{ display: opt.display, variants: opt.variants }} input={input} picked={picked} hasError={hasError} />
                   <OptionJa ja={ruby?.ja} kana={ruby?.kana} revealed={picked !== null} />
                 </button>
               )
