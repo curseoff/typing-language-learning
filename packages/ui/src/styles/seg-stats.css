@@ -89,7 +89,76 @@
 .seg-stats td.ok {
   color: var(--green);
   font-weight: 700;
+  white-space: nowrap;
+}
+.seg-stats td.miss {
+  white-space: nowrap;
 }
 .seg-stats .q-answer {
+  color: var(--muted);
+}
+
+/* 表頭の凡例（記号＋文言・色に依存しない） */
+.seg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  justify-content: center;
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.seg-legend .lg-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.seg-legend .lg-mark {
+  font-weight: 700;
+}
+
+/* 4択「あなたの回答」列（英日併記・正誤で色＋記号） */
+.seg-stats td.q-picked {
+  line-height: 1.4;
+}
+.seg-stats .picked {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.seg-stats .picked-mark {
+  font-weight: 700;
+  margin-right: 4px;
+}
+.seg-stats .picked-main {
+  font-weight: 700;
+}
+.seg-stats .picked-en {
+  font-size: 12px;
+  color: var(--muted);
+}
+.seg-stats .picked-answer {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.seg-stats .q-none {
+  color: var(--muted);
+}
+
+/* 入力系「問題」列の英日ペア表示 */
+.seg-stats .q-pair {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.seg-stats .q-pair .q-en {
+  color: var(--accent);
+}
+.seg-stats .q-pair .q-ja {
+  color: var(--text);
+}
+.seg-stats .q-pair rt {
+  font-size: 10px;
   color: var(--muted);
 }
