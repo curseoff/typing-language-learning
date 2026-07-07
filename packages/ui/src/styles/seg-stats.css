@@ -8,10 +8,20 @@
   color: var(--muted);
   text-align: center;
 }
+/* テーブル単位の横スクロール枠。狭幅（例: 320px）で列が収まらない時だけ
+   スクロールバーを出し、ページ全体の横あふれ・ヘッダの見切れを防ぐ（#240）。 */
+.seg-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
 .seg-stats table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+}
+/* 潰れて読めなくならないよう最低幅を確保。これを下回る枠幅で seg-scroll がスクロールする。 */
+.seg-scroll table {
+  min-width: 300px;
 }
 .seg-stats th,
 .seg-stats td {
