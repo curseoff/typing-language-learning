@@ -62,6 +62,27 @@ h1 {
   margin-top: 40px;
 }
 
+/* TOP の控えめな「このアプリについて」導線（h1 直下・中央・小さめ） */
+.about-link-row {
+  text-align: center;
+  margin: -6px 0 8px;
+}
+.about-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 2px;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.about-link:hover {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
 /* .section-label は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
 /* 種類タブ（文章 / 物語 / 単語 / 英英辞典 / タッチ） */

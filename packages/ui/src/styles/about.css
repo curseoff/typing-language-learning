@@ -1,0 +1,116 @@
+/* 紹介ページ（AboutView presenter）の専用スタイル。既存トークン（配色・余白・タイポ）を流用し、
+   独自のハードコード色は足さない。狭幅でも横あふれしないレスポンシブ。 */
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  line-height: 1.8;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 左上の控えめな戻る導線 */
+.about-back {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.about-back:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+/* ヒーロー（見出し・リード・CTA） */
+.about-hero {
+  text-align: center;
+}
+.about-title {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0 0 12px;
+}
+.about-lead {
+  color: var(--muted);
+  font-size: 16px;
+  margin: 0 auto 8px;
+  max-width: 32em;
+}
+.about-note {
+  color: var(--muted-fn);
+  font-size: 12px;
+  font-weight: 700;
+  margin: -8px 0 0;
+}
+
+/* 本文セクション */
+.about-section {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.about-section h3 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0 0 10px;
+}
+.about-section p {
+  margin: 0;
+  color: var(--text);
+}
+
+/* 見出し語＋説明の定義リスト（能動的/正確… 文章/物語…） */
+.about-defs {
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.about-def {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.about-def dt {
+  font-weight: 800;
+  color: var(--accent);
+  flex: none;
+}
+.about-def dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  flex: 1 1 12em;
+  min-width: 0;
+}
+
+/* 締め */
+.about-closing {
+  text-align: center;
+}
+.about-closing-line {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 640px) {
+  .about {
+    gap: 24px;
+  }
+  .about-title {
+    font-size: 24px;
+  }
+  .about-section {
+    padding: 16px 16px;
+  }
+}
