@@ -7,6 +7,7 @@ import { mulberry32 } from '../domain/rng.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.js'
+import { buildQuizSegStat } from './quizSegStat.js'
 import { makeSeed } from './seed.js'
 import { playMiss } from '../infrastructure/sound.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -159,17 +160,16 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
 
   const advance = useCallback(() => {
     if (picked === null) return
-    // 現在の設問の結果（問題・正誤・ミス）を「問題ごとの記録」に積む
+    // 現在の設問の結果（問題・正誤・ミス・選んだ選択肢の英日）を「問題ごとの記録」に積む
     const cur = questions[index]
     segStatsRef.current = [
       ...segStatsRef.current,
-      {
+      buildQuizSegStat({
+        question: cur,
+        picked,
         no: segStatsRef.current.length + 1,
-        label: cur.prompt,
-        answer: cur.answerDisplay,
-        correct: !!picked.answer,
         mistakes: perQMissRef.current,
-      },
+      }),
     ]
     perQMissRef.current = 0
     // 設問数（items 制）の到達を判定（1問完答した直後）。

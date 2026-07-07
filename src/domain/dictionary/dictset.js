@@ -50,7 +50,15 @@ export function makeDictQuiz(
       prompt: e.def,
       ja: e.ja,
       answerDisplay: e.word,
-      options: opts.map((o) => ({ display: o.word, variants: [o.word], answer: o.word === e.word })),
+      // 回答後の記録用に、選んだ語の英単語(en)/和訳(ja)/読み(kana)も残す（makeDictPick と対称）。
+      options: opts.map((o) => ({
+        display: o.word,
+        variants: [o.word],
+        answer: o.word === e.word,
+        en: o.word,
+        ja: o.ja,
+        kana: o.kana,
+      })),
     })
   }
   return items
@@ -88,6 +96,7 @@ export function makeDictPick(
         display: o.def,
         variants: [o.def],
         answer: o.word === e.word,
+        en: o.word,
         ja: o.ja,
         kana: o.kana,
       })),

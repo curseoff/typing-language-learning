@@ -55,7 +55,9 @@ export default defineConfig({
       // src 計測から外れ、src 実測が大きく上振れ（S84.4/B74.36/F82.85/L85.28）。実測直下へラチェット。
       // #233 M7: packages/*/src（@tll/ui presenter）を計測対象に加え、代表 props の smoke テストで主要
       // 描画パスを通した。全体実測は S84.78/B75.37/F83.76/L85.95 → 実測直下へラチェット（up-only）。
-      thresholds: { statements: 84.2, branches: 74.8, functions: 83.0, lines: 85.4 },
+      // #240: buildQuizSegStat/segPush 透過/dict options en-ja/SegStatsTable 英日併記のテストを追加し
+      // 実測が上振れ（S84.9/B75.79/F83.89/L86.06）→ 実測直下へラチェット（up-only）。
+      thresholds: { statements: 84.7, branches: 75.5, functions: 83.7, lines: 85.9 },
     },
   },
 })

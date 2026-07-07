@@ -103,6 +103,32 @@ describe('makeDictPick の各 option は和訳(ja)と読み(kana)を持つ（#21
   })
 })
 
+describe('makeDictQuiz の各 option は英単語(en)/和訳(ja)/読み(kana)を持つ（#240）', () => {
+  // word が互いに前方一致しないダミー辞書（誤答同士の衝突回避を素通しさせる）。
+  const DUMMY = [
+    { word: 'apple', def: 'a red fruit here', ja: 'りんご', kana: 'りんご', level: 1, theme: '日常' },
+    { word: 'banana', def: 'yellow long', ja: 'ばなな', kana: 'ばなな', level: 1, theme: '日常' },
+    { word: 'cat', def: 'small pet', ja: 'ねこ', kana: 'ねこ', level: 1, theme: '日常' },
+    { word: 'dog', def: 'loyal one', ja: 'いぬ', kana: 'いぬ', level: 1, theme: '日常' },
+    { word: 'egg', def: 'oval food', ja: 'たまご', kana: 'たまご', level: 1, theme: '日常' },
+  ]
+  const byWord = Object.fromEntries(DUMMY.map((d) => [d.word, d]))
+
+  it('各 option の en/ja/kana が「その option の元エントリ」の値と一致する', () => {
+    const items = makeDictQuiz(DUMMY, DUMMY, 5, 4, { rng: mulberry32(42) })
+    expect(items.length).toBe(5)
+    for (const q of items) {
+      for (const o of q.options) {
+        const src = byWord[o.display] // display=word から元エントリを引く
+        expect(src).toBeDefined()
+        expect(o.en).toBe(src.word)
+        expect(o.ja).toBe(src.ja)
+        expect(o.kana).toBe(src.kana)
+      }
+    }
+  })
+})
+
 describe('pool のフォールバック（レベル×テーマで絞れないとき）', () => {
   // level1・theme=日常 のみのミニ辞書。フォールバック分岐をピンポイントで踏む。
   const MINI = [
