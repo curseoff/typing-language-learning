@@ -17,6 +17,7 @@ import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
+import AboutView from './ui/about/AboutView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
@@ -50,7 +51,7 @@ const initialTab = (() => {
 })()
 
 export default function App() {
-  const [phase, setPhase] = useState('ready') // ready | playing | result | story | words
+  const [phase, setPhase] = useState('ready') // ready | playing | result | story | words | about
   const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
@@ -317,6 +318,11 @@ export default function App() {
   useEffect(() => {
     const onNav = (e) => {
       if (e.key === 'Escape') {
+        if (phase === 'about') {
+          e.preventDefault()
+          setPhase('ready')
+          return
+        }
         if (phase === 'playing' || phase === 'result') {
           e.preventDefault()
           // エンドレスをプレイ中に ESC：30秒以上なら記録して結果へ（escFinish が onFinish 経由で
@@ -413,6 +419,14 @@ export default function App() {
     <div className="app">
       <h1>英文・和文タイピング</h1>
 
+      {phase === 'ready' && (
+        <p className="about-link-row">
+          <button type="button" className="about-link" onClick={() => setPhase('about')}>
+            このアプリについて
+          </button>
+        </p>
+      )}
+
       {import.meta.env.DEV && (
         <div className="dev-panel">
           <span className="dev-tag">DEV</span>
@@ -463,6 +477,8 @@ export default function App() {
           onEndConditionChange={setEndCondition}
         />
       )}
+
+      {phase === 'about' && <AboutView onStart={() => setPhase('ready')} />}
 
       {phase === 'touch' && (
         <TouchView

@@ -57,7 +57,11 @@ export default defineConfig({
       // 描画パスを通した。全体実測は S84.78/B75.37/F83.76/L85.95 → 実測直下へラチェット（up-only）。
       // #240: buildQuizSegStat/segPush 透過/dict options en-ja/SegStatsTable 英日併記のテストを追加し
       // 実測が上振れ（S84.9/B75.79/F83.89/L86.06）→ 実測直下へラチェット（up-only）。
-      thresholds: { statements: 84.7, branches: 75.5, functions: 83.7, lines: 85.9 },
+      // #244: 紹介ページ AboutView presenter＋App の about 導線/Esc 遷移のテストを追加し実測が上振れ
+      // （S84.96/B75.81/F84.01/L86.13）。ただし v8 の計測は実行ごとに数行揺れ（lines 実測 86.06〜86.13 等）、
+      // 実測直下（0.03下）だと確率的に閾値割れ→CI/pre-push が不安定になる。up-only の精神は保ちつつ
+      // 揺れ幅分のマージンを取り 0.1 単位で切り捨てる。
+      thresholds: { statements: 84.8, branches: 75.7, functions: 83.8, lines: 86.0 },
     },
   },
 })
