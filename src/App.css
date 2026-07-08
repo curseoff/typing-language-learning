@@ -82,6 +82,10 @@ h1 {
   color: var(--text);
   border-bottom-color: var(--accent);
 }
+/* 「このアプリについて」と「すべての記録」を並べる時の間隔 */
+.about-link-row .about-link + .about-link {
+  margin-left: 18px;
+}
 
 /* .section-label は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
