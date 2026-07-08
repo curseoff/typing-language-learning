@@ -7,13 +7,30 @@
 - **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
 - **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
-- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装(Green)／test-author＝テスト先行(Red)／ddd-auditor＝層/依存監査・ui-auditor＝見た目/a11y実画面監査（read-only）／reviewer＝並列監査の合成・裁定＋差分の品質(再利用/簡素化)レビュー（read-only）／planner＝UX/技術企画・Issue草案＋契約(spec)先回り起草／bug-watcher＝正しさ/挙動の不具合調査（リリース直前 or 本人指示）／ledger-keeper＝稼働台帳の管理・監視）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う（**例外：bug-watcher は本人の常設許可で `bug` 不具合 Issue の作成・更新・クローズを自律実行してよい**。確証のある不具合のみ）。**台帳更新は `ledger-keeper` に委任する**：エージェントを委任するたびに、**①起動した時と②その処理が完了した時の2回**、`ledger-keeper` に依頼して `tmp/agent-status.tsv`（稼働台帳・ローカルのみ／gitignore）を更新・稼働監視させる（ledger-keeper が `npm run team:set` で記録し、停滞・失敗・要判断の滞留など機能不全に注意して報告する）。観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`npm run team`**（即時に見たいなら `! npm run team`）で各エージェントの稼働状況を確認できる。
+- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装(Green)／test-author＝テスト先行(Red)／ddd-auditor＝層/依存監査・ui-auditor＝見た目/a11y実画面監査（read-only）／reviewer＝並列監査の合成・裁定＋差分の品質(再利用/簡素化)レビュー（read-only）／planner＝UX/技術企画・Issue草案＋契約(spec)先回り起草／bug-watcher＝正しさ/挙動の不具合調査（リリース直前 or 本人指示）／content-author＝教材オーサリング（単語/英英/例文/グロスの追加・編集）／pwa-verifier＝PWA/オフライン実挙動の実ブラウザ検証（read-only）／ledger-keeper＝稼働台帳の管理・監視）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う（**例外：bug-watcher は本人の常設許可で `bug` 不具合 Issue の作成・更新・クローズを自律実行してよい**。確証のある不具合のみ）。**台帳の更新粒度で役を分ける**：エージェントを委任するたび、**①起動した時と②完了した時の2回**、`tmp/agent-status.tsv`（稼働台帳・ローカルのみ／gitignore）を更新する。**1〜数行の即時ステータス更新は司令塔が `npm run team:set` を直接叩いてよい**（サブエージェント起動のオーバーヘッドを避ける）。**多数の並列（fan-out）や、停滞・失敗・空結果・要判断の滞留の監視が要るときは `ledger-keeper` に委任**し、機能不全の検知・報告を任せる。観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`npm run team`**（即時に見たいなら `! npm run team`）で各エージェントの稼働状況を確認できる。
 - **bug-watcher の起動は (a) 本人の指示があったとき、または (b) リリース（develop→master マージ）の直前に司令塔が起動、のいずれか**。**develop へマージするたびの自動起動はしない**。リリース直前は司令塔が未リリース分（`origin/master..origin/develop`）を調査させ、結果を確認してからリリースへ進む（`run_in_background:true` 推奨・急ぐなら結果を待って判断）。bug-watcher は確証のある不具合だけ `bug` ラベルで Issue 化し、解消されたら同じ Issue を更新・クローズする。
 - **TDD（テスト先行）＝ domain/application の「ロジック」と「バグ修正」に適用**。流れは **Red→Green→Refactor**：受け入れ条件（本人 or planner）→ **test-author** が失敗テスト(Red) → **coder** が通す最小実装(Green)→refactor。**coder は test-author の仕様テストを編集しない**（不備は司令塔に申告）。司令塔は「赤→緑」と「**coder の差分が `*.test.*` を触っていない**」を確認し、Red と Green をコミット分離する。**見た目・CSS・教材データは TDD 対象外**（従来どおり `check`/スクショ/`validate`）。
-- **役割の受け渡し（リスク別／司令塔の裁量ブレを封じる）**。中間ホップは従来どおり司令塔が逐次オーケストレーション（成果物＝ブランチを介して各役へ渡す）。変更の性質で役を機械的に選ぶ：
+- **役割の受け渡し（リスク別／司令塔の裁量ブレを封じる）**。中間ホップは従来どおり司令塔が逐次オーケストレーション（成果物＝ブランチを介して各役へ渡す）。変更の性質で役を機械的に選ぶ。**司令塔ゲート：編集/検証に着手する前に下表で役を選び、表に載る種類を司令塔が直接手を動かさない**（教材＝content-author、純粋ロジック/バグ修正＝test-author 先行→coder、PWA実挙動＝pwa-verifier、UI実画面＝ui-auditor）。**例外は小改変のみ**（typo・docs微修・台帳・自明ワンライナー）。
+
+  | 変更の種類 | 委任する役 | 起動 |
+  |---|---|---|
+  | 純粋ロジック（domain/application の判定・計算・状態遷移・変換で分岐/端ケースあり）＋バグ修正 | **test-author(Red)→coder(Green)** | 着手時 |
+  | 自明な純粋関数・見た目/CSS・ブラウザAPI の薄い配線 | **coder**（テストごと） | 着手時 |
+  | 教材データ（単語/英英/例文/グロスの追加・編集） | **content-author** | 着手時 |
+  | UI/見た目/レイアウト/a11y が要点 | coder 実装 → **ui-auditor** 実画面監査 | マージ前 |
+  | PWA/オフライン/SW/precache/install/OPFS の実挙動 | **pwa-verifier** 実ブラウザ検証 | 該当マージ前/本人指示 |
+  | 層/依存の監査 | **ddd-auditor** | リリース直前/本人指示 |
+  | 不具合調査（正しさ/挙動） | **bug-watcher** | リリース直前/本人指示 |
+  | 大きめ/曖昧な UX・技術企画・契約(spec)起草 | **planner** | 着手前 |
+  | 並列監査の合成・裁定／差分の品質レビュー | **reviewer** | fan-out 大の時 |
+  | 台帳更新・稼働監視 | **ledger-keeper** | 各委任の起動時・完了時 |
+
+  各行の詳細：
   - **純粋ロジック**（domain/application の判定・計算・状態遷移・変換で**分岐/端ケースあり**）＋**バグ修正** → **test-author が Red(commit) → coder が Green**。**「UI 寄り」に分類する前に、純粋ロジックが混ざっていないか必ず確認**し、混ざれば切り出して test-author を通す（判断基準：**「そのテストは実装をなぞるだけ＝同義反復になりそうか」→ なりそうなら test-author 先行**で独立性を確保。速度を理由に省かない）。
-  - **自明な純粋関数**（`!muted` 等・分岐/端ケースなし）・**見た目/CSS/教材データ/ブラウザAPIの薄い配線**（AudioContext/SW/navigator/localStorage） → coder がテストごと。
-  - **UI/見た目/レイアウト/a11y が要点**の変更 → マージ前に **ui-auditor が実画面で独立確認**（司令塔は最終判定のみ・headless 自己検証を抱え込まない）。`shots:play` で捉えられない状態（打鍵途中・オフライン・`beforeinstallprompt` 等）は ui-auditor が **puppeteer 等で状態を作って検証**する。
+  - **自明な純粋関数**（`!muted` 等・分岐/端ケースなし）・**見た目/CSS/ブラウザAPIの薄い配線**（AudioContext/SW/navigator/localStorage） → coder がテストごと。
+  - **教材データ**（単語/英英/例文/グロスの追加・編集） → **content-author**（候補生成→読み生成→重複/読み点検→`validate`/`check` 緑まで一貫。正準ソースは `content/*.ndjson`＝生成物 `src/content/*Data.js` は触らない。数千語規模は役割別サブエージェントを並列運用）。**TDD 対象外**（`validate`/`check`/読み点検で担保）。データ構造を扱う domain/application のロジック変更が混ざるなら切り出して test-author→coder に回す。
+  - **UI/見た目/レイアウト/a11y が要点**の変更 → マージ前に **ui-auditor が実画面で独立確認**（司令塔は最終判定のみ・headless 自己検証を抱え込まない）。`shots:play` で捉えられない状態（打鍵途中等）は ui-auditor が **puppeteer 等で状態を作って検証**する。
+  - **PWA/オフライン/Service Worker/precache/インストール導線/OPFS 永続化の実挙動** → **pwa-verifier が実ブラウザ（puppeteer + システム Chrome）で検証**（read-only）。`setOfflineMode`・SW 更新・`beforeinstallprompt`・precache 命中・OPFS 読み書きなど「状態を作らないと見えない PWA 挙動」を担当。**見た目の崩れは ui-auditor** と守備範囲を分ける（PWA の見た目は ui-auditor、動く/落ちる/オフライン成立は pwa-verifier）。起動は該当変更のマージ前 or 本人指示。
   - **層/依存の監査（ddd-auditor）** → **リリース（develop→master）の直前に bug-watcher と同枠で司令塔が起動**し、未リリース分（`origin/master..origin/develop`）の依存方向・責務漏れ・domain 純粋性を独立監査。または**本人指示**でも起動。**毎コミット/毎マージ/構造変更ごとには起動しない**（bug-watcher と同じトリガ）。
   - **大きめ/曖昧な UX・技術企画**、および**契約(spec)の先回り起草**（並列開発のキュー埋め＝純粋ロジックの入力→出力・シグネチャ・端ケースを実装前に言語化） → **planner**（草案/契約を司令塔に返す。着手前 Issue は原則司令塔＝Issue駆動。契約は司令塔が test-author→coder へ渡す前段。重要ロジックは本人承認を挟む）。
   - **並列監査の合成・裁定／差分の品質レビュー（再利用・簡素化・効率）** → **reviewer**（read-only。複数監査の重複排除・敵対的検証で採否とリリース可否を判定。fan-out が大きい時に使う。小規模は司令塔が兼ねてよい）。
