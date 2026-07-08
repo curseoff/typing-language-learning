@@ -20,47 +20,30 @@
   letter-spacing: 2px;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase; /* 表と揃えて打鍵ガイドも大文字（表示のみ・判定は不変） */
 }
 /* Typed の打鍵済み(.rdone=緑)・誤り(.rerr=赤)はそのまま活かす。未入力分は muted。 */
 
-/* かな五十音表（全行を常に表示＝清音/濁音/半濁音/拗音）。行数が多いので密度を詰めて
-   小さい幅でも横溢れしないコンパクトなグリッドにする。 */
+/* かな五十音表（全行を常に表示＝清音/濁音/半濁音/拗音）。行ラベルは持たず、実物のヘボン式表と
+   同様に多段（CSS columns）へ行を流し込み、縦スクロールなしで表全体を1画面に収める。
+   各 .kana-row（＝1行＝最大5セル）は break-inside:avoid でカラム途中で割れないようにする。 */
 .kana-table {
   margin: 12px auto 0;
-  max-width: 360px;
-  /* 全27行は縦に長いので内部スクロール器にし、現在かなを scrollIntoView で追従させる
-     （ページ全体スクロールを誘発せず、上部の現在かな提示/ステータスを常に見せる）。 */
-  max-height: 62vh;
-  overflow: auto;
-  /* cur セルの scale(1.06) がスクロール器の縁で欠けないよう少し余白を取る。 */
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  column-count: 3;
+  column-gap: 12px;
+  max-width: 660px;
+  padding: 0 4px;
 }
 .kana-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  gap: 3px;
+  margin-bottom: 3px;
+  break-inside: avoid; /* 行がカラムをまたいで分割されないように */
 }
-/* 出題対象外の行は薄く（全体は見せつつ練習範囲を示す）。行ではなくセル/ラベル個別に
-   薄くして、現在かな(.cur)が範囲外行にあっても .cur 側で不透明に戻せるようにする。 */
-.kana-row.out-scope .kana-row-label,
+/* 出題対象外の行は薄く（全体は見せつつ練習範囲を示す）。セル個別に薄くして、
+   現在かな(.cur)が範囲外行にあっても .cur 側で不透明に戻せるようにする。 */
 .kana-row.out-scope .kana-cell {
   opacity: 0.38;
-}
-.kana-row-label {
-  flex: none;
-  width: 46px;
-  text-align: right;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-.kana-cells {
-  display: flex;
-  gap: 3px;
-  flex-wrap: nowrap;
 }
 .kana-cell {
   flex: none;
@@ -91,6 +74,7 @@
   font-size: 9px;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase; /* 実物の表と同じく A / KA / SHI…（データは小文字のまま） */
 }
 /* 現在かなのセル：枠囲みで強調（out-scope の薄さに埋もれないよう不透明度を戻す） */
 .kana-cell.cur {
@@ -103,16 +87,32 @@
   opacity: 1 !important;
 }
 
-/* 320px 幅でも収まるよう、狭い画面ではさらに詰める（46+5*40+gap≈ 292px） */
-@media (max-width: 360px) {
+/* 中幅：2 カラムへ（清音+濁音/半濁音 と 拗音 が横並びに近い形） */
+@media (max-width: 640px) {
   .kana-table {
-    max-width: 100%;
+    column-count: 2;
+    max-width: 440px;
   }
+}
+/* 狭幅：セルを詰めて 2 カラムを維持（横溢れ回避） */
+@media (max-width: 440px) {
   .kana-cell {
-    width: 36px;
-    height: 32px;
+    width: 34px;
+    height: 30px;
   }
-  .kana-row-label {
-    width: 40px;
+  .kana-cell-kana {
+    font-size: 13px;
+  }
+}
+@media (max-width: 360px) {
+  .kana-cell {
+    width: 29px;
+    height: 28px;
+  }
+  .kana-cell-kana {
+    font-size: 12px;
+  }
+  .kana-cell-romaji {
+    font-size: 8px;
   }
 }
