@@ -7,7 +7,7 @@ import { render, screen, fireEvent, cleanup, within, waitFor, act } from '@testi
 import App from '../App.jsx'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 
-const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング']
+const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング', 'ローマ字入力']
 
 // タブ列(.type-tabs)の中だけでラベルを探す（dev パネル等の同名要素と衝突しないように）
 const clickTab = (container, label) => {
@@ -159,6 +159,36 @@ describe('App スモーク', () => {
       // home/easy のキーに記録が積まれている
       const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
       expect(recs['easy__touchhome']?.length ?? 0).toBeGreaterThan(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('ローマ字入力を数打したあと60秒で完了し記録ランキングに保存される', () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
+    try {
+      const { container } = render(<App />)
+      clickTab(container, 'ローマ字入力')
+      start()
+      // 予告ストリップ先頭（現在セル）のローマ字を読み、その綴りを1文字ずつ送る
+      for (let i = 0; i < 20; i++) {
+        if (container.querySelector('.result')) break
+        const guide = container.querySelector('.romaji-cell.current .romaji-cell-romaji')
+        if (!guide) break
+        for (const ch of guide.textContent.trim().toLowerCase()) {
+          act(() => {
+            fireEvent.keyDown(window, { key: ch })
+          })
+        }
+        act(() => vi.advanceTimersByTime(10))
+      }
+      // 最初の打鍵から60秒経過で完了
+      act(() => vi.advanceTimersByTime(TIME_LIMIT_MS + 200))
+      act(() => vi.runOnlyPendingTimers())
+      expect(container.querySelector('.result')).not.toBeNull() // 完了画面
+      // normal/あ行のキーに記録が積まれている
+      const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
+      expect(recs['normal__romajia']?.length ?? 0).toBeGreaterThan(0)
     } finally {
       vi.useRealTimers()
     }

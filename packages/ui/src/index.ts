@@ -10,6 +10,7 @@ import './styles/passage.css'
 import './styles/translate.css'
 import './styles/keyboard.css'
 import './styles/touch.css'
+import './styles/romaji.css'
 import './styles/parts.css'
 import './styles/browse.css'
 import './styles/records.css'
@@ -63,6 +64,10 @@ export { default as Keyboard } from './touch/Keyboard'
 export type { KeyboardProps, KeyboardPressed } from './touch/Keyboard'
 export { default as TouchView } from './touch/TouchView'
 export type { TouchViewProps } from './touch/TouchView'
+export { default as RomajiView } from './romaji/RomajiView'
+export type { RomajiViewProps } from './romaji/RomajiView'
+export { default as KanaTable } from './romaji/KanaTable'
+export type { KanaTableProps } from './romaji/KanaTable'
 export {
   KEY_ROWS,
   KEY_LEGENDS,

@@ -62,9 +62,9 @@ function normalize(kind, record) {
   }
 }
 
-// records マップ（typing-records-v3）内の source から kind を判定。touch は対象外。
+// records マップ（typing-records-v3）内の source から kind を判定。練習モード(touch/romaji)は対象外。
 function kindFromRecordsSource(source) {
-  if (source === 'touch') return null // タッチは記録対象外
+  if (source === 'touch' || source === 'romaji') return null // 練習モードは記録横断ビュー対象外
   if (source === 'story') return 'story'
   return 'wsent' // 文章（未指定含む）
 }

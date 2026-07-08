@@ -3,9 +3,9 @@ description: リリース（develop→master）を事前監査・自己点検し
 argument-hint: "[patch|minor|major]（省略時は差分から自動判定）"
 ---
 
-**リリース（develop→master）を最後まで実行する**コマンド。事前監査（bug-watcher/ddd-auditor）と自己点検を行い、**異常が何もなければ、そのまま AI が `npm run release` を実行してリリースまで完了させる**（版上げ→check→PR→マージ→GitHub Release→デプロイ）。本人が `/release` を呼ぶこと自体がリリース実行の明示指示とみなす。`$ARGUMENTS` があれば版種別（patch|minor|major）として扱う。**日本語で報告**する。
+**リリース（develop→master）を最後まで実行する**コマンド。事前監査（bug-watcher/ddd-auditor＋PWA 差分があれば pwa-verifier）と自己点検を行い、**異常が何もなければ、そのまま AI が `npm run release` を実行してリリースまで完了させる**（版上げ→check→PR→マージ→GitHub Release→デプロイ）。本人が `/release` を呼ぶこと自体がリリース実行の明示指示とみなす。`$ARGUMENTS` があれば版種別（patch|minor|major）として扱う。**日本語で報告**する。
 
-**中止（AI は実行せず本人に報告）する条件**：未リリース分が空／bug-watcher が確証のある不具合を検出／ddd-auditor が重大な層・依存逸脱を検出／自己点検で秘密情報・個人情報を検出。これら「異常」があれば**リリースせず止めて報告**する。
+**中止（AI は実行せず本人に報告）する条件**：未リリース分が空／bug-watcher が確証のある不具合を検出／ddd-auditor が重大な層・依存逸脱を検出／pwa-verifier が確証のある PWA・オフライン挙動の破綻を検出／自己点検で秘密情報・個人情報を検出。これら「異常」があれば**リリースせず止めて報告**する。
 
 ## 手順
 
@@ -14,10 +14,11 @@ argument-hint: "[patch|minor|major]（省略時は差分から自動判定）"
 2. **事前監査（並列・background）**：CLAUDE.md のリリース直前ルールに従い、未リリース分 `origin/master..origin/develop` を対象に **bug-watcher** と **ddd-auditor** を `run_in_background:true` で起動する。
    - bug-watcher：リグレッション/バグ調査。確証のある不具合は `bug` ラベルで Issue 化（本人常設許可）。
    - ddd-auditor：依存方向・層責務・domain 純粋性の監査。
-   - 起動時に台帳へ記録：`npm run team:set -- --agent bug-watcher --status 実行中 --task "リリース前 未リリース分の不具合調査" --branch develop` と、同様に ddd-auditor 分。
-   - **両方の結果を待って要点を報告**。完了時に `team:set` で `完了` へ更新。
+   - **PWA 差分があれば pwa-verifier も併せて起動**（read-only）。未リリース差分が **`public/sw.js` / `scripts/gen-precache.mjs` / `vite.config.js` / `src/ui/pwa/**` / 教材ロード（`src/content` のロード経路・`content.sqlite3`）** に触れているときのみ。`git diff --name-only origin/master..origin/develop` で判定し、該当が無ければ起動しない（毎回は起動しない）。pwa-verifier はオフライン起動/precache 命中/SW 世代/フォールバック/インストール導線/OPFS を実ブラウザで検証。
+   - 起動時に台帳へ記録：`npm run team:set -- --agent bug-watcher --status 実行中 --task "リリース前 未リリース分の不具合調査" --branch develop` と、同様に ddd-auditor 分（起動した場合は pwa-verifier 分も）。
+   - **起動した監査すべての結果を待って要点を報告**。完了時に `team:set` で `完了` へ更新。
 
-3. **監査の裁定**：**確証のある不具合や層/依存の重大逸脱があればリリースを止め**、本人に判断を仰ぐ（対応 → 再監査の順）。問題なければ次へ。
+3. **監査の裁定**：**確証のある不具合・層/依存の重大逸脱・PWA/オフライン挙動の破綻があればリリースを止め**、本人に判断を仰ぐ（対応 → 再監査の順）。問題なければ次へ。
 
 4. **自己点検（外部公開前・必須）**：未リリース差分 `origin/master..origin/develop` を秘密情報（APIキー/トークン/パスワード/秘密鍵・`.env`）・個人情報（氏名/メール直書き）・絶対パスでの username 露出でスキャン。問題があれば止めて報告。
 

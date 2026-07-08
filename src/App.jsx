@@ -5,6 +5,7 @@ import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.j
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
+import { ROMAJI_LEVELS, ROMAJI_MODE } from './content/romaji.js'
 import { END_KINDS, DEFAULT_END_CONDITION, endKind, endConditionForKind } from './content/endConditions.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
@@ -17,6 +18,7 @@ import StoryView from './ui/story/StoryView.jsx'
 import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
+import RomajiView from './ui/romaji/RomajiView.jsx'
 import AboutView from './ui/about/AboutView.jsx'
 import AllRecordsView from './ui/records/AllRecordsView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
@@ -27,16 +29,18 @@ import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
 import SoundToggle from './ui/sound/SoundToggle.jsx'
 import { makeSeed } from './application/seed.js'
 
-const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch']
+const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
 const MODE_KEYS = MODES.map((m) => m.key)
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
 const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
 const TOUCH_LEVEL_KEYS = TOUCH_LEVELS.map((l) => l.key)
 const TOUCH_MODE_KEYS = TOUCH_MODES.map((m) => m.key)
+const ROMAJI_LEVEL_KEYS = ROMAJI_LEVELS.map((l) => l.key)
 const wordModeLabel = (key) => WORD_MODES.find((m) => m.key === key)?.label ?? key
 const dictModeLabel = (key) => DICT_MODES.find((m) => m.key === key)?.label ?? key
 const touchLevelLabel = (key) => TOUCH_LEVELS.find((l) => l.key === key)?.label ?? key
 const touchModeLabel = (key) => TOUCH_MODES.find((m) => m.key === key)?.label ?? key
+const romajiLevelLabel = (key) => ROMAJI_LEVELS.find((l) => l.key === key)?.label ?? key
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n))
 // 行内の選択移動（端で止まる＝ラップしない）
 const step = (options, value, dir) => options[clamp(options.indexOf(value) + dir, 0, options.length - 1)]
@@ -75,6 +79,7 @@ export default function App() {
   const [dictWordRuby, setDictWordRuby] = useState(null) // 英英の英→{ja,kana}(単語4択の回答後にルビ表示用)
   const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
   const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
+  const [romajiLevel, setRomajiLevel] = useState('a') // ローマ字入力練習のレベル(行グループ)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
   const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
   const [endCondition, setEndCondition] = useState(DEFAULT_END_CONDITION) // 終了条件（段1は時間のみ・既定60秒＝従来）
@@ -136,6 +141,11 @@ export default function App() {
           { id: 'mode', options: TOUCH_MODE_KEYS, value: touchMode, set: setTouchMode },
           { id: 'level', options: TOUCH_LEVEL_KEYS, value: touchLevel, set: setTouchLevel },
         ]
+      case 'romaji':
+        return [
+          type,
+          { id: 'level', options: ROMAJI_LEVEL_KEYS, value: romajiLevel, set: setRomajiLevel },
+        ]
       default: // wsent
         return [
           type,
@@ -146,7 +156,7 @@ export default function App() {
           bottom,
         ]
     }
-  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, wsentLevel, wsentTheme, bottomTab, endCondition])
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, bottomTab, endCondition])
 
   // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
   const safeFocus = Math.min(focusRow, rows.length - 1)
@@ -169,6 +179,8 @@ export default function App() {
   }, [])
   // タッチタイピングの記録を保存（結果画面には遷移せず記録だけ追加）
   const onTouchRecord = useCallback((rec) => setRecords(saveRecord(rec)), [])
+  // ローマ字入力練習の記録を保存（結果画面には遷移せず記録だけ追加）
+  const onRomajiRecord = useCallback((rec) => setRecords(saveRecord(rec)), [])
 
   const {
     start: startMarathon,
@@ -294,6 +306,8 @@ export default function App() {
       startDict(dictLevel, dictTheme, dictMode, null)
     } else if (gameType === 'touch') {
       setPhase('touch')
+    } else if (gameType === 'romaji') {
+      setPhase('romaji')
     } else if (gameType === 'story') {
       startStory(mode, storyId)
     } else {
@@ -405,6 +419,13 @@ export default function App() {
         setTouchMode(new URLSearchParams(location.search).get('mode') === 'hard' ? 'hard' : 'easy')
         setPhase('touch')
       }
+      else if (p === 'romaji') {
+        // ローマ字入力即プレイ（かな表確認用）。?level=... でレベル指定可。
+        setGameType('romaji')
+        const lv = new URLSearchParams(location.search).get('level')
+        if (lv && ROMAJI_LEVEL_KEYS.includes(lv)) setRomajiLevel(lv)
+        setPhase('romaji')
+      }
       else if (p === 'story') setPhase('story')
       else if (p === 'story-choice') {
         setStoryStart({ stage: 'choice' }) // 物語の選択肢場面（段組みフロー確認用）
@@ -471,6 +492,8 @@ export default function App() {
           onTouchLevelChange={setTouchLevel}
           touchMode={touchMode}
           onTouchModeChange={setTouchMode}
+          romajiLevel={romajiLevel}
+          onRomajiLevelChange={setRomajiLevel}
           focusSection={focusSection}
           onFocusSection={focusSectionById}
           bottomTab={bottomTab}
@@ -494,6 +517,17 @@ export default function App() {
           mode={touchMode}
           modeLabel={touchModeLabel(touchMode)}
           onRecord={onTouchRecord}
+          onExit={() => setPhase('ready')}
+        />
+      )}
+
+      {phase === 'romaji' && (
+        <RomajiView
+          key={romajiLevel}
+          level={romajiLevel}
+          levelLabel={romajiLevelLabel(romajiLevel)}
+          mode={ROMAJI_MODE}
+          onRecord={onRomajiRecord}
           onExit={() => setPhase('ready')}
         />
       )}
