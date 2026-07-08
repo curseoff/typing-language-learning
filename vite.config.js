@@ -36,6 +36,13 @@ export default defineConfig({
         'src/test/**',
         'src/main.jsx',
         'src/infrastructure/pwa/registerSW.js',
+        // SQLite/OPFS 保存基盤（#264）。Worker 内実行/Worker・window 配線・DDL データは
+        // jsdom/node で単体計測できない＝registerSW.js と同種のエントリ配線として計測除外。
+        // 実挙動は pwa-verifier の実ブラウザ検証と Phase2 の round-trip テストで被覆する。
+        // runMigrations.js は純ロジック（テスト済み）なので除外しない。
+        'src/infrastructure/db/sqliteWorker.js',
+        'src/infrastructure/db/initStorage.js',
+        'src/infrastructure/db/migrations.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
