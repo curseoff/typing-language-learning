@@ -2,17 +2,16 @@
 // 並べ替えは application の sortAllRecords を props（sortFn）で注入する（presenter は application 非依存）。
 import { useMemo } from 'react'
 import { AllRecordsView as AllRecordsPresenter } from '@tll/ui'
-import { STORIES } from '../../content/stories/index.js'
-import { loadRecords, loadDictRecords, loadWordRecords, loadStoryRecords } from '../../application/records.js'
+import { loadRecords, loadDictRecords, loadWordRecords, loadAllStoryRecords } from '../../application/records.js'
 import { flattenRecords, sortAllRecords } from '../../application/allRecords.js'
 
 export default function AllRecordsView({ onExit }) {
-  // マウント時に localStorage から全記録を読む（物語は storyId ごとに配列で保存＝records マップ形へ束ねる）。
+  // マウント時に localStorage から全記録を読む（物語は storyId・終了条件別バリアントを全て束ねる＝records マップ形へ）。
   const rows = useMemo(() => {
     const records = { ...loadRecords() }
-    for (const s of STORIES) {
-      const list = loadStoryRecords(s.id) // 物語記録は既に source:'story' を持つ
-      if (list.length) records[`story-${s.id}`] = list
+    for (const [key, list] of Object.entries(loadAllStoryRecords())) {
+      // 物語記録は既に source:'story' を持つ。キー衝突回避に接頭辞を付ける。
+      records[`story-${key}`] = list
     }
     return flattenRecords({
       records,

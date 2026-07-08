@@ -63,7 +63,9 @@ export default defineConfig({
       // 揺れ幅分のマージンを取り 0.1 単位で切り捨てる。
       // #248: 全記録横断ビュー（allRecords 純関数＋AllRecordsView presenter）のテストを追加し functions が
       // 上振れ（実測 F84.21）→ functions のみ 84.0 へラチェット（揺れ分マージン維持・他は据え置き）。
-      thresholds: { statements: 84.8, branches: 75.7, functions: 84.0, lines: 86.0 },
+      // #248: 物語記録の終了条件別バリアント集約（loadAllStoryRecords）＋単体テスト追加で
+      // 実測が上振れ（S85.03/B75.92/F84.24/L86.14）→ 各項目を実測直下へラチェット（揺れマージン維持）。
+      thresholds: { statements: 84.9, branches: 75.8, functions: 84.1, lines: 86.05 },
     },
   },
 })
