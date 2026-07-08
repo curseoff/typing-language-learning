@@ -3,13 +3,13 @@
 // （依存方向 ui → application → infrastructure を守るため。infra 直 import は facade のみ）。挙動は infrastructure と同一。
 import { loadWordRecords, saveWordRecord, wordRecKey } from '../infrastructure/wordsRepository.js'
 import { loadDictRecords, saveDictRecord, dictRecKey } from '../infrastructure/dictRepository.js'
-import { loadStoryRecords, saveStoryRecord, saveFound, loadFound } from '../infrastructure/storyRepository.js'
+import { loadStoryRecords, loadAllStoryRecords, saveStoryRecord, saveFound, loadFound } from '../infrastructure/storyRepository.js'
 import { loadRecords, saveRecord } from '../infrastructure/recordsRepository.js'
 import { loadItemStats, itemId } from '../infrastructure/itemStatsRepository.js'
 
 // ── ランキング（モード別）の読み書き ──
 export { loadWordRecords, saveWordRecord, loadDictRecords, saveDictRecord }
-export { loadStoryRecords, saveStoryRecord, saveFound, loadFound }
+export { loadStoryRecords, loadAllStoryRecords, saveStoryRecord, saveFound, loadFound }
 
 // ── マラソンの記録 I/O（読み書き）。UI 合成層(App.jsx)の記録窓口をここに一本化 ──
 export { loadRecords, saveRecord }

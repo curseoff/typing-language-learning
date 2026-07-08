@@ -1,0 +1,86 @@
+/* 全記録横断ビュー（#248）。.records / .seg-scroll のトークンを流用しつつ、
+   ソート可能な列ヘッダー（ボタン）と数値列の右寄せを足す。 */
+.all-records {
+  text-align: left;
+}
+.all-records-title {
+  margin: 8px 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+}
+.all-records-sub {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+.all-records .records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+/* 8列あるので狭幅で潰れないよう最低幅を確保（下回る枠幅で .seg-scroll がスクロール）。 */
+.all-records .seg-scroll .records-table {
+  min-width: 560px;
+}
+.all-records th,
+.all-records td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #334155;
+  text-align: left;
+  white-space: nowrap;
+}
+.all-records td.num,
+.all-records th.num {
+  text-align: right;
+}
+.all-records td.speed {
+  color: var(--accent);
+  font-weight: 700;
+}
+.all-records td.date {
+  color: var(--muted);
+  font-size: 12px;
+}
+/* データ行＝クリックで記録詳細（.records の row-click 流儀に合わせる／#250）。 */
+.all-records tbody tr.row-click {
+  cursor: pointer;
+}
+.all-records tbody tr.row-click:hover {
+  background: var(--panel-2);
+}
+.all-records tbody tr.row-click:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* 列ヘッダー＝操作可能なボタン（フォーカス可視・キーボードで並べ替え）。 */
+.all-records .sort-th {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 2px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.all-records th.num .sort-th {
+  flex-direction: row-reverse;
+}
+.all-records .sort-th:hover {
+  color: var(--text);
+}
+.all-records .sort-th.active {
+  color: var(--accent);
+}
+.all-records .sort-th:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.all-records .sort-ind {
+  font-size: 10px;
+}

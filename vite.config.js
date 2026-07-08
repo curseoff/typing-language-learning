@@ -61,7 +61,15 @@ export default defineConfig({
       // （S84.96/B75.81/F84.01/L86.13）。ただし v8 の計測は実行ごとに数行揺れ（lines 実測 86.06〜86.13 等）、
       // 実測直下（0.03下）だと確率的に閾値割れ→CI/pre-push が不安定になる。up-only の精神は保ちつつ
       // 揺れ幅分のマージンを取り 0.1 単位で切り捨てる。
-      thresholds: { statements: 84.8, branches: 75.7, functions: 83.8, lines: 86.0 },
+      // #248: 全記録横断ビュー（allRecords 純関数＋AllRecordsView presenter）のテストを追加し functions が
+      // 上振れ（実測 F84.21）→ functions のみ 84.0 へラチェット（揺れ分マージン維持・他は据え置き）。
+      // #248: 物語記録の終了条件別バリアント集約（loadAllStoryRecords）＋単体テスト追加で
+      // 実測が上振れ（S85.03/B75.92/F84.24/L86.14）→ 各項目を実測直下へラチェット（揺れマージン維持）。
+      // #250: 全記録の各行に raw/siblings/position を付与し、AllRecordsView の行クリックで記録詳細へ
+      // 遷移する配線＋container 結合テスト・presenter の onRowClick smoke を追加し実測が上振れ
+      // （S85.37/B76.61/F84.75/L86.48）。v8 の実行ごとの揺れ（±0.1程度の実績）に確実に耐えるよう
+      // 実測から ≈0.25 のマージンを取り 0.1 単位で切り捨てる（実測直下すぎると pre-push/CI が確率的に割れる）。
+      thresholds: { statements: 85.1, branches: 76.3, functions: 84.5, lines: 86.2 },
     },
   },
 })

@@ -5,7 +5,9 @@ import {
   loadFound,
   saveFound,
   loadStoryRecords,
+  loadAllStoryRecords,
   saveStoryRecord,
+  storyRecKey,
 } from './storyRepository.js'
 import { MAX_RECORDS } from '../domain/records/ranking.js'
 
@@ -77,5 +79,59 @@ describe('infrastructure/storyRepository', () => {
     for (let i = 1; i <= MAX_RECORDS + 3; i++) list = saveStoryRecord('climbing', { keys: i })
     expect(list).toHaveLength(MAX_RECORDS)
     expect(list[0].keys).toBe(MAX_RECORDS + 3)
+  })
+
+  // --- loadAllStoryRecords（全 storyId・全終了条件バリアントの集約・#248）---
+  describe('loadAllStoryRecords', () => {
+    it('未保存なら空マップを返す', () => {
+      expect(loadAllStoryRecords()).toEqual({})
+    })
+
+    it('複数 storyId の base 記録をキー→配列マップで束ねる', () => {
+      saveStoryRecord('climbing', { source: 'story', storyId: 'climbing', keys: 10 })
+      saveStoryRecord('travel', { source: 'story', storyId: 'travel', keys: 20 })
+      const all = loadAllStoryRecords()
+      expect(all[recordsKey('climbing')].map((r) => r.keys)).toEqual([10])
+      expect(all[recordsKey('travel')].map((r) => r.keys)).toEqual([20])
+    })
+
+    it('base と終了条件別バリアント（__<tag>）を両方拾う', () => {
+      const baseKey = storyRecKey('climbing')
+      const endlessKey = storyRecKey('climbing', 'endless')
+      saveStoryRecord('climbing', { source: 'story', storyId: 'climbing', keys: 10 })
+      saveStoryRecord('climbing', { source: 'story', storyId: 'climbing', endCondition: 'endless', keys: 30 })
+      const all = loadAllStoryRecords()
+      // base とバリアントで別キーになる
+      expect(endlessKey).not.toBe(baseKey)
+      expect(Object.keys(all).sort()).toEqual([baseKey, endlessKey].sort())
+      expect(all[baseKey].map((r) => r.keys)).toEqual([10])
+      expect(all[endlessKey].map((r) => r.keys)).toEqual([30])
+    })
+
+    it('発見エンド（story-endings-v1-…）は別プレフィックスなので除外する', () => {
+      saveFound('climbing', ['a', 'b'])
+      saveStoryRecord('climbing', { source: 'story', storyId: 'climbing', keys: 10 })
+      const all = loadAllStoryRecords()
+      expect(Object.keys(all)).toEqual([recordsKey('climbing')])
+      expect(all[foundKey('climbing')]).toBeUndefined()
+    })
+
+    it('レガシー記録キー（story-records-v1／末尾ハイフン無し）は集約対象外', () => {
+      localStorage.setItem(LEGACY_RECORDS_KEY, JSON.stringify([{ keys: 3 }]))
+      expect(loadAllStoryRecords()).toEqual({})
+    })
+
+    it('空配列のキーは含めない', () => {
+      localStorage.setItem(recordsKey('climbing'), JSON.stringify([]))
+      expect(loadAllStoryRecords()).toEqual({})
+    })
+
+    it('破損 JSON のキーは空配列扱いで含めない（例外を出さない）', () => {
+      localStorage.setItem(recordsKey('climbing'), '[bad')
+      localStorage.setItem(recordsKey('travel'), JSON.stringify([{ keys: 5 }]))
+      const all = loadAllStoryRecords()
+      expect(all[recordsKey('climbing')]).toBeUndefined()
+      expect(all[recordsKey('travel')].map((r) => r.keys)).toEqual([5])
+    })
   })
 })
