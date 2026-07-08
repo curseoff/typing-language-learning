@@ -1,0 +1,87 @@
+/* ローマ字入力練習画面（RomajiView presenter）の専用スタイル：
+   現在かなの提示（大きなかな＋ローマ字ガイド）と、かな五十音表グリッド。
+   色は既存トークン（--panel/--panel-2/--text/--muted/--accent/--green/--red）を使う。 */
+
+/* 現在打つかなの提示 */
+.romaji-cue {
+  margin: 16px auto 4px;
+  text-align: center;
+}
+.romaji-kana {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text);
+}
+.romaji-guide {
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* Typed の打鍵済み(.rdone=緑)・誤り(.rerr=赤)はそのまま活かす。未入力分は muted。 */
+
+/* かな五十音表 */
+.kana-table {
+  margin: 14px auto 0;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.kana-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kana-row-label {
+  flex: none;
+  width: 56px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.kana-cells {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.kana-cell {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    transform 140ms ease;
+}
+.kana-cell.empty {
+  background: transparent;
+}
+.kana-cell-kana {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+.kana-cell-romaji {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* 現在かなのセル：枠囲みで強調 */
+.kana-cell.cur {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel-2));
+  transform: scale(1.06);
+}
