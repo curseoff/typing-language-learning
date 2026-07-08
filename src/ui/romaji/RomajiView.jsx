@@ -43,6 +43,8 @@ export default function RomajiView({ level, levelLabel, mode, onRecord, onExit }
       levelLabel={levelLabel}
       rowIds={rowIds}
       current={r.current}
+      targets={r.targets}
+      index={r.index}
       input={r.input}
       romaji={toRomaji(r.current)}
       keys={r.keys}

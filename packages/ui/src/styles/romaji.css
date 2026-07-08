@@ -1,26 +1,68 @@
 /* ローマ字入力練習画面（RomajiView presenter）の専用スタイル：
-   現在かなの提示（大きなかな＋ローマ字ガイド）と、かな五十音表グリッド。
+   出題の予告ストリップ（この先のかなを横並び・現在を強調）と、かな五十音表グリッド。
    色は既存トークン（--panel/--panel-2/--text/--muted/--accent/--green/--red）を使う。 */
 
-/* 現在打つかなの提示 */
-.romaji-cue {
-  margin: 16px auto 4px;
-  text-align: center;
+/* 出題の予告ストリップ（タッチの .touch-strip を参考）：横並びのかなを打鍵で左送り。 */
+.romaji-strip {
+  width: 100%;
+  max-width: 420px;
+  height: 78px;
+  margin: 12px auto 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  /* 両端をフェードして「この先も続く」感を出す（touch と同様） */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 82%, transparent);
 }
-.romaji-kana {
-  font-size: 52px;
-  font-weight: 800;
-  line-height: 1.1;
-  color: var(--text);
+.strip-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+  transition: transform 160ms ease;
+  will-change: transform;
 }
-.romaji-guide {
-  margin-top: 6px;
+.romaji-cell {
+  flex: none;
+  width: 52px;
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 2px solid transparent;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+.romaji-cell.done {
+  opacity: 0.4;
+}
+/* 現在のかな：大きく＋accent 枠で強調 */
+.romaji-cell.current {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel-2));
+  transform: scale(1.14);
+}
+.romaji-cell-kana {
   font-size: 22px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--text);
+  white-space: nowrap;
+}
+.romaji-cell-romaji {
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  text-transform: uppercase; /* 表と揃えて打鍵ガイドも大文字（表示のみ・判定は不変） */
+  text-transform: uppercase; /* 表と揃えて大文字（表示のみ・判定は不変） */
 }
 /* Typed の打鍵済み(.rdone=緑)・誤り(.rerr=赤)はそのまま活かす。未入力分は muted。 */
 
@@ -117,16 +159,19 @@
   .kana-cell-romaji {
     font-size: 8px;
   }
-  /* 現在かな提示とヒントを小さくして表の取り分を増やす */
-  .romaji-cue {
+  /* 予告ストリップを低くして表の取り分を増やす（セル幅は 52px 据え置き＝送り量 STRIP_STEP を維持）。 */
+  .romaji-strip {
+    height: 58px;
     margin: 8px auto 2px;
   }
-  .romaji-kana {
-    font-size: 40px;
+  .romaji-cell {
+    height: 46px;
   }
-  .romaji-guide {
+  .romaji-cell-kana {
     font-size: 18px;
-    margin-top: 4px;
+  }
+  .romaji-cell-romaji {
+    font-size: 10px;
   }
 }
 @media (max-width: 440px) {
@@ -140,9 +185,6 @@
   }
   .kana-cell-romaji {
     font-size: 7px;
-  }
-  .romaji-kana {
-    font-size: 34px;
   }
 }
 @media (max-width: 400px) {
@@ -168,9 +210,6 @@
   }
   .kana-cell-romaji {
     font-size: 6px;
-  }
-  .romaji-kana {
-    font-size: 30px;
   }
 }
 @media (max-width: 330px) {

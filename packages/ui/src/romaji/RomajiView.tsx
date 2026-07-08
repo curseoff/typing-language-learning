@@ -1,6 +1,7 @@
 // ローマ字入力練習の画面（presenter）：useRomaji の state・ハンドラを props で受け、
-// メタ表示／完了カード／プレイ中（ステータス・現在かなとローマ字ガイド・かな表）を描くだけ。
+// メタ表示／完了カード／プレイ中（ステータス・出題の予告ストリップ・かな表）を描くだけ。
 // 記録保存・キー入力配線・タイマーは container 側。
+import { toRomaji } from '@tll/core'
 import { StatsRow } from '../shared/Stats'
 import { Typed } from '../shared/Text'
 import KanaTable from './KanaTable'
@@ -9,6 +10,8 @@ export interface RomajiViewProps {
   levelLabel: string
   rowIds: string[]
   current: string // 今打っているかな
+  targets: string[] // 出題かな列（先頭～）＝予告ストリップの内容
+  index: number // 現在打っているかなの位置（targets 内）
   input: string // 現在かなのローマ字入力バッファ
   romaji: string // 現在かなの標準ローマ字（打鍵ガイド）
   keys: number
@@ -28,10 +31,16 @@ const matchedLen = (romaji: string, input: string) => {
   return i
 }
 
+// ストリップのセル送り量：現在セルを一定位置（左から3番目＝index-2）に保つ。
+// 係数はセル幅＋gap（romaji.css の .romaji-cell 幅 52px + gap 8px）に合わせる。
+const STRIP_STEP = 60
+
 export default function RomajiView({
   levelLabel,
   rowIds,
   current,
+  targets,
+  index,
   input,
   romaji,
   keys,
@@ -85,10 +94,34 @@ export default function RomajiView({
             progress={Math.min(1, elapsedSec / 60)}
           />
 
-          <div className="romaji-cue">
-            <div className="romaji-kana">{current}</div>
-            <div className="romaji-guide">
-              <Typed text={romaji} done={matchedLen(romaji, input)} hasError={hasError} />
+          {/* 出題の予告ストリップ：この先のかなを横並びに表示し、打鍵で左へ送る。
+              先頭＝現在（大きく＋accent 枠・ローマ字は打鍵進捗で着色）。 */}
+          <div className="romaji-strip">
+            <div
+              className="strip-track"
+              style={{ transform: `translateX(${-Math.max(0, index - 2) * STRIP_STEP}px)` }}
+            >
+              {targets.map((k, i) => {
+                const isCur = i === index
+                const cls =
+                  'romaji-cell' + (i < index ? ' done' : '') + (isCur ? ' current' : '')
+                return (
+                  <span key={i} className={cls}>
+                    <span className="romaji-cell-kana">{k}</span>
+                    <span className="romaji-cell-romaji">
+                      {isCur ? (
+                        <Typed
+                          text={romaji}
+                          done={matchedLen(romaji, input)}
+                          hasError={hasError}
+                        />
+                      ) : (
+                        toRomaji(k)
+                      )}
+                    </span>
+                  </span>
+                )
+              })}
             </div>
           </div>
 

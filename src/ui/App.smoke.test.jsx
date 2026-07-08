@@ -170,12 +170,12 @@ describe('App スモーク', () => {
       const { container } = render(<App />)
       clickTab(container, 'ローマ字入力')
       start()
-      // 現在かなのローマ字ガイド（.romaji-guide）を読み、その綴りを1文字ずつ送る
+      // 予告ストリップ先頭（現在セル）のローマ字を読み、その綴りを1文字ずつ送る
       for (let i = 0; i < 20; i++) {
         if (container.querySelector('.result')) break
-        const guide = container.querySelector('.romaji-guide')
+        const guide = container.querySelector('.romaji-cell.current .romaji-cell-romaji')
         if (!guide) break
-        for (const ch of guide.textContent.trim()) {
+        for (const ch of guide.textContent.trim().toLowerCase()) {
           act(() => {
             fireEvent.keyDown(window, { key: ch })
           })
