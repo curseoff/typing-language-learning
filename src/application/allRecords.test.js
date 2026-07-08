@@ -134,6 +134,43 @@ describe('flattenRecords（3リポジトリの生データを正規化フラッ�
     expect(out.some((e) => e.kind === 'touch')).toBe(false)
   })
 
+  // Issue #261: ローマ字練習(source=romaji)の記録が横断ビューに「文章(wsent)」として誤表示される。
+  // romaji は練習モードで level がかな行の文字列・mode='normal' と横断ビューの数値レベル/モード体系に
+  // 合わないため、touch と同様に対象外として除外されるべき（既定 return 'wsent' に落ちてはならない）。
+  it('ローマ字(source=romaji)記録は対象外として除外する（#261）', () => {
+    const out = flattenRecords({
+      records: {
+        'normal__romajia': [
+          { source: 'romaji', mode: 'normal', rank: 'a', speed: 120, accuracy: 95, mistakes: 2, keys: 40, seconds: 60, date: '2026/07/08 21:00:00' },
+        ],
+      },
+      dictRecords: {},
+      wordRecords: {},
+    })
+    expect(out).toEqual([])
+    // wsent として1行現れてはならない（現状バグではここに1件混入する）。
+    expect(out.some((e) => e.kind === 'wsent')).toBe(false)
+  })
+
+  it('ローマ字(romaji)記録を除外しても他 kind(wsent)の記録は残す（#261 巻き込み防止）', () => {
+    const out = flattenRecords({
+      records: {
+        'normal__romajia': [
+          { source: 'romaji', mode: 'normal', rank: 'a', speed: 120, accuracy: 95, mistakes: 2, keys: 40, seconds: 60, date: '2026/07/08 21:00:00' },
+        ],
+        'both__wsent2__旅行': [
+          { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', speed: 480, accuracy: 98, mistakes: 7, keys: 300, seconds: 75, date: '2026/7/7 12:00:00' },
+        ],
+      },
+      dictRecords: {},
+      wordRecords: {},
+    })
+    // wsent の1件だけが残り、romaji は現れない。
+    expect(out).toHaveLength(1)
+    expect(out[0].kind).toBe('wsent')
+    expect(out.some((e) => e.raw?.source === 'romaji')).toBe(false)
+  })
+
   it('3リポジトリの記録を1本のフラット配列にまとめる（各キーの全ランクを展開）', () => {
     const out = flattenRecords({
       records: {
