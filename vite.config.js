@@ -69,7 +69,10 @@ export default defineConfig({
       // 遷移する配線＋container 結合テスト・presenter の onRowClick smoke を追加し実測が上振れ
       // （S85.37/B76.61/F84.75/L86.48）。v8 の実行ごとの揺れ（±0.1程度の実績）に確実に耐えるよう
       // 実測から ≈0.25 のマージンを取り 0.1 単位で切り捨てる（実測直下すぎると pre-push/CI が確率的に割れる）。
-      thresholds: { statements: 85.1, branches: 76.3, functions: 84.5, lines: 86.2 },
+      // #257: ローマ字入力練習（useRomaji 状態機械＋結合テスト・RomajiView/KanaTable presenter smoke・
+      // App スモークにローマ字タブの完走/記録保存を追加）で実測が上振れ（S85.64/B76.77/F85.23/L86.77）→
+      // 各項目を実測から ≈0.3 のマージンで実測直下へラチェット（揺れマージン維持・up-only）。
+      thresholds: { statements: 85.3, branches: 76.4, functions: 84.9, lines: 86.4 },
     },
   },
 })

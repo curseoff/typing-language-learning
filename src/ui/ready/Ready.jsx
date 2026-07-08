@@ -5,6 +5,7 @@ import StorySection from './StorySection.jsx'
 import WordsSection from './WordsSection.jsx'
 import DictSection from './DictSection.jsx'
 import TouchSection from './TouchSection.jsx'
+import RomajiSection from './RomajiSection.jsx'
 
 const GAME_TYPES = [
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
@@ -12,6 +13,7 @@ const GAME_TYPES = [
   { key: 'wsent', icon: '✍️', label: '単語例文', sub: '単語を文で使う' },
   { key: 'dict', icon: '📚', label: '英英辞典', sub: '英語で意味を学ぶ' },
   { key: 'touch', icon: '⌨️', label: 'タッチタイピング', sub: 'ブラインドタッチ' },
+  { key: 'romaji', icon: 'あ', label: 'ローマ字入力', sub: 'かなを打つ' },
 ]
 
 export default function Ready({
@@ -41,6 +43,8 @@ export default function Ready({
   onTouchLevelChange,
   touchMode,
   onTouchModeChange,
+  romajiLevel,
+  onRomajiLevelChange,
   focusSection,
   onFocusSection,
   bottomTab,
@@ -155,6 +159,18 @@ export default function Ready({
           onTouchLevelChange={onTouchLevelChange}
           touchMode={touchMode}
           onTouchModeChange={onTouchModeChange}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
+          onStart={onStart}
+          records={records}
+        />
+      )}
+
+      {/* ── ローマ字入力 ── */}
+      {gameType === 'romaji' && (
+        <RomajiSection
+          romajiLevel={romajiLevel}
+          onRomajiLevelChange={onRomajiLevelChange}
           focusSection={focusSection}
           onFocusSection={onFocusSection}
           onStart={onStart}
