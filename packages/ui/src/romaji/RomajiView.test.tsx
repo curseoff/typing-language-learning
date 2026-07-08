@@ -33,11 +33,12 @@ describe('RomajiView smoke', () => {
     expect(container.querySelector('.kana-cell.cur')).not.toBeNull()
   })
 
-  it('ミス：ガイドに err クラスが付く', () => {
+  it('ミス：ガイドの現在文字に rerr が付く', () => {
     const { container } = render(
       <RomajiView {...common} rowIds={['sa']} finished={false} hasError={true} />,
     )
-    expect(container.querySelector('.romaji-guide.err')).not.toBeNull()
+    // 誤りは per-char の .rerr（現在打つ文字）で表現する。
+    expect(container.querySelector('.romaji-guide .rerr')).not.toBeNull()
   })
 
   it('完了：かな数と完了カードを描く', () => {

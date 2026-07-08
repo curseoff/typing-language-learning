@@ -87,7 +87,7 @@ export default function RomajiView({
 
           <div className="romaji-cue">
             <div className="romaji-kana">{current}</div>
-            <div className={'romaji-guide' + (hasError ? ' err' : '')}>
+            <div className="romaji-guide">
               <Typed text={romaji} done={matchedLen(romaji, input)} hasError={hasError} />
             </div>
           </div>
