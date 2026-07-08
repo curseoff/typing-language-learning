@@ -1,6 +1,6 @@
 // 問題ごとの打鍵・ミス・時間を集計し、問題が切り替わる時/終了時に記録する。
 // 入力フック(useMarathon/useWords/useDict)から使う。id は問題ごとに一意な文字列。
-import { recordItemStat } from '../infrastructure/itemStatsRepository.js'
+import { recordItemStat } from './records.js'
 
 export const newTracker = () => ({ cur: null, keys: 0, mistakes: 0, start: 0, last: 0 })
 

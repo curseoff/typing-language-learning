@@ -1,0 +1,72 @@
+// #266 Phase3a: 起動時メモリ像の組み立てと save のメモリ側適用（純関数・非破壊）。
+// sqlite バックエンド時、ファサードはこのメモリ像から同期読み／同期更新し、
+// 書き込みは write-queue 経由で Worker へ流す（write-through）。
+// apply* は「現行 localStorage リポジトリと同じ最終結果」でなければならないため、
+// キー生成/並び/キャップはドメイン（recKey/rankInsert）と現行リポジトリのキー関数を再利用する。
+import { recKey, rankInsert } from '../../domain/records/ranking.js'
+import { wordRecKey } from '../../infrastructure/wordsRepository.js'
+import { dictRecKey } from '../../infrastructure/dictRepository.js'
+import { storyRecKey } from '../../infrastructure/storyRepository.js'
+
+// 6マップを束ねた像を作る。欠損枠は {} に正規化（undefined でも空マップ）。
+export function buildImage({
+  records,
+  wordRecords,
+  dictRecords,
+  itemStats,
+  storyFound,
+  storyRecords,
+} = {}) {
+  return {
+    records: records ?? {},
+    wordRecords: wordRecords ?? {},
+    dictRecords: dictRecords ?? {},
+    itemStats: itemStats ?? {},
+    storyFound: storyFound ?? {},
+    storyRecords: storyRecords ?? {},
+  }
+}
+
+// マラソン記録を1件適用し、更新後の全マップ（新参照）を返す（recordsRepository.saveRecord と同値）。
+export function applySaveRecord(records, record) {
+  const key = recKey(record.mode, record.rank, record.source, record.theme, record.endCondition)
+  return { ...records, [key]: rankInsert(records[key], record) }
+}
+
+// 単語記録を1件適用（wordsRepository.saveWordRecord と同値＝rankInsert は sort+slice と等価）。
+export function applySaveWordRecord(wordRecords, record) {
+  const key = wordRecKey(record.level, record.theme, record.mode, record.endCondition)
+  return { ...wordRecords, [key]: rankInsert(wordRecords[key], record) }
+}
+
+// 英英記録を1件適用（dictRepository.saveDictRecord と同値）。
+export function applySaveDictRecord(dictRecords, record) {
+  const key = dictRecKey(record.level, record.theme, record.mode, record.endCondition)
+  return { ...dictRecords, [key]: rankInsert(dictRecords[key], record) }
+}
+
+// 問題別の累積統計を1件適用（itemStatsRepository.recordItemStat と同値・count+1/各値加算）。
+export function applyRecordItemStat(itemStats, id, { keys, mistakes, ms }) {
+  const c = itemStats[id] || { count: 0, keys: 0, mistakes: 0, ms: 0 }
+  return {
+    ...itemStats,
+    [id]: {
+      count: c.count + 1,
+      keys: c.keys + keys,
+      mistakes: c.mistakes + mistakes,
+      ms: c.ms + ms,
+    },
+  }
+}
+
+// 物語記録を1件適用（storyRepository.saveStoryRecord と同値・キーは storyRecKey）。
+// 像は loadAllStoryRecords と同形（storyRecKey→record[] のマップ）。
+export function applySaveStoryRecord(storyRecords, storyId, record) {
+  const key = storyRecKey(storyId, record.endCondition)
+  return { ...storyRecords, [key]: rankInsert(storyRecords[key], record) }
+}
+
+// 発見エンドを storyId 単位でそのまま格納（発見順を保持・配列は複製して非破壊）。
+export function applySaveFound(storyFound, storyId, ids) {
+  return { ...storyFound, [storyId]: [...ids] }
+}

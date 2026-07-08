@@ -62,6 +62,10 @@ async function doInit() {
     userVersion: res.userVersion,
     // 汎用 exec：Worker で SQL を実行し行を返す（Phase3 の hydration/write-through で使う）。
     exec: (sql, bind) => call('exec', { sql, bind }).then((r) => r.rows),
+    // 起動時に全リポを1回で読み、メモリ像（素マップ群）を受け取る（#266 Phase3a）。
+    hydrate: () => call('hydrate', {}).then((r) => r.image),
+    // repo 別に1件保存（write-through）。write-queue から fire-and-forget で呼ぶ。
+    save: (repo, args) => call('save', { repo, args }),
     // DB 全体を Uint8Array で吐き出す（バックアップ用）。
     serialize: () => call('serialize', {}).then((r) => new Uint8Array(r.buffer)),
     close: () => call('close', {}),

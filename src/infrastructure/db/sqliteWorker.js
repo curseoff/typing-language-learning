@@ -9,10 +9,22 @@
 //   in  { id, type:'exec', sql, bind }     → 実行し行を返す → out { id, type:'result', rows }
 //   in  { id, type:'serialize' }           → DB 全体を吐き出す → out { id, type:'serialized', buffer }（転送）
 //   in  { id, type:'close' }               → db.close() → out { id, type:'closed' }
+//   in  { id, type:'hydrate' }             → 全リポを読む → out { id, type:'hydrated', image }（#266 起動時展開）
+//   in  { id, type:'save', repo, args }    → repo 別に1件保存 → out { id, type:'saved', repo }（#266 write-through）
 //   失敗時は out { id, type:'error', message }
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { migrations } from './migrations.js'
 import { runMigrations } from './runMigrations.js'
+import { loadRecordsDb, saveRecordDb } from './repos/recordsDb.js'
+import { loadWordRecordsDb, saveWordRecordDb } from './repos/wordsDb.js'
+import { loadDictRecordsDb, saveDictRecordDb } from './repos/dictDb.js'
+import { loadItemStatsDb, recordItemStatDb } from './repos/itemStatsDb.js'
+import {
+  loadAllStoryRecordsDb,
+  saveStoryRecordDb,
+  loadFoundDb,
+  saveFoundDb,
+} from './repos/storyDb.js'
 
 const DB_FILE = 'user.sqlite3'
 const VFS_NAME = 'opfs-sahpool-tll-user'
@@ -37,6 +49,33 @@ function exec(sql, bind) {
   return rows
 }
 
+// 起動時のメモリ像を1回で組み立てる（全リポを読む）。素マップだけを返す（構造化複製可能）。
+// storyFound は story_endings の全 story_id を拾い、発見順を保つ loadFoundDb で個別復元する。
+function hydrate() {
+  const storyFound = {}
+  const foundRows = db.selectObjects('SELECT DISTINCT "story_id" FROM "story_endings"')
+  for (const { story_id } of foundRows) storyFound[story_id] = loadFoundDb(db, story_id)
+  return {
+    records: loadRecordsDb(db),
+    wordRecords: loadWordRecordsDb(db),
+    dictRecords: loadDictRecordsDb(db),
+    itemStats: loadItemStatsDb(db),
+    storyFound,
+    storyRecords: loadAllStoryRecordsDb(db),
+  }
+}
+
+// repo 別に1件保存（write-through）。戻り値はメイン側で使わない（メモリ像が正）。
+function save(repo, args) {
+  if (repo === 'records') saveRecordDb(db, ...args)
+  else if (repo === 'word') saveWordRecordDb(db, ...args)
+  else if (repo === 'dict') saveDictRecordDb(db, ...args)
+  else if (repo === 'item') recordItemStatDb(db, ...args)
+  else if (repo === 'story') saveStoryRecordDb(db, ...args)
+  else if (repo === 'found') saveFoundDb(db, ...args)
+  else throw new Error(`unknown repo: ${repo}`)
+}
+
 self.onmessage = async (e) => {
   const { id, type } = e.data
   try {
@@ -46,6 +85,11 @@ self.onmessage = async (e) => {
     } else if (type === 'exec') {
       const rows = exec(e.data.sql, e.data.bind)
       self.postMessage({ id, type: 'result', rows })
+    } else if (type === 'hydrate') {
+      self.postMessage({ id, type: 'hydrated', image: hydrate() })
+    } else if (type === 'save') {
+      save(e.data.repo, e.data.args)
+      self.postMessage({ id, type: 'saved', repo: e.data.repo })
     } else if (type === 'serialize') {
       const bytes = sqlite3.capi.sqlite3_js_db_export(db.pointer)
       self.postMessage({ id, type: 'serialized', buffer: bytes.buffer }, [bytes.buffer])
