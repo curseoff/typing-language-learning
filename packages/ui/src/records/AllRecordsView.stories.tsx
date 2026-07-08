@@ -55,7 +55,9 @@ const rows: AllRecordRow[] = [
 ]
 
 export const Default: Story = {
-  render: () => <AllRecordsView rows={rows} sortFn={sortFn} onExit={() => {}} />,
+  render: () => (
+    <AllRecordsView rows={rows} sortFn={sortFn} onExit={() => {}} onRowClick={() => {}} />
+  ),
 }
 export const Empty: Story = {
   render: () => <AllRecordsView rows={[]} sortFn={sortFn} onExit={() => {}} />,

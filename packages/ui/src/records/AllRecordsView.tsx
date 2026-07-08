@@ -19,6 +19,10 @@ export interface AllRecordRow {
   seconds: number
   date: string | null
   dateTs: number
+  // 行クリックで記録詳細へ遷移する用の文脈（#250）。表示には使わず onRowClick へ素通しする。
+  raw?: unknown
+  siblings?: unknown[]
+  position?: number
 }
 
 export type SortKey =
@@ -37,6 +41,8 @@ export interface AllRecordsViewProps {
   // application の sortAllRecords を注入（presenter が application を import しないため props 経由）。
   sortFn: (list: AllRecordRow[], key: string, dir: SortDir) => AllRecordRow[]
   onExit: () => void
+  // データ行クリックで記録詳細を開く（#250）。open 呼び出しは container が row から組む。
+  onRowClick?: (row: AllRecordRow) => void
 }
 
 // 列定義（表示順＝種類→レベル→モード→テーマ→速度→正確率→ミス→日時）。
@@ -57,7 +63,7 @@ const defaultDir = (key: SortKey): SortDir =>
     ? 'desc'
     : 'asc'
 
-export default function AllRecordsView({ rows, sortFn, onExit }: AllRecordsViewProps) {
+export default function AllRecordsView({ rows, sortFn, onExit, onRowClick }: AllRecordsViewProps) {
   // 既定は日時の新しい順（date desc）。
   const [sortKey, setSortKey] = useState<SortKey>('date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -110,7 +116,25 @@ export default function AllRecordsView({ rows, sortFn, onExit }: AllRecordsViewP
             </thead>
             <tbody>
               {sorted.map((r, i) => (
-                <tr key={i}>
+                <tr
+                  key={i}
+                  className={onRowClick ? 'row-click' : ''}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  role={onRowClick ? 'button' : undefined}
+                  title={onRowClick ? 'クリックで記録の詳細' : undefined}
+                  onClick={onRowClick ? () => onRowClick(r) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          // Enter / Space で行を開く（キーボード操作。ヘッダーのソートとは別行）。
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            onRowClick(r)
+                          }
+                        }
+                      : undefined
+                  }
+                >
                   <td>{r.kindLabel}</td>
                   <td>{r.levelLabel}</td>
                   <td>{r.modeLabel}</td>

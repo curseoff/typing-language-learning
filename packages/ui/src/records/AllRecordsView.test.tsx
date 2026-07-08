@@ -65,6 +65,29 @@ describe('AllRecordsView smoke', () => {
     expect(lastDir).toBe('asc')
   })
 
+  it('データ行クリックで onRowClick がその行で呼ばれる（ヘッダーのソートとは別）', () => {
+    const onRowClick = vi.fn()
+    const sortFn = (list: AllRecordRow[]) => list
+    const { getByText } = render(
+      <AllRecordsView rows={rows} sortFn={sortFn} onExit={() => {}} onRowClick={onRowClick} />,
+    )
+    fireEvent.click(getByText('文章'))
+    expect(onRowClick).toHaveBeenCalledTimes(1)
+    expect(onRowClick.mock.calls[0][0].kind).toBe('wsent')
+  })
+
+  it('データ行は Enter キーで onRowClick が発火する（キーボード到達）', () => {
+    const onRowClick = vi.fn()
+    const sortFn = (list: AllRecordRow[]) => list
+    const { getByText } = render(
+      <AllRecordsView rows={rows} sortFn={sortFn} onExit={() => {}} onRowClick={onRowClick} />,
+    )
+    const rowEl = getByText('物語').closest('tr') as HTMLElement
+    fireEvent.keyDown(rowEl, { key: 'Enter' })
+    expect(onRowClick).toHaveBeenCalledTimes(1)
+    expect(onRowClick.mock.calls[0][0].kind).toBe('story')
+  })
+
   it('戻るボタンで onExit を呼ぶ', () => {
     const onExit = vi.fn()
     const sortFn = (list: AllRecordRow[]) => list
