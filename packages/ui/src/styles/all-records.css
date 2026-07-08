@@ -43,6 +43,17 @@
   color: var(--muted);
   font-size: 12px;
 }
+/* データ行＝クリックで記録詳細（.records の row-click 流儀に合わせる／#250）。 */
+.all-records tbody tr.row-click {
+  cursor: pointer;
+}
+.all-records tbody tr.row-click:hover {
+  background: var(--panel-2);
+}
+.all-records tbody tr.row-click:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 /* 列ヘッダー＝操作可能なボタン（フォーカス可視・キーボードで並べ替え）。 */
 .all-records .sort-th {
   display: inline-flex;

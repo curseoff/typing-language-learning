@@ -214,6 +214,207 @@ describe('flattenRecords（3リポジトリの生データを正規化フラッ�
   })
 })
 
+// ── 契約①-b: flattenRecords の各行が元記録と文脈を保持する（Issue #250: 行クリックで記録詳細へ遷移） ──
+// RecordDetail は open(record, position, { list, ... }) の形で
+//   - record = その行の元記録そのもの（segStats/choices/correct/seed/source/keys… を表示に使う）
+//   - list   = 同一ランキングキー配下の元記録配列（ページ内でクリック切替する siblings）
+//   - position = 同一グループ内の 1 始まりの順位（#表示）
+// を必要とする。よって flattenRecords は各行に raw / siblings / position を付与する。
+describe('flattenRecords の各行が元記録と文脈を保持する（raw / siblings / position）', () => {
+  it('records(wsent) 行の raw は元記録そのもの（segStats など元フィールドを欠損なく残す）', () => {
+    const rec = {
+      source: 'wsent',
+      mode: 'both',
+      rank: 2,
+      theme: '旅行',
+      speed: 480,
+      accuracy: 98,
+      mistakes: 7,
+      keys: 300,
+      seconds: 75,
+      seed: 12345,
+      date: '2026/7/7 12:00:00',
+      segStats: [{ en: 'go', ja: '行く', kana: 'いく', ms: 500 }],
+    }
+    const [el] = flattenRecords({
+      records: { 'both__wsent2__旅行': [rec] },
+      dictRecords: {},
+      wordRecords: {},
+    })
+    // 元記録を欠損なく保持（正規化で捨てられた seed/segStats も残る）。
+    expect(el.raw).toEqual(rec)
+    expect(el.raw.segStats).toEqual(rec.segStats)
+    expect(el.raw.seed).toBe(12345)
+  })
+
+  it('dict 行の raw は元記録そのもの（choices/correct/words など正規化外フィールドを残す）', () => {
+    const rec = {
+      source: 'dict',
+      level: 1,
+      theme: 'すべて',
+      mode: 'quiz',
+      speed: 200,
+      accuracy: 80,
+      mistakes: 2,
+      keys: 40,
+      seconds: 60,
+      correct: 8,
+      words: 10,
+      choices: [{ picked: 0, answer: 0 }],
+      date: '2026/7/5 09:00:00',
+    }
+    const [el] = flattenRecords({
+      records: {},
+      dictRecords: { 'L1__すべて__quiz': [rec] },
+      wordRecords: {},
+    })
+    expect(el.raw).toEqual(rec)
+    expect(el.raw.correct).toBe(8)
+    expect(el.raw.choices).toEqual(rec.choices)
+  })
+
+  it('word 行の raw は元記録そのもの（source:"word" を含め欠損なく残す）', () => {
+    const rec = {
+      source: 'word',
+      level: 3,
+      theme: '旅行',
+      mode: 'en',
+      speed: 300,
+      accuracy: 95,
+      mistakes: 1,
+      keys: 80,
+      seconds: 60,
+      date: '2026/7/4 08:00:00',
+      segStats: [{ en: 'sea', ja: '海', kana: 'うみ' }],
+    }
+    const [el] = flattenRecords({
+      records: {},
+      dictRecords: {},
+      wordRecords: { 'L3__旅行__en': [rec] },
+    })
+    expect(el.raw).toEqual(rec)
+    expect(el.raw.source).toBe('word')
+    expect(el.raw.segStats).toEqual(rec.segStats)
+  })
+
+  it('同一キー配下に複数記録があるとき position は 1 始まりで連番になる', () => {
+    const list = [
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 300, date: '2026/7/7 12:00:00' },
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 290, date: '2026/7/1 12:00:00' },
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 280, date: '2026/6/1 12:00:00' },
+    ]
+    const out = flattenRecords({
+      records: { 'both__wsent2__旅行': list },
+      dictRecords: {},
+      wordRecords: {},
+    })
+    expect(out.map((e) => e.position)).toEqual([1, 2, 3])
+  })
+
+  it('siblings は同一キー配下の元記録配列で、position 番目(=index+1)が自身の raw と一致する', () => {
+    const list = [
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 300, date: '2026/7/7 12:00:00' },
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 290, date: '2026/7/1 12:00:00' },
+    ]
+    const out = flattenRecords({
+      records: { 'both__wsent2__旅行': list },
+      dictRecords: {},
+      wordRecords: {},
+    })
+    // 各行の siblings はグループ全記録（元記録）を保持する。
+    expect(out[0].siblings).toEqual(list)
+    expect(out[1].siblings).toEqual(list)
+    // siblings[position-1] は自身の raw（RecordDetail の initial.record と list の対応）。
+    for (const el of out) {
+      expect(el.siblings[el.position - 1]).toEqual(el.raw)
+    }
+  })
+
+  it('同一グループの全行は同じ siblings を指す（RecordDetail のページ内切替 list 用）', () => {
+    const list = [
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 300, date: '2026/7/7 12:00:00' },
+      { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 290, date: '2026/7/1 12:00:00' },
+    ]
+    const out = flattenRecords({
+      records: { 'both__wsent2__旅行': list },
+      dictRecords: {},
+      wordRecords: {},
+    })
+    // 参照同一（同じ配列インスタンスを共有する）。
+    expect(out[0].siblings).toBe(out[1].siblings)
+  })
+
+  it('別グループでは position がリセットされる（グループごとに 1 始まり）', () => {
+    const out = flattenRecords({
+      records: {
+        'both__wsent2__旅行': [
+          { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 300, date: '2026/7/7 12:00:00' },
+          { source: 'wsent', mode: 'both', rank: 2, theme: '旅行', keys: 290, date: '2026/7/1 12:00:00' },
+        ],
+      },
+      dictRecords: {
+        'L1__すべて__quiz': [
+          { source: 'dict', level: 1, theme: 'すべて', mode: 'quiz', keys: 40, date: '2026/7/5 09:00:00' },
+          { source: 'dict', level: 1, theme: 'すべて', mode: 'quiz', keys: 30, date: '2026/7/2 09:00:00' },
+        ],
+      },
+      wordRecords: {},
+    })
+    const wsent = out.filter((e) => e.kind === 'wsent')
+    const dict = out.filter((e) => e.kind === 'dict')
+    expect(wsent.map((e) => e.position)).toEqual([1, 2])
+    expect(dict.map((e) => e.position)).toEqual([1, 2])
+    // グループ間で siblings は混ざらない。
+    expect(wsent[0].siblings).not.toBe(dict[0].siblings)
+    expect(wsent[0].siblings).toHaveLength(2)
+    expect(dict[0].siblings).toHaveLength(2)
+  })
+
+  it('記録1件のグループは position=1・siblings 長さ1（端ケース）', () => {
+    const rec = { source: 'word', level: 3, theme: '旅行', mode: 'en', keys: 80, date: '2026/7/4 08:00:00' }
+    const [el] = flattenRecords({
+      records: {},
+      dictRecords: {},
+      wordRecords: { 'L3__旅行__en': [rec] },
+    })
+    expect(el.position).toBe(1)
+    expect(el.siblings).toHaveLength(1)
+    expect(el.siblings[0]).toEqual(rec)
+  })
+
+  it('raw/siblings/position を足しても既存の正規化フィールドは不変（kind/level/keys 等）', () => {
+    const rec = {
+      source: 'dict',
+      level: 1,
+      theme: 'すべて',
+      mode: 'quiz',
+      speed: 200,
+      accuracy: 80,
+      mistakes: 2,
+      keys: 40,
+      seconds: 60,
+      date: '2026/7/5 09:00:00',
+    }
+    const [el] = flattenRecords({
+      records: {},
+      dictRecords: { 'L1__すべて__quiz': [rec] },
+      wordRecords: {},
+    })
+    expect(el).toMatchObject({
+      kind: 'dict',
+      kindLabel: '英英',
+      level: 1,
+      theme: 'すべて',
+      mode: 'quiz',
+      speed: 200,
+      accuracy: 80,
+      mistakes: 2,
+      keys: 40,
+      seconds: 60,
+    })
+  })
+})
+
 // ── 契約②: sortAllRecords(list, key, dir) ──
 describe('sortAllRecords（列キーと昇降で並べ替える純関数）', () => {
   // 正規化済み行を最小構成で作るヘルパー（テスト専用フィクスチャ）。
