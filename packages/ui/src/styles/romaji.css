@@ -23,41 +23,48 @@
 }
 /* Typed の打鍵済み(.rdone=緑)・誤り(.rerr=赤)はそのまま活かす。未入力分は muted。 */
 
-/* かな五十音表 */
+/* かな五十音表（全行を常に表示＝清音/濁音/半濁音/拗音）。行数が多いので密度を詰めて
+   小さい幅でも横溢れしないコンパクトなグリッドにする。 */
 .kana-table {
-  margin: 14px auto 0;
-  max-width: 520px;
+  margin: 12px auto 0;
+  max-width: 360px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 .kana-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+/* 出題対象外の行は薄く（全体は見せつつ練習範囲を示す）。行ではなくセル/ラベル個別に
+   薄くして、現在かな(.cur)が範囲外行にあっても .cur 側で不透明に戻せるようにする。 */
+.kana-row.out-scope .kana-row-label,
+.kana-row.out-scope .kana-cell {
+  opacity: 0.38;
 }
 .kana-row-label {
   flex: none;
-  width: 56px;
+  width: 46px;
   text-align: right;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 .kana-cells {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 3px;
+  flex-wrap: nowrap;
 }
 .kana-cell {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 34px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--panel-2);
   border: 2px solid transparent;
   transition:
@@ -69,19 +76,37 @@
   background: transparent;
 }
 .kana-cell-kana {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
-  line-height: 1.1;
+  line-height: 1.05;
 }
 .kana-cell-romaji {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-/* 現在かなのセル：枠囲みで強調 */
+/* 現在かなのセル：枠囲みで強調（out-scope の薄さに埋もれないよう不透明度を戻す） */
 .kana-cell.cur {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 18%, var(--panel-2));
   transform: scale(1.06);
+}
+.kana-row.out-scope .kana-cell.cur {
+  /* 現在かなが範囲外行にあっても薄くせず強調する */
+  opacity: 1 !important;
+}
+
+/* 320px 幅でも収まるよう、狭い画面ではさらに詰める（46+5*40+gap≈ 292px） */
+@media (max-width: 360px) {
+  .kana-table {
+    max-width: 100%;
+  }
+  .kana-cell {
+    width: 36px;
+    height: 32px;
+  }
+  .kana-row-label {
+    width: 40px;
+  }
 }

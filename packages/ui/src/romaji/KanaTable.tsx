@@ -1,20 +1,23 @@
-// かな五十音表グリッド（presenter）：出題対象の行（rowIds）を段ごとに並べ、各セルに
-// かな＋ローマ字を表示する。現在打っているかな（current）のセルを枠囲みハイライト（.cur）する。
+// かな五十音表グリッド（presenter）：KANA_TABLE の全行（清音/濁音/半濁音/拗音）を常に描画し、
+// 各セルにかな＋ローマ字を表示する。出題対象外の行（rowIds に含まれない）は薄く（.out-scope）して
+// 「全体を見せつつ今どの範囲を練習中か」を示す。現在打っているかな（current）のセルは枠囲み（.cur）。
 // 表データの正本は @tll/core の KANA_TABLE（ui → core は許容）。
 import { KANA_TABLE, cellOf } from '@tll/core'
 
 export interface KanaTableProps {
   current: string // 今打っているかな（ハイライト対象）
-  rowIds: string[] // 表示する行 id 群（出題レベルの範囲）
+  rowIds: string[] // 出題レベルの範囲（この行は通常表示・範囲外は薄く）
 }
 
 export default function KanaTable({ current, rowIds }: KanaTableProps) {
   const cur = cellOf(current) // { rowId, col } | null
-  const rows = KANA_TABLE.filter((r) => rowIds.includes(r.id))
   return (
     <div className="kana-table">
-      {rows.map((row) => (
-        <div key={row.id} className="kana-row">
+      {KANA_TABLE.map((row) => (
+        <div
+          key={row.id}
+          className={'kana-row' + (rowIds.includes(row.id) ? '' : ' out-scope')}
+        >
           <span className="kana-row-label">{row.label}</span>
           <div className="kana-cells">
             {row.cells.map((cell, col) =>
