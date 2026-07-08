@@ -61,7 +61,9 @@ export default defineConfig({
       // （S84.96/B75.81/F84.01/L86.13）。ただし v8 の計測は実行ごとに数行揺れ（lines 実測 86.06〜86.13 等）、
       // 実測直下（0.03下）だと確率的に閾値割れ→CI/pre-push が不安定になる。up-only の精神は保ちつつ
       // 揺れ幅分のマージンを取り 0.1 単位で切り捨てる。
-      thresholds: { statements: 84.8, branches: 75.7, functions: 83.8, lines: 86.0 },
+      // #248: 全記録横断ビュー（allRecords 純関数＋AllRecordsView presenter）のテストを追加し functions が
+      // 上振れ（実測 F84.21）→ functions のみ 84.0 へラチェット（揺れ分マージン維持・他は据え置き）。
+      thresholds: { statements: 84.8, branches: 75.7, functions: 84.0, lines: 86.0 },
     },
   },
 })

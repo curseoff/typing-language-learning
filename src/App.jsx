@@ -18,6 +18,7 @@ import WordsView from './ui/words/WordsView.jsx'
 import DictView from './ui/dictionary/DictView.jsx'
 import TouchView from './ui/touch/TouchView.jsx'
 import AboutView from './ui/about/AboutView.jsx'
+import AllRecordsView from './ui/records/AllRecordsView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
@@ -51,7 +52,7 @@ const initialTab = (() => {
 })()
 
 export default function App() {
-  const [phase, setPhase] = useState('ready') // ready | playing | result | story | words | about
+  const [phase, setPhase] = useState('ready') // ready | playing | result | story | words | about | allrecords
   const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
   const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
@@ -318,7 +319,7 @@ export default function App() {
   useEffect(() => {
     const onNav = (e) => {
       if (e.key === 'Escape') {
-        if (phase === 'about') {
+        if (phase === 'about' || phase === 'allrecords') {
           e.preventDefault()
           setPhase('ready')
           return
@@ -424,6 +425,9 @@ export default function App() {
           <button type="button" className="about-link" onClick={() => setPhase('about')}>
             このアプリについて
           </button>
+          <button type="button" className="about-link" onClick={() => setPhase('allrecords')}>
+            すべての記録
+          </button>
         </p>
       )}
 
@@ -479,6 +483,8 @@ export default function App() {
       )}
 
       {phase === 'about' && <AboutView onStart={() => setPhase('ready')} />}
+
+      {phase === 'allrecords' && <AllRecordsView onExit={() => setPhase('ready')} />}
 
       {phase === 'touch' && (
         <TouchView
