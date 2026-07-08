@@ -51,7 +51,7 @@ describe('#265 infrastructure/db/repos/itemStatsDb（現行 itemStatsRepository 
     expect(loadItemStatsDb(db)).toEqual(loadItemStats())
   })
 
-  it('id が ':' を含んでも（文中コロン）原文どおり復元する（分解は先頭2つの : のみ）', () => {
+  it('id が : を含んでも（文中コロン）原文どおり復元する（分解は先頭2つの : のみ）', () => {
     const id = 's:both:I go to school: today.'
     recordItemStat(id, { keys: 20, mistakes: 0, ms: 400 })
     recordItemStatDb(db, id, { keys: 20, mistakes: 0, ms: 400 })

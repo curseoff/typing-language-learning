@@ -102,6 +102,21 @@ describe('#265 infrastructure/db/repos/wordsDb（現行 wordsRepository と同�
     expect('segStats' in rec).toBe(false)
   })
 
+  it('任意列（source/seed/level/theme/mode/… と correct/words/segStats/endCondition）が全て不在の疎な記録も現行と同値に round-trip する', () => {
+    // 任意列を全て備えたクイズ記録と、それらが全て不在の疎な記録を同順で流し、
+    // 各 nullable 列（bind の "?? null"）の「不在側」・endCondition/segStats の省略分岐を通す。
+    const full = wordQuiz({ theme: 'ビジネス', level: 4, keys: 99 })
+    const sparse = {} // 全ての任意列（correct/correctCount/words/segStats 含む）と endCondition が不在
+    for (const r of [full, sparse]) {
+      saveWordRecord(r)
+      saveWordRecordDb(db, r)
+    }
+    const all = loadWordRecordsDb(db)
+    const sparseRec = all[wordRecKey(undefined, undefined, undefined)][0]
+    expect(sparseRec).toEqual({})
+    expect(all).toEqual(loadWordRecords())
+  })
+
   it('クイズ固有 correct/words は nullable：通常記録では省略復元、クイズ記録では保持する', () => {
     const normal = wordNormal({ theme: '日常', keys: 30 })
     const quiz = wordQuiz({ theme: '日常', mode: 'ja', keys: 31 })

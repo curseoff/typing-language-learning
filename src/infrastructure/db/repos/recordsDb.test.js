@@ -104,6 +104,23 @@ describe('#265 infrastructure/db/repos/recordsDb（現行 recordsRepository と�
     expect(all).toEqual(loadRecords())
   })
 
+  it('任意列（mode/rank/source/seed/… と endCondition）が全て不在の疎な記録も現行と同値に round-trip する', () => {
+    // 任意列を全て備えた記録と、それらが全て不在の疎な記録を同順で流し、
+    // 各 nullable 列（bind の "?? null"）の「不在側」と、復元時の endCondition 省略分岐を通す。
+    const full = marathon({ theme: 'ビジネス', keys: 150 })
+    const sparse = {} // mode/rank/source/seed/speed/keys/mistakes/accuracy/correctCount/seconds/date/endCondition が全て不在
+    for (const r of [full, sparse]) {
+      saveRecord(r)
+      saveRecordDb(db, r)
+    }
+    const all = loadRecordsDb(db)
+    // 疎な記録は各任意プロパティも endCondition も持たない（null ではなく「不在」）
+    const sparseRec = all[recKey(undefined, undefined, undefined)][0]
+    expect(sparseRec).toEqual({})
+    expect('endCondition' in sparseRec).toBe(false)
+    expect(all).toEqual(loadRecords())
+  })
+
   it('同キーへ 16 件保存すると上位 15 件・順序が現行 compareRecords と一致する', () => {
     const ec = { kind: 'time', value: 60 }
     for (let i = 1; i <= MAX_RECORDS + 1; i++) {

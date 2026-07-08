@@ -133,6 +133,22 @@ describe('#265 infrastructure/db/repos/storyDb（現行 storyRepository と同�
     expect('choices' in rec).toBe(false)
   })
 
+  it('任意列（mode/source/ending/… と segStats/choices）が全て不在の疎な物語記録も現行と同値に round-trip する', () => {
+    // 任意列を全て備えた記録と、それらが全て不在の疎な記録を同じグループ（endCondition 無し）へ流し、
+    // 各 nullable 列（bind の "?? null"）の「不在側」と segStats/choices の省略分岐を通す。
+    const full = story({ keys: 50 })
+    // storyId は列（story_id）由来で復元時に必ず付く＝現行 record も storyId を持つ。それ以外の任意列は全て不在。
+    const sparse = { storyId: 'climbing' }
+    saveStoryRecord('climbing', full)
+    saveStoryRecord('climbing', sparse)
+    saveStoryRecordDb(db, 'climbing', full)
+    saveStoryRecordDb(db, 'climbing', sparse)
+    const list = loadStoryRecordsDb(db, 'climbing')
+    // keys 降順で full(50) が上、疎な記録は storyId 以外を持たない
+    expect(list[1]).toEqual({ storyId: 'climbing' })
+    expect(list).toEqual(loadStoryRecords('climbing'))
+  })
+
   describe('loadAllStoryRecordsDb（全 storyId 集約・キーは storyRecKey 形）', () => {
     it('未保存なら空マップを返す', () => {
       expect(loadAllStoryRecordsDb(db)).toEqual({})
