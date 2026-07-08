@@ -57,6 +57,8 @@ function normalize(kind, record) {
     seconds: toNum(record.seconds),
     date,
     dateTs: toDateTs(date),
+    // 行クリックで記録詳細へ遷移する用（#250）。元記録・同ランキング配列・順位を保持。
+    raw: record,
   }
 }
 
@@ -68,13 +70,17 @@ function kindFromRecordsSource(source) {
 }
 
 // 各キー配下の記録配列を、kind を付けて out へ展開する共通処理。
+// 各行に siblings（同一ランキングキー配下の元記録配列＝list そのもの・参照共有）と
+// position（グループ内 1 始まり連番）を付与する（#250: 行クリックで記録詳細へ遷移）。
 function pushAll(out, map, kindResolver) {
   for (const list of Object.values(map || {})) {
     if (!Array.isArray(list)) continue
-    for (const record of list) {
+    for (let i = 0; i < list.length; i++) {
+      const record = list[i]
       const kind = kindResolver(record)
       if (kind == null) continue // 除外（touch 等）
-      out.push(normalize(kind, record))
+      // position=index+1（siblings[position-1] が自身の raw と一致する不変条件）。
+      out.push({ ...normalize(kind, record), siblings: list, position: i + 1 })
     }
   }
 }
