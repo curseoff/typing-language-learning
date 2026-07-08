@@ -28,6 +28,12 @@
 .kana-table {
   margin: 12px auto 0;
   max-width: 360px;
+  /* 全27行は縦に長いので内部スクロール器にし、現在かなを scrollIntoView で追従させる
+     （ページ全体スクロールを誘発せず、上部の現在かな提示/ステータスを常に見せる）。 */
+  max-height: 62vh;
+  overflow: auto;
+  /* cur セルの scale(1.06) がスクロール器の縁で欠けないよう少し余白を取る。 */
+  padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 3px;
