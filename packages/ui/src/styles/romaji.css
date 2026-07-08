@@ -64,11 +64,16 @@
 .kana-cell.empty {
   background: transparent;
 }
+/* 拗音は2文字かな（きゃ/しゅ等）。極小セルで隣へはみ出し重ならないよう内側をクリップする安全網。 */
+.kana-cell {
+  overflow: hidden;
+}
 .kana-cell-kana {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.05;
+  white-space: nowrap;
 }
 .kana-cell-romaji {
   font-size: 9px;
@@ -87,32 +92,96 @@
   opacity: 1 !important;
 }
 
-/* 中幅：2 カラムへ（清音+濁音/半濁音 と 拗音 が横並びに近い形） */
-@media (max-width: 640px) {
+/* スマホ幅：3 カラムを保ったままセル/フォント/余白を段階的に極小化し、表全体＋ステータス＋現在かな
+   表示を縦スクロール無しで1画面に収める（読みにくさのトレードオフは許容）。2カラムだと縦に伸びて
+   収まらないため、狭くても 3 カラムを維持する。横は content 幅（≒ vw-40px）に収める。 */
+@media (max-width: 600px) {
   .kana-table {
-    column-count: 2;
-    max-width: 440px;
+    column-gap: 8px;
+    max-width: 100%;
+    padding: 0;
   }
-}
-/* 狭幅：セルを詰めて 2 カラムを維持（横溢れ回避） */
-@media (max-width: 440px) {
+  .kana-row {
+    gap: 2px;
+    margin-bottom: 2px;
+  }
   .kana-cell {
-    width: 34px;
-    height: 30px;
+    width: 30px;
+    height: 28px;
+    border-width: 1.5px;
+    border-radius: 5px;
   }
   .kana-cell-kana {
     font-size: 13px;
   }
+  .kana-cell-romaji {
+    font-size: 8px;
+  }
+  /* 現在かな提示とヒントを小さくして表の取り分を増やす */
+  .romaji-cue {
+    margin: 8px auto 2px;
+  }
+  .romaji-kana {
+    font-size: 40px;
+  }
+  .romaji-guide {
+    font-size: 18px;
+    margin-top: 4px;
+  }
+}
+@media (max-width: 440px) {
+  .kana-cell {
+    width: 22px;
+    height: 26px;
+  }
+  /* 2文字かな(拗音)がセル内に収まるよう font ≤ 幅/2 に抑える（幅22→10px） */
+  .kana-cell-kana {
+    font-size: 10px;
+  }
+  .kana-cell-romaji {
+    font-size: 7px;
+  }
+  .romaji-kana {
+    font-size: 34px;
+  }
+}
+@media (max-width: 400px) {
+  .kana-cell {
+    width: 20px;
+    height: 24px;
+  }
+  .kana-cell-kana {
+    font-size: 9px;
+  }
+  .kana-cell-romaji {
+    font-size: 6.5px;
+    letter-spacing: -0.3px;
+  }
 }
 @media (max-width: 360px) {
   .kana-cell {
-    width: 29px;
-    height: 28px;
+    width: 17px;
+    height: 22px;
   }
   .kana-cell-kana {
-    font-size: 12px;
+    font-size: 8px;
   }
   .kana-cell-romaji {
-    font-size: 8px;
+    font-size: 6px;
+  }
+  .romaji-kana {
+    font-size: 30px;
+  }
+}
+@media (max-width: 330px) {
+  .kana-cell {
+    width: 14px;
+    height: 20px;
+  }
+  .kana-cell-kana {
+    font-size: 6.5px;
+  }
+  .kana-cell-romaji {
+    font-size: 5px;
   }
 }
