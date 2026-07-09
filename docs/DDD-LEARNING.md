@@ -229,7 +229,19 @@ EndCondition(VO) ──held by──▶ TypingSession(Entity) ──created by�
 ```
 VO を Entity が持ち、Entity を Factory が作り、Entity から Service が記録値を作り、記録値を Aggregate が束ね、Aggregate を Repository が出し入れする——**戦術パターンが1本の線でつながった**。
 
-> 次：**Phase 6（Specification）** — 「この条件を満たすか」を合成可能な仕様オブジェクト（and/or/not）に。
+---
+
+## 10. Phase 6 記録：Specification
+
+**やったこと**：汎用コンビネータ `makeSpec`（`domain/spec/specification.js`）と、それで組んだ記録向け具体 spec（`domain/records/recordSpecs.js`：`fasterThan`/`atLeastAccuracy`/`longerThan`／合成 `isGreatRecord`）を新設。
+
+### 学びの要点
+- **条件を"オブジェクト"にする**：`record.speed > 300 && record.accuracy >= 95` のような分岐式を、`fasterThan(300).and(atLeastAccuracy(95))` という**合成可能な値**にした。条件が名前を持ち（`isGreatRecord`）、渡せる・組み替えられる・テストできる。
+- **and/or/not で代数的に合成**：`makeSpec` が返す Specification は `and/or/not` で新しい Specification を返す（**閉じている**＝合成結果もまた Specification）。しかも**非破壊**（元 spec は不変）。真理値表を組み合わせるだけで複雑な条件が宣言的に書ける。
+- **どこで効くか**：終了条件の判定（`shouldFinish`）、記録の採用可否（例：「endless は30秒以上で記録」「touch は非記録」）、出題フィルタなど「条件が増える・組み変わる」場所。分岐が式で散らばる前に spec に寄せると、条件の再利用と単体テストが楽になる。
+- **正直な適用範囲**：このアプリの現状の条件は単純（switch で足りる）ので、Specification は**学習主目的**。乱用すると単純な `if` が過剰に抽象化される。「条件が3つ以上 and/or で絡む・再利用する・組み替える」時に価値が出るパターン、と理解しておく。
+
+> 次：**Phase 7（Domain Event）** — 「起きた事実」を不変イベントで表し、イベントバスで購読側（記録更新・多タブ通知）を疎結合にする。
 
 ---
 
