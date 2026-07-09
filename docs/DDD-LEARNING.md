@@ -179,7 +179,33 @@ domain の他コードは純関数・不変で統一されているが、Entity 
 ### 「集約があって初めて Repository が意味を持つ」への布石
 次の Phase 4（Repository）は、この `RankingBoard` を**丸ごと保存・再構築する抽象**を作る。集約という「保存の単位」が定義できたので、Repository が「コレクションのように集約を出し入れする」意味を持てる（集約なき Repository はただの DAO）。
 
-> 次：**Phase 4（Repository）** — `RankingRepository`（Port を domain/application、実装を infra の `*Db`）で `RankingBoard` を永続化無知に出し入れする。
+---
+
+## 8. Phase 4 記録：Repository（RankingRepository）
+
+**やったこと**：Phase 3 の `RankingBoard` 集約を「コレクションのように出し入れする永続化抽象」＝`RankingRepository` として新設（`domain/records/rankingRepository.js`）。安全のため実 sqlite には触れず、**in-memory アダプタ**で完結（学習用）。
+
+### Port / Adapter（Hexagonal）をこう表した
+```
+[ドメイン/アプリ] ── uses ──▶ createRankingRepository(store)
+                                      │ depends on
+                                      ▼
+                                  store（Port）＝ { load(key), save(key, records) }
+                                      ▲ implements
+              ┌───────────────────────┼───────────────────────┐
+   createInMemoryRankingStore（学習用）        （実）sqlite の *Db アダプタ（今回は未配線）
+```
+
+### 学びの要点
+- **「集約があって初めて Repository が意味を持つ」を体験**：Phase 3 で `RankingBoard`（保存の単位＝集約）を定義したから、Repository が「集約を丸ごと出し入れする」意味を持てた。集約が無ければ Repository はただの行 CRUD（DAO）になる。`findByKey` は行から**集約を再構築**し、`save` は**集約全体**を書き出す。
+- **永続化無知（persistence ignorance）**：`createRankingRepository(store)` は注入された `store`（Port）だけに依存し、SQLite も OPFS も知らない。`store` を in-memory にもモックにも差し替えられる（テストで実証）＝ドメインが永続化技術から独立。実運用では `store` を `db/repos/*Db` 実装に差し替えれば同じ Repository が sqlite で動く。
+- **`submitRecord` = read-modify-write を1点に**：「load（無ければ空集約）→ `submit` → save」を Repository の1メソッドに閉じ込めた。集約の不変条件（top15・整列）が **Repository 経由でも保たれる**（満杯超過 submit でも 15 件維持）。呼び出し側は不変条件を意識しない。
+- **Port の向き**：Repository のインターフェース（Port）は内側（domain/application）が定義し、実体（Adapter）は外側（infrastructure）が満たす＝**依存の逆転**。ドメインが「こういう保存口が欲しい」と宣言し、インフラが従う。
+
+### 現実との接続（正直な注記）
+このアプリの実際の永続化は既に `application/records.js` ファサード＋`db/repos/*Db`＋メモリ像で動いており（#264 で出荷済み）、**この学習用 RankingRepository は本番経路に配線していない**。「集約を Repository で出し入れする」形を体得するのが目的。本番に採用するかは別判断（棚卸しでは "実利は薄い" と評価＝過剰適用に注意）。
+
+> 次：**Phase 5（Domain Service / Factory）** — Session 生成の Factory（ID を注入生成）と、どのエンティティにも属さないロジック（Session→記録 変換）を Domain Service に。
 
 ---
 
