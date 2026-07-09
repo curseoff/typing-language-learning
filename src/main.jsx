@@ -16,6 +16,7 @@ import {
   getPersistImage,
 } from './application/records.js'
 import { ensureHealthyOrRestore, snapshotInternalBackup } from './application/recovery.js'
+import { scheduleExternalBackup } from './application/externalBackup.js'
 import { setPersistNotice } from './application/persist/persistNotice.js'
 
 // 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する
@@ -72,6 +73,10 @@ async function setupPersistence() {
     // hydrate 済み＝健全確認済みの主タブで、健全なうちに内部バックアップを1世代取る（N 世代ローテ）。
     // 主タブ以外（副タブ）は handle を持たないため snapshotInternalBackup は no-op（挙動不変）。
     await snapshotInternalBackup()
+
+    // #278 Phase5b: 外部フォルダを opt-in で設定済みなら、起動時に自動バックアップをデバウンス予約する
+    // （無言 write は許可済みのときだけ実行し失敗は握る）。未設定・FSA 非対応・local では no-op（挙動不変）。
+    scheduleExternalBackup()
   } catch (e) {
     console.warn('[persist] 永続化の初期化に失敗。localStorage で続行します。', e)
   }
