@@ -131,8 +131,213 @@
 - before：`{ kind: 'time', value: 60 }` が domain・content・App.jsx に散在し、検証も凍結も無し。
 - after：`makeEndCondition('time', 60)`（凍結・検証済み）。「終了条件はこの関数でしか作れない」に寄せた。
 
-> 次：**Phase 2（Entity / 同一性）** — プレイ1回を `TypingSession`（ID・可変状態・ライフサイクル）として抽出し、VO との違いを体験する。
+---
+
+## 6. Phase 2 記録：Entity（TypingSession）
+
+**やったこと**：プレイ1回を `TypingSession` **Entity** として domain に新設（`domain/session/typingSession.js`）。前 Phase の EndCondition **VO を内包**する。
+
+### VO と Entity の違い（この2つを並べると本質が見える）
+| | Value Object（EndCondition） | Entity（TypingSession） |
+|---|---|---|
+| **同一性** | 無し。値が同じなら同じ（`endConditionEquals`＝値等価） | **ID を持つ**。`sessionEquals`＝**ID 一致**で等価 |
+| **可変性** | **不変**（`Object.freeze`） | **可変**（`registerHit/registerMiss/advanceItem/setElapsed/finish` で状態が変わる） |
+| **ライフサイクル** | 無し（ただの値） | **あり**（active → finished） |
+| **不変条件** | 生成時に検証（不正は作れない） | **生成後も守る**（finished 後の状態変更は throw） |
+| **等価の意味** | 「同じ 60 秒設定」はどれも交換可能 | 「同じ ID」なら**進捗が変わっても同一の実体**。逆に「別 ID・同じ進捗」は別物 |
+
+### 学びの要点
+- **同一性 vs 値等価が Entity と VO を分ける唯一絶対の基準**。テストで `sessionEquals(同id, 別進捗)===true` かつ `sessionEquals(別id, 同値)===false` を固定したのが核心。VO は逆（値が同じなら等価）。
+- **ID は純ドメインでは作れない → 注入する**：`startTypingSession({ id, endCondition })`。ドメインは乱数/時刻を持たない（決定性・テスト容易性）。ID の採番は外側（app/infra/Repository）の責務。→ Phase 4 の Repository でこの ID 採番・再構築を扱う。
+- **Entity は VO を内包する（合成）**：`TypingSession` が `EndCondition` VO を持つ。不正な終了条件では Session を始められない（生成時に `isEndCondition` で検証）。「Entity＝VO を組み合わせて状態と振る舞いを持たせたもの」という関係。
+- **`status`（明示終了）と `isFinished()`（終了条件連動）の分離**：`finish()` でのみ status が 'finished' になり、以後の状態変更を禁止（不変条件）。一方 `isFinished()` は「明示終了 or `shouldFinish(endCondition, progress)`」の論理和。時間到達＝プレイ的には終了だが、状態機械上はまだ更新を受け付ける、という現実に即した2層。
+- **カプセル化**：内部 `progress` は外に晒さず、`progress()` が毎回**凍結スナップショット**を返す。外から内部状態を壊せない＝Entity が自分の不変条件を守れる前提。
+
+### 補足（この関数型コードベースでの割り切り）
+domain の他コードは純関数・不変で統一されているが、Entity はあえて**メソッドで状態を変える可変オブジェクト**にした。これは「Entity は本質的に stateful」という DDD の主張を体験するための意図的な対比。実運用でこの Entity を使う（Phase 8 で `use*` フックから駆動する）かは別途判断する。
 
 ---
 
-_この文書は #290 の学習記録。各 Phase 完了時に追記していく。_
+## 7. Phase 3 記録：Aggregate / Aggregate Root / Invariant（RankingBoard）
+
+**やったこと**：記録ランキングを `RankingBoard` **集約**として新設（`domain/records/rankingBoard.js`）。集約ルートが「top15・整列」の**不変条件を保証**する。
+
+### 集約の3要素をこのコードでどう表したか
+| 要素 | 実装 |
+|---|---|
+| **集約（Aggregate）** | `RankingBoard` = ルート＋内部の記録エントリ群（値）を1つの整合性単位として束ねる。 |
+| **集約ルート（Aggregate Root）** | `RankingBoard` オブジェクト。外部は**ルート経由でのみ**記録を追加できる（`submit`）。内部 entries を直接触れない。 |
+| **不変条件（Invariant）** | 「entries は常に `compareRecords(endCondition)` で整列済み・`MAX_RECORDS`(15) 件以下」。**生成時に正規化**し、`submit` でも維持。どの操作の後も真。 |
+
+### 学びの要点
+- **不変条件を"守る場所"を1点に集約した**：これまで `rankInsert`（純関数）は誰でも直接呼べた＝不変条件を守る責任が呼び出し側に散っていた。集約はそれを**ルートの内側に隠蔽**（`rankInsert` は module 内でのみ使用）し、「記録は `submit` を通してしか入らない＝常に整列・上限が守られる」を構造で保証する。これが「集約＝整合性の境界」。
+- **境界の外からは entries を壊せない**：`entries()` は凍結スナップショットを返すのみ。外から配列を書き換えても集約内部は不変（カプセル化）。不変条件を守るには「内部状態を晒さない」が前提。
+- **集約ルートは Entity（同一性を持つ）**：`RankingBoard` の identity は `key`（recKey 相当）。`rankingBoardEquals` は key 一致で等価＝どのランキングか、で同一性を判断。中の記録（値）が変わっても「同じランキング」。
+- **集約は VO を内包する**：`endCondition`（Phase 1 VO）を持ち、並び順の規則（`compareRecords`）を決める。VO→Entity→Aggregate と**部品が積み上がっている**のが見える（VO を Entity が持ち、Entity 的な集約ルートがそれを使う）。
+- **可変/不変は集約の本質と直交**：今回 `submit(record)` を**イミュータブル**（新しい board を返し元は不変）にした。Phase 2 の Entity は可変メソッドだった。**どちらでも「ルートが不変条件を守る」は成立する**——DDD が要求するのは「不変条件の保護」であって「mutation するかどうか」ではない、という重要な気づき。この関数型コードベースには不変スタイルが馴染む。
+
+### 「集約があって初めて Repository が意味を持つ」への布石
+次の Phase 4（Repository）は、この `RankingBoard` を**丸ごと保存・再構築する抽象**を作る。集約という「保存の単位」が定義できたので、Repository が「コレクションのように集約を出し入れする」意味を持てる（集約なき Repository はただの DAO）。
+
+---
+
+## 8. Phase 4 記録：Repository（RankingRepository）
+
+**やったこと**：Phase 3 の `RankingBoard` 集約を「コレクションのように出し入れする永続化抽象」＝`RankingRepository` として新設（`domain/records/rankingRepository.js`）。安全のため実 sqlite には触れず、**in-memory アダプタ**で完結（学習用）。
+
+### Port / Adapter（Hexagonal）をこう表した
+```
+[ドメイン/アプリ] ── uses ──▶ createRankingRepository(store)
+                                      │ depends on
+                                      ▼
+                                  store（Port）＝ { load(key), save(key, records) }
+                                      ▲ implements
+              ┌───────────────────────┼───────────────────────┐
+   createInMemoryRankingStore（学習用）        （実）sqlite の *Db アダプタ（今回は未配線）
+```
+
+### 学びの要点
+- **「集約があって初めて Repository が意味を持つ」を体験**：Phase 3 で `RankingBoard`（保存の単位＝集約）を定義したから、Repository が「集約を丸ごと出し入れする」意味を持てた。集約が無ければ Repository はただの行 CRUD（DAO）になる。`findByKey` は行から**集約を再構築**し、`save` は**集約全体**を書き出す。
+- **永続化無知（persistence ignorance）**：`createRankingRepository(store)` は注入された `store`（Port）だけに依存し、SQLite も OPFS も知らない。`store` を in-memory にもモックにも差し替えられる（テストで実証）＝ドメインが永続化技術から独立。実運用では `store` を `db/repos/*Db` 実装に差し替えれば同じ Repository が sqlite で動く。
+- **`submitRecord` = read-modify-write を1点に**：「load（無ければ空集約）→ `submit` → save」を Repository の1メソッドに閉じ込めた。集約の不変条件（top15・整列）が **Repository 経由でも保たれる**（満杯超過 submit でも 15 件維持）。呼び出し側は不変条件を意識しない。
+- **Port の向き**：Repository のインターフェース（Port）は内側（domain/application）が定義し、実体（Adapter）は外側（infrastructure）が満たす＝**依存の逆転**。ドメインが「こういう保存口が欲しい」と宣言し、インフラが従う。
+
+### 現実との接続（正直な注記）
+このアプリの実際の永続化は既に `application/records.js` ファサード＋`db/repos/*Db`＋メモリ像で動いており（#264 で出荷済み）、**この学習用 RankingRepository は本番経路に配線していない**。「集約を Repository で出し入れする」形を体得するのが目的。本番に採用するかは別判断（棚卸しでは "実利は薄い" と評価＝過剰適用に注意）。
+
+---
+
+## 9. Phase 5 記録：Domain Service / Factory
+
+**やったこと**：`createTypingSessionFactory`（Factory・`domain/session/typingSessionFactory.js`）と `sessionToRecord`（Domain Service・`domain/records/sessionResult.js`）を新設。
+
+### Factory：生成をカプセル化し、同一性を注入する
+- `createTypingSessionFactory(nextId)` の `nextId` は `()=>string` の **ID 生成器（注入）**。`factory.start(endCondition)` は毎回 `nextId()` で採番して Session を作る。
+- **学び**：純ドメインは Date/乱数/counter を持てない（決定性）。だから **ID の源は外から注入**する。Factory は「採番＋VO 合成＋Entity 生成」という生成手順を1箇所に閉じ込め、呼び出し側は「終了条件を渡せば妥当な Session が返る」だけを知る。実運用では uuid や連番を注入すればよい（Phase 4 の Repository が採番と再構築を担うのも同じ考え）。
+
+### Domain Service：どの Entity にも属さないロジックの居場所
+- `sessionToRecord(session, meta)`：`TypingSession`（Entity）の状態＋`score`（採点）＋外部 `meta` をまたいで**記録値**を作る。
+- **学び**：この変換は Session だけの責務でも、記録値だけの責務でもない（**複数の部品をまたぐ**）。「どの Entity/VO に置くと不自然か？」→ どれにも属さないなら **Domain Service**。ただし乱用注意：Entity/VO に自然に置ける振る舞いをサービスに逃がすと"貧血ドメイン"になる。今回は「またぐから」置いた。
+- Service は**状態を持たず副作用もない**（`progress()` を読むだけ・session 非破壊）。ステートレスなドメイン操作＝テストが楽。
+
+### 部品の積み上がり（ここまでの合成関係）
+```
+EndCondition(VO) ──held by──▶ TypingSession(Entity) ──created by──▶ Factory(nextId 注入)
+        │                          │
+        │                          └──read by──▶ sessionToRecord(Domain Service) ──▶ record(値)
+        └──ordering rule──▶ RankingBoard(Aggregate) ◀──stored by── RankingRepository(Port)
+```
+VO を Entity が持ち、Entity を Factory が作り、Entity から Service が記録値を作り、記録値を Aggregate が束ね、Aggregate を Repository が出し入れする——**戦術パターンが1本の線でつながった**。
+
+---
+
+## 10. Phase 6 記録：Specification
+
+**やったこと**：汎用コンビネータ `makeSpec`（`domain/spec/specification.js`）と、それで組んだ記録向け具体 spec（`domain/records/recordSpecs.js`：`fasterThan`/`atLeastAccuracy`/`longerThan`／合成 `isGreatRecord`）を新設。
+
+### 学びの要点
+- **条件を"オブジェクト"にする**：`record.speed > 300 && record.accuracy >= 95` のような分岐式を、`fasterThan(300).and(atLeastAccuracy(95))` という**合成可能な値**にした。条件が名前を持ち（`isGreatRecord`）、渡せる・組み替えられる・テストできる。
+- **and/or/not で代数的に合成**：`makeSpec` が返す Specification は `and/or/not` で新しい Specification を返す（**閉じている**＝合成結果もまた Specification）。しかも**非破壊**（元 spec は不変）。真理値表を組み合わせるだけで複雑な条件が宣言的に書ける。
+- **どこで効くか**：終了条件の判定（`shouldFinish`）、記録の採用可否（例：「endless は30秒以上で記録」「touch は非記録」）、出題フィルタなど「条件が増える・組み変わる」場所。分岐が式で散らばる前に spec に寄せると、条件の再利用と単体テストが楽になる。
+- **正直な適用範囲**：このアプリの現状の条件は単純（switch で足りる）ので、Specification は**学習主目的**。乱用すると単純な `if` が過剰に抽象化される。「条件が3つ以上 and/or で絡む・再利用する・組み替える」時に価値が出るパターン、と理解しておく。
+
+---
+
+## 11. Phase 7 記録：Domain Event
+
+**やったこと**：不変イベント値 `sessionFinishedEvent`/`recordAchievedEvent`（`domain/events/recordEvents.js`）と、同期 in-memory の `createEventBus`（`application/events/eventBus.js`）を新設。
+
+### 学びの要点
+- **Domain Event＝"起きた事実"の不変な値**：`{ type:'SessionFinished', sessionId, record }` を `Object.freeze`。過去形の名前（Finished/Achieved）で「もう起きたこと」を表す。VO 的（不変・payload 注入・時刻もドメインで作らず注入）。
+- **発行側は購読側を知らない（疎結合）**：`bus.publish(event)` は誰が反応するかを気にしない。`bus.subscribe(type, handler)` した側が勝手に反応する。→ 「記録できた」→ 収録統計を更新する／多タブへ通知する／実績を出す、を**発行側を変えずに足せる**。
+- **層の置き場所**：イベント値は domain（不変の事実）、バス（購読レジストリ＝可変状態）は application。
+- **このアプリの現状との対応**：既存の `records.js` の `broadcastChange`（多タブ通知）や `itemTracker`（収録統計）は、本来 `RecordAchieved` を購読して反応する形にできる。ただし今回は**加算的に導入**し、リリース済みの実配線は変えていない（安全優先）。実導入すると「記録保存の中で通知や統計更新を直接呼ぶ」密結合をイベント購読へ置き換えられる、というのが狙い。
+- **正直な適用範囲**：単純な同期処理では過剰。「1つの出来事に複数の"ついで処理"がぶら下がる／それが増える」時に疎結合が効く。イベントソーシング（Phase 棚卸しで非該当）とは別物＝ここでは"通知"としてのイベント。
+
+---
+
+## 12. Phase 8 記録：Application Service（capstone）
+
+**やったこと**：`recordFinishedSession`（`application/records/recordFinishedSession.js`）＝これまでの全戦術部品を**1つのユースケースに調停する薄い層**。
+
+```
+recordFinishedSession({ session, meta, repository, bus })
+  1. record = sessionToRecord(session, meta)        ← Domain Service（変換）
+  2. key    = recKey(meta..., session.endCondition) ← Domain（VO を使う）
+  3. board  = repository.submitRecord(key, ec, record) ← Repository（集約を RMW・不変条件維持）
+  4. bus.publish(sessionFinishedEvent(...))         ← Domain Event（通知）
+  5. bus.publish(recordAchievedEvent(...))
+  return { record, key, board }
+```
+
+### 学びの要点
+- **Application Service は"薄い"＝業務ルールを持たない**：計算（採点）は Domain Service、整列・上限は Aggregate/Repository、通知は Event に**委譲するだけ**。App Service 自身は「順番に呼ぶ」調停に徹する。テストで「App Service が独自計算していない（record が `sessionToRecord` の結果と完全一致）」を固定したのがその証明。
+- **capstone＝全部品が1本に集まる**：VO(EndCondition)→Entity(TypingSession)→Factory→Domain Service(sessionToRecord)→Aggregate(RankingBoard)→Repository→Domain Event の**全部**がこの1関数で協調する。戦術パターンは単体では小さいが、ユースケースで組み合わさって初めて「アプリの1操作」になる。
+- **依存はすべて注入**：`repository`・`bus` を引数で受ける（Port）。App Service はどの永続化・どのバス実装かを知らない＝テストは in-memory で完結。
+- **現実との関係**：既存の「プレイ完走→記録保存→多タブ通知」は、この App Service の形に寄せられる（実フックからの呼び出しは今回は未配線＝加算的。棚卸しでも "実利は薄い" と評価した通り、学習用の完成形）。
+
+---
+
+## 13. Phase 9 記録：Bounded Context / Context Map（戦略）
+
+Phase 0 で素描した文脈候補を、戦術を作った経験を踏まえて具体化する。
+
+### 4つの文脈（候補）と、そこに属する戦術部品
+| 文脈 | 種別 | 属する部品（今回作った/既存） | ユビキタス言語 |
+|---|---|---|---|
+| **Play** | コア | `domain/{romaji,typing,marathon,words,dictionary,touch,story}`・`TypingSession`(Entity)・`Factory`・`EndCondition`(VO) | passage/drill/quiz・acceptsRomaji・score・shouldFinish・session |
+| **Records** | 支援 | `RankingBoard`(Aggregate)・`RankingRepository`・`sessionToRecord`(Service)・`recordSpecs`・`recKey` | record・ranking・rankInsert・isRecordable |
+| **Content** | 支援 | `content/*.ndjson`→生成物・`domain/*/…set.js` の出題データ | word/dict/sentence/story・level/theme |
+| **Persistence** | 汎用 | `application/persist/*`・`infrastructure/{db,persist}/*` | backend・image・write-through・hydrate・主/副タブ |
+
+### 学びの要点
+- **同じ「記録」でも文脈で意味が違う**：Play にとって記録は「終わったら生まれる副産物」、Records にとっては「並べ替え・保持する主役」、Persistence にとっては「SQLite の行」。**1つのモデルを全文脈で共有しない**のが Bounded Context の要点（同じ語 record が文脈ごとに別の関心を持つ）。
+- **境界は"言葉が一貫して通じる範囲"**：Play 内では `session`/`shouldFinish` が自然に通じ、Persistence 内では `hydrate`/`write-through` が通じる。用語がブレる所が境界の候補。
+- **この規模での正直な評価**：単一デプロイの小アプリなので**物理的な境界（別モジュール/別サービス）は過剰**。だが「文脈ごとにモデルと語彙を分けて考える」思考法は、機能追加時に「どの文脈の話か」を問える点で有効。→ 棚卸しの「戦略 DDD は大半が非該当」と整合（実装はしないが、考え方は使える）。
+
+### Context Map（関係）
+```
+  Play ──(記録を生む/Customer)──▶ Records ──(集約を保存)──▶ Persistence
+   │  Supplier                       │                        │ (ACL)
+   └──(教材を使う)──▶ Content        └──(集約を出し入れ)──────┘  ▼ 外部技術(sqlite/OPFS/FSA)
+```
+
+---
+
+## 14. Phase 10 記録：連携パターン（ACL / Shared Kernel / Published Language・戦略）
+
+文脈間・外部との連携を DDD の語で明示する（既に"相当物"は存在＝命名・自覚がゴール）。
+
+| パターン | このコードの実体 | 意味 |
+|---|---|---|
+| **Anti-Corruption Layer（ACL）** | `infrastructure/db/initStorage.js` の `handle`＋`db/repos/_codec.js`（列⇄record 翻訳）＋`sqliteWorker` | 外部技術（`@sqlite.org/sqlite-wasm`・OPFS・postMessage）の詳細が Persistence/Records のモデルに**侵食しないよう変換**。Records は「集約を save/load」しか知らず、SQL/列/Worker を知らない。**Phase 1 の「厳格な生成＋寛容な入口（normalize）」も同じ発想**＝外界の乱れを堰き止める層。 |
+| **Shared Kernel** | `@tll/core`（romaji/typing の純ロジック）を app・`@tll/ui`・claude.ai/design が共有 | 複数利用者が**合意の上で共有する中核**。変更は影響範囲が広い＝慎重に。※単一著者の内部共有で本義（別チーム合意）とは異なる。 |
+| **Published Language** | `content/*.ndjson`（正典）→ 生成物 `src/content/*Data.js`／`@tll/ui` の型 export | 交換のための**文書化された共通フォーマット**。教材の正典を NDJSON に定め、生成物はそれに従う。 |
+| **Open Host Service（相当）** | `@tll/core`/`@tll/ui` の barrel（`index.ts`）＝公開インターフェース | 多数の利用者向けに公開された入口。 |
+| **Customer / Supplier** | Play（上流＝記録を生む）→ Records（下流＝受けて並べる） | 上流の変更が下流に影響する協力関係（単一コードゆえチーム交渉は無いが、依存の向きは同じ）。 |
+
+### 学びの要点
+- **DDD の戦略パターンは"新しく作る"より"既にある関係に名前を付ける"ことが多い**：ACL も Shared Kernel も Published Language も、実は #264 の永続化や `@tll/core` 分離で**既に実現していた**。名前を与えると「なぜその層があるか」をチームで共有でき、壊してよい/いけない境界が明確になる。
+- **ACL が最重要**：外部技術（sqlite-wasm）への依存を1点に閉じ込めているから、将来 IndexedDB 等へ替えても Records/Play は無傷。境界を守る投資が効いている。
+
+---
+
+## 15. 総括：この学習で何を得たか
+
+| レイヤ | 採用の実態（学習後） |
+|---|---|
+| **戦術（Phase 1-8）** | VO/Entity/Factory/Domain Service/Aggregate/Repository/Specification/Domain Event/Application Service を**一通り実装して体得**。ただし多くは `domain/` に**加算的**に作った学習用で、リリース済みの本番経路（records.js/*Db/フック）には未配線（安全優先）。 |
+| **戦略（Phase 0,9,10）** | Bounded Context/Context Map/連携パターンを**言語化**。物理的な境界分割はこの規模では過剰だが、「文脈ごとにモデルと語彙を分ける」思考と、既存の ACL/Shared Kernel/Published Language への**自覚**を得た。 |
+
+### 一番の学び（3つ）
+1. **部品は単体では小さく、ユースケースで組み合わさって意味を持つ**（Phase 8 の capstone で VO→…→Event が1本に繋がった）。
+2. **DDD が要求するのは"不変条件の保護"であって mutation の有無ではない**（Entity＝可変・Aggregate＝不変、どちらでも不変条件は守れた）。
+3. **過剰適用への自制**：この規模では集約/Repository/戦略 DDD の多くは"実利が薄い学習"。**いつ使うか（不変条件が重い・条件が絡む・境界がブレる）を判断できる**ことが、パターンを覚えること以上に重要。
+
+### 今後（任意）
+- 本番採用したいものだけ選んで配線する（例：`endCondition` VO は既に本番化済み＝Phase 1 が唯一"実利ありで採用"）。
+- 残りの戦術部品（Entity/Aggregate/Repository/Event/App Service）は `domain/`・`application/` に学習用として在り、必要になった時の下地になる。
+
+---
+
+_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走。_
