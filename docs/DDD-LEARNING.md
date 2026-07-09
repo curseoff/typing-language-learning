@@ -156,7 +156,30 @@
 ### 補足（この関数型コードベースでの割り切り）
 domain の他コードは純関数・不変で統一されているが、Entity はあえて**メソッドで状態を変える可変オブジェクト**にした。これは「Entity は本質的に stateful」という DDD の主張を体験するための意図的な対比。実運用でこの Entity を使う（Phase 8 で `use*` フックから駆動する）かは別途判断する。
 
-> 次：**Phase 3（Aggregate + Aggregate Root + Invariant）** — 記録ランキングを `RankingBoard` 集約に。top15・並び順の不変条件を集約ルートが保証する。
+---
+
+## 7. Phase 3 記録：Aggregate / Aggregate Root / Invariant（RankingBoard）
+
+**やったこと**：記録ランキングを `RankingBoard` **集約**として新設（`domain/records/rankingBoard.js`）。集約ルートが「top15・整列」の**不変条件を保証**する。
+
+### 集約の3要素をこのコードでどう表したか
+| 要素 | 実装 |
+|---|---|
+| **集約（Aggregate）** | `RankingBoard` = ルート＋内部の記録エントリ群（値）を1つの整合性単位として束ねる。 |
+| **集約ルート（Aggregate Root）** | `RankingBoard` オブジェクト。外部は**ルート経由でのみ**記録を追加できる（`submit`）。内部 entries を直接触れない。 |
+| **不変条件（Invariant）** | 「entries は常に `compareRecords(endCondition)` で整列済み・`MAX_RECORDS`(15) 件以下」。**生成時に正規化**し、`submit` でも維持。どの操作の後も真。 |
+
+### 学びの要点
+- **不変条件を"守る場所"を1点に集約した**：これまで `rankInsert`（純関数）は誰でも直接呼べた＝不変条件を守る責任が呼び出し側に散っていた。集約はそれを**ルートの内側に隠蔽**（`rankInsert` は module 内でのみ使用）し、「記録は `submit` を通してしか入らない＝常に整列・上限が守られる」を構造で保証する。これが「集約＝整合性の境界」。
+- **境界の外からは entries を壊せない**：`entries()` は凍結スナップショットを返すのみ。外から配列を書き換えても集約内部は不変（カプセル化）。不変条件を守るには「内部状態を晒さない」が前提。
+- **集約ルートは Entity（同一性を持つ）**：`RankingBoard` の identity は `key`（recKey 相当）。`rankingBoardEquals` は key 一致で等価＝どのランキングか、で同一性を判断。中の記録（値）が変わっても「同じランキング」。
+- **集約は VO を内包する**：`endCondition`（Phase 1 VO）を持ち、並び順の規則（`compareRecords`）を決める。VO→Entity→Aggregate と**部品が積み上がっている**のが見える（VO を Entity が持ち、Entity 的な集約ルートがそれを使う）。
+- **可変/不変は集約の本質と直交**：今回 `submit(record)` を**イミュータブル**（新しい board を返し元は不変）にした。Phase 2 の Entity は可変メソッドだった。**どちらでも「ルートが不変条件を守る」は成立する**——DDD が要求するのは「不変条件の保護」であって「mutation するかどうか」ではない、という重要な気づき。この関数型コードベースには不変スタイルが馴染む。
+
+### 「集約があって初めて Repository が意味を持つ」への布石
+次の Phase 4（Repository）は、この `RankingBoard` を**丸ごと保存・再構築する抽象**を作る。集約という「保存の単位」が定義できたので、Repository が「コレクションのように集約を出し入れする」意味を持てる（集約なき Repository はただの DAO）。
+
+> 次：**Phase 4（Repository）** — `RankingRepository`（Port を domain/application、実装を infra の `*Db`）で `RankingBoard` を永続化無知に出し入れする。
 
 ---
 
