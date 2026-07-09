@@ -11,10 +11,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWords } from './useWords.js'
 import { WORDS } from '../content/wordsAll.js'
-import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
+import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'
 
 beforeEach(() => {
   localStorage.clear()
+  initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
   vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
 })
 afterEach(() => vi.useRealTimers())

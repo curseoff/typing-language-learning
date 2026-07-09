@@ -3,9 +3,11 @@
 // recordItemStat はモックして呼び出し引数を検証する。performance.now は fake timer で制御する。
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
-import { recordItemStat } from '../infrastructure/itemStatsRepository.js'
+// itemTracker は記録ファサード(records.js)の recordItemStat を呼ぶ（infra 直呼びは撤去）。
+// 呼び出し引数を検証するため facade をモックする。
+import { recordItemStat } from './records.js'
 
-vi.mock('../infrastructure/itemStatsRepository.js', () => ({
+vi.mock('./records.js', () => ({
   recordItemStat: vi.fn(),
 }))
 

@@ -2,39 +2,17 @@
 // UI(.jsx) もフックも infrastructure を直接 import せず、ここ経由で記録を読み書きする
 // （依存方向 ui → application → infrastructure を守るため。infra 直 import は facade のみ）。
 //
-// #266 Phase3a：キルスイッチで2実装を同居させる。
-//   backend='local'（既定）… 現行 localStorage リポジトリを素通し（挙動不変）。
+// #274 スライス2：永続化を sqlite 専用へ転換。localStorage 経路は撤去し、非sqlite の既定は
+//   backend='memory'（既定）… メモリ像 image のみで読み書き（非永続・localStorage を一切触らない）。
 //   backend='sqlite'      … 起動時に構築したメモリ像から同期読み／save はメモリ像を即時更新して
-//                            同期で更新後マップ（現行と同形）を返し、Worker への差分書き込みは
-//                            write-queue 経由で fire-and-forget（write-through）。
-// 同期シグネチャ・戻り値の形は現行据え置き（消費側は無改修で両バックエンドを通す）。
-import {
-  loadWordRecords as lsLoadWordRecords,
-  saveWordRecord as lsSaveWordRecord,
-  wordRecKey,
-} from '../infrastructure/wordsRepository.js'
-import {
-  loadDictRecords as lsLoadDictRecords,
-  saveDictRecord as lsSaveDictRecord,
-  dictRecKey,
-} from '../infrastructure/dictRepository.js'
-import {
-  loadStoryRecords as lsLoadStoryRecords,
-  loadAllStoryRecords as lsLoadAllStoryRecords,
-  saveStoryRecord as lsSaveStoryRecord,
-  saveFound as lsSaveFound,
-  loadFound as lsLoadFound,
-  storyRecKey,
-} from '../infrastructure/storyRepository.js'
-import {
-  loadRecords as lsLoadRecords,
-  saveRecord as lsSaveRecord,
-} from '../infrastructure/recordsRepository.js'
-import {
-  loadItemStats as lsLoadItemStats,
-  recordItemStat as lsRecordItemStat,
-  itemId,
-} from '../infrastructure/itemStatsRepository.js'
+//                            同期で更新後マップを返し、Worker への差分書き込みは write-queue 経由で
+//                            fire-and-forget（write-through）。
+// memory/sqlite の両モードとも read/write はメモリ像 image を経由する（消費側は無改修）。
+// キー生成（recKey/itemId）だけは各リポジトリの純粋関数を継続 import する。
+import { wordRecKey } from '../infrastructure/wordsRepository.js'
+import { dictRecKey } from '../infrastructure/dictRepository.js'
+import { storyRecKey } from '../infrastructure/storyRepository.js'
+import { itemId } from '../infrastructure/itemStatsRepository.js'
 import {
   buildImage,
   applySaveRecord,
@@ -47,9 +25,9 @@ import {
 import { createWriteQueue } from './persist/writeQueue.js'
 
 // ── バックエンド状態（モジュール内シングルトン）──
-let backend = 'local'
-let image = null // sqlite 時の全記録のメモリ像（buildImage の6マップ）
-let queue = null // Worker への差分書き込みを直列化する write-queue（主タブのみ）
+let backend = 'memory' // 'memory'（既定・非永続）| 'sqlite'
+let image = buildImage() // 全記録のメモリ像（buildImage の6マップ・未初期化でも空像で安全に読める）
+let queue = null // Worker への差分書き込みを直列化する write-queue（sqlite 主タブのみ・memory は null）
 
 // #273 Phase3b: 多タブ協調の状態。主タブ＝書込み可（write-through＋change broadcast）、
 // 副タブ＝read-only（メモリ像は当該タブ表示用に楽観更新するが Worker 書込みも通知もしない）。
@@ -69,6 +47,16 @@ export function initSqlitePersistence(handle, initialImage, opts = {}) {
   role = 'primary'
   epoch = opts.epoch ?? epoch
   broadcastChange = opts.onChange ?? null
+}
+
+// 非sqlite の既定＝memory モードを確立する（非永続・メモリ像のみ・localStorage を触らない）。
+// initialImage を渡せばその像から開始（省略時は空像）。テストの状態リセットにも使う。
+export function initMemoryPersistence(initialImage) {
+  image = buildImage(initialImage)
+  queue = null
+  backend = 'memory'
+  role = 'primary'
+  broadcastChange = null
 }
 
 // 副タブとして sqlite バックエンドを有効化する（read-only）。initialImage は主から受領した snapshot。
@@ -132,25 +120,24 @@ function writeThrough(op) {
     secondaryWriteAttempted = true
     return
   }
+  if (!queue) return // memory: メモリ像のみ・非永続（Worker が無くてもクラッシュしない）
   queue.enqueue(op)
   if (broadcastChange) broadcastChange(epoch)
 }
 
 // ── ランキング（モード別）の読み書き ──
 export function loadWordRecords() {
-  return isSqlite() ? image.wordRecords : lsLoadWordRecords()
+  return image.wordRecords
 }
 export function saveWordRecord(record) {
-  if (!isSqlite()) return lsSaveWordRecord(record)
   image = { ...image, wordRecords: applySaveWordRecord(image.wordRecords, record) }
   writeThrough({ repo: 'word', args: [record] })
   return image.wordRecords
 }
 export function loadDictRecords() {
-  return isSqlite() ? image.dictRecords : lsLoadDictRecords()
+  return image.dictRecords
 }
 export function saveDictRecord(record) {
-  if (!isSqlite()) return lsSaveDictRecord(record)
   image = { ...image, dictRecords: applySaveDictRecord(image.dictRecords, record) }
   writeThrough({ repo: 'dict', args: [record] })
   return image.dictRecords
@@ -158,33 +145,29 @@ export function saveDictRecord(record) {
 
 // ── 物語（発見エンド＋記録）──
 export function loadStoryRecords(storyId, endCondition) {
-  if (!isSqlite()) return lsLoadStoryRecords(storyId, endCondition)
   return image.storyRecords[storyRecKey(storyId, endCondition)] || []
 }
 export function loadAllStoryRecords() {
-  return isSqlite() ? image.storyRecords : lsLoadAllStoryRecords()
+  return image.storyRecords
 }
 export function saveStoryRecord(storyId, record) {
-  if (!isSqlite()) return lsSaveStoryRecord(storyId, record)
   image = { ...image, storyRecords: applySaveStoryRecord(image.storyRecords, storyId, record) }
   writeThrough({ repo: 'story', args: [storyId, record] })
   return image.storyRecords[storyRecKey(storyId, record.endCondition)] || []
 }
 export function saveFound(storyId, ids) {
-  if (!isSqlite()) return lsSaveFound(storyId, ids)
   image = { ...image, storyFound: applySaveFound(image.storyFound, storyId, ids) }
   writeThrough({ repo: 'found', args: [storyId, ids] })
 }
 export function loadFound(storyId) {
-  return isSqlite() ? image.storyFound[storyId] || [] : lsLoadFound(storyId)
+  return image.storyFound[storyId] || []
 }
 
 // ── マラソンの記録 I/O（読み書き）。UI 合成層(App.jsx)の記録窓口をここに一本化 ──
 export function loadRecords() {
-  return isSqlite() ? image.records : lsLoadRecords()
+  return image.records
 }
 export function saveRecord(record) {
-  if (!isSqlite()) return lsSaveRecord(record)
   image = { ...image, records: applySaveRecord(image.records, record) }
   writeThrough({ repo: 'records', args: [record] })
   return image.records
@@ -204,11 +187,10 @@ export function dictRanking(level, theme, mode, endCondition) {
 
 // ── 問題ごとの収録統計 ──
 export function loadItemStats() {
-  return isSqlite() ? image.itemStats : lsLoadItemStats()
+  return image.itemStats
 }
 // 問題別の累積統計を1件記録する（F-1：item_stats もファサードに集約）。戻り値は更新後マップ。
 export function recordItemStat(id, delta) {
-  if (!isSqlite()) return lsRecordItemStat(id, delta)
   image = { ...image, itemStats: applyRecordItemStat(image.itemStats, id, delta) }
   writeThrough({ repo: 'item', args: [id, delta] })
   return image.itemStats
