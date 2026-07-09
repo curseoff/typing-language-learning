@@ -43,6 +43,11 @@ export default defineConfig({
         'src/infrastructure/db/sqliteWorker.js',
         'src/infrastructure/db/initStorage.js',
         'src/infrastructure/db/migrations.js',
+        // #273 Phase3b: Web Locks 主タブ選出＋BroadcastChannel 伝播＋handoff 昇格の配線。
+        // navigator.locks/BroadcastChannel/Worker は jsdom/node で単体計測できない＝上記 db/* と
+        // 同種のブラウザ API エントリ配線として計測除外。純ロジック（election/secondaryMessage）は
+        // 計測対象（各 spec で被覆）。実挙動は pwa-verifier の実ブラウザ検証で担保する。
+        'src/infrastructure/persist/multiTab.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
