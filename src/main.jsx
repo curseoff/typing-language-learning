@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './App.css'
-import { resolvePersistBackend, chooseBackend } from './application/persist/backend.js'
+import { resolvePersistBackend, diagnosePersistFallback } from './application/persist/backend.js'
 import { initStorage } from './infrastructure/db/initStorage.js'
 import { electionTransition } from './application/persist/election.js'
 import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
@@ -11,6 +11,7 @@ import { ensurePersistentStorage } from './infrastructure/persist/persistentStor
 import {
   initSqlitePersistence,
   initSecondaryPersistence,
+  initMemoryPersistence,
   promoteToPrimary,
   replaceImage,
   getPersistImage,
@@ -21,9 +22,9 @@ import { setPersistNotice } from './application/persist/persistNotice.js'
 
 // 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する
 // （#266 Phase3a：メモリ像＋write-through、#273 Phase3b：主タブ選出＋副タブ read-only＋
-// BroadcastChannel 伝播＋handoff 昇格）。キルスイッチ既定は 'local'＝現行 localStorage（挙動不変）。
-// sqlite は ?persist=sqlite 等でのみ有効。フェイルセーフ：どこで失敗しても例外を投げず local へ縮退し、
-// render は必ず続行する（アプリを止めない）。
+// BroadcastChannel 伝播＋handoff 昇格）。#274：sqlite 専用へ転換し既定は 'sqlite'、localStorage 経路は廃止。
+// OPFS/Worker/Web Locks を満たさない環境は 'memory'＝非永続（メモリのみ／リロードで記録は消える）へ縮退する。
+// フェイルセーフ：どこで失敗しても例外を投げず memory で render は必ず続行する（アプリを止めない）。
 async function setupPersistence() {
   try {
     const params = new URLSearchParams(window.location.search)
@@ -32,17 +33,18 @@ async function setupPersistence() {
       ls: localStorage.getItem('persist-backend'),
       env: import.meta.env.VITE_PERSIST_BACKEND,
     })
-    const backend = chooseBackend({
+    const { backend, reason } = diagnosePersistFallback({
       desired,
       opfsOk: !!(navigator.storage && 'getDirectory' in navigator.storage),
       workerOk: typeof Worker !== 'undefined',
       locksSupported: 'locks' in navigator,
     })
-    // sqlite を要求したのに能力不足で local へ縮退したら、控えめに告知する（#268 Phase5a）。
-    // 既定 local（意図的な local）では desired も local＝告知しない＝挙動不変。
+    // memory へ縮退したら非永続モードを明示確立する。能力不足で非永続になった場合だけ控えめに告知し、
+    // ?persist=memory 等の意図的 memory（reason='forced-memory'）では告知しない（#274）。
     if (backend !== 'sqlite') {
-      if (desired === 'sqlite') setPersistNotice('fallback')
-      return // local はここで何もしない（現行の localStorage 経路）
+      initMemoryPersistence()
+      if (reason !== 'forced-memory') setPersistNotice('fallback')
+      return // memory はここで何もしない（OPFS/多タブ処理はしない）
     }
 
     // #267 Phase4: eviction 抑止のため永続ストレージを明示取得（可否はログのみ・失敗しても続行）。
@@ -78,7 +80,7 @@ async function setupPersistence() {
     // （無言 write は許可済みのときだけ実行し失敗は握る）。未設定・FSA 非対応・local では no-op（挙動不変）。
     scheduleExternalBackup()
   } catch (e) {
-    console.warn('[persist] 永続化の初期化に失敗。localStorage で続行します。', e)
+    console.warn('[persist] 永続化の初期化に失敗。memory（非永続）で続行します。', e)
   }
 }
 
