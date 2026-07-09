@@ -1,9 +1,10 @@
-/* 効果音のミュート切替ボタン（SoundToggle presenter）。左上に控えめに固定表示（オフライン=上部中央／
+/* 効果音のミュート切替ボタン（SoundToggle presenter）。#286 で全幅ヘッダバーを最上部に置いたため、
+   バーと重ならないよう右上（バー右端の内側・トリガの高さ内）に控えめに固定表示する（オフライン=上部中央／
    更新トースト=下部中央／インストール=右下／フォールバック告知・DEVパネル=左下 と位置で棲み分け）。常時表示。 */
 .sound-toggle {
   position: fixed;
-  top: 12px;
-  left: 16px;
+  top: 3px;
+  right: 12px;
   z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
   display: inline-flex;
   align-items: center;
@@ -13,7 +14,7 @@
   padding: 0;
   color: var(--muted);
   background: var(--panel);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 999px;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
