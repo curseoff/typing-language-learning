@@ -88,12 +88,15 @@ export default function MenuBarView({
                       // 発火は enabled のときだけ（disabled 属性の保険としても二重に守る）。
                       onClick={() => item.enabled && onSelect(item.id)}
                     >
-                      {item.icon && (
-                        <span className="menu-bar__option-icon" aria-hidden="true">
-                          {item.icon}
-                        </span>
-                      )}
-                      <span className="menu-bar__option-label">{item.label}</span>
+                      {/* 1行目：アイコン＋ラベル（折り返さない）。理由は2行目に置く（縦2段）。 */}
+                      <span className="menu-bar__option-main">
+                        {item.icon && (
+                          <span className="menu-bar__option-icon" aria-hidden="true">
+                            {item.icon}
+                          </span>
+                        )}
+                        <span className="menu-bar__option-label">{item.label}</span>
+                      </span>
                       {!item.enabled && item.reason && (
                         <span className="menu-bar__option-reason">{item.reason}</span>
                       )}

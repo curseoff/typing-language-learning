@@ -24,7 +24,6 @@ import AllRecordsView from './ui/records/AllRecordsView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
-import InstallButton from './ui/pwa/InstallButton.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
 import PersistNotice from './ui/pwa/PersistNotice.jsx'
 import SoundToggle from './ui/sound/SoundToggle.jsx'
@@ -605,7 +604,6 @@ export default function App() {
       <SoundToggle />
       <OfflineBanner />
       <UpdateToast />
-      <InstallButton />
       <ContentFallbackNotice />
       <PersistNotice />
     </div>
