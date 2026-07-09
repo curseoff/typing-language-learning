@@ -24,7 +24,7 @@ export function getStorageHandle() {
 }
 
 // 保存基盤の起動が settle したか（成功/失敗どちらも true）。initStorage を呼ばない local/副タブは false のまま。
-// #269 Phase6: DataBackupBar が起動完了を待って導線可否（handle 準備）を再評価するための参照安定な primitive。
+// #269 Phase6: AppMenuBar（データメニュー）が起動完了を待って導線可否（handle 準備）を再評価するための参照安定な primitive。
 export function isStorageReady() {
   return storageReady
 }
