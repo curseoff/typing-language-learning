@@ -254,8 +254,90 @@ VO を Entity が持ち、Entity を Factory が作り、Entity から Service �
 - **このアプリの現状との対応**：既存の `records.js` の `broadcastChange`（多タブ通知）や `itemTracker`（収録統計）は、本来 `RecordAchieved` を購読して反応する形にできる。ただし今回は**加算的に導入**し、リリース済みの実配線は変えていない（安全優先）。実導入すると「記録保存の中で通知や統計更新を直接呼ぶ」密結合をイベント購読へ置き換えられる、というのが狙い。
 - **正直な適用範囲**：単純な同期処理では過剰。「1つの出来事に複数の"ついで処理"がぶら下がる／それが増える」時に疎結合が効く。イベントソーシング（Phase 棚卸しで非該当）とは別物＝ここでは"通知"としてのイベント。
 
-> 次：**Phase 8（Application Service）** — これまでの全部品（Factory・Entity・Domain Service・Aggregate・Repository・Event）を**1つのユースケースに調停する薄い層**を作る（capstone）。
+---
+
+## 12. Phase 8 記録：Application Service（capstone）
+
+**やったこと**：`recordFinishedSession`（`application/records/recordFinishedSession.js`）＝これまでの全戦術部品を**1つのユースケースに調停する薄い層**。
+
+```
+recordFinishedSession({ session, meta, repository, bus })
+  1. record = sessionToRecord(session, meta)        ← Domain Service（変換）
+  2. key    = recKey(meta..., session.endCondition) ← Domain（VO を使う）
+  3. board  = repository.submitRecord(key, ec, record) ← Repository（集約を RMW・不変条件維持）
+  4. bus.publish(sessionFinishedEvent(...))         ← Domain Event（通知）
+  5. bus.publish(recordAchievedEvent(...))
+  return { record, key, board }
+```
+
+### 学びの要点
+- **Application Service は"薄い"＝業務ルールを持たない**：計算（採点）は Domain Service、整列・上限は Aggregate/Repository、通知は Event に**委譲するだけ**。App Service 自身は「順番に呼ぶ」調停に徹する。テストで「App Service が独自計算していない（record が `sessionToRecord` の結果と完全一致）」を固定したのがその証明。
+- **capstone＝全部品が1本に集まる**：VO(EndCondition)→Entity(TypingSession)→Factory→Domain Service(sessionToRecord)→Aggregate(RankingBoard)→Repository→Domain Event の**全部**がこの1関数で協調する。戦術パターンは単体では小さいが、ユースケースで組み合わさって初めて「アプリの1操作」になる。
+- **依存はすべて注入**：`repository`・`bus` を引数で受ける（Port）。App Service はどの永続化・どのバス実装かを知らない＝テストは in-memory で完結。
+- **現実との関係**：既存の「プレイ完走→記録保存→多タブ通知」は、この App Service の形に寄せられる（実フックからの呼び出しは今回は未配線＝加算的。棚卸しでも "実利は薄い" と評価した通り、学習用の完成形）。
 
 ---
 
-_この文書は #290 の学習記録。各 Phase 完了時に追記していく。_
+## 13. Phase 9 記録：Bounded Context / Context Map（戦略）
+
+Phase 0 で素描した文脈候補を、戦術を作った経験を踏まえて具体化する。
+
+### 4つの文脈（候補）と、そこに属する戦術部品
+| 文脈 | 種別 | 属する部品（今回作った/既存） | ユビキタス言語 |
+|---|---|---|---|
+| **Play** | コア | `domain/{romaji,typing,marathon,words,dictionary,touch,story}`・`TypingSession`(Entity)・`Factory`・`EndCondition`(VO) | passage/drill/quiz・acceptsRomaji・score・shouldFinish・session |
+| **Records** | 支援 | `RankingBoard`(Aggregate)・`RankingRepository`・`sessionToRecord`(Service)・`recordSpecs`・`recKey` | record・ranking・rankInsert・isRecordable |
+| **Content** | 支援 | `content/*.ndjson`→生成物・`domain/*/…set.js` の出題データ | word/dict/sentence/story・level/theme |
+| **Persistence** | 汎用 | `application/persist/*`・`infrastructure/{db,persist}/*` | backend・image・write-through・hydrate・主/副タブ |
+
+### 学びの要点
+- **同じ「記録」でも文脈で意味が違う**：Play にとって記録は「終わったら生まれる副産物」、Records にとっては「並べ替え・保持する主役」、Persistence にとっては「SQLite の行」。**1つのモデルを全文脈で共有しない**のが Bounded Context の要点（同じ語 record が文脈ごとに別の関心を持つ）。
+- **境界は"言葉が一貫して通じる範囲"**：Play 内では `session`/`shouldFinish` が自然に通じ、Persistence 内では `hydrate`/`write-through` が通じる。用語がブレる所が境界の候補。
+- **この規模での正直な評価**：単一デプロイの小アプリなので**物理的な境界（別モジュール/別サービス）は過剰**。だが「文脈ごとにモデルと語彙を分けて考える」思考法は、機能追加時に「どの文脈の話か」を問える点で有効。→ 棚卸しの「戦略 DDD は大半が非該当」と整合（実装はしないが、考え方は使える）。
+
+### Context Map（関係）
+```
+  Play ──(記録を生む/Customer)──▶ Records ──(集約を保存)──▶ Persistence
+   │  Supplier                       │                        │ (ACL)
+   └──(教材を使う)──▶ Content        └──(集約を出し入れ)──────┘  ▼ 外部技術(sqlite/OPFS/FSA)
+```
+
+---
+
+## 14. Phase 10 記録：連携パターン（ACL / Shared Kernel / Published Language・戦略）
+
+文脈間・外部との連携を DDD の語で明示する（既に"相当物"は存在＝命名・自覚がゴール）。
+
+| パターン | このコードの実体 | 意味 |
+|---|---|---|
+| **Anti-Corruption Layer（ACL）** | `infrastructure/db/initStorage.js` の `handle`＋`db/repos/_codec.js`（列⇄record 翻訳）＋`sqliteWorker` | 外部技術（`@sqlite.org/sqlite-wasm`・OPFS・postMessage）の詳細が Persistence/Records のモデルに**侵食しないよう変換**。Records は「集約を save/load」しか知らず、SQL/列/Worker を知らない。**Phase 1 の「厳格な生成＋寛容な入口（normalize）」も同じ発想**＝外界の乱れを堰き止める層。 |
+| **Shared Kernel** | `@tll/core`（romaji/typing の純ロジック）を app・`@tll/ui`・claude.ai/design が共有 | 複数利用者が**合意の上で共有する中核**。変更は影響範囲が広い＝慎重に。※単一著者の内部共有で本義（別チーム合意）とは異なる。 |
+| **Published Language** | `content/*.ndjson`（正典）→ 生成物 `src/content/*Data.js`／`@tll/ui` の型 export | 交換のための**文書化された共通フォーマット**。教材の正典を NDJSON に定め、生成物はそれに従う。 |
+| **Open Host Service（相当）** | `@tll/core`/`@tll/ui` の barrel（`index.ts`）＝公開インターフェース | 多数の利用者向けに公開された入口。 |
+| **Customer / Supplier** | Play（上流＝記録を生む）→ Records（下流＝受けて並べる） | 上流の変更が下流に影響する協力関係（単一コードゆえチーム交渉は無いが、依存の向きは同じ）。 |
+
+### 学びの要点
+- **DDD の戦略パターンは"新しく作る"より"既にある関係に名前を付ける"ことが多い**：ACL も Shared Kernel も Published Language も、実は #264 の永続化や `@tll/core` 分離で**既に実現していた**。名前を与えると「なぜその層があるか」をチームで共有でき、壊してよい/いけない境界が明確になる。
+- **ACL が最重要**：外部技術（sqlite-wasm）への依存を1点に閉じ込めているから、将来 IndexedDB 等へ替えても Records/Play は無傷。境界を守る投資が効いている。
+
+---
+
+## 15. 総括：この学習で何を得たか
+
+| レイヤ | 採用の実態（学習後） |
+|---|---|
+| **戦術（Phase 1-8）** | VO/Entity/Factory/Domain Service/Aggregate/Repository/Specification/Domain Event/Application Service を**一通り実装して体得**。ただし多くは `domain/` に**加算的**に作った学習用で、リリース済みの本番経路（records.js/*Db/フック）には未配線（安全優先）。 |
+| **戦略（Phase 0,9,10）** | Bounded Context/Context Map/連携パターンを**言語化**。物理的な境界分割はこの規模では過剰だが、「文脈ごとにモデルと語彙を分ける」思考と、既存の ACL/Shared Kernel/Published Language への**自覚**を得た。 |
+
+### 一番の学び（3つ）
+1. **部品は単体では小さく、ユースケースで組み合わさって意味を持つ**（Phase 8 の capstone で VO→…→Event が1本に繋がった）。
+2. **DDD が要求するのは"不変条件の保護"であって mutation の有無ではない**（Entity＝可変・Aggregate＝不変、どちらでも不変条件は守れた）。
+3. **過剰適用への自制**：この規模では集約/Repository/戦略 DDD の多くは"実利が薄い学習"。**いつ使うか（不変条件が重い・条件が絡む・境界がブレる）を判断できる**ことが、パターンを覚えること以上に重要。
+
+### 今後（任意）
+- 本番採用したいものだけ選んで配線する（例：`endCondition` VO は既に本番化済み＝Phase 1 が唯一"実利ありで採用"）。
+- 残りの戦術部品（Entity/Aggregate/Repository/Event/App Service）は `domain/`・`application/` に学習用として在り、必要になった時の下地になる。
+
+---
+
+_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走。_
