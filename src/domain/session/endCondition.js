@@ -1,4 +1,5 @@
-// セッションの終了条件を判定する純粋関数群（#208 段0）。
+// セッションの終了条件（EndCondition）。#208 段0 の判定関数群＋#290 Phase1 の Value Object。
+// EndCondition は Value Object（不変・自己検証・値等価）＝生成は makeEndCondition に集約する。
 // endCondition={kind,value}、progress={elapsedMs,keys,items,missedItems}。
 // React/DOM/Date/performance 非依存・副作用なし・決定的に保つ（時間の計測は呼び出し側で行い、
 // この層は渡された progress の数値だけで判定する）。
@@ -9,10 +10,50 @@
 //   items   … value 問題の消化で終了（items）
 //   life    … value 個の「ミスした問題」で終了（missedItems）＝ライフ制。
 //             打鍵ミス総数(mistakes)ではなく問題単位で数える（同一問題内の複数ミスは1）。
-//   endless … 終了条件なし（常に false）
+//   endless … 終了条件なし（常に false）。value は持たない（null）。
 
-// 既定の終了条件（60 秒）。
-const DEFAULT_END_CONDITION = { kind: 'time', value: 60 }
+// value を持つ「counted 系」kind（endless 以外の既知 kind）。
+const COUNTED_KINDS = ['time', 'chars', 'items', 'life']
+
+// counted 系の value 制約：正の有限数。
+function isPositiveFinite(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+}
+
+// EndCondition のファクトリ＋自己検証＋不変（凍結）。不変条件違反は throw する。
+//   endless … value を無視して null。
+//   counted系 … value は正の有限数が必須（0/負/NaN/Infinity/非数は throw）。
+//   未知 kind … throw。
+export function makeEndCondition(kind, value) {
+  if (kind === 'endless') return Object.freeze({ kind: 'endless', value: null })
+  if (!COUNTED_KINDS.includes(kind)) {
+    throw new Error(`makeEndCondition: 未知の kind: ${String(kind)}`)
+  }
+  if (!isPositiveFinite(value)) {
+    throw new Error(`makeEndCondition: ${kind} の value は正の有限数が必要: ${String(value)}`)
+  }
+  return Object.freeze({ kind, value })
+}
+
+// 型ガード（throw しない）。x がオブジェクトで kind が既知・value が kind と整合なら true。
+//   endless … value===null、counted系 … value が正の有限数。
+export function isEndCondition(x) {
+  if (x == null || typeof x !== 'object') return false
+  const { kind, value } = x
+  if (kind === 'endless') return value === null
+  if (!COUNTED_KINDS.includes(kind)) return false
+  return isPositiveFinite(value)
+}
+
+// 値等価（throw しない）。両者が妥当な EndCondition で kind・value が一致すれば true。
+// 不正/null は false（endless は value=null===null で一致）。
+export function endConditionEquals(a, b) {
+  if (!isEndCondition(a) || !isEndCondition(b)) return false
+  return a.kind === b.kind && a.value === b.value
+}
+
+// 既定の終了条件（60 秒）。ファクトリ生成の凍結 VO。
+const DEFAULT_END_CONDITION = makeEndCondition('time', 60)
 
 // 終了に達したか。未知 kind は false（勝手に終了させないフェイルセーフ）。
 export function shouldFinish(endCondition, progress) {
@@ -37,11 +78,22 @@ export function shouldFinish(endCondition, progress) {
   }
 }
 
-// 入力を終了条件へ正規化する。null/undefined は既定に落とす。
+// 未信頼入力を終了条件（凍結 VO）へ正規化する入口アダプタ。常に妥当な凍結 VO を返す（throw しない）。
+//   null/undefined … 既定（time,60）。
+//   妥当な {kind,value} … makeEndCondition で凍結 VO 化。
+//   不正（value 不正/未知 kind）… その kind の妥当既定へ寛容フォールバック（不明なら time60）。
 export function normalizeEndCondition(input) {
-  if (input == null) return { ...DEFAULT_END_CONDITION }
-  return { kind: input.kind, value: input.value }
+  if (input == null) return DEFAULT_END_CONDITION
+  const { kind, value } = input
+  if (kind === 'endless') return makeEndCondition('endless')
+  if (!COUNTED_KINDS.includes(kind)) return DEFAULT_END_CONDITION
+  if (isPositiveFinite(value)) return makeEndCondition(kind, value)
+  // kind は妥当だが value が不正＝その kind の既定値へ寛容に落とす。
+  return makeEndCondition(kind, DEFAULT_VALUE_BY_KIND[kind])
 }
+
+// counted 系 kind の寛容フォールバック用の既定値（value 不正時に落とす先）。
+const DEFAULT_VALUE_BY_KIND = { time: 60, chars: 600, items: 25, life: 3 }
 
 // カウントダウンタイマーの制限時間(ms)。時間制は value 秒＝value*1000。
 // 非時間 kind（chars/items/life/endless）は「時間では終わらない」ので Infinity を返す

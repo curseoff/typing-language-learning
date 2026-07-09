@@ -1,7 +1,7 @@
 // 終了条件セレクタの選択肢とラベル（TOP用）。#208 段2b：時間/文字数の2種別。
 // domain/session/endCondition.js の {kind,value} モデルに対応する（value は数値）。
 // 将来 items/life/endless も同じ構造（種別ごとに値・ラベル・単位・既定値）で足せる。
-import { progressRatio } from '../domain/session/endCondition.js'
+import { progressRatio, makeEndCondition } from '../domain/session/endCondition.js'
 export const END_TIME_VALUES = [30, 60, 120, 180] // 時間制の秒数（既定60＝従来挙動）
 export const END_CHARS_VALUES = [300, 600, 1200] // 文字数制の文字数
 export const END_ITEMS_VALUES = [10, 25, 50] // 問題数制の問題数
@@ -18,7 +18,7 @@ export const END_KINDS = [
   { kind: 'endless', label: 'エンドレス', unit: '', values: [], defaultValue: null },
 ]
 
-export const DEFAULT_END_CONDITION = { kind: 'time', value: 60 }
+export const DEFAULT_END_CONDITION = makeEndCondition('time', 60)
 
 // 種別定義を引く（未知は先頭＝時間にフォールバック）。
 export function endKind(kind) {
@@ -27,18 +27,18 @@ export function endKind(kind) {
 
 // 時間制の終了条件を作る。
 export function timeEndCondition(value) {
-  return { kind: 'time', value }
+  return makeEndCondition('time', value)
 }
 
 // 文字数制の終了条件を作る。
 export function charsEndCondition(value) {
-  return { kind: 'chars', value }
+  return makeEndCondition('chars', value)
 }
 
-// 種別の既定値で終了条件を作る（種別チップの切替時に使う）。
+// 種別の既定値で終了条件を作る（種別チップの切替時に使う）。endless は value を持たない。
 export function endConditionForKind(kind) {
   const k = endKind(kind)
-  return { kind: k.kind, value: k.defaultValue }
+  return makeEndCondition(k.kind, k.defaultValue)
 }
 
 // 値チップのラベル（例: "60秒" / "600文字" / "ライフ3"）。
