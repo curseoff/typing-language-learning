@@ -59,6 +59,13 @@ export default defineConfig({
         // （application/persist/recovery.js）・facade（application/recovery.js）は計測対象（各 spec で被覆）。
         'src/ui/pwa/PersistNotice.jsx',
         'src/ui/pwa/usePersistNotice.js',
+        // #278 Phase5b: File System Access（FSA）で外部フォルダへ自動バックアップ／復元するブラウザ API 配線。
+        // showDirectoryPicker / FileSystemDirectoryHandle / IndexedDB（ハンドル永続）は jsdom/node で
+        // 単体計測できない＝上記 db/* と同種のエントリ配線として計測除外。純ロジック（persist/externalBackup.js の
+        // decidePermissionAction/build/parse/toBackupEntries）は計測対象（externalBackup.test.js で被覆）。
+        // 実挙動（実許可・無言 write・消去→復元）は pwa-verifier の実ブラウザ検証と手動実機に委ねる。
+        'src/infrastructure/persist/externalBackupStore.js',
+        'src/application/externalBackup.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
