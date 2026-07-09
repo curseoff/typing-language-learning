@@ -150,17 +150,17 @@ git config ai.signingKey     "~/.ssh/ai-signing.pub" # SSH 署名公開鍵
 
 デスクトップ版は配布していません。**PWA として出荷**しており（インストール可能・オフライン対応）、Electron（`#264` で不採用決定）による同梱ビルドは行いません。ブラウザまたはインストール済み PWA として利用してください。
 
-## 記録（localStorage）
+## 記録（SQLite / OPFS）
 
-記録は種類ごとにキーを分けてブラウザに保存されます。
+記録は **SQLite-WASM + OPFS**（Origin Private File System）に永続化されます（#264）。既定バックエンドは `sqlite`、OPFS/Worker/Web Locks が使えない環境（シークレット/古いブラウザ/iPadOS<16.4 等）では `memory`＝**非永続**（メモリのみ・リロードで消える）へ縮退し、その旨を告知します。記録の読み書きは application ファサード（`src/application/records.js`）経由で、メモリ像＋Worker への write-through（主タブ）で行います。**localStorage による記録の永続化は #274 で廃止**しました（音設定など記録以外の localStorage 用途は残存）。
 
-| 種類 | キー | 単位 |
+| 種類 | テーブル | 単位 |
 |---|---|---|
-| 文章 | `typing-records-v3` | モード×レベル（`${mode}__r${rank}`） |
-| 単語 | `word-records-v2` | レベル×テーマ×モード |
-| 英英辞典 | `dict-records-v1` | レベル×テーマ×モード |
-| 物語（記録） | `story-records-v1` | 速度ランキング |
-| 物語（発見エンド） | `story-endings-v1` | 到達したエンド |
-| 問題ごとの記録 | `item-stats-v1` | `type:mode:key` 別の練習回数/打鍵/ミス/時間（収録一覧で表示） |
+| 文章 | `records` | モード×レベル（`${mode}__r${rank}`） |
+| 単語 | `word_records` | レベル×テーマ×モード |
+| 英英辞典 | `dict_records` | レベル×テーマ×モード |
+| 物語（記録） | `story_records` | 速度ランキング |
+| 物語（発見エンド） | `story_endings` | 到達したエンド |
+| 問題ごとの記録 | `item_stats` | `type:mode:key` 別の練習回数/打鍵/ミス/時間（収録一覧で表示） |
 
-各ランキングは速い順（4択は正解数順）で最大 15 件（`MAX_RECORDS`）。タッチタイピングは記録を保存しません。
+各ランキングは速い順（4択は正解数順）で最大 15 件（`MAX_RECORDS`）。タッチタイピングは記録を保存しません。旧 localStorage の記録は移行しません（正式版前のため）。詳細な永続化の設計は #264 の各 Phase（DB基盤/スキーマ写像/多タブ協調/永続・復元/外部バックアップ）を参照。
