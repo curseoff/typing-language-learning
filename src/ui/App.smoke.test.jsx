@@ -114,10 +114,17 @@ describe('App スモーク', () => {
     expect(tabs.querySelector('.type-tab.sel-focus').textContent).not.toBe(before)
   })
 
+  // #286: TOP の直接リンク（.about-link-row）を撤去し、「このアプリについて」はアプリメニュー内へ移動。
+  // メニューバー先頭のアプリ名トリガ（menuitem）を開いてから項目を選ぶ。
+  const openAboutFromMenu = () => {
+    fireEvent.click(screen.getByRole('menuitem', { name: '英文・和文タイピング' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'このアプリについて' }))
+  }
+
   it('「このアプリについて」で紹介ページへ、「はじめる」でトップへ戻る', () => {
     const { container } = render(<App />)
-    // TOP に控えめな導線が出ている
-    fireEvent.click(screen.getByRole('button', { name: 'このアプリについて' }))
+    // アプリメニュー経由で紹介ページへの導線を辿る
+    openAboutFromMenu()
     // 紹介ページ（LP）が描画され、TOP のタブ列は消える
     expect(container.querySelector('.about')).not.toBeNull()
     expect(container.querySelector('.type-tabs')).toBeNull()
@@ -130,7 +137,7 @@ describe('App スモーク', () => {
 
   it('紹介ページで Esc を押すとトップへ戻る', () => {
     const { container } = render(<App />)
-    fireEvent.click(screen.getByRole('button', { name: 'このアプリについて' }))
+    openAboutFromMenu()
     expect(container.querySelector('.about')).not.toBeNull()
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(container.querySelector('.about')).toBeNull()

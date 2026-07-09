@@ -7,10 +7,11 @@ import { useEffect, useRef } from 'react'
 
 export interface MenuBarItem {
   id: string
-  label: string
+  label?: string
   icon?: string
-  enabled: boolean
+  enabled?: boolean
   reason?: string | null // 表示用の日本語（不可の理由）。null/未指定なら理由なし。
+  separator?: boolean // true のとき区切り線（クリック不可・aria 上も separator）。label/enabled は不要。
 }
 
 export interface MenuBarMenu {
@@ -77,7 +78,15 @@ export default function MenuBarView({
             </button>
             {open && (
               <ul className="menu-bar__dropdown" role="menu" aria-label={menu.label}>
-                {menu.items.map((item) => (
+                {menu.items.map((item) =>
+                  item.separator ? (
+                    // 区切り線：クリック不可・キー/フォーカス対象外（aria 上も separator）。
+                    <li
+                      className="menu-bar__separator"
+                      role="separator"
+                      key={item.id}
+                    />
+                  ) : (
                   <li className="menu-bar__li" role="none" key={item.id}>
                     <button
                       type="button"
@@ -102,7 +111,8 @@ export default function MenuBarView({
                       )}
                     </button>
                   </li>
-                ))}
+                  ),
+                )}
               </ul>
             )}
           </div>

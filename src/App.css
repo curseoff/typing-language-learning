@@ -42,15 +42,15 @@ body {
   max-width: 760px;
   margin: 0 auto;
   padding: 24px 20px 64px;
-  /* 短いコンテンツ（プレイ中・記録が少ない結果など）が上寄せになり画面下部が
-     大きく空くのを防ぐため、残り高さいっぱいの箱にして中身を縦中央へ寄せる。
-     flex:1（固定 height ではない）なので、記録が多い結果（ランキング15件等）で
-     中身が箱を超えたら箱がそのまま縦に伸び、body 側が普通にスクロールする。
-     その時は justify-content の余白配分が 0 になり上詰めに戻る＝上端が切れずに全て読める。 */
+  /* #286 本文は上詰め（flex-start）にして、メニューバー直下の余白を padding-top(24px)で
+     一定に保つ。以前は justify-content:center で縦中央に寄せていたが、種類（タブ）ごとの
+     コンテンツ量の差（例：単語/例文はレベル行あり／タッチは無し）で中央位置が動き、
+     バー直下の隙間がページによって変わっていた。上詰めにすると隙間が常に一定になる。
+     flex:1 0 auto は残す＝短いページで下側に余白が出るのは許容（上の隙間統一を優先）。 */
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 h1 {
@@ -72,31 +72,6 @@ h1 {
   color: var(--muted);
   opacity: 0.6;
   margin-top: 40px;
-}
-
-/* TOP の控えめな「このアプリについて」導線（h1 直下・中央・小さめ） */
-.about-link-row {
-  text-align: center;
-  margin: -6px 0 8px;
-}
-.about-link {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted-fn);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  padding: 2px 2px;
-  cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease;
-}
-.about-link:hover {
-  color: var(--text);
-  border-bottom-color: var(--accent);
-}
-/* 「このアプリについて」と「すべての記録」を並べる時の間隔 */
-.about-link-row .about-link + .about-link {
-  margin-left: 18px;
 }
 
 /* #267 学習データのバックアップ（エクスポート/復元）バー。sqlite 主タブでのみ表示 */

@@ -33,7 +33,7 @@ const REASON_TEXT = {
 }
 const reasonText = (code) => (code ? (REASON_TEXT[code] ?? null) : null)
 
-export default function AppMenuBar({ appName, onNavigateAbout }) {
+export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllRecords }) {
   const [openId, setOpenId] = useState(null)
   const [toast, setToast] = useState(null) // { msg, isError } | null
   const fileRef = useRef(null)
@@ -123,6 +123,9 @@ export default function AppMenuBar({ appName, onNavigateAbout }) {
         case 'about':
           onNavigateAbout?.()
           break
+        case 'allRecords':
+          onNavigateAllRecords?.()
+          break
         case 'install':
           promptInstall()
           break
@@ -142,7 +145,7 @@ export default function AppMenuBar({ appName, onNavigateAbout }) {
           break
       }
     },
-    [onClose, onNavigateAbout, runExport, runConnectExternal, runRestoreExternal],
+    [onClose, onNavigateAbout, onNavigateAllRecords, runExport, runConnectExternal, runRestoreExternal],
   )
 
   const menus = [
@@ -158,6 +161,9 @@ export default function AppMenuBar({ appName, onNavigateAbout }) {
       id: 'data',
       label: 'データ',
       items: [
+        // 「すべての記録」は能力に依存せず常時表示（バックアップ群とは区切り線で分ける）。
+        { id: 'allRecords', label: 'すべての記録', enabled: true, reason: null },
+        { id: 'sep-1', separator: true },
         { id: 'export', label: 'エクスポート', icon: '💾', enabled: vis.data.export.enabled, reason: reasonText(vis.data.export.reason) },
         { id: 'import', label: '復元', icon: '↩️', enabled: vis.data.import.enabled, reason: reasonText(vis.data.import.reason) },
         { id: 'connectExternal', label: '自動バックアップ先を設定', icon: '📁', enabled: vis.data.connectExternal.enabled, reason: reasonText(vis.data.connectExternal.reason) },

@@ -68,6 +68,14 @@
 .menu-bar__li {
   display: block;
 }
+/* ドロップダウン内の区切り線（項目群を分ける細い水平線）。 */
+.menu-bar__separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+  border: none;
+  list-style: none;
+}
 .menu-bar__option {
   /* 縦2段：1行目＝アイコン＋ラベル（折り返さない）、2行目＝理由（disabled 時のみ・小さめ muted）。
      enabled 時は理由行が無いので従来どおり実質1行に見える。 */

@@ -439,19 +439,12 @@ export default function App() {
 
   return (
     <ReplayProvider onReplay={replay}>
-    <AppMenuBar appName="英文・和文タイピング" onNavigateAbout={() => setPhase('about')} />
+    <AppMenuBar
+      appName="英文・和文タイピング"
+      onNavigateAbout={() => setPhase('about')}
+      onNavigateAllRecords={() => setPhase('allrecords')}
+    />
     <div className="app">
-      {phase === 'ready' && (
-        <p className="about-link-row">
-          <button type="button" className="about-link" onClick={() => setPhase('about')}>
-            このアプリについて
-          </button>
-          <button type="button" className="about-link" onClick={() => setPhase('allrecords')}>
-            すべての記録
-          </button>
-        </p>
-      )}
-
       {import.meta.env.DEV && (
         <div className="dev-panel">
           <span className="dev-tag">DEV</span>

@@ -14,7 +14,7 @@
   padding: 0;
   color: var(--muted);
   background: var(--panel);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 999px;
   cursor: pointer;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
