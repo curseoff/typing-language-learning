@@ -27,8 +27,11 @@ import {
   saveFoundDb,
 } from './repos/storyDb.js'
 
-const DB_FILE = 'user.sqlite3'
-const TMP_FILE = 'import-check.sqlite3' // 復元検証用の一時ファイル（本番とは別スロット）
+// 先頭スラッシュ必須：SAHPool の importDb は名前を verbatim 格納するが、OpfsSAHPoolDb の
+// open は VFS が '/name' へ正規化する。スラッシュ無しだと importDb と open で別ファイル扱いになり
+// 取り込んだ DB を空として掴む（#267 復元不能バグ）。open/importDb/unlink を '/' 付きで統一する。
+const DB_FILE = '/user.sqlite3'
+const TMP_FILE = '/import-check.sqlite3' // 復元検証用の一時ファイル（本番とは別スロット）
 const VFS_NAME = 'opfs-sahpool-tll-user'
 
 // 本アプリのユーザーDBが備えるべきテーブル（applySchema/migrations で作られる7つ）。
