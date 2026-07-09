@@ -786,6 +786,7 @@ kbd {
 }
 @media (max-width: 640px) {
   .persist-notice {
-    bottom: 124px;
+    /* 狭幅では下の .content-fallback-notice と密着しやすいので +6px 上げて分離感を出す（デスクトップは 14px 隙間あり）。 */
+    bottom: 130px;
   }
 }

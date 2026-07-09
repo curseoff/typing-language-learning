@@ -68,7 +68,26 @@ describe('ensureHealthyOrRestore（起動時 integrity→自動復元の配線�
     expect(getPersistNotice()).toBe(null)
   })
 
-  it('integrityCheck が例外でもアプリを止めず {restored:false}（フェイルセーフ）', async () => {
+  it('integrityCheck が例外（重度/スキーマ破損）でも健全バックアップがあれば復元し restored 告知', async () => {
+    // quick_check が非ok文字列を返す前に SQLITE_CORRUPT を throw する worst-case でも安全網を外さない。
+    const restoreBackup = vi.fn(() => Promise.resolve(2))
+    getStorageHandle.mockReturnValue({
+      integrityCheck: vi.fn(() => Promise.reject(new Error('malformed database schema'))),
+      listBackups: vi.fn(() =>
+        Promise.resolve([
+          { name: '/backup-20.sqlite3', createdAt: 20, healthy: true },
+          { name: '/backup-10.sqlite3', createdAt: 10, healthy: true },
+        ]),
+      ),
+      restoreBackup,
+    })
+    expect(await ensureHealthyOrRestore()).toEqual({ restored: true })
+    expect(restoreBackup).toHaveBeenCalledWith('/backup-20.sqlite3')
+    expect(getPersistNotice()).toBe('restored')
+  })
+
+  it('integrityCheck が例外・かつ復元先が無ければ止めず {restored:false}（フェイルセーフ）', async () => {
+    // 検査で例外・listBackups も呼べない/失敗する場合は最悪 local 縮退でアプリを止めない。
     getStorageHandle.mockReturnValue({
       integrityCheck: vi.fn(() => Promise.reject(new Error('worker down'))),
     })

@@ -17,10 +17,20 @@ const MAX_BACKUP_GEN = 3
 export async function ensureHealthyOrRestore() {
   const handle = getStorageHandle()
   if (!handle) return { restored: false }
+  // 整合性検査は「健全と確認できたときだけ」復元を見送る。quick_check が非ok文字列を返すより前に
+  // SQLITE_CORRUPT（malformed database schema 等）を throw する重度/スキーマ破損こそ最も復元が要る場面
+  // なので、検査が例外/reject でも握り潰さず「破損とみなして」復元を試みる（安全網を外さない）。
+  let healthy = false
   try {
-    const result = await handle.integrityCheck()
-    if (evaluateIntegrity(result)) return { restored: false } // 健全＝何もしない
-    // 破損：健全な内部バックアップの中から直近を選び、本番を置換する（新しい破損はスキップ）。
+    healthy = evaluateIntegrity(await handle.integrityCheck())
+  } catch (e) {
+    console.warn('[persist] 整合性検査に失敗。破損とみなし自動復元を試みます。', e)
+    healthy = false
+  }
+  if (healthy) return { restored: false } // 健全＝何もしない
+  // 破損（非ok or 検査例外）：健全な内部バックアップの中から直近を選び、本番を置換する（新しい破損はスキップ）。
+  // 復元自体が失敗して初めて {restored:false}＝「検査で例外が出たら何もしない」は廃止（各ステップはフェイルセーフ）。
+  try {
     const backups = await handle.listBackups()
     const candidate = selectRestoreCandidate(backups)
     if (!candidate) return { restored: false, unrecoverable: true } // 健全な控えが無い＝復元断念（空DBで続行）
@@ -28,7 +38,7 @@ export async function ensureHealthyOrRestore() {
     setPersistNotice('restored')
     return { restored: true }
   } catch (e) {
-    console.warn('[persist] 整合性検査/自動復元に失敗。そのまま続行します。', e)
+    console.warn('[persist] 自動復元に失敗。そのまま続行します。', e)
     return { restored: false }
   }
 }

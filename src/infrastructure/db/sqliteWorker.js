@@ -98,8 +98,15 @@ function isIntegrityOk(result) {
 }
 
 // 本番 DB の整合性検査。quick_check は integrity_check の軽量版（インデックス照合を省く）で起動時向き。
+// quick_check が非ok文字列を返す前に SQLITE_CORRUPT（malformed database schema 等）を throw する重度/
+// スキーマ破損では、例外を握って「破損＝非ok文字列」に正規化して返す（evaluateIntegrity(false) 経路で
+// 自動復元を発火させるため。ここで throw を素通しすると application 側が破損を検知できず安全網が外れる）。
 function quickCheck(d) {
-  return d.selectValue('PRAGMA quick_check')
+  try {
+    return d.selectValue('PRAGMA quick_check')
+  } catch (e) {
+    return String((e && e.message) || e) || 'malformed'
+  }
 }
 
 // 本番 DB を内部OPFSバックアップへ複製する。serialize→命名規約でメタを埋めて importDb で別スロットへ。
