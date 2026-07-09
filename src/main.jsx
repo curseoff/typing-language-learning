@@ -4,11 +4,22 @@ import App from './App.jsx'
 import './App.css'
 import { resolvePersistBackend, chooseBackend } from './application/persist/backend.js'
 import { initStorage } from './infrastructure/db/initStorage.js'
-import { initSqlitePersistence } from './application/records.js'
+import { electionTransition } from './application/persist/election.js'
+import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
+import { startMultiTabPersistence } from './infrastructure/persist/multiTab.js'
+import {
+  initSqlitePersistence,
+  initSecondaryPersistence,
+  promoteToPrimary,
+  replaceImage,
+  getPersistImage,
+} from './application/records.js'
 
-// 永続化バックエンドを解決し、sqlite なら Worker を起動して起動時メモリ像を展開する（#266 Phase3a）。
-// キルスイッチ既定は 'local'＝現行 localStorage（挙動不変）。sqlite は ?persist=sqlite 等でのみ有効。
-// フェイルセーフ：どこで失敗しても例外を投げず local へ縮退し、render は必ず続行する（アプリを止めない）。
+// 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する
+// （#266 Phase3a：メモリ像＋write-through、#273 Phase3b：主タブ選出＋副タブ read-only＋
+// BroadcastChannel 伝播＋handoff 昇格）。キルスイッチ既定は 'local'＝現行 localStorage（挙動不変）。
+// sqlite は ?persist=sqlite 等でのみ有効。フェイルセーフ：どこで失敗しても例外を投げず local へ縮退し、
+// render は必ず続行する（アプリを止めない）。
 async function setupPersistence() {
   try {
     const params = new URLSearchParams(window.location.search)
@@ -25,10 +36,21 @@ async function setupPersistence() {
     })
     if (backend !== 'sqlite') return // local はここで何もしない（現行の localStorage 経路）
 
-    const handle = await initStorage() // 失敗時は null（initStorage が縮退）→ local へ
-    if (!handle) return
-    const image = await handle.hydrate()
-    initSqlitePersistence(handle, image)
+    // 主タブは initStorage→hydrate→initSqlitePersistence、副タブは主から snapshot を受領して像をセット。
+    // 純ロジック（election/secondaryMessage）とファサード操作を配線へ注入し、infra 純度を保つ。
+    const { whenReady } = startMultiTabPersistence({
+      electionTransition,
+      handleSecondaryMessage,
+      openStorage: initStorage, // 失敗時は null（initStorage が縮退）→ 配線が閲覧のみで続行
+      facade: {
+        initPrimary: initSqlitePersistence,
+        promote: promoteToPrimary,
+        initSecondary: initSecondaryPersistence,
+        replaceImage,
+        getImage: getPersistImage,
+      },
+    })
+    await whenReady // 初期ロールのデータ（主=hydrate / 副=初回 snapshot or 再送打切り）が整うまで待つ
   } catch (e) {
     console.warn('[persist] 永続化の初期化に失敗。localStorage で続行します。', e)
   }
