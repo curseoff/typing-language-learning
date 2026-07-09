@@ -7,6 +7,7 @@ import { initStorage } from './infrastructure/db/initStorage.js'
 import { electionTransition } from './application/persist/election.js'
 import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
 import { startMultiTabPersistence } from './infrastructure/persist/multiTab.js'
+import { ensurePersistentStorage } from './infrastructure/persist/persistentStorage.js'
 import {
   initSqlitePersistence,
   initSecondaryPersistence,
@@ -35,6 +36,9 @@ async function setupPersistence() {
       locksSupported: 'locks' in navigator,
     })
     if (backend !== 'sqlite') return // local はここで何もしない（現行の localStorage 経路）
+
+    // #267 Phase4: eviction 抑止のため永続ストレージを明示取得（可否はログのみ・失敗しても続行）。
+    ensurePersistentStorage()
 
     // 主タブは initStorage→hydrate→initSqlitePersistence、副タブは主から snapshot を受領して像をセット。
     // 純ロジック（election/secondaryMessage）とファサード操作を配線へ注入し、infra 純度を保つ。

@@ -68,6 +68,12 @@ async function doInit() {
     save: (repo, args) => call('save', { repo, args }),
     // DB 全体を Uint8Array で吐き出す（バックアップ用）。
     serialize: () => call('serialize', {}).then((r) => new Uint8Array(r.buffer)),
+    // .sqlite3 のバイト列で本番 DB を置き換える（復元）。Worker 側で本アプリDBの検証のうえ
+    // 一時スロット経由で置換する（不正ファイルは既存を壊さず弾く）。UI は成功後にリロードする。
+    importDbBytes: (bytes) => {
+      const copy = bytes.slice() // 正確な長さの独立バッファにして転送（呼び出し側の配列は温存）
+      return call('import', { buffer: copy.buffer }, [copy.buffer])
+    },
     close: () => call('close', {}),
   }
   return handle

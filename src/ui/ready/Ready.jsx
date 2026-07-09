@@ -6,6 +6,7 @@ import WordsSection from './WordsSection.jsx'
 import DictSection from './DictSection.jsx'
 import TouchSection from './TouchSection.jsx'
 import RomajiSection from './RomajiSection.jsx'
+import DataBackupBar from './DataBackupBar.jsx'
 
 const GAME_TYPES = [
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },
@@ -177,6 +178,9 @@ export default function Ready({
           records={records}
         />
       )}
+
+      {/* ── 学習データのバックアップ（sqlite 主タブでのみ表示） ── */}
+      <DataBackupBar />
     </div>
   )
 }

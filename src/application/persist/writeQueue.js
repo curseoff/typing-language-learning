@@ -9,9 +9,19 @@ export function createWriteQueue(exec) {
   const queue = []
   let ready = false
   let running = false
+  const waiters = [] // flush() の解決待ち（キューが空かつ非実行になったら全て解決する）
+
+  // 保留分を投入し終え、かつ実行中が無くなったら flush 待ちを一斉に解決する。
+  function settleFlush() {
+    if (running || queue.length > 0) return
+    while (waiters.length) waiters.shift()()
+  }
 
   function drain() {
-    if (running || !ready || queue.length === 0) return
+    if (running || !ready || queue.length === 0) {
+      settleFlush()
+      return
+    }
     running = true
     const op = queue.shift()
     // Promise.resolve().then で包み、exec の同期 throw も reject として拾って継続する。
@@ -32,6 +42,14 @@ export function createWriteQueue(exec) {
     setReady(r) {
       ready = r
       if (ready) drain()
+    },
+    // 保留分を drain して「キューが空 & 非実行」になるまで待つ（#267 export 前の flush）。
+    // 既に空なら即解決。not-ready で溜まっている場合は setReady(true) で消化後に解決する。
+    flush() {
+      if (!running && queue.length === 0) return Promise.resolve()
+      return new Promise((resolve) => {
+        waiters.push(resolve)
+      })
     },
   }
 }
