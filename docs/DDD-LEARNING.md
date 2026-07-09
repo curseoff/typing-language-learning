@@ -241,7 +241,20 @@ VO を Entity が持ち、Entity を Factory が作り、Entity から Service �
 - **どこで効くか**：終了条件の判定（`shouldFinish`）、記録の採用可否（例：「endless は30秒以上で記録」「touch は非記録」）、出題フィルタなど「条件が増える・組み変わる」場所。分岐が式で散らばる前に spec に寄せると、条件の再利用と単体テストが楽になる。
 - **正直な適用範囲**：このアプリの現状の条件は単純（switch で足りる）ので、Specification は**学習主目的**。乱用すると単純な `if` が過剰に抽象化される。「条件が3つ以上 and/or で絡む・再利用する・組み替える」時に価値が出るパターン、と理解しておく。
 
-> 次：**Phase 7（Domain Event）** — 「起きた事実」を不変イベントで表し、イベントバスで購読側（記録更新・多タブ通知）を疎結合にする。
+---
+
+## 11. Phase 7 記録：Domain Event
+
+**やったこと**：不変イベント値 `sessionFinishedEvent`/`recordAchievedEvent`（`domain/events/recordEvents.js`）と、同期 in-memory の `createEventBus`（`application/events/eventBus.js`）を新設。
+
+### 学びの要点
+- **Domain Event＝"起きた事実"の不変な値**：`{ type:'SessionFinished', sessionId, record }` を `Object.freeze`。過去形の名前（Finished/Achieved）で「もう起きたこと」を表す。VO 的（不変・payload 注入・時刻もドメインで作らず注入）。
+- **発行側は購読側を知らない（疎結合）**：`bus.publish(event)` は誰が反応するかを気にしない。`bus.subscribe(type, handler)` した側が勝手に反応する。→ 「記録できた」→ 収録統計を更新する／多タブへ通知する／実績を出す、を**発行側を変えずに足せる**。
+- **層の置き場所**：イベント値は domain（不変の事実）、バス（購読レジストリ＝可変状態）は application。
+- **このアプリの現状との対応**：既存の `records.js` の `broadcastChange`（多タブ通知）や `itemTracker`（収録統計）は、本来 `RecordAchieved` を購読して反応する形にできる。ただし今回は**加算的に導入**し、リリース済みの実配線は変えていない（安全優先）。実導入すると「記録保存の中で通知や統計更新を直接呼ぶ」密結合をイベント購読へ置き換えられる、というのが狙い。
+- **正直な適用範囲**：単純な同期処理では過剰。「1つの出来事に複数の"ついで処理"がぶら下がる／それが増える」時に疎結合が効く。イベントソーシング（Phase 棚卸しで非該当）とは別物＝ここでは"通知"としてのイベント。
+
+> 次：**Phase 8（Application Service）** — これまでの全部品（Factory・Entity・Domain Service・Aggregate・Repository・Event）を**1つのユースケースに調停する薄い層**を作る（capstone）。
 
 ---
 
