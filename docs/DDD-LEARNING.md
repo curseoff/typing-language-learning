@@ -108,7 +108,30 @@
 - **`endCondition {kind,value}` は最初の Value Object 候補**：Play と Records の両文脈をまたいで使われる基礎値。まず VO 化（Phase 1）すると、`shouldFinish`/`endConditionTag`/`compareRecords` の入口検証が一本化でき、以降の集約設計が楽になる。
 - **Persistence（汎用/ACL 済み）は DDD 化の対象外**でよい：外部技術の変換層は既に機能しており、集約や Domain Event を無理に被せない。
 
-> 次：**Phase 1（Value Object）** — `endCondition` を不変・自己検証・値等価を持つ VO へ（TDD）。
+---
+
+## 5. Phase 1 記録：Value Object（EndCondition）
+
+**やったこと**：`endCondition {kind,value}` を Value Object へ育てた（`domain/session/endCondition.js`）。
+
+### VO の4性質を、このコードでどう満たしたか
+| VO の性質 | 実装 |
+|---|---|
+| **不変（immutable）** | `makeEndCondition` が `Object.freeze` した値を返す。以後 `value` を書き換えても変わらない。 |
+| **自己検証（self-validating / 不変条件）** | ファクトリ内で検証：未知 kind／counted 系（time/chars/items/life）の value が「正の有限数」でない → **throw**。「不正な EndCondition は生成できない」＝生成時点で不変条件を保証。 |
+| **値等価（value equality）** | `endConditionEquals(a,b)`＝kind・value 一致で等しい（同一性ではなく値で比較）。 |
+| **生成の一元化（factory）** | 生 `{kind,value}` リテラルの散在（両ファイルの `DEFAULT_END_CONDITION` 重複・App.jsx インライン）を **`makeEndCondition` 1経路に集約**。`content/endConditions.js` と `App.jsx` の生成をファクトリ経由へ。 |
+
+### 学びの要点
+- **「throw する VO」と「throw しない入口」を分ける**：ドメイン内の生成（信頼できる）は `makeEndCondition`（fail-fast＝不変条件を厳格に守る）。一方、**未信頼入力**（URL param・localStorage・過去データ）は `normalizeEndCondition` が**寛容に妥当な VO へ吸収**する入口アダプタ。この2層（厳格な生成＋寛容な正規化）は、ドメインの不変条件を守りつつ外界の乱れを堰き止める定石。→ 後の **ACL（Phase 10）** に通じる考え方。
+- **VO は「値」であって「実体」ではない**：EndCondition に ID もライフサイクルも無い。同じ `{time,60}` はどれも交換可能。次の **Phase 2（Entity）** で、逆に「ID と可変状態を持つ実体（TypingSession）」と対比するとこの違いが際立つ。
+- **JS での VO の作り方**：class を使わずとも「ファクトリ関数＋`Object.freeze`＋値等価関数」で VO の本質（不変・自己検証・値等価）は表現できる（この関数型コードベースに馴染む形）。型（TS）まで入れると「不正な値がそもそも代入できない」保証が強まるが、今回は実行時検証で代替。
+
+### before / after（生成の集約）
+- before：`{ kind: 'time', value: 60 }` が domain・content・App.jsx に散在し、検証も凍結も無し。
+- after：`makeEndCondition('time', 60)`（凍結・検証済み）。「終了条件はこの関数でしか作れない」に寄せた。
+
+> 次：**Phase 2（Entity / 同一性）** — プレイ1回を `TypingSession`（ID・可変状態・ライフサイクル）として抽出し、VO との違いを体験する。
 
 ---
 
