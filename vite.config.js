@@ -102,7 +102,9 @@ export default defineConfig({
       // #257: ローマ字入力練習（useRomaji 状態機械＋結合テスト・RomajiView/KanaTable presenter smoke・
       // App スモークにローマ字タブの完走/記録保存を追加）で実測が上振れ（S85.64/B76.77/F85.23/L86.77）→
       // 各項目を実測から ≈0.3 のマージンで実測直下へラチェット（揺れマージン維持・up-only）。
-      thresholds: { statements: 85.3, branches: 76.4, functions: 84.9, lines: 86.4 },
+      // #286: メニューバー Phase1（MenuBarView presenter の開閉/disabled 非発火テスト）で branches が
+      // 上振れ（S85.65/B77.76/F85.5/L86.71）→ 各項目を実測から ≈0.2 のマージンで実測直下へラチェット。
+      thresholds: { statements: 85.4, branches: 77.5, functions: 85.2, lines: 86.5 },
     },
   },
 })

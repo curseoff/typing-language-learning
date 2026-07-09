@@ -28,6 +28,7 @@ import InstallButton from './ui/pwa/InstallButton.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
 import PersistNotice from './ui/pwa/PersistNotice.jsx'
 import SoundToggle from './ui/sound/SoundToggle.jsx'
+import AppMenuBar from './ui/menu/AppMenuBar.jsx'
 import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
@@ -440,7 +441,7 @@ export default function App() {
   return (
     <ReplayProvider onReplay={replay}>
     <div className="app">
-      <h1>英文・和文タイピング</h1>
+      <AppMenuBar appName="英文・和文タイピング" onNavigateAbout={() => setPhase('about')} />
 
       {phase === 'ready' && (
         <p className="about-link-row">

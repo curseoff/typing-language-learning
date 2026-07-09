@@ -1,0 +1,155 @@
+/* #286 メニューバー Phase1(PC): TOP の h1 を置き換える macOS/Chrome 風のメニューバー（MenuBarView）。
+   全幅の薄い帯にアプリ名（強め＝旧 h1 相当の視認性）＋各メニューのトリガを並べ、クリックで
+   ドロップダウンを出す。既存トークン（--panel/--border/--text/--muted/--accent/--red）に合わせる。 */
+.menu-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  padding: 0 4px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.menu-bar__item {
+  position: relative;
+  display: flex;
+}
+.menu-bar__trigger {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.menu-bar__trigger:hover,
+.menu-bar__trigger[aria-expanded='true'] {
+  background: var(--panel-2);
+}
+.menu-bar__trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* アプリ名（先頭・macOS のアプリメニュー相当）は旧 h1 の代替として読めるサイズ・太さで。 */
+.menu-bar__trigger--brand {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* ドロップダウン：トリガ左端揃え・角丸・影。 */
+.menu-bar__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 160; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
+  min-width: 240px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+.menu-bar__li {
+  display: block;
+}
+.menu-bar__option {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.menu-bar__option:hover:not(:disabled) {
+  background: var(--panel-2);
+}
+.menu-bar__option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.menu-bar__option:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.menu-bar__option-icon {
+  flex: none;
+  line-height: 1;
+}
+.menu-bar__option-label {
+  flex: 1;
+}
+/* 不可の理由（disabled 項目に添える補助テキスト）。薄く小さく。 */
+.menu-bar__option-reason {
+  flex: none;
+  max-width: 12em;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  line-height: 1.3;
+}
+
+/* 操作結果のトースト（成功=muted／失敗=--red）。メニューバー直下・中央に控えめに出す
+   （SoundToggle=左上／更新トースト=下部中央／インストール=右下 と位置で棲み分ける）。 */
+.menu-toast {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 9px 12px 9px 16px;
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.menu-toast--error {
+  color: var(--red);
+  border-color: var(--red);
+}
+.menu-toast__msg {
+  line-height: 1.4;
+}
+.menu-toast__close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.menu-toast__close:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.menu-toast__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
