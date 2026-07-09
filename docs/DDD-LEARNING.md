@@ -205,7 +205,31 @@ domain の他コードは純関数・不変で統一されているが、Entity 
 ### 現実との接続（正直な注記）
 このアプリの実際の永続化は既に `application/records.js` ファサード＋`db/repos/*Db`＋メモリ像で動いており（#264 で出荷済み）、**この学習用 RankingRepository は本番経路に配線していない**。「集約を Repository で出し入れする」形を体得するのが目的。本番に採用するかは別判断（棚卸しでは "実利は薄い" と評価＝過剰適用に注意）。
 
-> 次：**Phase 5（Domain Service / Factory）** — Session 生成の Factory（ID を注入生成）と、どのエンティティにも属さないロジック（Session→記録 変換）を Domain Service に。
+---
+
+## 9. Phase 5 記録：Domain Service / Factory
+
+**やったこと**：`createTypingSessionFactory`（Factory・`domain/session/typingSessionFactory.js`）と `sessionToRecord`（Domain Service・`domain/records/sessionResult.js`）を新設。
+
+### Factory：生成をカプセル化し、同一性を注入する
+- `createTypingSessionFactory(nextId)` の `nextId` は `()=>string` の **ID 生成器（注入）**。`factory.start(endCondition)` は毎回 `nextId()` で採番して Session を作る。
+- **学び**：純ドメインは Date/乱数/counter を持てない（決定性）。だから **ID の源は外から注入**する。Factory は「採番＋VO 合成＋Entity 生成」という生成手順を1箇所に閉じ込め、呼び出し側は「終了条件を渡せば妥当な Session が返る」だけを知る。実運用では uuid や連番を注入すればよい（Phase 4 の Repository が採番と再構築を担うのも同じ考え）。
+
+### Domain Service：どの Entity にも属さないロジックの居場所
+- `sessionToRecord(session, meta)`：`TypingSession`（Entity）の状態＋`score`（採点）＋外部 `meta` をまたいで**記録値**を作る。
+- **学び**：この変換は Session だけの責務でも、記録値だけの責務でもない（**複数の部品をまたぐ**）。「どの Entity/VO に置くと不自然か？」→ どれにも属さないなら **Domain Service**。ただし乱用注意：Entity/VO に自然に置ける振る舞いをサービスに逃がすと"貧血ドメイン"になる。今回は「またぐから」置いた。
+- Service は**状態を持たず副作用もない**（`progress()` を読むだけ・session 非破壊）。ステートレスなドメイン操作＝テストが楽。
+
+### 部品の積み上がり（ここまでの合成関係）
+```
+EndCondition(VO) ──held by──▶ TypingSession(Entity) ──created by──▶ Factory(nextId 注入)
+        │                          │
+        │                          └──read by──▶ sessionToRecord(Domain Service) ──▶ record(値)
+        └──ordering rule──▶ RankingBoard(Aggregate) ◀──stored by── RankingRepository(Port)
+```
+VO を Entity が持ち、Entity を Factory が作り、Entity から Service が記録値を作り、記録値を Aggregate が束ね、Aggregate を Repository が出し入れする——**戦術パターンが1本の線でつながった**。
+
+> 次：**Phase 6（Specification）** — 「この条件を満たすか」を合成可能な仕様オブジェクト（and/or/not）に。
 
 ---
 
