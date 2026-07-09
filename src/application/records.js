@@ -84,7 +84,7 @@ export function promoteToPrimary(handle, freshImage, opts = {}) {
   broadcastChange = opts.onChange ?? broadcastChange
 }
 
-// 現在の永続化ロール（local は常に書込み可＝primary 相当）。UI の read-only 告知判定に使う。
+// 現在の永続化ロール（memory は常に書込み可＝primary 相当）。UI の read-only 告知判定に使う。
 export function getPersistRole() {
   return isSqlite() ? role : 'primary'
 }
@@ -105,7 +105,7 @@ export function consumeSecondaryWriteAttempt() {
 const isSqlite = () => backend === 'sqlite'
 
 // 保留中の write-through を Worker へ流し切って完了を待つ（#267 export 前の flush）。
-// 主タブ以外（local/副タブ＝queue なし）は待つものが無いので即解決する。
+// 主タブ以外（memory/副タブ＝queue なし）は待つものが無いので即解決する。
 export async function flushWrites() {
   if (queue) await queue.flush()
 }
