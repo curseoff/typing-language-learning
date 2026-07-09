@@ -7,6 +7,7 @@ import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
 import { ROMAJI_LEVELS, ROMAJI_MODE } from './content/romaji.js'
 import { END_KINDS, DEFAULT_END_CONDITION, endKind, endConditionForKind } from './content/endConditions.js'
+import { makeEndCondition } from './domain/session/endCondition.js'
 import { TARGET_KEYS } from './domain/marathon/passage.js'
 import { recKey } from './domain/records/ranking.js'
 import { loadRecords, saveRecord } from './application/records.js'
@@ -107,7 +108,7 @@ export default function App() {
       id: 'end',
       options: endValues,
       value: endCondition.value,
-      set: (v) => setEndCondition({ kind: endCondition.kind, value: v }),
+      set: (v) => setEndCondition(makeEndCondition(endCondition.kind, v)),
     }
     const endRows = endValues.length > 0 ? [endKindRow, end] : [endKindRow]
     switch (gameType) {
