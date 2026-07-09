@@ -40,7 +40,8 @@
 │     ├─ shared/{Text,Stats,Flow,QuizOptionLabel,OptionJa,PlayResultView}.tsx
 │     ├─ ready/{parts,EndConditionSelect,ItemList,RankSectionView,StorySectionView}.tsx
 │     ├─ marathon/{Passage,TopFlow,TranslateView}.tsx ・ result/{Result,RecordsTable,SegStatsTable}.tsx
-│     └─ story/StoryView.tsx ・ words/WordsView.tsx ・ dictionary/DictView.tsx ・ touch/{TouchView,Keyboard}.tsx ・ sound/SoundToggle.tsx
+│     ├─ story/StoryView.tsx ・ words/WordsView.tsx ・ dictionary/DictView.tsx ・ touch/{TouchView,Keyboard}.tsx ・ romaji/{RomajiView,KanaTable}.tsx
+│     └─ menu/MenuBarView.tsx（メニューバー）・ sound/SoundToggle.tsx
 └─ src/
    ├─ main.jsx / App.jsx           エントリ／合成（状態・ナビ・画面ルーティング）
    ├─ App.css
@@ -53,7 +54,7 @@
    │  ├─ words/wordset.js          単語の出題・4択生成
    │  ├─ dictionary/dictset.js     英英の出題・4択・説明4択生成
    │  ├─ touch/drill.js            タッチタイピングの出題列生成
-   │  └─ records/ranking.js        記録ランキングのルール（rankInsert）
+   │  └─ records/{ranking,recordKeys}.js  ランキングのルール（rankInsert）／記録の識別キー生成
    │
    ├─ content/                     教材データ＋ラベル
    │  ├─ sentences.js（SENTENCES/RANKS）
@@ -63,28 +64,32 @@
    │  ├─ keyboard.js（KEY_ROWS/FINGER/TOUCH_LEVELS）
    │  └─ modes.js（MODES/modeLabel/modeDesc）
    │
-   ├─ infrastructure/              永続化（localStorage）
-   │  ├─ recordsRepository / storyRepository / wordsRepository / dictRepository
-   │  └─ itemStatsRepository       問題ごとの累積記録（収録一覧で表示）
+   ├─ infrastructure/              永続化（SQLite-WASM + OPFS）＋ブラウザAPI配線
+   │  ├─ db/                       sqliteWorker（Workerで SQLite 実行）/ initStorage / schema・migrations（版付き）/ repos/*Db（records/word/dict/story/itemStats の DB I/O）
+   │  ├─ persist/                  多タブ協調（multiTab）／外部自動バックアップ（externalBackupStore・FSA）／永続ストレージ取得（persistentStorage）
+   │  ├─ pwa/                      registerSW（SW登録）/ installPrompt / onlineStatus
+   │  └─ sound.js / soundSettingsRepository  効果音・音設定（音設定のみ localStorage 継続）
    │
-   ├─ application/                 ユースケース（フック＝状態機械）
-   │  ├─ useMarathon.js / useStory.js
-   │  ├─ useWords.js / useWordQuiz.js
-   │  ├─ useDict.js / useDictQuiz.js
-   │  ├─ useTouch.js               タッチタイピング
+   ├─ application/                 ユースケース（フック＝状態機械）＋永続化ファサード
+   │  ├─ useMarathon.js / useStory.js / useWords.js / useWordQuiz.js / useDict.js / useDictQuiz.js / useTouch.js / useRomaji.js
+   │  ├─ records.js                記録の読み書きファサード（sqlite/memory 2値・メモリ像＋write-through）
+   │  ├─ persist/                  永続化の純ロジック（backend選択 / memoryStore / writeQueue / election主タブ選出 / recovery自動復元 / persistNotice）
+   │  ├─ backup.js / externalBackup.js   エクスポート・インポート／外部自動バックアップ
+   │  ├─ appMenu.js                メニュー項目の可否/理由（buildTopMenuVisibility）
    │  └─ itemTracker.js            問題ごとの打鍵/ミス/時間を集計し記録
    │
    └─ ui/                          プレゼンテーション（container ＋ 薄板 shim）
-      ├─ shared/ ・ ready/{Ready,各Section}.jsx ・ marathon/{MarathonView,…}.jsx
-      ├─ result/{Result,RecordDetail,…}.jsx ・ story/ ・ words/ ・ dictionary/ ・ touch/
-      └─ pwa/                       PWA 配線（InstallButton/OfflineBanner/UpdateToast ＋ hooks）
+      ├─ menu/AppMenuBar.jsx        全幅メニューバー（アプリ名/データ の導線・MenuBarView を配線）
+      ├─ shared/ ・ ready/{Ready,各Section}.jsx ・ marathon/{MarathonView,…}.jsx ・ romaji/
+      ├─ result/{Result,RecordDetail,…}.jsx ・ records/AllRecordsView.jsx ・ story/ ・ words/ ・ dictionary/ ・ touch/
+      └─ pwa/                       PWA 配線（OfflineBanner/UpdateToast/ContentFallbackNotice/PersistNotice ＋ hooks）
 ```
 
 > `src/ui/**` の純粋描画部分は `@tll/ui` の presenter へ移設済み（上記パッケージ参照）。app 側は presenter を再エクスポートする薄板か、フック/データを配線して presenter を合成する container。PWA 配線は app 固有なので app 側に残す。
 
 ## 画面の流れ
 
-`App.jsx` が `phase`（ready / playing / story / words / dict / touch / result）と `gameType`（marathon / story / words / dict / touch）を持ち、種類に応じてビューへルーティングします。各 `useXxx` フックが該当ゲームの状態機械（出題・打鍵判定・計測・記録保存）を担います。
+`App.jsx` が `phase`（ready / playing / story / words / dict / touch / romaji / result / about / allrecords）と `gameType`（wsent / story / words / dict / touch / romaji）を持ち、種類に応じてビューへルーティングします。TOP のヘッダは全幅メニューバー（`ui/menu/AppMenuBar.jsx`）で、このアプリについて・すべての記録・データ（エクスポート/復元/外部バックアップ）の導線を集約します。各 `useXxx` フックが該当ゲームの状態機械（出題・打鍵判定・計測・記録保存）を担います。
 
 ## 主要な定数
 
@@ -99,8 +104,9 @@
 - **4択の進捗着色**：`ui/shared/QuizOptionLabel.jsx` が、打鍵済みプレフィックスを着色（漢字選択肢は読み→漢字位置へ変換）。
 - **出題の長さ調整**：単語/英英の入力モードは「最短綴りで打っても600文字に届く」よう語を並べる（短い綴りで打ち切って詰むのを防止）。
 - **速度** = 文字数 ÷ 経過分（打/分）。文章は1文ごとの速度・ミスも計測。
-- **問題ごとの記録**：`application/itemTracker.js` が入力モードで「問題が切り替わるたび/終了時」に `itemStatsRepository`（`item-stats-v1`）へ記録。id は `type:mode:key`（例 `w:en:reserve`）で**モード別**。収録一覧（`ui/ready/ItemList.jsx`）に練習回数・平均ミス・打/秒を表示。4択は対象外。
+- **問題ごとの記録**：`application/itemTracker.js` が入力モードで「問題が切り替わるたび/終了時」に `application/records.js`（ファサード）経由で `item_stats`（SQLite）へ記録。id は `type:mode:key`（例 `w:en:reserve`）で**モード別**。収録一覧（`ui/ready/ItemList.jsx`）に練習回数・平均ミス・打/秒を表示。4択は対象外。
 - **タッチタイピング**：`content/keyboard.js` の指割当でキーを色分けし、`useTouch` がドリル（既定40打）を進行。記録は保存しない。
+- **永続化（SQLite-WASM + OPFS）**：記録は `application/records.js` ファサード経由で読み書きする。既定バックエンドは `sqlite`（OPFS の SQLite・Worker 実行）で、起動時にメモリ像へ hydrate し、以後は像を即時更新しつつ Worker へ write-through する。OPFS/Worker/Web Locks が使えない環境は `memory`（非永続・メモリのみ）へ縮退し告知する。多タブは Web Locks で主タブ1つを選出（副タブは read-only、主が閉じたら handoff で昇格）。起動時に整合性検査→破損なら内部バックアップから自動復元、外部フォルダ（File System Access）への自動バックアップにも対応。**localStorage による記録の永続化は廃止**（音設定など記録以外の localStorage は継続）。純ロジックは `application/persist/*`、DB I/O は `infrastructure/db/*`。
 
 ## テスト
 
