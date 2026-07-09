@@ -1,16 +1,20 @@
-/* #286 メニューバー Phase1(PC): TOP の h1 を置き換える macOS/Chrome 風のメニューバー（MenuBarView）。
-   全幅の薄い帯にアプリ名（強め＝旧 h1 相当の視認性）＋各メニューのトリガを並べ、クリックで
-   ドロップダウンを出す。既存トークン（--panel/--border/--text/--muted/--accent/--red）に合わせる。 */
+/* #286 メニューバー Phase1(PC): TOP の h1 を置き換える getdesign 風のサイトヘッダバー（MenuBarView）。
+   ビューポート全幅・上部フラッシュ（隙間0）のダーク帯で、左にブランド（アプリ名・強め＝旧 h1 相当）＋
+   各メニューのトリガをインラインに並べ、クリックでドロップダウンを出す。角丸なし・下辺の仕切り線のみ
+   （side/top border・影なし）。本文コンテナ（.app）の左右 padding=20px と視覚を揃える。
+   既存トークン（--panel/--border/--text/--muted/--accent/--red）に合わせる。 */
 .menu-bar {
   display: flex;
   align-items: stretch;
   gap: 2px;
   width: 100%;
-  padding: 0 4px;
+  margin: 0;
+  /* 左右 8px＋トリガ内 padding 12px＝端から 20px で、本文コンテナ（.app）の左右 padding=20px と揃える。 */
+  padding: 0 8px;
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
 }
 .menu-bar__item {
   position: relative;

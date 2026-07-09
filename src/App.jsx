@@ -439,9 +439,8 @@ export default function App() {
 
   return (
     <ReplayProvider onReplay={replay}>
+    <AppMenuBar appName="英文・和文タイピング" onNavigateAbout={() => setPhase('about')} />
     <div className="app">
-      <AppMenuBar appName="英文・和文タイピング" onNavigateAbout={() => setPhase('about')} />
-
       {phase === 'ready' && (
         <p className="about-link-row">
           <button type="button" className="about-link" onClick={() => setPhase('about')}>

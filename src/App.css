@@ -27,17 +27,27 @@ body {
   color: var(--text);
 }
 
+/* #286 メニューバーを全幅ヘッダとして .app の外・最上部に置く（上部フラッシュ）。root を縦フレックスに
+   して、ヘッダ帯の高さ分だけ本文（.app）が縮む＝ヘッダ＋本文の合計が丁度ビューポート高になり、
+   従来の「中身を縦中央へ」を保ちつつ余分な縦スクロールを出さない。 */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .app {
+  width: 100%;
   max-width: 760px;
   margin: 0 auto;
-  padding: 32px 20px 64px;
+  padding: 24px 20px 64px;
   /* 短いコンテンツ（プレイ中・記録が少ない結果など）が上寄せになり画面下部が
-     大きく空くのを防ぐため、ビューポート高いっぱいの箱にして中身を縦中央へ寄せる。
-     min-height（固定 height ではない）なので、記録が多い結果（ランキング15件等）で
-     中身が 100vh を超えたら箱がそのまま縦に伸び、body 側が普通にスクロールする。
+     大きく空くのを防ぐため、残り高さいっぱいの箱にして中身を縦中央へ寄せる。
+     flex:1（固定 height ではない）なので、記録が多い結果（ランキング15件等）で
+     中身が箱を超えたら箱がそのまま縦に伸び、body 側が普通にスクロールする。
      その時は justify-content の余白配分が 0 になり上詰めに戻る＝上端が切れずに全て読める。 */
-  min-height: 100vh;
-  min-height: 100dvh; /* モバイルのURLバー伸縮に強い動的ビューポート単位（未対応環境は上の 100vh にフォールバック） */
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
