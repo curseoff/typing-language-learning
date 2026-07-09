@@ -7,10 +7,11 @@ import { useWords } from './useWords.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { WORDS } from '../content/wordsAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
-import { loadWordRecords, wordRecKey } from '../infrastructure/wordsRepository.js'
+import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'
 
 beforeEach(() => {
   localStorage.clear()
+  initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
   vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
 })
 afterEach(() => vi.useRealTimers())

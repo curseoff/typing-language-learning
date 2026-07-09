@@ -1,5 +1,5 @@
-// 単語問題記録の DB リポジトリ（現行 wordsRepository と同値）。共通ファクトリを wordRecKey で具体化する。
-import { wordRecKey } from '../../wordsRepository.js'
+// 単語問題記録の DB リポジトリ。共通ファクトリを wordRecKey で具体化する。
+import { wordRecKey } from '../../../domain/records/recordKeys.js'
 import { makeWordDictDb } from './wordDictDb.js'
 
 const { save, load } = makeWordDictDb('word_records', wordRecKey)

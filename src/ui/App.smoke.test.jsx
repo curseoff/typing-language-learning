@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, within, waitFor, act } from '@testing-library/react'
 import App from '../App.jsx'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { initMemoryPersistence, loadRecords } from '../application/records.js'
 
 const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング', 'ローマ字入力']
 
@@ -20,6 +21,7 @@ describe('App スモーク', () => {
   beforeEach(() => {
     cleanup()
     localStorage.clear()
+    initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
   })
 
   it('トップ画面が描画され、全タブが並ぶ', () => {
@@ -156,8 +158,8 @@ describe('App スモーク', () => {
       act(() => vi.advanceTimersByTime(TIME_LIMIT_MS + 200))
       act(() => vi.runOnlyPendingTimers())
       expect(container.querySelector('.result')).not.toBeNull() // 完了画面
-      // home/easy のキーに記録が積まれている
-      const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
+      // home/easy のキーに記録が積まれている（記録ファサードのメモリ像から読む）
+      const recs = loadRecords()
       expect(recs['easy__touchhome']?.length ?? 0).toBeGreaterThan(0)
     } finally {
       vi.useRealTimers()
@@ -186,8 +188,8 @@ describe('App スモーク', () => {
       act(() => vi.advanceTimersByTime(TIME_LIMIT_MS + 200))
       act(() => vi.runOnlyPendingTimers())
       expect(container.querySelector('.result')).not.toBeNull() // 完了画面
-      // normal/あ行のキーに記録が積まれている
-      const recs = JSON.parse(localStorage.getItem('typing-records-v3') || '{}')
+      // normal/あ行のキーに記録が積まれている（記録ファサードのメモリ像から読む）
+      const recs = loadRecords()
       expect(recs['normal__romajia']?.length ?? 0).toBeGreaterThan(0)
     } finally {
       vi.useRealTimers()
