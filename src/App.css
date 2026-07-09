@@ -126,6 +126,10 @@ h1 {
   color: var(--muted);
   flex-basis: 100%;
 }
+/* 失敗告知は赤で色分け（成功/中立は muted）。#268 Phase5a（Phase4 持ち越しUX）。 */
+.data-backup-msg--error {
+  color: var(--red);
+}
 
 /* .section-label は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
@@ -734,5 +738,54 @@ kbd {
 @media (max-width: 640px) {
   .content-fallback-notice {
     bottom: 68px;
+  }
+}
+
+/* #268 Phase5a 永続化の縮退/復元の告知。教材フォールバック告知（左下）と同じ体裁で、縦に重ならないよう
+   少し上へずらして固定表示（同時発生はまれだが両立させる）。sqlite 縮退 or 自動復元時だけ描画される。 */
+.persist-notice {
+  position: fixed;
+  left: 16px;
+  bottom: 72px;
+  z-index: 150;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 9px 12px 9px 16px;
+  font-size: 13px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.persist-notice__msg {
+  line-height: 1.4;
+}
+.persist-notice__close {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.persist-notice__close:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.persist-notice__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .persist-notice {
+    bottom: 124px;
   }
 }
