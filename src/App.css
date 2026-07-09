@@ -130,6 +130,12 @@ h1 {
 .data-backup-msg--error {
   color: var(--red);
 }
+/* 外部バックアップの状態表示。長い無区切りフォルダ名でも折り返し、狭幅で末尾が切れないようにする。#278 Phase5b。 */
+.data-backup-status {
+  flex-basis: 100%;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
 
 /* .section-label は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
