@@ -30,7 +30,6 @@
 .
 ├─ index.html / vite.config.js / package.json / LICENSE(MIT)
 ├─ eslint.config.js                ESLint(Flat config)
-├─ electron/main.cjs               Electronメインプロセス
 ├─ scripts/validate-sentences.mjs  教材データの整合性チェック（npm run validate）
 ├─ .github/workflows/              ci.yml（check）/ deploy.yml（Pages公開）
 ├─ .storybook/                     Storybook 設定（@tll/ui の部品ギャラリー）

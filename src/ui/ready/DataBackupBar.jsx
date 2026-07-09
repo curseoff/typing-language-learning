@@ -4,13 +4,15 @@
 // バイト列の入出力・検証は application/backup 経由（ui → application → infrastructure）。
 // DOM 操作（Blob ダウンロード・ファイル選択・リロード）だけ UI で行う。
 // sqlite 経路（主タブ）以外では canExport/canImport が false ＝バー自体を出さない（既定 local は非表示）。
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import {
   canExportDatabase,
   canImportDatabase,
   humanizeImportError,
   importDatabaseBytes,
+  isStorageReady,
   prepareDatabaseExport,
+  subscribeStorageReady,
 } from '../../application/backup.js'
 import {
   canUseExternalBackup,
@@ -31,6 +33,12 @@ export default function DataBackupBar() {
     setMsg(text)
     setIsError(error)
   }
+
+  // #269 Phase6: 保存基盤の起動完了を購読する。sqlite handle 準備前に設定画面が初描画されても、
+  // 起動完了通知で再描画され can*/canExternal を再評価する（バーが一瞬消えるのを防ぐ）。値そのものは
+  // 判定に使わず（可否は下の can* が handle で判断）、再描画トリガとして購読する。
+  // local/副タブは initStorage を呼ばず false のまま＝従来どおり非表示（挙動不変）。
+  useSyncExternalStore(subscribeStorageReady, isStorageReady, () => false)
 
   // sqlite 主タブでのみ機能する。それ以外（local/副タブ/未対応環境）は導線を出さない。
   const canExport = canExportDatabase()

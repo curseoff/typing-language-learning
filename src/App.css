@@ -7,6 +7,8 @@
   /* 機能テキスト（操作ヒント/キー案内）専用。実背景で AA(4.5:1) 以上を確保:
      bg=9.00 / panel=7.37 / panel-2=6.32:1。opacity を使わず色で表現する。 */
   --muted-fn: #aeb9c9;
+  /* 枠線用のスレート色（パネル境界・告知帯など）。以前は各所に #334155 直書きだった。 */
+  --border: #334155;
   --accent: #38bdf8;
   --green: #4ade80;
   --red: #f87171;
@@ -275,7 +277,7 @@ h1 {
   align-items: center;
   gap: 6px;
   background: rgba(15, 23, 42, 0.92);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 6px 8px;
 }
@@ -375,7 +377,7 @@ h1 {
   font-size: 13px;
   color: var(--muted);
   background: var(--panel);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 12px;
   cursor: pointer;
@@ -587,7 +589,7 @@ kbd {
   max-width: calc(100% - 32px);
   background: var(--panel);
   color: var(--text);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
@@ -639,7 +641,7 @@ kbd {
   max-width: calc(100% - 32px);
   background: var(--panel);
   color: var(--muted);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 999px;
   padding: 7px 16px;
   font-size: 13px;
@@ -693,12 +695,12 @@ kbd {
   line-height: 1;
 }
 
-/* 教材フォールバック告知。左下に控えめに固定表示（オフラインバナー=上部中央／更新トースト=下部中央／
-   インストール=右下 と位置で棲み分け）。教材の SQLite 読込失敗時だけ描画される。 */
-.content-fallback-notice {
+/* 左下に控えめに固定表示する告知帯の共有体裁（教材フォールバック＝ContentFallbackNotice /
+   永続化の縮退・復元＝PersistNotice で共通）。オフラインバナー=上部中央／更新トースト=下部中央／
+   インストール=右下 と位置で棲み分ける。個別の縦位置（bottom）だけ下の各クラスで上書きする。 */
+.app-notice {
   position: fixed;
   left: 16px;
-  bottom: 16px;
   z-index: 150; /* dev-panel(100)・他の fixed(50) より前面、更新トースト(200)より後面 */
   display: inline-flex;
   align-items: center;
@@ -706,16 +708,16 @@ kbd {
   max-width: calc(100% - 32px);
   background: var(--panel);
   color: var(--muted);
-  border: 1px solid #334155;
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 9px 12px 9px 16px;
   font-size: 13px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
-.content-fallback-notice__msg {
+.app-notice__msg {
   line-height: 1.4;
 }
-.content-fallback-notice__close {
+.app-notice__close {
   flex: none;
   width: 22px;
   height: 22px;
@@ -728,13 +730,23 @@ kbd {
   border-radius: 6px;
   cursor: pointer;
 }
-.content-fallback-notice__close:hover {
+.app-notice__close:hover {
   color: var(--text);
   background: var(--panel-2);
 }
-.content-fallback-notice__close:focus-visible {
+.app-notice__close:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* 教材（SQLite/wasm）の読込失敗時だけ描画される告知。左下の基準位置。 */
+.content-fallback-notice {
+  bottom: 16px;
+}
+/* #268 Phase5a 永続化の縮退/復元の告知。上の教材フォールバックと縦に重ならないよう少し上へずらす
+   （同時発生はまれだが両立させる）。sqlite 縮退 or 自動復元時だけ描画される。 */
+.persist-notice {
+  bottom: 72px;
 }
 
 /* 狭幅（モバイル）では左下の告知が全幅近くに伸び、右下のインストールボタン（同 z-index=150 で
@@ -745,52 +757,6 @@ kbd {
   .content-fallback-notice {
     bottom: 68px;
   }
-}
-
-/* #268 Phase5a 永続化の縮退/復元の告知。教材フォールバック告知（左下）と同じ体裁で、縦に重ならないよう
-   少し上へずらして固定表示（同時発生はまれだが両立させる）。sqlite 縮退 or 自動復元時だけ描画される。 */
-.persist-notice {
-  position: fixed;
-  left: 16px;
-  bottom: 72px;
-  z-index: 150;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  max-width: calc(100% - 32px);
-  background: var(--panel);
-  color: var(--muted);
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 9px 12px 9px 16px;
-  font-size: 13px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-.persist-notice__msg {
-  line-height: 1.4;
-}
-.persist-notice__close {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--muted);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.persist-notice__close:hover {
-  color: var(--text);
-  background: var(--panel-2);
-}
-.persist-notice__close:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-@media (max-width: 640px) {
   .persist-notice {
     /* 狭幅では下の .content-fallback-notice と密着しやすいので +6px 上げて分離感を出す（デスクトップは 14px 隙間あり）。 */
     bottom: 130px;
