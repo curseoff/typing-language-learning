@@ -54,6 +54,11 @@ export default defineConfig({
         // （backup.js の looksLikeSqlite/buildBackupFilename/isValidUserDb）は計測対象（backup.test.js）。
         'src/infrastructure/persist/persistentStorage.js',
         'src/ui/ready/DataBackupBar.jsx',
+        // #268 Phase5a: 永続化の縮退/復元の告知 UI とその購読フック。useSyncExternalStore/ブラウザ描画の
+        // 薄い配線＝上記 UI 配線と同種で計測除外。状態源（application/persist/persistNotice.js）と判断
+        // （application/persist/recovery.js）・facade（application/recovery.js）は計測対象（各 spec で被覆）。
+        'src/ui/pwa/PersistNotice.jsx',
+        'src/ui/pwa/usePersistNotice.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',

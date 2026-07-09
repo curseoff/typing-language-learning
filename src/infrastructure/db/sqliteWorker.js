@@ -12,6 +12,11 @@
 //   in  { id, type:'hydrate' }             → 全リポを読む → out { id, type:'hydrated', image }（#266 起動時展開）
 //   in  { id, type:'save', repo, args }    → repo 別に1件保存 → out { id, type:'saved', repo }（#266 write-through）
 //   in  { id, type:'import', buffer }      → 検証後に本番 DB を置換 → out { id, type:'imported' }（#267 Phase4 復元）
+//   in  { id, type:'integrityCheck' }      → 本番 DB を quick_check → out { id, type:'integrity', result }（#268 Phase5a）
+//   in  { id, type:'backupNow' }           → 本番を内部OPFSバックアップへ複製 → out { id, type:'backedUp', backup }（#268）
+//   in  { id, type:'listBackups' }         → 内部バックアップ一覧 → out { id, type:'backups', backups }（#268）
+//   in  { id, type:'restoreBackup', name } → 指定内部バックアップで本番を置換 → out { id, type:'restored' }（#268）
+//   in  { id, type:'deleteBackup', name }  → 指定内部バックアップを削除 → out { id, type:'deleted' }（#268 世代ローテ）
 //   失敗時は out { id, type:'error', message }
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { migrations } from './migrations.js'
@@ -34,6 +39,15 @@ const DB_FILE = '/user.sqlite3'
 const TMP_FILE = '/import-check.sqlite3' // 復元検証用の一時ファイル（本番とは別スロット）
 const VFS_NAME = 'opfs-sahpool-tll-user'
 
+// #268 Phase5a: 内部OPFSバックアップ。命名規約 '/backup-<createdAt>-v<userVersion>-<checksum>.sqlite3'
+// にメタ（作成時刻・版数・チェックサム）を埋め、listBackups は名前をパースして返す（別テーブル不要）。
+// 先頭スラッシュは #267 の教訓に従い open/importDb/unlink/exportFile で統一（スラッシュ無しは別ファイル扱い）。
+const BACKUP_PREFIX = '/backup-'
+const BACKUP_SUFFIX = '.sqlite3'
+const BACKUP_NAME_RE = /^\/backup-(\d+)-v(\d+)-([0-9a-f]+)\.sqlite3$/
+// SAHPool は固定スロット数。本番 + import-check + 数世代のバックアップ + 健全判定の一時 open 分を確保。
+const MIN_CAPACITY = 12
+
 // 本アプリのユーザーDBが備えるべきテーブル（applySchema/migrations で作られる7つ）。
 // application/backup.js の EXPECTED_TABLES と対応（Worker は application を import できないため再掲）。
 const EXPECTED_TABLES = [
@@ -54,8 +68,87 @@ let poolUtil = null // SAHPool ユーティリティ（importDb/unlink で復元
 async function open() {
   sqlite3 = await sqlite3InitModule()
   poolUtil = await sqlite3.installOpfsSAHPoolVfs({ name: VFS_NAME })
+  // 内部バックアップ用のスロットを確保（本番+検証+数世代分）。既に足りていれば no-op。
+  try {
+    if (poolUtil.getCapacity() < MIN_CAPACITY) await poolUtil.reserveMinimumCapacity(MIN_CAPACITY)
+  } catch {
+    // 容量確保に失敗してもバックアップ以外は動く（フェイルセーフ）。
+  }
   db = new poolUtil.OpfsSAHPoolDb(DB_FILE)
   // DB は selectValue/transaction/exec を持つので runMigrations にそのまま渡せる。
+  return runMigrations(db, migrations)
+}
+
+// #268 Phase5a: バイト列→決定的な16進チェックサム（FNV-1a 32bit・8桁小文字16進）。
+// application/persist/recovery.js の computeChecksum と同一アルゴリズム（Worker は application を
+// import できないため EXPECTED_TABLES/isValidUserDb と同様に再掲）。命名規約のメタに埋める。
+function checksumOf(bytes) {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < bytes.length; i++) {
+    hash ^= bytes[i]
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0')
+}
+
+// PRAGMA quick_check の結果が健全（'ok'）か。application/persist/recovery.js の evaluateIntegrity
+// と同義（単一 'ok'）。Worker 内の健全判定用に再掲（本番・各バックアップの integrity 判定で使う）。
+function isIntegrityOk(result) {
+  return typeof result === 'string' && result.trim() === 'ok'
+}
+
+// 本番 DB の整合性検査。quick_check は integrity_check の軽量版（インデックス照合を省く）で起動時向き。
+// quick_check が非ok文字列を返す前に SQLITE_CORRUPT（malformed database schema 等）を throw する重度/
+// スキーマ破損では、例外を握って「破損＝非ok文字列」に正規化して返す（evaluateIntegrity(false) 経路で
+// 自動復元を発火させるため。ここで throw を素通しすると application 側が破損を検知できず安全網が外れる）。
+function quickCheck(d) {
+  try {
+    return d.selectValue('PRAGMA quick_check')
+  } catch (e) {
+    return String((e && e.message) || e) || 'malformed'
+  }
+}
+
+// 本番 DB を内部OPFSバックアップへ複製する。serialize→命名規約でメタを埋めて importDb で別スロットへ。
+// 返すメタ（name/createdAt/userVersion/checksum）は application 側の世代ローテ判断に使う。
+function backupNow() {
+  const bytes = sqlite3.capi.sqlite3_js_db_export(db.pointer)
+  const userVersion = db.selectValue('PRAGMA user_version') ?? 0
+  const checksum = checksumOf(bytes)
+  const createdAt = Date.now()
+  const name = `${BACKUP_PREFIX}${createdAt}-v${userVersion}-${checksum}${BACKUP_SUFFIX}`
+  poolUtil.importDb(name, bytes)
+  return { name, createdAt, userVersion, checksum }
+}
+
+// 内部バックアップ一覧。命名規約からメタ（createdAt/userVersion/checksum）をパースし、各DBを開いて
+// quick_check で healthy を判定する（破損したバックアップは selectRestoreCandidate でスキップされる）。
+function listBackups() {
+  const names = poolUtil.getFileNames().filter((n) => BACKUP_NAME_RE.test(n))
+  return names.map((name) => {
+    const [, createdAt, userVersion, checksum] = BACKUP_NAME_RE.exec(name)
+    let healthy = false
+    try {
+      const bk = new poolUtil.OpfsSAHPoolDb(name)
+      try {
+        healthy = isIntegrityOk(quickCheck(bk))
+      } finally {
+        bk.close()
+      }
+    } catch {
+      healthy = false // 開けない/検査で例外＝破損扱い
+    }
+    return { name, createdAt: Number(createdAt), userVersion: Number(userVersion), checksum, healthy }
+  })
+}
+
+// 指定した内部バックアップのバイト列で本番 DB を置き換える（自動復元）。Phase4 の import と同じく
+// 一時スロット経由で本アプリDBの構成を検証してから本番へ反映する（不正なら既存を壊さず throw）。
+// import は db を閉じるので、起動時の自動復元でリロード無しに続行できるよう開き直して版数を返す。
+function restoreBackup(name) {
+  const bytes = poolUtil.exportFile(name)
+  importDbBytes(bytes) // 検証→本番置換（db を閉じる）
+  db = new poolUtil.OpfsSAHPoolDb(DB_FILE)
   return runMigrations(db, migrations)
 }
 
@@ -149,6 +242,18 @@ self.onmessage = async (e) => {
     } else if (type === 'import') {
       importDbBytes(new Uint8Array(e.data.buffer))
       self.postMessage({ id, type: 'imported' })
+    } else if (type === 'integrityCheck') {
+      self.postMessage({ id, type: 'integrity', result: quickCheck(db) })
+    } else if (type === 'backupNow') {
+      self.postMessage({ id, type: 'backedUp', backup: backupNow() })
+    } else if (type === 'listBackups') {
+      self.postMessage({ id, type: 'backups', backups: listBackups() })
+    } else if (type === 'restoreBackup') {
+      const userVersion = restoreBackup(e.data.name)
+      self.postMessage({ id, type: 'restored', userVersion })
+    } else if (type === 'deleteBackup') {
+      poolUtil.unlink(e.data.name)
+      self.postMessage({ id, type: 'deleted' })
     } else if (type === 'close') {
       if (db) {
         db.close()

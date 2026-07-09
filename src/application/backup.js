@@ -79,6 +79,23 @@ export async function prepareDatabaseExport(date = new Date()) {
   }
 }
 
+// 復元失敗時のエラーを利用者向けの日本語に丸める（純関数）。
+// Worker/入口が投げる文言は既に日本語なのでそのまま通す。SQLite-WASM の生コード
+// （SQLITE_NOTADB / file is not a database / malformed 等）だけ分かりやすい日本語へ変換する。
+// UI（DataBackupBar）が catch 節で表示前に通す（生の英語コードを画面に出さない）。
+export function humanizeImportError(err) {
+  const msg = String((err && err.message) || err || '')
+  // 既に日本語（ひらがな/カタカナ/漢字）を含むメッセージは丸めず尊重する。
+  if (/[ぁ-んァ-ヶー一-龠]/.test(msg)) return msg
+  if (/NOTADB|not a database/i.test(msg)) {
+    return 'SQLite のデータベースではありません。バックアップした .sqlite3 を選んでください'
+  }
+  if (/malformed|corrupt/i.test(msg)) {
+    return 'ファイルが壊れているため復元できませんでした'
+  }
+  return 'データを復元できませんでした。別のバックアップでお試しください'
+}
+
 // アップロードされた .sqlite3 のバイト列で DB を丸ごと置き換える（復元）。
 // まず入口でヘッダを弾き、Worker 側で本アプリDBの検証のうえ本番を置換する
 // （不正ファイルは一時スロットで弾き、既存データを壊さない）。成功時は true。

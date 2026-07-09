@@ -8,14 +8,21 @@ import { useRef, useState } from 'react'
 import {
   canExportDatabase,
   canImportDatabase,
+  humanizeImportError,
   importDatabaseBytes,
   prepareDatabaseExport,
 } from '../../application/backup.js'
 
 export default function DataBackupBar() {
   const [msg, setMsg] = useState('')
+  const [isError, setIsError] = useState(false) // メッセージが失敗告知か（色分け用）
   const [busy, setBusy] = useState(false)
   const fileRef = useRef(null)
+  // 成功/中立は muted、失敗は赤で伝える（--red）。生の英語エラーは humanizeImportError で日本語化。
+  const say = (text, error = false) => {
+    setMsg(text)
+    setIsError(error)
+  }
 
   // sqlite 主タブでのみ機能する。それ以外（local/副タブ/未対応環境）は導線を出さない。
   const canExport = canExportDatabase()
@@ -25,7 +32,7 @@ export default function DataBackupBar() {
   const onExport = async () => {
     const ex = await prepareDatabaseExport()
     if (!ex) {
-      setMsg('この環境ではエクスポートできません。')
+      say('この環境ではエクスポートできません。', true)
       return
     }
     const url = URL.createObjectURL(new Blob([ex.bytes], { type: 'application/x-sqlite3' }))
@@ -36,7 +43,7 @@ export default function DataBackupBar() {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    setMsg(`書き出しました：${ex.filename}`)
+    say(`書き出しました：${ex.filename}`)
   }
 
   const onImportFile = async (e) => {
@@ -44,20 +51,20 @@ export default function DataBackupBar() {
     e.target.value = '' // 同じファイルを続けて選べるようにクリア
     if (!file) return
     setBusy(true)
-    setMsg('復元中…')
+    say('復元中…')
     try {
       const bytes = new Uint8Array(await file.arrayBuffer())
       await importDatabaseBytes(bytes)
-      setMsg('復元しました。再読み込みします…')
+      say('復元しました。再読み込みします…')
       setTimeout(() => window.location.reload(), 800)
     } catch (err) {
       setBusy(false)
-      setMsg(`復元できません：${err.message || err}`)
+      say(`復元できません：${humanizeImportError(err)}`, true)
     }
   }
 
   return (
-    <div className="data-backup">
+    <section className="data-backup" aria-label="学習データのバックアップ">
       <span className="data-backup-title">学習データのバックアップ</span>
       <button
         type="button"
@@ -84,7 +91,9 @@ export default function DataBackupBar() {
         onChange={onImportFile}
         style={{ display: 'none' }}
       />
-      {msg && <span className="data-backup-msg">{msg}</span>}
-    </div>
+      {msg && (
+        <span className={`data-backup-msg${isError ? ' data-backup-msg--error' : ''}`}>{msg}</span>
+      )}
+    </section>
   )
 }

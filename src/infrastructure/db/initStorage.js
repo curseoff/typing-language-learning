@@ -74,6 +74,16 @@ async function doInit() {
       const copy = bytes.slice() // 正確な長さの独立バッファにして転送（呼び出し側の配列は温存）
       return call('import', { buffer: copy.buffer }, [copy.buffer])
     },
+    // #268 Phase5a: 起動時の整合性検査（quick_check の生結果を返す。判定は application/persist/recovery）。
+    integrityCheck: () => call('integrityCheck', {}).then((r) => r.result),
+    // 本番 DB を内部OPFSバックアップへ複製し、メタ（name/createdAt/userVersion/checksum）を受け取る。
+    backupNow: () => call('backupNow', {}).then((r) => r.backup),
+    // 内部バックアップ一覧（{name,createdAt,userVersion,checksum,healthy}[]）。
+    listBackups: () => call('listBackups', {}).then((r) => r.backups),
+    // 指定した内部バックアップで本番を置換し、開き直した版数を受け取る（自動復元）。
+    restoreBackup: (name) => call('restoreBackup', { name }).then((r) => r.userVersion),
+    // 世代ローテで溢れた古い内部バックアップを削除する。
+    deleteBackup: (name) => call('deleteBackup', { name }),
     close: () => call('close', {}),
   }
   return handle

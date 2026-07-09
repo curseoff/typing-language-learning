@@ -26,6 +26,7 @@ import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
 import InstallButton from './ui/pwa/InstallButton.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
+import PersistNotice from './ui/pwa/PersistNotice.jsx'
 import SoundToggle from './ui/sound/SoundToggle.jsx'
 import { makeSeed } from './application/seed.js'
 
@@ -605,6 +606,7 @@ export default function App() {
       <UpdateToast />
       <InstallButton />
       <ContentFallbackNotice />
+      <PersistNotice />
     </div>
     </ReplayProvider>
   )
