@@ -13,7 +13,7 @@ import {
 } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
-import { itemId } from '../infrastructure/itemStatsRepository.js'
+import { itemId } from '../domain/records/recordKeys.js'
 import { playMiss } from '../infrastructure/sound.js'
 
 export function useStory({ mode, storyId, start, onExit }) {

@@ -8,11 +8,8 @@
 //                            同期で更新後マップを返し、Worker への差分書き込みは write-queue 経由で
 //                            fire-and-forget（write-through）。
 // memory/sqlite の両モードとも read/write はメモリ像 image を経由する（消費側は無改修）。
-// キー生成（recKey/itemId）だけは各リポジトリの純粋関数を継続 import する。
-import { wordRecKey } from '../infrastructure/wordsRepository.js'
-import { dictRecKey } from '../infrastructure/dictRepository.js'
-import { storyRecKey } from '../infrastructure/storyRepository.js'
-import { itemId } from '../infrastructure/itemStatsRepository.js'
+// キー生成（wordRecKey/dictRecKey/storyRecKey/itemId）は domain の純粋関数を使う（#274）。
+import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.js'
 import {
   buildImage,
   applySaveRecord,
