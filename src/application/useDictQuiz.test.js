@@ -7,13 +7,14 @@ import { useDictQuiz } from './useDictQuiz.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { DICT } from '../content/dictionaryAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
-import { loadDictRecords, dictRecKey } from '../infrastructure/dictRepository.js'
+import { loadDictRecords, dictRecKey, initMemoryPersistence } from './records.js'
 
 const ENDLESS = { kind: 'endless', value: null }
 const MIN_RECORD_MS = END_TIME_VALUES[0] * 1000 // 記録に必要な最低プレイ時間（30秒）
 
 beforeEach(() => {
   localStorage.clear()
+  initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
   vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
 })
 afterEach(() => vi.useRealTimers())

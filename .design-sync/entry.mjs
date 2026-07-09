@@ -1,5 +1,5 @@
 // design-sync 用エントリ。@tll/ui（正本パッケージ）を丸ごと再export し、プレビュー用の
-// ダーク背景 provider DSFrame だけ足す。旧来の「electron 回避＋全 src 列挙＋データスタブ」の
+// ダーク背景 provider DSFrame だけ足す。旧来の「全 src 列挙＋データスタブ」の
 // ハックは不要になった（@tll/ui は正規パッケージ・重データ import 無し・実型付き）。
 import React from 'react';
 export * from '@tll/ui';

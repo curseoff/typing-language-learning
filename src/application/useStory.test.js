@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useStory } from './useStory.js'
-import { loadStoryRecords } from '../infrastructure/storyRepository.js'
+import { loadStoryRecords, initMemoryPersistence } from './records.js'
 
 const typeKey = (key) =>
   act(() => {
@@ -28,7 +28,10 @@ function playToEnding(result) {
 }
 
 describe('useStory（物語・結合）', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
+  })
 
   it('英語モードで完走し record に source=story と mode が入る', () => {
     const { result } = renderHook(() =>

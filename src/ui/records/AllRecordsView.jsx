@@ -18,7 +18,7 @@ function rankTextOf(row) {
 export default function AllRecordsView({ onExit }) {
   const { open, modal } = useRecordDetail()
 
-  // マウント時に localStorage から全記録を読む（物語は storyId・終了条件別バリアントを全て束ねる＝records マップ形へ）。
+  // マウント時に記録ストア（SQLite/OPFS のメモリ像）から全記録を読む（物語は storyId・終了条件別バリアントを全て束ねる＝records マップ形へ）。
   const rows = useMemo(() => {
     const records = { ...loadRecords() }
     for (const [key, list] of Object.entries(loadAllStoryRecords())) {

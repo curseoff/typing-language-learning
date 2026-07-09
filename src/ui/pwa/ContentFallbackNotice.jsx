@@ -11,12 +11,12 @@ export default function ContentFallbackNotice() {
   if (!fallback || dismissed) return null
 
   return (
-    <div className="content-fallback-notice" role="status" aria-live="polite">
-      <span className="content-fallback-notice__msg">
+    <div className="app-notice content-fallback-notice" role="status" aria-live="polite">
+      <span className="app-notice__msg">
         一部の教材を簡易表示しています。再読み込みで直る場合があります
       </span>
       <button
-        className="content-fallback-notice__close"
+        className="app-notice__close"
         type="button"
         onClick={() => setDismissed(true)}
         aria-label="閉じる"

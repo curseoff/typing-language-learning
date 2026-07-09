@@ -58,7 +58,7 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 ## 依存・セキュリティ
 
 - **本番(prod)依存は react / react-dom のみ**で、現状 `npm audit --omit=dev` は **脆弱性 0**。CI の `npm run audit` が high 以上で落とす。
-- `npm audit` 全体の警告は **dev 依存（vite/vitest/esbuild/electron/electron-builder 等のビルド・デスクトップ用ツール）**由来で、**デプロイされるサイトには含まれない**。解消は major 更新が必要なため、`--force` 一括ではなく **Dependabot（`.github/dependabot.yml`）の更新PRで段階対応**する。
+- `npm audit` 全体の警告は **dev 依存（vite/vitest/esbuild 等のビルド用ツール）**由来で、**デプロイされるサイトには含まれない**。解消は major 更新が必要なため、`--force` 一括ではなく **Dependabot（`.github/dependabot.yml`）の更新PRで段階対応**する。
 
 ## バンドルサイズ
 
@@ -146,32 +146,21 @@ git config ai.signingKey     "~/.ssh/ai-signing.pub" # SSH 署名公開鍵
 - ヘルパは `-c` でその場限りに署名設定を上書きするだけ。グローバル/リポジトリの git 設定は変更しない。人間（本人）の `git commit` は従来どおり本人名義・1Password 署名。
 - `ai.*` 未設定なら `scripts/ai-commit.sh` はエラーで止まり、初回設定を促す。
 
-## Electron（任意・各自ビルド）
+## デスクトップアプリ（Electron は不採用）
 
-デスクトップアプリ版は配布していません。欲しい場合は各自でビルドしてください。
+デスクトップ版は配布していません。**PWA として出荷**しており（インストール可能・オフライン対応）、Electron（`#264` で不採用決定）による同梱ビルドは行いません。ブラウザまたはインストール済み PWA として利用してください。
 
-```bash
-npm run electron:dev   # ウィンドウで起動（開発用・ホットリロード）
-npm run dist:dir       # 動作確認用パッケージを release/ に生成（インストーラ無し）
-npm run dist           # インストーラを release/ に生成
-```
+## 記録（SQLite / OPFS）
 
-- 出力形式は実行OSに依存（macOS=`.dmg` / Windows=`.exe` / Linux=`.AppImage`）
-- アプリは**未署名**。macOSは初回起動時に警告が出るため `.app` を右クリック →「開く」で回避
-- アイコン未設定（既定）。`build/icon.icns`(Mac)/`build/icon.ico`(Win)/`build/icon.png`(Linux) を置くと自動採用
-- 記録の保存先（ビルド版）：`~/Library/Application Support/EigoTyping/Local Storage/`
+記録は **SQLite-WASM + OPFS**（Origin Private File System）に永続化されます（#264）。既定バックエンドは `sqlite`、OPFS/Worker/Web Locks が使えない環境（シークレット/古いブラウザ/iPadOS<16.4 等）では `memory`＝**非永続**（メモリのみ・リロードで消える）へ縮退し、その旨を告知します。記録の読み書きは application ファサード（`src/application/records.js`）経由で、メモリ像＋Worker への write-through（主タブ）で行います。**localStorage による記録の永続化は #274 で廃止**しました（音設定など記録以外の localStorage 用途は残存）。
 
-## 記録（localStorage）
-
-記録は種類ごとにキーを分けてブラウザに保存されます。
-
-| 種類 | キー | 単位 |
+| 種類 | テーブル | 単位 |
 |---|---|---|
-| 文章 | `typing-records-v3` | モード×レベル（`${mode}__r${rank}`） |
-| 単語 | `word-records-v2` | レベル×テーマ×モード |
-| 英英辞典 | `dict-records-v1` | レベル×テーマ×モード |
-| 物語（記録） | `story-records-v1` | 速度ランキング |
-| 物語（発見エンド） | `story-endings-v1` | 到達したエンド |
-| 問題ごとの記録 | `item-stats-v1` | `type:mode:key` 別の練習回数/打鍵/ミス/時間（収録一覧で表示） |
+| 文章 | `records` | モード×レベル（`${mode}__r${rank}`） |
+| 単語 | `word_records` | レベル×テーマ×モード |
+| 英英辞典 | `dict_records` | レベル×テーマ×モード |
+| 物語（記録） | `story_records` | 速度ランキング |
+| 物語（発見エンド） | `story_endings` | 到達したエンド |
+| 問題ごとの記録 | `item_stats` | `type:mode:key` 別の練習回数/打鍵/ミス/時間（収録一覧で表示） |
 
-各ランキングは速い順（4択は正解数順）で最大 15 件（`MAX_RECORDS`）。タッチタイピングは記録を保存しません。
+各ランキングは速い順（4択は正解数順）で最大 15 件（`MAX_RECORDS`）。タッチタイピングは記録を保存しません。旧 localStorage の記録は移行しません（正式版前のため）。詳細な永続化の設計は #264 の各 Phase（DB基盤/スキーマ写像/多タブ協調/永続・復元/外部バックアップ）を参照。

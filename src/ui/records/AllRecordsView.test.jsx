@@ -5,9 +5,13 @@
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import AllRecordsView from './AllRecordsView.jsx'
+import { initMemoryPersistence, saveStoryRecord } from '../../application/records.js'
 
 afterEach(cleanup)
-beforeEach(() => localStorage.clear())
+beforeEach(() => {
+  localStorage.clear()
+  initMemoryPersistence() // 記録メモリ像を空にリセット（facade は localStorage を読まない）
+})
 
 const wordRec = {
   source: 'word',
@@ -38,7 +42,8 @@ const storyRec = {
 
 describe('AllRecordsView container（行クリックで記録詳細）', () => {
   it('単語記録の行クリックで記録詳細が開き rankText に種類＋レベル＋テーマが出る', () => {
-    localStorage.setItem('word-records-v2', JSON.stringify({ 'L1__旅行__en': [wordRec] }))
+    // 記録メモリ像へ直接シード（キー形式は wordRecKey と同一）。
+    initMemoryPersistence({ wordRecords: { 'L1__旅行__en': [wordRec] } })
     render(<AllRecordsView onExit={() => {}} />)
     // データ行（単語）をクリック。
     fireEvent.click(screen.getByText('単語'))
@@ -47,7 +52,8 @@ describe('AllRecordsView container（行クリックで記録詳細）', () => {
   })
 
   it('物語記録の行クリックでは rankText が種類名のみ（レベル/テーマ無し）', () => {
-    localStorage.setItem('story-records-v1-travel', JSON.stringify([storyRec]))
+    // story は storyRecKey 変換が要るので facade save でシード。
+    saveStoryRecord('travel', storyRec)
     render(<AllRecordsView onExit={() => {}} />)
     fireEvent.click(screen.getByText('物語'))
     // 物語はレベル/テーマ無しなので種類名のみ。RecordDetail 見出しに出る。

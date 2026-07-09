@@ -87,9 +87,4 @@ export default [
     files: ['**/*.test.{js,jsx}', 'scripts/**', '*.config.js'],
     languageOptions: { globals: { ...globals.node } },
   },
-  {
-    // Electron メインプロセスは CommonJS（__dirname/process など）
-    files: ['**/*.cjs'],
-    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
-  },
 ]

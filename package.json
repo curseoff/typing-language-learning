@@ -1,9 +1,8 @@
 {
   "name": "typing-language-learning",
   "private": true,
-  "version": "0.26.0",
+  "version": "0.27.0",
   "type": "module",
-  "main": "electron/main.cjs",
   "workspaces": [
     "packages/*"
   ],
@@ -51,11 +50,7 @@
     "team:set": "node scripts/team-set.mjs",
     "team:test": "node --test scripts/team-ledger.test.mjs",
     "release": "node scripts/release.mjs",
-    "prepare": "git config core.hooksPath .githooks || true",
-    "electron": "electron .",
-    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on tcp:127.0.0.1:5173 && electron .\"",
-    "dist": "vite build && electron-builder",
-    "dist:dir": "vite build && electron-builder --dir"
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
@@ -70,9 +65,6 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.9",
-    "concurrently": "^10.0.3",
-    "electron": "^42.5.0",
-    "electron-builder": "^26.15.3",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -84,29 +76,6 @@
     "storybook": "^10.4.6",
     "typescript-eslint": "^8.62.1",
     "vite": "^8.1.0",
-    "vitest": "^4.1.9",
-    "wait-on": "^9.0.10"
-  },
-  "build": {
-    "appId": "com.example.typinggame",
-    "productName": "EigoTyping",
-    "files": [
-      "dist/**/*",
-      "electron/**/*"
-    ],
-    "directories": {
-      "output": "release"
-    },
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.education"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage",
-      "category": "Education"
-    }
+    "vitest": "^4.1.9"
   }
 }

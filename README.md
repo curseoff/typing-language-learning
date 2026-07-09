@@ -4,7 +4,7 @@
 
 🎮 **デモ**: https://curseoff.github.io/typing-language-learning/
 
-React + Vite 製。ブラウザで動きます（Electron で各自ビルドも可）。
+React + Vite 製。ブラウザで動きます（PWA としてインストール・オフライン利用も可）。
 
 ## 種類とモード
 
@@ -60,7 +60,7 @@ React + Vite 製。ブラウザで動きます（Electron で各自ビルドも�
 
 セットアップ・設計・コンテンツ追加は以下を参照してください。
 
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) … 開発環境・スクリプト・テスト/Lint/CI・Electron・公開
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) … 開発環境・スクリプト・テスト/Lint/CI・公開
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) … ドメイン駆動設計の構成・ディレクトリ・技術メモ
 - [docs/CONTENT.md](docs/CONTENT.md) … 教材データ（文章・単語・英英・物語）の追加・編集ガイド
 

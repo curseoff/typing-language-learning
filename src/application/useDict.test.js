@@ -7,10 +7,11 @@ import { useDict } from './useDict.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
 import { DICT } from '../content/dictionaryAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
-import { loadDictRecords, dictRecKey } from '../infrastructure/dictRepository.js'
+import { loadDictRecords, dictRecKey, initMemoryPersistence } from './records.js'
 
 beforeEach(() => {
   localStorage.clear()
+  initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
   vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] })
 })
 afterEach(() => vi.useRealTimers())
