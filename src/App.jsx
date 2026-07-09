@@ -24,10 +24,10 @@ import AllRecordsView from './ui/records/AllRecordsView.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.jsx'
-import InstallButton from './ui/pwa/InstallButton.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
 import PersistNotice from './ui/pwa/PersistNotice.jsx'
 import SoundToggle from './ui/sound/SoundToggle.jsx'
+import AppMenuBar from './ui/menu/AppMenuBar.jsx'
 import { makeSeed } from './application/seed.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
@@ -439,20 +439,12 @@ export default function App() {
 
   return (
     <ReplayProvider onReplay={replay}>
+    <AppMenuBar
+      appName="英文・和文タイピング"
+      onNavigateAbout={() => setPhase('about')}
+      onNavigateAllRecords={() => setPhase('allrecords')}
+    />
     <div className="app">
-      <h1>英文・和文タイピング</h1>
-
-      {phase === 'ready' && (
-        <p className="about-link-row">
-          <button type="button" className="about-link" onClick={() => setPhase('about')}>
-            このアプリについて
-          </button>
-          <button type="button" className="about-link" onClick={() => setPhase('allrecords')}>
-            すべての記録
-          </button>
-        </p>
-      )}
-
       {import.meta.env.DEV && (
         <div className="dev-panel">
           <span className="dev-tag">DEV</span>
@@ -604,7 +596,6 @@ export default function App() {
       <SoundToggle />
       <OfflineBanner />
       <UpdateToast />
-      <InstallButton />
       <ContentFallbackNotice />
       <PersistNotice />
     </div>
