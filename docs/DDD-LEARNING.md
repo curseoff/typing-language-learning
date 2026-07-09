@@ -131,7 +131,32 @@
 - before：`{ kind: 'time', value: 60 }` が domain・content・App.jsx に散在し、検証も凍結も無し。
 - after：`makeEndCondition('time', 60)`（凍結・検証済み）。「終了条件はこの関数でしか作れない」に寄せた。
 
-> 次：**Phase 2（Entity / 同一性）** — プレイ1回を `TypingSession`（ID・可変状態・ライフサイクル）として抽出し、VO との違いを体験する。
+---
+
+## 6. Phase 2 記録：Entity（TypingSession）
+
+**やったこと**：プレイ1回を `TypingSession` **Entity** として domain に新設（`domain/session/typingSession.js`）。前 Phase の EndCondition **VO を内包**する。
+
+### VO と Entity の違い（この2つを並べると本質が見える）
+| | Value Object（EndCondition） | Entity（TypingSession） |
+|---|---|---|
+| **同一性** | 無し。値が同じなら同じ（`endConditionEquals`＝値等価） | **ID を持つ**。`sessionEquals`＝**ID 一致**で等価 |
+| **可変性** | **不変**（`Object.freeze`） | **可変**（`registerHit/registerMiss/advanceItem/setElapsed/finish` で状態が変わる） |
+| **ライフサイクル** | 無し（ただの値） | **あり**（active → finished） |
+| **不変条件** | 生成時に検証（不正は作れない） | **生成後も守る**（finished 後の状態変更は throw） |
+| **等価の意味** | 「同じ 60 秒設定」はどれも交換可能 | 「同じ ID」なら**進捗が変わっても同一の実体**。逆に「別 ID・同じ進捗」は別物 |
+
+### 学びの要点
+- **同一性 vs 値等価が Entity と VO を分ける唯一絶対の基準**。テストで `sessionEquals(同id, 別進捗)===true` かつ `sessionEquals(別id, 同値)===false` を固定したのが核心。VO は逆（値が同じなら等価）。
+- **ID は純ドメインでは作れない → 注入する**：`startTypingSession({ id, endCondition })`。ドメインは乱数/時刻を持たない（決定性・テスト容易性）。ID の採番は外側（app/infra/Repository）の責務。→ Phase 4 の Repository でこの ID 採番・再構築を扱う。
+- **Entity は VO を内包する（合成）**：`TypingSession` が `EndCondition` VO を持つ。不正な終了条件では Session を始められない（生成時に `isEndCondition` で検証）。「Entity＝VO を組み合わせて状態と振る舞いを持たせたもの」という関係。
+- **`status`（明示終了）と `isFinished()`（終了条件連動）の分離**：`finish()` でのみ status が 'finished' になり、以後の状態変更を禁止（不変条件）。一方 `isFinished()` は「明示終了 or `shouldFinish(endCondition, progress)`」の論理和。時間到達＝プレイ的には終了だが、状態機械上はまだ更新を受け付ける、という現実に即した2層。
+- **カプセル化**：内部 `progress` は外に晒さず、`progress()` が毎回**凍結スナップショット**を返す。外から内部状態を壊せない＝Entity が自分の不変条件を守れる前提。
+
+### 補足（この関数型コードベースでの割り切り）
+domain の他コードは純関数・不変で統一されているが、Entity はあえて**メソッドで状態を変える可変オブジェクト**にした。これは「Entity は本質的に stateful」という DDD の主張を体験するための意図的な対比。実運用でこの Entity を使う（Phase 8 で `use*` フックから駆動する）かは別途判断する。
+
+> 次：**Phase 3（Aggregate + Aggregate Root + Invariant）** — 記録ランキングを `RankingBoard` 集約に。top15・並び順の不変条件を集約ルートが保証する。
 
 ---
 
