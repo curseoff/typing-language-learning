@@ -8,6 +8,10 @@
 import { getStorageHandle } from '../infrastructure/db/initStorage.js'
 import { flushWrites } from './records.js'
 
+// #269 Phase6: 保存基盤の起動完了を UI が購読するための再エクスポート（ui → application 経由で infra に触らせない）。
+// DataBackupBar が起動前に初描画されても、起動完了通知で導線可否（can*）を再評価しバーが一瞬消えるのを防ぐ。
+export { isStorageReady, subscribeStorageReady } from '../infrastructure/db/initStorage.js'
+
 // SQLite ファイルの先頭16バイトのマジック "SQLite format 3\0"。
 const SQLITE_MAGIC = [
   0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,

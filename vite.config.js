@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
 export default defineConfig({
-  // Electron(file://)で読み込めるよう相対パスにする
+  // GitHub Pages のサブパス配信で相対解決するため相対パスにする
   base: './',
   plugins: [react()],
   // sqlite-wasm は事前バンドルすると .wasm の locate に失敗しがちなので最適化から除外。

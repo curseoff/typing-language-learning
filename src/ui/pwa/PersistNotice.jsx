@@ -17,10 +17,10 @@ export default function PersistNotice() {
   if (!notice || dismissed) return null
 
   return (
-    <div className="persist-notice" role="status" aria-live="polite">
-      <span className="persist-notice__msg">{MESSAGES[notice]}</span>
+    <div className="app-notice persist-notice" role="status" aria-live="polite">
+      <span className="app-notice__msg">{MESSAGES[notice]}</span>
       <button
-        className="persist-notice__close"
+        className="app-notice__close"
         type="button"
         onClick={() => setDismissed(true)}
         aria-label="閉じる"

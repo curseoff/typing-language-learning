@@ -15,9 +15,30 @@ let handle = null // 非 null＝open 済みハンドル
 let reqId = 0
 const pending = new Map() // id -> { resolve, reject }
 
+let storageReady = false // init が settle（成功して handle 取得 or 失敗して null 確定）したか
+const readyListeners = new Set()
+
 // 起動済みの保存基盤ハンドルを返す。未初期化・失敗時は null。
 export function getStorageHandle() {
   return handle
+}
+
+// 保存基盤の起動が settle したか（成功/失敗どちらも true）。initStorage を呼ばない local/副タブは false のまま。
+// #269 Phase6: DataBackupBar が起動完了を待って導線可否（handle 準備）を再評価するための参照安定な primitive。
+export function isStorageReady() {
+  return storageReady
+}
+
+// 起動完了（settle）を購読する。解除関数を返す（useSyncExternalStore が unmount 時に呼ぶ）。
+export function subscribeStorageReady(listener) {
+  readyListeners.add(listener)
+  return () => readyListeners.delete(listener)
+}
+
+function markStorageReady() {
+  if (storageReady) return
+  storageReady = true
+  for (const l of readyListeners) l()
 }
 
 function onMessage(e) {
@@ -93,18 +114,21 @@ async function doInit() {
 // 失敗しても reject せず、console.warn して null を返す（アプリを壊さない縮退）。
 export function initStorage() {
   if (initPromise) return initPromise
-  initPromise = doInit().catch((e) => {
-    console.warn('[storage] SQLite/OPFS 初期化に失敗。永続化なしで続行します。', e)
-    if (worker) {
-      try {
-        worker.terminate()
-      } catch {
-        // 破棄失敗は無視（フォールバックには影響しない）。
+  initPromise = doInit()
+    .catch((e) => {
+      console.warn('[storage] SQLite/OPFS 初期化に失敗。永続化なしで続行します。', e)
+      if (worker) {
+        try {
+          worker.terminate()
+        } catch {
+          // 破棄失敗は無視（フォールバックには影響しない）。
+        }
+        worker = null
       }
-      worker = null
-    }
-    handle = null
-    return null
-  })
+      handle = null
+      return null
+    })
+    // 成功（handle 取得）でも失敗（null 縮退）でも「起動完了」を通知＝購読 UI が導線可否を再評価する。
+    .finally(markStorageReady)
   return initPromise
 }

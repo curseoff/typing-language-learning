@@ -8,7 +8,7 @@ design-sync の入力を**正本パッケージ `@tll/ui`**（`packages/ui`・TS
 - **ビルド**：`@tll/ui` を先にビルドしておく（`npm run -w @tll/ui build`＝vite lib + tsc d.ts）。
   design-sync は `pkg: "@tll/ui"` を解決し、`cssEntry: packages/ui/dist/styles.css` を読む。
 - **エントリ** `.design-sync/entry.mjs`：`export * from '@tll/ui'` ＋ プレビュー用 provider `DSFrame` だけ。
-  electron 回避のための手書き列挙はもう無い（main が electron/main.cjs でも `@tll/ui` を解決するので影響しない）。
+  旧来の手書き列挙（重データ import 回避のためのハック）はもう無い（`@tll/ui` を直接解決するだけ）。
 - シンボリックリンク・データスタブは**不要**。フレッシュ clone 後も `@tll/ui` の build だけでよい。
 
 ## スコープ（37 コンポーネント）

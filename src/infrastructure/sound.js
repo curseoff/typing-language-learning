@@ -4,7 +4,7 @@
 // ミュート時は AudioContext に触れる前に return する（gate は純粋関数 shouldPlayMiss で判定）。
 import { isSoundMuted } from './soundSettingsRepository.js'
 
-// public/ 配下の miss.wav の URL（Vite の base に追従。Electron の file:// でも相対解決される）。
+// public/ 配下の miss.wav の URL（Vite の base に追従。GitHub Pages のサブパス配信でも相対解決される）。
 const MISS_URL = `${import.meta.env.BASE_URL}miss.wav`
 
 let ctx = null // 遅延生成する AudioContext（初回 playMiss で作成）
