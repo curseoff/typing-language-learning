@@ -48,6 +48,12 @@ export default defineConfig({
         // 同種のブラウザ API エントリ配線として計測除外。純ロジック（election/secondaryMessage）は
         // 計測対象（各 spec で被覆）。実挙動は pwa-verifier の実ブラウザ検証で担保する。
         'src/infrastructure/persist/multiTab.js',
+        // #267 Phase4: navigator.storage.persist() の取得配線と、Ready のバックアップバー UI。
+        // navigator.storage / Blob ダウンロード / file input / location.reload は jsdom/node で
+        // 単体計測できない＝上記 db/* と同種のブラウザ API エントリ配線として計測除外。純関数
+        // （backup.js の looksLikeSqlite/buildBackupFilename/isValidUserDb）は計測対象（backup.test.js）。
+        'src/infrastructure/persist/persistentStorage.js',
+        'src/ui/ready/DataBackupBar.jsx',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',

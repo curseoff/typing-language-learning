@@ -87,6 +87,46 @@ h1 {
   margin-left: 18px;
 }
 
+/* #267 学習データのバックアップ（エクスポート/復元）バー。sqlite 主タブでのみ表示 */
+.data-backup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 28px 0 8px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border-radius: 12px;
+  font-size: 13px;
+}
+.data-backup-title {
+  font-weight: 700;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.data-backup-btn {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--muted-fn);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+.data-backup-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.data-backup-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.data-backup-msg {
+  color: var(--muted);
+  flex-basis: 100%;
+}
+
 /* .section-label は @tll/ui packages/ui/src/styles/parts.css へ移設 */
 
 /* 種類タブ（文章 / 物語 / 単語 / 英英辞典 / タッチ） */

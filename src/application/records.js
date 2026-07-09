@@ -119,6 +119,12 @@ export function consumeSecondaryWriteAttempt() {
 
 const isSqlite = () => backend === 'sqlite'
 
+// 保留中の write-through を Worker へ流し切って完了を待つ（#267 export 前の flush）。
+// 主タブ以外（local/副タブ＝queue なし）は待つものが無いので即解決する。
+export async function flushWrites() {
+  if (queue) await queue.flush()
+}
+
 // sqlite 経路の書込み後段。主タブは Worker へ write-through＋change を broadcast、
 // 副タブは read-only（何もせず告知フラグだけ立てる。メモリ像の楽観更新は呼び出し側で済ませ済み）。
 function writeThrough(op) {

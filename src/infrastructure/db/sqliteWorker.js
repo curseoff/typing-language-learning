@@ -11,6 +11,7 @@
 //   in  { id, type:'close' }               → db.close() → out { id, type:'closed' }
 //   in  { id, type:'hydrate' }             → 全リポを読む → out { id, type:'hydrated', image }（#266 起動時展開）
 //   in  { id, type:'save', repo, args }    → repo 別に1件保存 → out { id, type:'saved', repo }（#266 write-through）
+//   in  { id, type:'import', buffer }      → 検証後に本番 DB を置換 → out { id, type:'imported' }（#267 Phase4 復元）
 //   失敗時は out { id, type:'error', message }
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { migrations } from './migrations.js'
@@ -26,19 +27,71 @@ import {
   saveFoundDb,
 } from './repos/storyDb.js'
 
-const DB_FILE = 'user.sqlite3'
+// 先頭スラッシュ必須：SAHPool の importDb は名前を verbatim 格納するが、OpfsSAHPoolDb の
+// open は VFS が '/name' へ正規化する。スラッシュ無しだと importDb と open で別ファイル扱いになり
+// 取り込んだ DB を空として掴む（#267 復元不能バグ）。open/importDb/unlink を '/' 付きで統一する。
+const DB_FILE = '/user.sqlite3'
+const TMP_FILE = '/import-check.sqlite3' // 復元検証用の一時ファイル（本番とは別スロット）
 const VFS_NAME = 'opfs-sahpool-tll-user'
+
+// 本アプリのユーザーDBが備えるべきテーブル（applySchema/migrations で作られる7つ）。
+// application/backup.js の EXPECTED_TABLES と対応（Worker は application を import できないため再掲）。
+const EXPECTED_TABLES = [
+  'records',
+  'word_records',
+  'dict_records',
+  'item_stats',
+  'story_endings',
+  'story_records',
+  'meta',
+]
 
 let db = null
 let sqlite3 = null
+let poolUtil = null // SAHPool ユーティリティ（importDb/unlink で復元に使う）
 
 // SAHPool VFS を導入し DB を open、マイグレーションを適用して最終版数を返す。
 async function open() {
   sqlite3 = await sqlite3InitModule()
-  const poolUtil = await sqlite3.installOpfsSAHPoolVfs({ name: VFS_NAME })
+  poolUtil = await sqlite3.installOpfsSAHPoolVfs({ name: VFS_NAME })
   db = new poolUtil.OpfsSAHPoolDb(DB_FILE)
   // DB は selectValue/transaction/exec を持つので runMigrations にそのまま渡せる。
   return runMigrations(db, migrations)
+}
+
+// 取り込んだ DB が本アプリのユーザーDBとして妥当か（user_version>=2 かつ 期待テーブル全在）。
+function isValidUserDb(d) {
+  const ver = d.selectValue('PRAGMA user_version') ?? 0
+  if (ver < 2) return false
+  const names = d
+    .selectObjects("SELECT name FROM sqlite_master WHERE type='table'")
+    .map((r) => r.name)
+  return EXPECTED_TABLES.every((t) => names.includes(t))
+}
+
+// .sqlite3 のバイト列で本番 DB を丸ごと置き換える（復元）。
+// まず一時スロットへ取り込み（importDb が SQLite ヘッダ/ページを検証）、本アプリDBの
+// テーブル構成まで確認してから本番を上書きする＝不正ファイルで既存データを壊さない。
+// 置換後は db を閉じたまま（以降の save は詰まる）＝メイン側のリロードで開き直して読む。
+function importDbBytes(bytes) {
+  poolUtil.importDb(TMP_FILE, bytes) // ヘッダ/ページ検証つき。一時スロットにのみ書く
+  let ok = false
+  const tmp = new poolUtil.OpfsSAHPoolDb(TMP_FILE)
+  try {
+    ok = isValidUserDb(tmp)
+  } finally {
+    tmp.close()
+  }
+  if (!ok) {
+    poolUtil.unlink(TMP_FILE)
+    throw new Error('このアプリのバックアップではありません（DBの構成が一致しません）')
+  }
+  if (db) {
+    db.close()
+    db = null
+  }
+  poolUtil.importDb(DB_FILE, bytes) // 検証済みなので本番へ反映
+  poolUtil.unlink(TMP_FILE)
 }
 
 // 汎用 exec：SELECT なら行（オブジェクト配列）を返す。書き込み系は空配列。
@@ -93,6 +146,9 @@ self.onmessage = async (e) => {
     } else if (type === 'serialize') {
       const bytes = sqlite3.capi.sqlite3_js_db_export(db.pointer)
       self.postMessage({ id, type: 'serialized', buffer: bytes.buffer }, [bytes.buffer])
+    } else if (type === 'import') {
+      importDbBytes(new Uint8Array(e.data.buffer))
+      self.postMessage({ id, type: 'imported' })
     } else if (type === 'close') {
       if (db) {
         db.close()
