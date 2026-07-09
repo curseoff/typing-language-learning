@@ -18,7 +18,7 @@ import {
   saveRecord,
   loadFound,
 } from './records.js'
-import { wordRecKey } from '../infrastructure/wordsRepository.js'
+import { wordRecKey } from '../domain/records/recordKeys.js'
 
 const tick = () => new Promise((r) => setTimeout(r, 0))
 

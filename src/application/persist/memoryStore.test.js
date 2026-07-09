@@ -14,22 +14,12 @@ import {
   applySaveFound,
 } from './memoryStore.js'
 import { recKey } from '../../domain/records/ranking.js'
-import { loadRecords, saveRecord } from '../../infrastructure/recordsRepository.js'
-import { loadWordRecords, saveWordRecord } from '../../infrastructure/wordsRepository.js'
-import { loadDictRecords, saveDictRecord } from '../../infrastructure/dictRepository.js'
-import { loadItemStats, recordItemStat, itemId } from '../../infrastructure/itemStatsRepository.js'
-import { loadAllStoryRecords, saveStoryRecord } from '../../infrastructure/storyRepository.js'
+import { itemId } from '../../domain/records/recordKeys.js'
 
 beforeEach(() => localStorage.clear())
 
 // records: apply* を record 列で畳み込む。
 const foldRecords = (list) => list.reduce((m, r) => applySaveRecord(m, r), {})
-// records: 現行 localStorage リポジトリで同じ列を流した最終像。
-const oracleRecords = (list) => {
-  localStorage.clear()
-  for (const r of list) saveRecord(r)
-  return loadRecords()
-}
 
 describe('buildImage（6マップを束ね、欠損は {} に正規化）', () => {
   it('全欠損なら全て空マップの像', () => {
@@ -62,7 +52,7 @@ describe('buildImage（6マップを束ね、欠損は {} に正規化）', () =
   })
 })
 
-describe('applySaveRecord（マラソン記録・現行 recordsRepository と同値）', () => {
+describe('applySaveRecord（マラソン記録・現行 localStorage 実装と同値）', () => {
   it('入力マップを破壊せず、新しいトップレベル参照を返す（非破壊）', () => {
     const key = recKey('both', 1)
     const before = { [key]: [{ keys: 10 }] }
@@ -107,7 +97,7 @@ describe('applySaveRecord（マラソン記録・現行 recordsRepository と同
     expect(out[key][14].keys).toBe(2) // 最少(1)は溢れる
   })
 
-  it('空から畳み込んだ最終像が現行 saveRecord/loadRecords と deepEqual（オラクル同値）', () => {
+  it('空から畳み込んだ最終像が rankInsert 仕様どおり（キー分割・keys 降順・theme/endCondition 反映）', () => {
     const list = [
       { mode: 'both', rank: 1, keys: 100, mistakes: 0 },
       { mode: 'both', rank: 1, keys: 50, mistakes: 2 },
@@ -121,25 +111,40 @@ describe('applySaveRecord（マラソン記録・現行 recordsRepository と同
         endCondition: { kind: 'time', value: 30 },
       },
     ]
-    expect(foldRecords(list)).toEqual(oracleRecords(list))
+    // 期待値は現行 localStorage 実装が生む最終像を明示リテラル化したもの（キー分割・順序を保持）。
+    expect(foldRecords(list)).toEqual({
+      both__r1: [
+        { mode: 'both', rank: 1, keys: 100, mistakes: 0 },
+        { mode: 'both', rank: 1, keys: 50, mistakes: 2 },
+      ],
+      both__r2: [{ mode: 'both', rank: 2, keys: 80, mistakes: 1 }],
+      'sentence__wsent1__旅行': [
+        { mode: 'sentence', rank: 1, source: 'wsent', theme: '旅行', keys: 40, mistakes: 0 },
+      ],
+      both__r1__T30: [
+        { mode: 'both', rank: 1, keys: 70, mistakes: 1, endCondition: { kind: 'time', value: 30 } },
+      ],
+    })
   })
 })
 
-describe('applySaveWordRecord（単語記録・現行 wordsRepository と同値）', () => {
+describe('applySaveWordRecord（単語記録・現行 localStorage 実装と同値）', () => {
   const fold = (list) => list.reduce((m, r) => applySaveWordRecord(m, r), {})
-  const oracle = (list) => {
-    localStorage.clear()
-    for (const r of list) saveWordRecord(r)
-    return loadWordRecords()
-  }
 
-  it('クイズ記録と通常記録を混在させても現行 saveWordRecord と同値', () => {
+  it('クイズ記録と通常記録を混在させてもキー分割・成績順が現行 saveWordRecord 仕様どおり', () => {
     const list = [
       { level: 1, theme: 'すべて', mode: 'quiz-en', correct: 5, words: 30, keys: 20, mistakes: 1 },
       { level: 1, theme: 'すべて', mode: 'quiz-en', correct: 3, words: 30, keys: 25, mistakes: 0 },
       { level: 2, theme: '旅行', mode: 'en', keys: 40, mistakes: 2 },
     ]
-    expect(fold(list)).toEqual(oracle(list))
+    // 期待値は現行 localStorage 実装の最終像を明示リテラル化（keys 降順で quiz-en を束ねる）。
+    expect(fold(list)).toEqual({
+      'L1__すべて__quiz-en': [
+        { level: 1, theme: 'すべて', mode: 'quiz-en', correct: 3, words: 30, keys: 25, mistakes: 0 },
+        { level: 1, theme: 'すべて', mode: 'quiz-en', correct: 5, words: 30, keys: 20, mistakes: 1 },
+      ],
+      'L2__旅行__en': [{ level: 2, theme: '旅行', mode: 'en', keys: 40, mistakes: 2 }],
+    })
   })
 
   it('入力マップを破壊しない（非破壊）', () => {
@@ -150,25 +155,27 @@ describe('applySaveWordRecord（単語記録・現行 wordsRepository と同値�
   })
 })
 
-describe('applySaveDictRecord（英英記録・現行 dictRepository と同値）', () => {
+describe('applySaveDictRecord（英英記録・現行 localStorage 実装と同値）', () => {
   const fold = (list) => list.reduce((m, r) => applySaveDictRecord(m, r), {})
-  const oracle = (list) => {
-    localStorage.clear()
-    for (const r of list) saveDictRecord(r)
-    return loadDictRecords()
-  }
 
-  it('クイズ記録と通常記録を混在させても現行 saveDictRecord と同値', () => {
+  it('クイズ記録と通常記録を混在させてもキー分割・成績順が現行 saveDictRecord 仕様どおり', () => {
     const list = [
       { level: 1, theme: 'すべて', mode: 'quiz', correct: 10, words: 20, keys: 30, mistakes: 0 },
       { level: 1, theme: 'すべて', mode: 'quiz', correct: 8, words: 20, keys: 35, mistakes: 1 },
       { level: 3, theme: 'ビジネス', mode: 'ja', keys: 50, mistakes: 3 },
     ]
-    expect(fold(list)).toEqual(oracle(list))
+    // 期待値は現行 localStorage 実装の最終像を明示リテラル化（keys 降順で quiz を束ねる）。
+    expect(fold(list)).toEqual({
+      'L1__すべて__quiz': [
+        { level: 1, theme: 'すべて', mode: 'quiz', correct: 8, words: 20, keys: 35, mistakes: 1 },
+        { level: 1, theme: 'すべて', mode: 'quiz', correct: 10, words: 20, keys: 30, mistakes: 0 },
+      ],
+      'L3__ビジネス__ja': [{ level: 3, theme: 'ビジネス', mode: 'ja', keys: 50, mistakes: 3 }],
+    })
   })
 })
 
-describe('applyRecordItemStat（問題別累積・現行 itemStatsRepository と同値）', () => {
+describe('applyRecordItemStat（問題別累積・現行 localStorage 実装と同値）', () => {
   it('新規 id は count:1 で keys/mistakes/ms を設定する', () => {
     const id = itemId('words', 'en', 'reserve')
     const out = applyRecordItemStat({}, id, { keys: 10, mistakes: 1, ms: 200 })
@@ -197,7 +204,7 @@ describe('applyRecordItemStat（問題別累積・現行 itemStatsRepository と
     expect(after).not.toBe(before)
   })
 
-  it('連続適用の最終像が現行 recordItemStat と deepEqual（オラクル同値）', () => {
+  it('連続適用の最終像が現行 recordItemStat 仕様どおり（id 別に count/keys/mistakes/ms を合算）', () => {
     const ops = [
       [itemId('words', 'en', 'reserve'), { keys: 10, mistakes: 1, ms: 200 }],
       [itemId('words', 'en', 'reserve'), { keys: 4, mistakes: 2, ms: 50 }],
@@ -205,9 +212,11 @@ describe('applyRecordItemStat（問題別累積・現行 itemStatsRepository と
     ]
     const fold = ops.reduce((m, [id, delta]) => applyRecordItemStat(m, id, delta), {})
 
-    localStorage.clear()
-    for (const [id, delta] of ops) recordItemStat(id, delta)
-    expect(fold).toEqual(loadItemStats())
+    // 期待値は現行 localStorage 実装の最終像を明示リテラル化（同 id は加算・別 id は独立）。
+    expect(fold).toEqual({
+      'words:en:reserve': { count: 2, keys: 14, mistakes: 3, ms: 250 },
+      's:both:I go to school: today.': { count: 1, keys: 20, mistakes: 0, ms: 300 },
+    })
   })
 })
 
@@ -230,16 +239,11 @@ describe('applySaveFound（物語の発見エンド・発見順を保持）', ()
   })
 })
 
-describe('applySaveStoryRecord（物語記録・現行 storyRepository と同値）', () => {
+describe('applySaveStoryRecord（物語記録・現行 localStorage 実装と同値）', () => {
   const fold = (ops) =>
     ops.reduce((m, [storyId, record]) => applySaveStoryRecord(m, storyId, record), {})
-  const oracle = (ops) => {
-    localStorage.clear()
-    for (const [storyId, record] of ops) saveStoryRecord(storyId, record)
-    return loadAllStoryRecords()
-  }
 
-  it('storyRecKey 単位で rankInsert 順に束ねる（オラクル同値・loadAllStoryRecords）', () => {
+  it('storyRecKey 単位で rankInsert 順に束ねる（キー分割・keys 降順・終了条件別キー）', () => {
     const ops = [
       ['travel', { source: 'story', storyId: 'travel', keys: 50, mistakes: 1 }],
       ['travel', { source: 'story', storyId: 'travel', keys: 80, mistakes: 0 }],
@@ -254,7 +258,22 @@ describe('applySaveStoryRecord（物語記録・現行 storyRepository と同値
         },
       ],
     ]
-    expect(fold(ops)).toEqual(oracle(ops))
+    // 期待値は現行 localStorage 実装の最終像（loadAllStoryRecords）を明示リテラル化。
+    expect(fold(ops)).toEqual({
+      'story-records-v1-travel': [
+        { source: 'story', storyId: 'travel', keys: 80, mistakes: 0 },
+        { source: 'story', storyId: 'travel', keys: 50, mistakes: 1 },
+      ],
+      'story-records-v1-climbing__T30': [
+        {
+          source: 'story',
+          storyId: 'climbing',
+          keys: 30,
+          mistakes: 2,
+          endCondition: { kind: 'time', value: 30 },
+        },
+      ],
+    })
   })
 
   it('入力マップを破壊しない（非破壊）', () => {
