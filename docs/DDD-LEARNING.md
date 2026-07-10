@@ -380,4 +380,23 @@ Phase 0 で素描した文脈候補を、戦術を作った経験を踏まえて
 
 ---
 
-_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋Phase 2b（Entity 本番採用・useRomaji/useTouch）＋追補（endCondition Strategy 化・L-2 逆流解消・contentFallback 依存逆転）。_
+## 18. 追記：Domain Event を本番の多タブ通知へ配線（RecordsChanged）
+
+**やったこと**：Phase 7 で作った Domain Event/バスを本番へ。`records.js` の write-through 後の**多タブ変更通知**を、`RecordsChanged` ドメインイベント＋イベントバス経由にした（`domain/events/recordEvents.js` に `recordsChangedEvent`、`infrastructure/persist/multiTab.js` にバス挿入）。
+
+### 配線（挙動不変）
+```
+records.js: writeThrough → onChange(epoch)           ← records.js は無変更（注入コールバックを呼ぶだけ）
+multiTab.js: onChange = () => bus.publish(RecordsChanged{epoch})
+             bus.subscribe('RecordsChanged', e => post({type:'change', epoch:e.epoch}))  → BroadcastChannel で副タブへ
+```
+同期バスなので「publish 内で即 subscriber が同一 epoch の change を1回 post」＝メッセージ・回数・タイミング不変。pwa-verifier が2タブで **change 観測 11=11（二重post/欠落なし）・epoch 正・handoff/永続 OK** を実観測。
+
+### 学びの要点（正直な総括）
+- **既に注入コールバックで疎結合だった所に、名前付きイベント＋バスを差した**：records.js は元々「注入された onChange を呼ぶ」だけで多タブの詳細を知らない＝**既に依存逆転済み**だった。今回の変更は「その匿名コールバックを `RecordsChanged` という**名前付きの事実**にし、バスで複数購読可能にした」もの。
+- **価値は"今"ではなく"拡張余地"**：現状 `RecordsChanged` の購読者は多タブ post の1本だけ＝実利は薄い（棚卸し通り）。バスの価値は「将来この事実に別の反応（例：実績解除・分析）を**発行側を触らず**足せる」拡張性にある。**1購読者なら素の注入コールバックで十分**、という判断基準を実地で確認できた。
+- **"本番に配線して初めて分かること"**：可変 Entity×React（Phase 2b の ref/state）、依存の向きは依存する側で決まる（第17節）、そして今回の「既存の疎結合をイベントに昇格する時のコスト対効果」——**学習アーティファクトを本番に載せる作業自体が、パターンの適用可否を最も鋭く教える**。これが #290 学習アークの最大の収穫。
+
+---
+
+_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO/Entity×useRomaji・useTouch）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition Strategy 化）＋Domain Event の本番配線（RecordsChanged）。DDD 学習アーク完了。_
