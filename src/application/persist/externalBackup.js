@@ -10,15 +10,7 @@
 // checksum は小文字16進（recovery.computeChecksum の出力＝[0-9a-f]+）。
 const BACKUP_NAME_RE = /^tll-backup-(\d+)-v(\d+)-([0-9a-f]+)\.sqlite3$/
 
-// FSA queryPermission の結果（'granted'|'prompt'|'denied'）から次アクションを決める純判定。
-// 'granted'→'write'（そのまま書ける）／'prompt'→'request'（requestPermission を促す）／
-// それ以外（'denied'・未知文字列・null・undefined・空文字・非文字列）は安全側で 'skip'（書かない）。
-// 常に 'write'|'request'|'skip' のいずれかを返す（boolean 等は返さない）。
-export function decidePermissionAction(state) {
-  if (state === 'granted') return 'write'
-  if (state === 'prompt') return 'request'
-  return 'skip'
-}
+// FSA 権限判定 decidePermissionAction は domain/persist/permission.js へ移設（#274 L-2・infra→application 逆流解消）。
 
 // 外部バックアップ名を生成する（純関数・入力非破壊）。createdAt は date.getTime()（epoch ミリ秒）。
 export function buildExternalBackupName(date, meta) {
