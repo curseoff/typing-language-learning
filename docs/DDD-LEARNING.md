@@ -361,4 +361,23 @@ Phase 0 で素描した文脈候補を、戦術を作った経験を踏まえて
 
 ---
 
-_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋Phase 2b（Entity の本番採用・useRomaji）。_
+## 17. 追記：依存逆転で層スメルを解消（contentFallback）
+
+**やったこと**：`content/contentFallback.js`（教材 SQLite→.js フォールバック回数の観測テレメトリ）が **content 層で localStorage を直接 I/O** していた層スメルを、**依存逆転（Dependency Inversion）**で解消した。
+
+### before / after
+- **before**：content が localStorage/window を直接書く（content＝データ層が I/O を持つ＝方向の乱れ）。単純に「localStorage を infra に寄せる」と `content → infra` の逆向き依存になり解決しない。
+- **after**：
+  - `content/contentFallback.js`＝**純粋な発生シグナル**（counts＋`notify({source,error})`＋subscribe）。I/O を持たない。
+  - `infrastructure/observability/contentFallbackStore.js`＝content の**シグナルを購読**して localStorage/window へ永続化。`infra → content`＝**内向きの正しい依存方向**。
+  - `main.jsx`（合成根）で `startContentFallbackPersistence()` を起動。
+
+### 学びの要点
+- **依存の向きは"呼ぶ側"ではなく"依存する側"で決まる**：I/O を infra に置くだけでは、content が infra を呼べば逆流する。**「content は出来事を通知するだけ・infra がそれを購読して外部化する」**と、依存の矢印が infra→content（内向き）になる。これが依存逆転の肝。
+- **Domain/Content は"何が起きたか"を発し、外側が"どう外部化するか"を担う**：Phase 7 の Domain Event と同じ構図（発行側は購読側を知らない）。今回はイベントバスではなく既存の subscribe 機構でそれを実現した。
+- **観測挙動は不変**：localStorage `content-fallback-v1`・`window.__contentFallbacks` は今も書かれる（書く主体が content→infra へ移っただけ）。UI のフォールバック告知（`useContentFallback` の boolean 購読）も無影響。責務を分けても外から見た振る舞いは同じ、が良いリファクタの証。
+- **正直な注記**：この層スメルは低価値（DevTools テレメトリ1カウンタ）で、当初は"見送り"も選択肢だった。実施したのは**依存逆転の実例として学ぶため**。実務では「価値に対して indirection が過剰でないか」を毎回問うべき（過剰適用への自制）。ただし今回は既存 subscribe を再利用できたため indirection の追加は小さく、割に合った。
+
+---
+
+_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋Phase 2b（Entity 本番採用・useRomaji/useTouch）＋追補（endCondition Strategy 化・L-2 逆流解消・contentFallback 依存逆転）。_
