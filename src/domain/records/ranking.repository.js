@@ -4,7 +4,7 @@
 // findByKey は store の記録から集約を再構築し、save は集約の内部像を store へ書き出す。
 // 今回の createInMemoryRankingStore は学習/テスト用の in-memory アダプタ（実 sqlite 配線は別途）。
 // 純ドメイン：React/DOM/Date/乱数/infra 非依存・副作用は注入 store のみ・決定的。
-import { makeRankingBoard } from './rankingBoard.js'
+import { makeRankingBoard } from './rankingBoard.vo.js'
 
 // Port（永続化アダプタ）の学習/テスト用 in-memory 実装。
 // 内部 Map にキーごとの記録配列を保持し、save 時はスナップショット（コピー）を持つ＝

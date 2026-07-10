@@ -3,8 +3,8 @@
 // 書き込みは write-queue 経由で Worker へ流す（write-through）。
 // apply* は「現行 localStorage リポジトリと同じ最終結果」でなければならないため、
 // キー生成/並び/キャップはドメイン（recKey/rankInsert）と現行リポジトリのキー関数を再利用する。
-import { recKey, rankInsert } from '../../domain/records/ranking.js'
-import { wordRecKey, dictRecKey, storyRecKey } from '../../domain/records/recordKeys.js'
+import { recKey, rankInsert } from '../../domain/records/ranking.service.js'
+import { wordRecKey, dictRecKey, storyRecKey } from '../../domain/records/recordKeys.service.js'
 
 // 6マップを束ねた像を作る。欠損枠は {} に正規化（undefined でも空マップ）。
 export function buildImage({

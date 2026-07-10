@@ -1,6 +1,6 @@
 // 入力ユニットの生成（モード別のセグメント列・単語チップ）。
-import { romajiVariants, toRomaji } from '../romaji/romaji.js'
-import { alignJaToKana } from './progress.js'
+import { romajiVariants, toRomaji } from '../romaji/romaji.service.js'
+import { alignJaToKana } from './progress.service.js'
 
 // 各語に読み(kana)を割り当てる（チップのルビ表示用）。ja の文字位置→kana 終端で切り出す。
 function withWordKana(words, ja, kana) {

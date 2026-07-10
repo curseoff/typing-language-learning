@@ -1,7 +1,7 @@
 // 単語問題・英英辞典クイズ記録の DB リポジトリ共通ファクトリ。
 // 両者はテーブル名とキー関数（wordRecKey/dictRecKey）が違うだけで写像は同一なので factory 化する。
 // 現行 wordsRepository/dictRepository と同値な round-trip を保つ。
-import { rankInsert } from '../../../domain/records/ranking.js'
+import { rankInsert } from '../../../domain/records/ranking.service.js'
 import { assign, ecToColumns, ecFromRow, jsonToColumn, jsonFromColumn } from './_codec.js'
 
 const COLS =

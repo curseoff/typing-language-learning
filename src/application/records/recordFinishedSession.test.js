@@ -9,14 +9,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { recordFinishedSession } from './recordFinishedSession.js'
 
 // 調停対象の既存部品（App Service が「独自計算せず委譲している」ことを裏取りするために直接も使う）。
-import { startTypingSession } from '../../domain/session/typingSession.js'
-import { makeEndCondition } from '../../domain/session/endCondition.js'
-import { sessionToRecord } from '../../domain/records/sessionResult.js'
-import { recKey } from '../../domain/records/ranking.js'
+import { startTypingSession } from '../../domain/session/typingSession.entity.js'
+import { makeEndCondition } from '../../domain/session/endCondition.vo.js'
+import { sessionToRecord } from '../../domain/records/sessionResult.service.js'
+import { recKey } from '../../domain/records/ranking.service.js'
 import {
   createRankingRepository,
   createInMemoryRankingStore,
-} from '../../domain/records/rankingRepository.js'
+} from '../../domain/records/ranking.repository.js'
 import { createEventBus } from '../../application/events/eventBus.js'
 
 // 代表的な完走セッションを組み立てるヘルパ（keys/mistakes/elapsed を注入）。

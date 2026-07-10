@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 // 「この候補は条件を満たすか」という判定をオブジェクト化し、and/or/not で合成する。
 // 分岐式をドメインに閉じ込め、条件を組み合わせ可能にする。
 //
-// 本体 src/domain/spec/specification.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { makeSpec } from './specification.js'
+// 本体 src/domain/spec/combinators.specification.js は coder が Green で作る（現状未実装＝import で undefined）。
+import { makeSpec } from './combinators.specification.js'
 
 // テスト用の単純述語（決定的・純粋）。
 const positive = makeSpec((n) => n > 0)

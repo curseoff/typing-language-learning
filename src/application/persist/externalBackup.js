@@ -10,7 +10,7 @@
 // checksum は小文字16進（recovery.computeChecksum の出力＝[0-9a-f]+）。
 const BACKUP_NAME_RE = /^tll-backup-(\d+)-v(\d+)-([0-9a-f]+)\.sqlite3$/
 
-// FSA 権限判定 decidePermissionAction は domain/persist/permission.js へ移設（#274 L-2・infra→application 逆流解消）。
+// FSA 権限判定 decidePermissionAction は domain/persist/permission.service.js へ移設（#274 L-2・infra→application 逆流解消）。
 
 // 外部バックアップ名を生成する（純関数・入力非破壊）。createdAt は date.getTime()（epoch ミリ秒）。
 export function buildExternalBackupName(date, meta) {

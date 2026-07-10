@@ -14,7 +14,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { WORDS } from '../src/content/wordsAll.js'
 import { WORD_SENTENCES } from '../src/content/wordSentences/all.js'
-import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.service.js'
 import { writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 
 const arg = (name, def) => {

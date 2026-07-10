@@ -6,7 +6,7 @@ import {
   endConditionTag,
   isRecordable,
   compareRecords,
-} from './ranking.js'
+} from './ranking.service.js'
 
 const sign = (n) => (n < 0 ? -1 : n > 0 ? 1 : 0)
 

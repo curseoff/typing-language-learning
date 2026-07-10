@@ -1,7 +1,7 @@
 // 終了条件セレクタの選択肢とラベル（TOP用）。#208 段2b：時間/文字数の2種別。
-// domain/session/endCondition.js の {kind,value} モデルに対応する（value は数値）。
+// domain/session/endCondition.vo.js の {kind,value} モデルに対応する（value は数値）。
 // 将来 items/life/endless も同じ構造（種別ごとに値・ラベル・単位・既定値）で足せる。
-import { progressRatio, makeEndCondition } from '../domain/session/endCondition.js'
+import { progressRatio, makeEndCondition } from '../domain/session/endCondition.vo.js'
 export const END_TIME_VALUES = [30, 60, 120, 180] // 時間制の秒数（既定60＝従来挙動）
 export const END_CHARS_VALUES = [300, 600, 1200] // 文字数制の文字数
 export const END_ITEMS_VALUES = [10, 25, 50] // 問題数制の問題数

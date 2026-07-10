@@ -5,10 +5,10 @@ import { describe, it, expect } from 'vitest'
 //   - 純ドメインでは ID を作れない（Date/乱数/counter 非依存）ので nextId を注入する。
 //   - Factory は nextId() で採番した id と endCondition VO を startTypingSession に渡すだけ＝生成の責務を持つ。
 //
-// 本体 src/domain/session/typingSessionFactory.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { createTypingSessionFactory } from './typingSessionFactory.js'
+// 本体 src/domain/session/typingSession.factory.js は coder が Green で作る（現状未実装＝import で undefined）。
+import { createTypingSessionFactory } from './typingSession.factory.js'
 // Factory が内部で使う既存部品（生成対象＝Entity と、内包する VO）。
-import { makeEndCondition } from './endCondition.js'
+import { makeEndCondition } from './endCondition.vo.js'
 
 // テスト用の妥当な終了条件（十分大きく＝初期状態では終了条件未達）。
 const time60 = () => makeEndCondition('time', 60)

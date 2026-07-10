@@ -9,7 +9,7 @@
 //
 // フェイルセーフ：FSA 非対応（showDirectoryPicker 無し）・権限拒否・IO 失敗ではいずれも例外を投げず／
 // 呼び出し側でフェイルセーフできる形（null・false・throw を握る）にして、アプリを止めない。
-import { decidePermissionAction } from '../../domain/persist/permission.js'
+import { decidePermissionAction } from '../../domain/persist/permission.service.js'
 
 // ディレクトリハンドルを保存する IndexedDB（DB 名／ストア名／固定キー）。
 const IDB_NAME = 'tll-external-backup'

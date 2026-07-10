@@ -25,7 +25,7 @@
 // イベントバス（application）は他の純ロジック同様 composition root から deps.bus で注入する
 //   （infra → application の逆流を避ける。ここで createEventBus を直 import しない）。
 
-import { recordsChangedEvent } from '../../domain/events/recordEvents.js'
+import { recordsChangedEvent } from '../../domain/events/recordEvents.event.js'
 
 const CHANNEL = 'tll-db'
 const LOCK = 'tll-db'

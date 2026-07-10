@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useMarathon } from './useMarathon.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { WORD_SENTENCES } from '../content/wordSentences/all.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 

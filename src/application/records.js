@@ -9,7 +9,7 @@
 //                            fire-and-forget（write-through）。
 // memory/sqlite の両モードとも read/write はメモリ像 image を経由する（消費側は無改修）。
 // キー生成（wordRecKey/dictRecKey/storyRecKey/itemId）は domain の純粋関数を使う（#274）。
-import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.js'
+import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.service.js'
 import {
   buildImage,
   applySaveRecord,

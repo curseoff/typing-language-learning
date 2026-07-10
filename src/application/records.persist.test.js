@@ -21,8 +21,8 @@ import {
   wordRanking,
   dictRanking,
 } from './records.js'
-import { recKey } from '../domain/records/ranking.js'
-import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.js'
+import { recKey } from '../domain/records/ranking.service.js'
+import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.service.js'
 
 let save
 // 各テスト前に sqlite バックエンドを空像で有効化する（handle.save は fire-and-forget の受け口）。

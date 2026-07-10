@@ -19,8 +19,8 @@ import {
   saveFoundDb,
   loadFoundDb,
 } from './storyDb.js'
-import { storyRecKey } from '../../../domain/records/recordKeys.js'
-import { MAX_RECORDS } from '../../../domain/records/ranking.js'
+import { storyRecKey } from '../../../domain/records/recordKeys.service.js'
+import { MAX_RECORDS } from '../../../domain/records/ranking.service.js'
 
 let sqlite3
 beforeAll(async () => {

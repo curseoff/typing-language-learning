@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildUnits, scramble, segMatches } from './units.js'
-import { mulberry32 } from '../rng.js'
+import { buildUnits, scramble, segMatches } from './units.service.js'
+import { mulberry32 } from '../rng.service.js'
 
 const item = { en: 'reserve', ja: '予約する', kana: 'よやくする', jaWords: ['予約', 'する'] }
 

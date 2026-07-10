@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs'
 import { WORD_THEMES, bandOf } from '../src/content/words.js'
 import { readNdjson, writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 import { WORDS } from '../src/content/wordsAll.js'
-import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.service.js'
 
 const EN_OK = /^[a-z]+$/
 const ROMAJI_OK = /^[a-z'.,?!-]+$/

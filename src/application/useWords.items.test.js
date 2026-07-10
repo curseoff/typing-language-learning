@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWords } from './useWords.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { WORDS } from '../content/wordsAll.js'
 import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'
 

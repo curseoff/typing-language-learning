@@ -3,7 +3,7 @@
 // 行クリックは open をそのまま onRowClick に渡す（presenter が ctx を組んで呼ぶ）。外部 API は不変。
 import { RecordsTable as RecordsTableView } from '@tll/ui'
 import { modeLabel } from '../../content/modes.js'
-import { MAX_RECORDS } from '../../domain/records/ranking.js'
+import { MAX_RECORDS } from '../../domain/records/ranking.service.js'
 import { useRecordDetail } from './useRecordDetail.jsx'
 
 export default function RecordsTable({ records, modeKey, rankText, endCondition, highlight }) {

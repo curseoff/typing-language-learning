@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { WORDS } from '../src/content/wordsAll.js'
 import { DICT } from '../src/content/dictionaryAll.js'
 import { WORD_THEMES } from '../src/content/words.js'
-import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.service.js'
 import { writeNdjson, runContentBuild } from './lib/ndjson.mjs'
 
 const arg = (name, def) => {

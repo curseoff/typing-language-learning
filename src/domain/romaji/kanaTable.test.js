@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-// 未実装の契約A。正本は共有パッケージ @tll/core（packages/core/src/romaji/kanaTable.js）。
+// 未実装の契約A。正本は共有パッケージ @tll/core（packages/core/src/romaji/kanaTable.vo.js）。
 // coder が KANA_TABLE/kanaOf/cellOf を実装し @tll/core から export する。
 import { KANA_TABLE, kanaOf, cellOf, toRomaji, romajiVariants } from '@tll/core'
 

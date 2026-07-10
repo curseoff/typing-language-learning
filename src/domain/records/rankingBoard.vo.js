@@ -5,8 +5,8 @@
 // 同一性は key（Entity＝別 entries でも key が同じなら同一）。EndCondition VO を内包し、
 // 生成時に VO を検証する。イミュータブル（submit は元を変えず新しい board を返す）。
 // 純ドメイン：React/DOM/Date/乱数 非依存・副作用なし・決定的。
-import { MAX_RECORDS, rankInsert } from './ranking.js'
-import { isEndCondition } from '../session/endCondition.js'
+import { MAX_RECORDS, rankInsert } from './ranking.service.js'
+import { isEndCondition } from '../session/endCondition.vo.js'
 
 // 集約ルートを生成する。key は同一性（非空文字列必須）、endCondition は内包する VO（必須）。
 // entries は順不同・超過でも生成時に不変条件へ正規化する（rankInsert の畳み込みで整列＆切詰め）。

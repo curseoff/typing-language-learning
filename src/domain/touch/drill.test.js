@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildDrill, TOUCH_COUNT } from './drill.js'
-import { mulberry32 } from '../rng.js'
+import { buildDrill, TOUCH_COUNT } from './drill.service.js'
+import { mulberry32 } from '../rng.service.js'
 
 const KEYS = ['f', 'j', 'd', 'k', 's', 'l']
 
