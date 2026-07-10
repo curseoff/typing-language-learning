@@ -55,27 +55,27 @@ export function endConditionEquals(a, b) {
 // 既定の終了条件（60 秒）。ファクトリ生成の凍結 VO。
 const DEFAULT_END_CONDITION = makeEndCondition('time', 60)
 
-// 終了に達したか。未知 kind は false（勝手に終了させないフェイルセーフ）。
+// 終了条件の kind 別ふるまいは END_STRATEGIES テーブルに集約する（Strategy パターン）。
+// 種別追加は「テーブルに1行足す」で済む（shouldFinish/progressRatio/endLimitMs の switch を増やさない）。
+//   progressOf(progress) … その kind の進捗量（欠損は 0）。
+//   target(value)        … 到達目標。time は value 秒＝value*1000ms、他は value。
+//   timeLimited          … タイマー制限時間（endLimitMs）を持つ kind（time のみ）。
+//   endless              … 終了条件なし（shouldFinish は常に false、progressRatio は 0）。
+// 未知 kind は END_STRATEGIES[kind] が undefined ＝ shouldFinish/progressRatio は false/0、
+// endLimitMs は Infinity（従来のフェイルセーフと同値）。
+const END_STRATEGIES = {
+  time: { progressOf: (p) => p.elapsedMs ?? 0, target: (v) => v * 1000, timeLimited: true },
+  chars: { progressOf: (p) => p.keys ?? 0, target: (v) => v },
+  items: { progressOf: (p) => p.items ?? 0, target: (v) => v },
+  life: { progressOf: (p) => p.missedItems ?? 0, target: (v) => v },
+  endless: { progressOf: () => 0, target: () => Infinity, endless: true },
+}
+
+// 終了に達したか。未知 kind・endless は false（勝手に終了させないフェイルセーフ）。
 export function shouldFinish(endCondition, progress) {
-  const { kind, value } = endCondition
-  const elapsedMs = progress.elapsedMs ?? 0
-  const keys = progress.keys ?? 0
-  const items = progress.items ?? 0
-  const missedItems = progress.missedItems ?? 0
-  switch (kind) {
-    case 'time':
-      return elapsedMs >= value * 1000
-    case 'chars':
-      return keys >= value
-    case 'items':
-      return items >= value
-    case 'life':
-      return missedItems >= value
-    case 'endless':
-      return false
-    default:
-      return false
-  }
+  const s = END_STRATEGIES[endCondition.kind]
+  if (!s || s.endless) return false
+  return s.progressOf(progress) >= s.target(endCondition.value)
 }
 
 // 未信頼入力を終了条件（凍結 VO）へ正規化する入口アダプタ。常に妥当な凍結 VO を返す（throw しない）。
@@ -100,34 +100,15 @@ const DEFAULT_VALUE_BY_KIND = { time: 60, chars: 600, items: 25, life: 3 }
 // ＝タイマー（useCountdownTimer）は決して発火せず、終了は進捗判定（shouldFinish）が担う（#208 段2a）。
 export function endLimitMs(input) {
   const { kind, value } = normalizeEndCondition(input)
-  if (kind === 'time') return value * 1000
-  return Infinity
+  const s = END_STRATEGIES[kind]
+  return s?.timeLimited ? value * 1000 : Infinity
 }
 
-// 0..1 の進捗率。value<=0・endless・欠損は 0（ゼロ除算回避）、超過は 1 に clamp。
+// 0..1 の進捗率。value<=0・endless・未知 kind・欠損は 0（ゼロ除算回避）、超過は 1 に clamp。
 export function progressRatio(endCondition, progress) {
-  const { kind, value } = endCondition
-  const elapsedMs = progress.elapsedMs ?? 0
-  const keys = progress.keys ?? 0
-  const items = progress.items ?? 0
-  const missedItems = progress.missedItems ?? 0
-  let ratio
-  switch (kind) {
-    case 'time':
-      ratio = value > 0 ? elapsedMs / (value * 1000) : 0
-      break
-    case 'chars':
-      ratio = value > 0 ? keys / value : 0
-      break
-    case 'items':
-      ratio = value > 0 ? items / value : 0
-      break
-    case 'life':
-      ratio = value > 0 ? missedItems / value : 0
-      break
-    default:
-      // endless・未知 kind は進捗率の概念が無い。
-      return 0
-  }
-  return Math.min(1, Math.max(0, ratio))
+  const s = END_STRATEGIES[endCondition.kind]
+  if (!s || s.endless) return 0
+  const t = s.target(endCondition.value)
+  if (!(t > 0)) return 0
+  return Math.min(1, Math.max(0, s.progressOf(progress) / t))
 }
