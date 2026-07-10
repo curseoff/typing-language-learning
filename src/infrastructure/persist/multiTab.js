@@ -22,8 +22,9 @@
 //
 // 主の write-through 通知は RecordsChanged ドメインイベントを介して BroadcastChannel へ流す
 // （発行=records.js から呼ばれる onChange／購読=change を post して多タブへ伝播）。
+// イベントバス（application）は他の純ロジック同様 composition root から deps.bus で注入する
+//   （infra → application の逆流を避ける。ここで createEventBus を直 import しない）。
 
-import { createEventBus } from '../../application/events/eventBus.js'
 import { recordsChangedEvent } from '../../domain/events/recordEvents.js'
 
 const CHANNEL = 'tll-db'
@@ -39,6 +40,7 @@ const MAX_SNAPSHOT_RETRIES = 6 // 主不在の過渡を吸収する再送上限�
 
 // 多タブ永続化を起動する。deps はすべて composition root から注入（infra 純度を保つため）。
 //   electionTransition, handleSecondaryMessage … application の純ロジック
+//   bus … application のイベントバス（createEventBus() の戻り＝同期 pub/sub）
 //   openStorage … async () => handle|null（infrastructure/db の initStorage ラッパ。null＝失敗）
 //   facade … { initPrimary(handle,image,{epoch,onChange}), promote(handle,image,{epoch,onChange}),
 //             initSecondary(image,{epoch}), replaceImage(image,epoch), getImage() }
@@ -48,6 +50,7 @@ export function startMultiTabPersistence(deps) {
   const {
     electionTransition,
     handleSecondaryMessage,
+    bus,
     openStorage,
     facade,
     channelName = CHANNEL,
@@ -59,7 +62,6 @@ export function startMultiTabPersistence(deps) {
 
   const tabId = newId()
   const channel = new BroadcastChannel(channelName)
-  const bus = createEventBus()
 
   let election = { role: 'unknown', epoch: 0 } // 自タブの選出状態
   let secState = { epoch: 0 } // 副タブが把握している最新 epoch（snapshot 判定用）
