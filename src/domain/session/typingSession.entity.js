@@ -6,7 +6,7 @@
 //   - 不変条件を守る（finished 後は状態を変えない＝throw）。
 //   - EndCondition VO を内包（合成）する＝妥当な VO のみ受け入れる。
 // 純ドメイン：React/DOM/Date/performance/乱数 非依存。ID・elapsedMs は外部から注入する。
-import { isEndCondition, shouldFinish } from './endCondition.js'
+import { isEndCondition, shouldFinish } from './endCondition.vo.js'
 
 // TypingSession を生成する（自己検証つき）。不変条件違反は throw。
 //   id            … 非空文字列必須（同一性の基盤）。

@@ -2,9 +2,9 @@
 // StoryView 内で呼ぶ前提（物語フェーズの間だけマウントされる）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { storyById } from '../content/stories/index.js'
-import { buildUnits, choiceSeg, segMatches, typingLang } from '../domain/typing/units.js'
-import { firstChoiceNodeId } from '../domain/story/navigation.js'
-import { score } from '../domain/marathon/scoring.js'
+import { buildUnits, choiceSeg, segMatches, typingLang } from '../domain/typing/units.service.js'
+import { firstChoiceNodeId } from '../domain/story/navigation.service.js'
+import { score } from '../domain/marathon/scoring.service.js'
 import {
   loadFound,
   saveFound,
@@ -13,7 +13,7 @@ import {
 } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
-import { itemId } from '../domain/records/recordKeys.js'
+import { itemId } from '../domain/records/recordKeys.service.js'
 import { playMiss } from '../infrastructure/sound.js'
 
 export function useStory({ mode, storyId, start, onExit }) {

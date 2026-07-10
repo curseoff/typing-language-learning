@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { applySchema } from '../schema.js'
 import { saveWordRecordDb, loadWordRecordsDb } from './wordsDb.js'
-import { wordRecKey } from '../../../domain/records/recordKeys.js'
+import { wordRecKey } from '../../../domain/records/recordKeys.service.js'
 
 let sqlite3
 beforeAll(async () => {

@@ -7,12 +7,12 @@
 //   これまでの全戦術部品（VO/Entity/Factory/Domain Service/Aggregate/Repository/Event）が
 //   1つのユースケースに集約される capstone。
 //   純アプリ層：React/DOM/Date/乱数 非依存（時刻等の外部値は meta として注入で受け取る）。
-import { sessionToRecord } from '../../domain/records/sessionResult.js'
-import { recKey } from '../../domain/records/ranking.js'
+import { sessionToRecord } from '../../domain/records/sessionResult.service.js'
+import { recKey } from '../../domain/records/ranking.service.js'
 import {
   sessionFinishedEvent,
   recordAchievedEvent,
-} from '../../domain/events/recordEvents.js'
+} from '../../domain/events/recordEvents.event.js'
 
 // 1プレイ完了を調停する：record 生成 → key 算出 → Repository へ submit → イベント2発 → 返す。
 export function recordFinishedSession({ session, meta, repository, bus }) {

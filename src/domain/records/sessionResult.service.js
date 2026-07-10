@@ -4,7 +4,7 @@
 //   - Session Entity 自身の責務でも score 計算の責務でもない＝どちらにも属さない横断操作＝Service。
 //   - session を破壊しない（progress() を読むだけ・finish は呼ばない）＝状態も副作用も持たない。
 // 純ドメイン：React/DOM/時間 非依存。
-import { score } from '../marathon/scoring.js'
+import { score } from '../marathon/scoring.service.js'
 
 // session（TypingSession Entity）と外部 meta から記録値を組み立てる純関数。
 export function sessionToRecord(session, meta = {}) {

@@ -5,7 +5,7 @@
 // 実行: node scripts/content-validate.mjs
 import { readFileSync } from 'node:fs'
 import { WORD_THEMES, bandOf } from '../src/content/words.js'
-import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.service.js'
 
 const ROMAJI_OK = /^[a-z'.,?!-]+$/
 const u = (p) => new URL(p, import.meta.url)

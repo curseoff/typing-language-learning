@@ -1,7 +1,7 @@
 // 物語フロー（ticker カード型）の進捗を、現在ノード・入力状態から算出する純関数。
 // wsent(TopFlow) と同じ考え方：英語入力中は入力分、both で和文入力中は英語完了済み、
 // 和文入力中は漢字位置(jaDone)＋読みのかな進捗(jaKanaDone)を出す（ルビのかな単位着色用）。
-import { alignJaToKana, kanaConsumed } from '../typing/progress.js'
+import { alignJaToKana, kanaConsumed } from '../typing/progress.service.js'
 
 // node: { en, ja, kana }, opts: { stage, mode, activeType, input }
 // 返り値: { enDone, jaDone, jaKanaDone, activeRow } activeRow='en'|'ja'|null

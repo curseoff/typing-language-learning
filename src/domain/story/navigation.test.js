@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lookahead, firstChoiceNodeId } from './navigation.js'
+import { lookahead, firstChoiceNodeId } from './navigation.service.js'
 
 // 物語グラフのナビゲーション（純粋関数）。
 // next を辿る先読みと、最初の選択肢ノードIDの探索を固定する。

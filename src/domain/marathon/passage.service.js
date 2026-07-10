@@ -1,5 +1,5 @@
 // マラソンの出題（パッセージ）生成。
-import { buildUnits } from '../typing/units.js'
+import { buildUnits } from '../typing/units.service.js'
 
 export const TARGET_KEYS = 600 // （旧）この文字数を打ち切ったら終了。現在は時間制（TIME_LIMIT_MS）。
 export const TIME_LIMIT_MS = 60000 // 最初の打鍵から60秒で終了（全モード共通）

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { romajiVariants, toRomaji, kanaConsumed } from './romaji.js'
+import { romajiVariants, toRomaji, kanaConsumed } from './romaji.service.js'
 
 describe('romaji', () => {
   it('カタカナも変換できる（ホテル→hoteru）', () => {

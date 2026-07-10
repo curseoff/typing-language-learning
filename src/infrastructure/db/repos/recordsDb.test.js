@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { applySchema } from '../schema.js'
 import { saveRecordDb, loadRecordsDb } from './recordsDb.js'
-import { recKey, MAX_RECORDS, compareRecords } from '../../../domain/records/ranking.js'
+import { recKey, MAX_RECORDS, compareRecords } from '../../../domain/records/ranking.service.js'
 
 let sqlite3
 beforeAll(async () => {

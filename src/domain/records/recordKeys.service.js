@@ -2,7 +2,7 @@
 // #274 で localStorage リポジトリ（wordsRepository/dictRepository/storyRepository/
 // itemStatsRepository）から分離した。永続化が sqlite/memory 専用へ転換したあとも、
 // 記録メモリ像のキー付けと DB リポジトリのキー算出に共通して使うため domain へ移設。
-import { endConditionTag } from './ranking.js'
+import { endConditionTag } from './ranking.service.js'
 
 // 単語問題記録のキー（レベル×テーマ×モード別。終了条件はタグで区別）。
 export function wordRecKey(level, theme, mode, endCondition) {

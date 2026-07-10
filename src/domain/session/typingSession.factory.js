@@ -4,7 +4,7 @@
 //   - 純ドメインは ID を作れない（Date/乱数/counter 非依存）ので nextId を外部から注入する。
 //   - 実運用では uuid や連番カウンタなどを注入する（テストは決定的な生成器を渡す）。
 // 純ドメイン：React/DOM/時間/乱数 非依存。
-import { startTypingSession } from './typingSession.js'
+import { startTypingSession } from './typingSession.entity.js'
 
 // nextId（()=>string の ID 生成器）を注入して Factory を作る。関数でなければ throw。
 export function createTypingSessionFactory(nextId) {

@@ -20,7 +20,7 @@ import {
   loadFound,
   initMemoryPersistence,
 } from './records.js'
-import { recKey } from '../domain/records/ranking.js'
+import { recKey } from '../domain/records/ranking.service.js'
 
 describe('application/records（記録ファサード）', () => {
   beforeEach(() => {

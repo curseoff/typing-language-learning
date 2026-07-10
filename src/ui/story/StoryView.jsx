@@ -6,10 +6,10 @@
 import { StoryView as StoryViewPresenter } from '@tll/ui'
 import { useStory } from '../../application/useStory.js'
 import { storyById } from '../../content/stories/index.js'
-import { lookahead } from '../../domain/story/navigation.js'
-import { storyFlowProgress } from '../../domain/story/flowProgress.js'
-import { segMatches } from '../../domain/typing/units.js'
-import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.js'
+import { lookahead } from '../../domain/story/navigation.service.js'
+import { storyFlowProgress } from '../../domain/story/flowProgress.service.js'
+import { segMatches } from '../../domain/typing/units.service.js'
+import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 
 // 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）。useRecordDetail フックを

@@ -1,8 +1,8 @@
 // 物語の永続化（発見エンド＋記録ランキング）の DB リポジトリ（現行 storyRepository と同値）。
 // story 記録は endCondition を持たない場合が基本（＝ec_kind/ec_value は nullable）。持つ場合は列化する。
 // キー/並び/キャップはドメイン・storyRecKey を再利用（rankInsert）。
-import { rankInsert } from '../../../domain/records/ranking.js'
-import { storyRecKey } from '../../../domain/records/recordKeys.js'
+import { rankInsert } from '../../../domain/records/ranking.service.js'
+import { storyRecKey } from '../../../domain/records/recordKeys.service.js'
 import { assign, ecToColumns, ecFromRow, jsonToColumn, jsonFromColumn } from './_codec.js'
 
 const COLS =

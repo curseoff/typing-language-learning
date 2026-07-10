@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWordQuiz } from './useWordQuiz.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { WORDS } from '../content/wordsAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'

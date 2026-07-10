@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 // #208 段0: 終了判定の純粋関数（domain 純粋・決定的・副作用なし）
-// 本体 src/domain/session/endCondition.js は coder が Green で作る。
+// 本体 src/domain/session/endCondition.vo.js は coder が Green で作る。
 import {
   shouldFinish,
   normalizeEndCondition,
@@ -11,7 +11,7 @@ import {
   makeEndCondition,
   isEndCondition,
   endConditionEquals,
-} from './endCondition.js'
+} from './endCondition.vo.js'
 
 describe('shouldFinish', () => {
   describe('time（value は秒・elapsedMs はミリ秒）', () => {

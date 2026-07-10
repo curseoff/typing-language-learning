@@ -7,7 +7,7 @@ import {
   choiceSeg,
   typingLang,
   segMatches,
-} from './units.js'
+} from './units.service.js'
 
 const item = {
   en: 'I read a book.',

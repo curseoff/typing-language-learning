@@ -1,7 +1,7 @@
 // 記録レコード {speed, accuracy, seconds, ...} に対する具体 Specification。
 // makeSpec で単純な条件を組み立て、and/or/not で「良い記録」等の条件を
 // 宣言的に合成する例。分岐（速い/正確/長い）をドメインに閉じ込める。
-import { makeSpec } from '../spec/specification.js'
+import { makeSpec } from '../spec/combinators.specification.js'
 
 // speed が minSpeed を超過（>）する記録。
 export function fasterThan(minSpeed) {

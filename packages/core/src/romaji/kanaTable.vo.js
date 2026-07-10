@@ -1,7 +1,7 @@
 // かな五十音表データ（ローマ字入力練習モード用）。
 // 表示ローマ字は toRomaji から導出し、ハードコードしない（romaji.js と単一の正本に保つ）。
 // v1 スコープ＝清音/濁音/半濁音/拗音のみ。特殊拗音（外来音: ふぁ/てぃ/ゔ 等）は含めない。
-import { toRomaji } from './romaji.js'
+import { toRomaji } from './romaji.service.js'
 
 const N = null
 

@@ -1,7 +1,7 @@
 // 下部本文: 全文を最初から表示。英文は英字、和文は漢字のまま表示し、
 // 打った位置を色分け(和文はローマ字入力の進捗を漢字位置に変換)。
 // targetKeys（既定 600）を超えた位置の語は薄く表示する（旧・文字数制の名残）。
-// 定数の正本は domain/marathon/passage.js の TARGET_KEYS。app 側から prop で渡す（UI を domain から切り離す）。
+// 定数の正本は domain/marathon/passage.service.js の TARGET_KEYS。app 側から prop で渡す（UI を domain から切り離す）。
 import { alignJaToKana, guideText, kanaConsumed } from '@tll/core'
 import { Chars, RubyChars } from '../shared/Text'
 

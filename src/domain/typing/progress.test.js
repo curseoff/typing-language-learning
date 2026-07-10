@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { alignJaToKana, kanjiDone, rubyParts, chipProgress, guideText, consumedWords } from './progress.js'
+import { alignJaToKana, kanjiDone, rubyParts, chipProgress, guideText, consumedWords } from './progress.service.js'
 import { WORDS } from '../../content/wordsAll.js'
 import { WORD_SENTENCES } from '../../content/wordSentences/all.js'
 

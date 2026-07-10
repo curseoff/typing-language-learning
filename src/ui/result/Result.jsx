@@ -3,7 +3,7 @@
 // 外部 API（result/records/segStats/onRetry）は従来どおり維持し、呼び出し側は無改変で通る。
 import { Result as ResultView } from '@tll/ui'
 import { modeLabel } from '../../content/modes.js'
-import { recKey, MAX_RECORDS } from '../../domain/records/ranking.js'
+import { recKey, MAX_RECORDS } from '../../domain/records/ranking.service.js'
 import { useRecordDetail } from './useRecordDetail.jsx'
 
 export default function Result({ result, records, segStats, onRetry }) {

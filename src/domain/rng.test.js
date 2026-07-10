@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mulberry32 } from './rng.js'
+import { mulberry32 } from './rng.service.js'
 
 describe('mulberry32', () => {
   it('同じ seed からは同じ乱数列を返す（決定的）', () => {

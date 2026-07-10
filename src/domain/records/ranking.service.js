@@ -1,5 +1,5 @@
 // 記録ランキングのルール（純粋）。
-import { normalizeEndCondition } from '../session/endCondition.js'
+import { normalizeEndCondition } from '../session/endCondition.vo.js'
 
 export const MAX_RECORDS = 15
 

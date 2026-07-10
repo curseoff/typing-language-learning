@@ -5,10 +5,10 @@ import { describe, it, expect } from 'vitest'
 //   Entity  … ID を持つ／状態が変わる／ライフサイクル(active→finished)／不変条件を守る／同一性で等価。
 // しかも EndCondition VO を内包（Entity が VO を合成して持つ）。ID は純ドメインで作れないので注入する。
 //
-// 本体 src/domain/session/typingSession.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { startTypingSession, sessionEquals } from './typingSession.js'
+// 本体 src/domain/session/typingSession.entity.js は coder が Green で作る（現状未実装＝import で undefined）。
+import { startTypingSession, sessionEquals } from './typingSession.entity.js'
 // 内包する VO は Phase1 の makeEndCondition で作る（Entity は妥当な VO を合成する）。
-import { makeEndCondition, isEndCondition } from './endCondition.js'
+import { makeEndCondition, isEndCondition } from './endCondition.vo.js'
 
 // テスト用の妥当な終了条件（十分大きく＝初期状態では終了条件未達）。
 const time60 = () => makeEndCondition('time', 60)

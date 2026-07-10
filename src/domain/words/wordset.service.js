@@ -1,8 +1,8 @@
 // 単語問題の出題セット生成（レベル×テーマで絞り込み・シャッフル）。
 // 単語データ(words)は遅延読み込みのため呼び出し側から渡す（純関数）。
-import { romajiVariants } from '../romaji/romaji.js'
-import { buildUnits } from '../typing/units.js'
-import { PASSAGE_KEYS } from '../marathon/passage.js'
+import { romajiVariants } from '../romaji/romaji.service.js'
+import { buildUnits } from '../typing/units.service.js'
+import { PASSAGE_KEYS } from '../marathon/passage.service.js'
 
 export const WORD_COUNT = 30 // 4択クイズの問題数
 

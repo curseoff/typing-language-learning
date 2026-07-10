@@ -1,5 +1,5 @@
 // 入力の進捗計算（表示ローマ字・漢字位置・単語チップ消費）。
-import { kanaConsumed } from '../romaji/romaji.js'
+import { kanaConsumed } from '../romaji/romaji.service.js'
 
 export { kanaConsumed }
 

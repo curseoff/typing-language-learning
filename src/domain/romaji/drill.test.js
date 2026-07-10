@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 // 未実装モジュール（契約B）。coder が Green にする対象。
-import { buildKanaDrill } from './drill.js'
-import { mulberry32 } from '../rng.js'
+import { buildKanaDrill } from './drill.service.js'
+import { mulberry32 } from '../rng.service.js'
 
 const SET = ['あ', 'か', 'さ', 'た', 'な']
 
