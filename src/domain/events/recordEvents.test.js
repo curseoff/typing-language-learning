@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest'
 import {
   sessionFinishedEvent,
   recordAchievedEvent,
+  recordsChangedEvent,
   isDomainEvent,
 } from './recordEvents.js'
 
@@ -77,6 +78,47 @@ describe('recordAchievedEvent（記録更新という事実のイベント値）
 
   it('key が空文字でも throw する', () => {
     expect(() => recordAchievedEvent({ key: '', record: sampleRecord() })).toThrow()
+  })
+})
+
+describe('recordsChangedEvent（永続データが変わったという事実のイベント値・多タブ同期用）', () => {
+  it("type は 'RecordsChanged' 固定", () => {
+    const ev = recordsChangedEvent({ epoch: 5 })
+    expect(ev.type).toBe('RecordsChanged')
+  })
+
+  it('注入した epoch（変更世代）を保持する', () => {
+    const ev = recordsChangedEvent({ epoch: 42 })
+    expect(ev.epoch).toBe(42)
+  })
+
+  it('epoch: 0 は有効（throw せず・境界）', () => {
+    const ev = recordsChangedEvent({ epoch: 0 })
+    expect(ev.epoch).toBe(0)
+    expect(ev.type).toBe('RecordsChanged')
+  })
+
+  it('返り値は凍結され不変である（Object.isFrozen が true）', () => {
+    const ev = recordsChangedEvent({ epoch: 5 })
+    expect(Object.isFrozen(ev)).toBe(true)
+  })
+
+  it('凍結ゆえプロパティを書き換えても変化しない（事実は不変）', () => {
+    const ev = recordsChangedEvent({ epoch: 5 })
+    try { ev.epoch = 99 } catch { /* 例外でも許容 */ }
+    expect(ev.epoch).toBe(5)
+  })
+
+  it('epoch が欠ける（undefined）と throw する（変更世代の同定に必要）', () => {
+    expect(() => recordsChangedEvent({})).toThrow()
+  })
+
+  it('epoch が null でも throw する', () => {
+    expect(() => recordsChangedEvent({ epoch: null })).toThrow()
+  })
+
+  it('返り値は isDomainEvent が true（type を文字列で持つ）', () => {
+    expect(isDomainEvent(recordsChangedEvent({ epoch: 0 }))).toBe(true)
   })
 })
 
