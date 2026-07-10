@@ -43,6 +43,13 @@ const TREES = [
     ext: ['.js'],
     suffixes: ['repository', 'adapter', 'migration', 'schema', 'mapper'],
   },
+  {
+    tree: 'src/application',
+    ext: ['.js'],
+    suffixes: ['service', 'policy', 'store'],
+    // React フック（use* .js）は UI 隣接のふるまいで DDD ステレオタイプ対象外。
+    extraExclude: (name) => name.startsWith('use'),
+  },
 ]
 
 // 全ツリー共通の先行除外：テスト自身と barrel（公開 API 集約＝規約対象外）。
