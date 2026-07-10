@@ -50,11 +50,34 @@ const TREES = [
     // React フック（use* .js）は UI 隣接のふるまいで DDD ステレオタイプ対象外。
     extraExclude: (name) => name.startsWith('use'),
   },
+  {
+    tree: 'src/ui',
+    ext: ['.jsx'],
+    suffixes: ['container', 'presenter', 'context'],
+    // React フック（use* .jsx）は UI 隣接のふるまいで DDD ステレオタイプ対象外。
+    extraExclude: (name) => name.startsWith('use'),
+  },
+  {
+    // 同一ツリーに ext 違いの行が並ぶ（.tsx と .ts）。列挙・判定は ext ごとに独立。
+    tree: 'packages/ui/src',
+    ext: ['.tsx'],
+    suffixes: ['presenter'],
+    // Storybook のストーリー（*.stories.tsx）は表示確認用で規約対象外。
+    extraExclude: (name) => name.includes('.stories'),
+  },
+  {
+    tree: 'packages/ui/src',
+    ext: ['.ts'],
+    suffixes: ['util'],
+  },
 ]
 
-// 全ツリー共通の先行除外：テスト自身と barrel（公開 API 集約＝規約対象外）。
+// 全ツリー共通の先行除外：テスト自身・barrel（公開 API 集約）・型定義（.d.ts）は規約対象外。
 const isCommonExcluded = (name) =>
-  /\.test\.(js|jsx|ts|tsx)$/.test(name) || name === 'index.js' || name === 'index.ts'
+  /\.test\.(js|jsx|ts|tsx)$/.test(name) ||
+  /\.d\.ts$/.test(name) ||
+  name === 'index.js' ||
+  name === 'index.ts'
 
 // 相対パスは OS 非依存に正規化（Windows CI でも安定する `/` 区切り）。
 const toRel = (full) => relative(REPO_ROOT, full).split(sep).join('/')
