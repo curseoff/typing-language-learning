@@ -1,10 +1,17 @@
 // マラソンのゲームセッション（状態機械）。
 // active=このモードが表示中か / onFinish(record, segStats)=終了条件到達で呼ぶ。
+//
+// 打鍵数(keys)とミス数(mistakes)は TypingSession Entity（domain/session）で保持する
+// （#290 部分採用）。可変 Entity は render 中に読めない（react-hooks/refs）ので ref に持ち、
+// 変更のたび syncSession() が像を state(snap) へ写す＝React はその state で再描画する。
+// items/life・終了判定（finish/finishByProgress/onTimeout/escFinish・タイマー）・segStats は
+// 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.js'
+import { createTypingSessionFactory } from '../domain/session/typingSessionFactory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { itemId } from '../domain/records/recordKeys.js'
@@ -15,6 +22,10 @@ import { END_TIME_VALUES } from '../content/endConditions.js'
 // エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
 const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
+// application 層のモジュールカウンタで session ID を採番する（純ドメインは ID を作れない）。
+let marathonSessionSeq = 0
+const nextMarathonId = () => `marathon-${++marathonSessionSeq}`
+
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 export function useMarathon({ active, onFinish, endCondition }) {
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
@@ -24,8 +35,6 @@ export function useMarathon({ active, onFinish, endCondition }) {
   const [segIndex, setSegIndex] = useState(0)
   const [segInput, setSegInput] = useState('') // 現在セグメントに打ったローマ字/英字
   const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
-  const [typedKeys, setTypedKeys] = useState(0) // 正しく打った総文字数
-  const [mistakes, setMistakes] = useState(0)
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [startTime, setStartTime] = useState(null)
@@ -37,10 +46,22 @@ export function useMarathon({ active, onFinish, endCondition }) {
   const poolRef = useRef([]) // 出題プール（継ぎ足し用に保持）
   const trackerRef = useRef(newTracker()) // 問題ごとの累積記録（文単位）
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  // 時間切れ finish 用に最新の打鍵数/ミス/開始時刻を effect から参照する
-  const keysRef = useRef(0)
-  const mistakesRef = useRef(0)
-  const startTimeRef = useRef(null)
+  const startTimeRef = useRef(null) // 時間切れ finish 用に開始時刻を effect から参照する
+
+  // 打鍵数(keys)とミス数(mistakes)を保持する可変 Entity（部分採用）。器の endCondition VO は
+  // ダミー（finish 判定には使わない＝session.finish()/isFinished() は呼ばない）。Factory と VO は初回のみ生成。
+  const sessionEnd = useMemo(() => makeEndCondition('time', 60), [])
+  const factory = useMemo(() => createTypingSessionFactory(nextMarathonId), [])
+  const sessionRef = useRef(null)
+  if (sessionRef.current === null) sessionRef.current = factory.start(sessionEnd)
+  const [snap, setSnap] = useState({ keys: 0, mistakes: 0 })
+  // ref 読みはイベント/finish 側に閉じる（render 中は ref を読まない＝react-hooks/refs 回避）。
+  const syncSession = useCallback(() => {
+    const p = sessionRef.current.progress()
+    setSnap({ keys: p.keys, mistakes: p.mistakes })
+  }, [])
+  const typedKeys = snap.keys // 正しく打った総文字数（session 像由来）
+  const mistakes = snap.mistakes // ミス総数（session 像由来）
 
   const start = useCallback((mode, rank, source, pool, seed, theme) => {
     ctxRef.current = { mode, rank, source, seed, theme }
@@ -51,8 +72,9 @@ export function useMarathon({ active, onFinish, endCondition }) {
     setSegIndex(0)
     setSegInput('')
     setCompleted([])
-    setTypedKeys(0)
-    setMistakes(0)
+    // 新 session（keys/mistakes を 0 にリセット）。像も 0 へ同期する。
+    sessionRef.current = factory.start(sessionEnd)
+    syncSession()
     setMissedItems(0)
     setHasError(false)
     setStartTime(null)
@@ -61,10 +83,8 @@ export function useMarathon({ active, onFinish, endCondition }) {
     segStatsRef.current = []
     trackerRef.current = newTracker()
     finishedRef.current = false
-    keysRef.current = 0
-    mistakesRef.current = 0
     startTimeRef.current = null
-  }, [])
+  }, [factory, sessionEnd, syncSession])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -153,9 +173,9 @@ export function useMarathon({ active, onFinish, endCondition }) {
         if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
         trackKey(trackerRef.current, itemId('s', ctxRef.current.mode, seg.en)) // 文ごと×モード別
-        const newKeys = typedKeys + 1
-        setTypedKeys(newKeys)
-        keysRef.current = newKeys
+        sessionRef.current.registerHit() // keys++（Entity 保持）
+        syncSession()
+        const ph = sessionRef.current.progress()
 
         const completesSeg = seg.variants.includes(candidate)
 
@@ -192,16 +212,14 @@ export function useMarathon({ active, onFinish, endCondition }) {
           setSegIndex((i) => i + 1)
           setSegInput('')
           // 完了語は partial 不要（partialLen 0）。
-          finishByProgress(t, newKeys, completed.length + 1, mistakesRef.current, seg, 0)
+          finishByProgress(t, ph.keys, completed.length + 1, ph.mistakes, seg, 0)
         } else {
           setSegInput(candidate)
-          finishByProgress(t, newKeys, completed.length, mistakesRef.current, seg, candidate.length)
+          finishByProgress(t, ph.keys, completed.length, ph.mistakes, seg, candidate.length)
         }
       } else {
-        setMistakes((m) => {
-          mistakesRef.current = m + 1
-          return m + 1
-        })
+        sessionRef.current.registerMiss() // mistakes++（Entity 保持）
+        syncSession()
         segMistakesRef.current += 1
         trackMiss(trackerRef.current)
         playMiss()
@@ -212,10 +230,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
             (segMistakesRef.current > 0 ? 1 : 0),
         )
         // ミス数（life 制）の到達を判定。
-        finishByProgress(performance.now(), typedKeys, completed.length, mistakesRef.current, seg, segInput.length)
+        const pm = sessionRef.current.progress()
+        finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
     },
-    [segments, segIndex, segInput, typedKeys, completed, finishByProgress],
+    [segments, segIndex, segInput, completed, finishByProgress, syncSession],
   )
 
   useEffect(() => {
@@ -249,7 +268,8 @@ export function useMarathon({ active, onFinish, endCondition }) {
       ]
     }
     flushTracker(trackerRef.current)
-    finish(keysRef.current, mistakesRef.current, t, startedAt)
+    const p = sessionRef.current.progress()
+    finish(p.keys, p.mistakes, t, startedAt)
   }
   // エンドレスの ESC 終了（App の ESC ハンドラから呼ぶ）。30秒以上プレイしていれば
   // 未完セグを partial に積んで finish（記録して結果へ）＝true、未満なら false（中断は呼び出し側）。#208 段6
@@ -279,7 +299,8 @@ export function useMarathon({ active, onFinish, endCondition }) {
       ]
     }
     flushTracker(trackerRef.current)
-    finish(keysRef.current, mistakesRef.current, t, startedAt)
+    const p = sessionRef.current.progress()
+    finish(p.keys, p.mistakes, t, startedAt)
     return true
   }, [segments, segIndex, segInput, finish])
 
