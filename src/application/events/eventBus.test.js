@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 //   - subscribe(type, handler) は購読を登録し、解除用の unsubscribe を返す。
 //   - publish(event) は event.type に購読中の全 handler を購読順で同期呼び出しする（該当なしは no-op）。
 // 本体 src/application/events/eventBus.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { createEventBus } from './eventBus.js'
+import { createEventBus } from './eventBus.service.js'
 
 describe('createEventBus（同期 in-memory イベントバス）', () => {
   it('subscribe した type の publish で handler が event を受けて呼ばれる', () => {

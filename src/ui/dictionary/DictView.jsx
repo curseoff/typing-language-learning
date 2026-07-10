@@ -6,7 +6,7 @@
 import { DictTypeView, DictQuizView, DictPickView, PlayResultView } from '@tll/ui'
 import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
-import { dictRecKey } from '../../application/records.js'
+import { dictRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 

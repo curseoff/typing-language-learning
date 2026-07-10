@@ -8,8 +8,8 @@ vi.mock('./../infrastructure/db/initStorage.adapter.js', () => ({
   getStorageHandle: vi.fn(),
 }))
 import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
-import { ensureHealthyOrRestore, snapshotInternalBackup } from './recovery.js'
-import { getPersistNotice, resetPersistNotice } from './persist/persistNotice.js'
+import { ensureHealthyOrRestore, snapshotInternalBackup } from './recovery.service.js'
+import { getPersistNotice, resetPersistNotice } from './persist/persistNotice.store.js'
 
 beforeEach(() => {
   getStorageHandle.mockReset()

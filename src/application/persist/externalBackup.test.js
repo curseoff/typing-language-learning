@@ -19,7 +19,7 @@ import {
   buildExternalBackupName,
   parseExternalBackupName,
   toBackupEntries,
-} from './externalBackup.js'
+} from './externalBackup.policy.js'
 // decidePermissionAction の被覆は domain/persist/permission.test.js へ移設（#274 L-2）。
 
 describe('buildExternalBackupName（外部バックアップ名の生成・純関数）', () => {

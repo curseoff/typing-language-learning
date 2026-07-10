@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildQuizSegStat } from './quizSegStat.js'
+import { buildQuizSegStat } from './quizSegStat.policy.js'
 
 // Issue #240: 4択(単語/英英)の1問記録を純関数に切り出し、
 // ユーザーが選んだ選択肢(picked)を英日で保持する。

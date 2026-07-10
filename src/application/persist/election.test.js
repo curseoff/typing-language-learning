@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // coder が後で Green にする src/application/persist/election.js を対象にする。
 // state = { role: 'unknown'|'primary'|'secondary', epoch: number }
 // event = { type:'lock-granted' } | { type:'lock-unavailable' } | { type:'promote-granted' }
-import { electionTransition } from './election.js'
+import { electionTransition } from './election.policy.js'
 
 describe('electionTransition（主タブ選出の状態遷移・純関数）', () => {
   describe('unknown 状態からの遷移', () => {

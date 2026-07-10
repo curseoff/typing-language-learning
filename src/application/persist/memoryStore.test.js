@@ -12,7 +12,7 @@ import {
   applyRecordItemStat,
   applySaveStoryRecord,
   applySaveFound,
-} from './memoryStore.js'
+} from './memoryStore.policy.js'
 import { recKey } from '../../domain/records/ranking.service.js'
 import { itemId } from '../../domain/records/recordKeys.service.js'
 

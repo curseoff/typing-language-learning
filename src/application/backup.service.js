@@ -6,7 +6,7 @@
 // 純関数（looksLikeSqlite / buildBackupFilename / isValidUserDb）は計測対象（backup.test.js で被覆）。
 // export/import 配線（can*/prepare/importDatabaseBytes）は Worker/handle への薄い配線。
 import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
-import { flushWrites } from './records.js'
+import { flushWrites } from './records.service.js'
 
 // #269 Phase6: 保存基盤の起動完了を UI が購読するための再エクスポート（ui → application 経由で infra に触らせない）。
 // AppMenuBar（データメニュー）が起動前に初描画されても、起動完了通知で導線可否（can*）を再評価し項目の一瞬のちらつきを防ぐ。

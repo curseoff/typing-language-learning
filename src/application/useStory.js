@@ -10,9 +10,9 @@ import {
   saveFound,
   loadStoryRecords,
   saveStoryRecord,
-} from './records.js'
-import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
-import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
+} from './records.service.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
+import { newSegTracker, segMark, segMiss, segPush } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 

@@ -18,8 +18,8 @@ import {
   applyRecordItemStat,
   applySaveStoryRecord,
   applySaveFound,
-} from './persist/memoryStore.js'
-import { createWriteQueue } from './persist/writeQueue.js'
+} from './persist/memoryStore.policy.js'
+import { createWriteQueue } from './persist/writeQueue.service.js'
 
 // ── バックエンド状態（モジュール内シングルトン）──
 let backend = 'memory' // 'memory'（既定・非永続）| 'sqlite'

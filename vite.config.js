@@ -55,17 +55,17 @@ export default defineConfig({
         'src/infrastructure/persist/persistentStorage.adapter.js',
         'src/ui/ready/DataBackupBar.jsx',
         // #268 Phase5a: 永続化の縮退/復元の告知 UI とその購読フック。useSyncExternalStore/ブラウザ描画の
-        // 薄い配線＝上記 UI 配線と同種で計測除外。状態源（application/persist/persistNotice.js）と判断
-        // （application/persist/recovery.js）・facade（application/recovery.js）は計測対象（各 spec で被覆）。
+        // 薄い配線＝上記 UI 配線と同種で計測除外。状態源（application/persist/persistNotice.store.js）と判断
+        // （application/persist/recovery.policy.js）・facade（application/recovery.service.js）は計測対象（各 spec で被覆）。
         'src/ui/pwa/PersistNotice.jsx',
         'src/ui/pwa/usePersistNotice.js',
         // #278 Phase5b: File System Access（FSA）で外部フォルダへ自動バックアップ／復元するブラウザ API 配線。
         // showDirectoryPicker / FileSystemDirectoryHandle / IndexedDB（ハンドル永続）は jsdom/node で
-        // 単体計測できない＝上記 db/* と同種のエントリ配線として計測除外。純ロジック（persist/externalBackup.js の
+        // 単体計測できない＝上記 db/* と同種のエントリ配線として計測除外。純ロジック（persist/externalBackup.policy.js の
         // decidePermissionAction/build/parse/toBackupEntries）は計測対象（externalBackup.test.js で被覆）。
         // 実挙動（実許可・無言 write・消去→復元）は pwa-verifier の実ブラウザ検証と手動実機に委ねる。
         'src/infrastructure/persist/externalBackupStore.adapter.js',
-        'src/application/externalBackup.js',
+        'src/application/externalBackup.service.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',

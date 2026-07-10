@@ -5,7 +5,7 @@
 import { WordTypeView, WordQuizView, PlayResultView } from '@tll/ui'
 import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
-import { wordRecKey } from '../../application/records.js'
+import { wordRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 

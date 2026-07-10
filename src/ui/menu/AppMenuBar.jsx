@@ -7,19 +7,19 @@
 // UpdateToast 等と同様に ui から infrastructure を直接参照する（判定・記録ロジックではない）。
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import { MenuBarView } from '@tll/ui'
-import { buildTopMenuVisibility } from '../../application/appMenu.js'
+import { buildTopMenuVisibility } from '../../application/appMenu.policy.js'
 import {
   humanizeImportError,
   importDatabaseBytes,
   isStorageReady,
   prepareDatabaseExport,
   subscribeStorageReady,
-} from '../../application/backup.js'
+} from '../../application/backup.service.js'
 import {
   connectExternalBackup,
   pickAndGetDirectory,
   restoreFromExternal,
-} from '../../application/externalBackup.js'
+} from '../../application/externalBackup.service.js'
 import { getStorageHandle } from '../../infrastructure/db/initStorage.adapter.js'
 import { supportsFsa } from '../../infrastructure/persist/externalBackupStore.adapter.js'
 import { useInstallPrompt } from '../pwa/useInstallPrompt.js'

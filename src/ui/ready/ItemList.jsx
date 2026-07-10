@@ -2,7 +2,7 @@
 // item の表示キー（dict=word / それ以外=en）→ 記録 の対応表 stats を作って presenter に渡す。
 // 外部 API（items/type/mode）は従来どおり維持し、呼び出し側は無改変で通る。
 import { ItemList as ItemListView } from '@tll/ui'
-import { loadItemStats, itemStatId } from '../../application/records.js'
+import { loadItemStats, itemStatId } from '../../application/records.service.js'
 
 const keyOf = (type, it) => (type === 'dict' ? it.word : it.en)
 

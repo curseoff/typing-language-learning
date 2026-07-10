@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest'
 //   - 手順（副作用の順序）：record 生成 → key 算出 → Repository へ submit → イベント2発 → 返す。
 //   - 純アプリ層：React/DOM/Date/乱数 非依存。時刻等の外部値は meta として注入で受け取る。
 // 本体 src/application/records/recordFinishedSession.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { recordFinishedSession } from './recordFinishedSession.js'
+import { recordFinishedSession } from './recordFinishedSession.service.js'
 
 // 調停対象の既存部品（App Service が「独自計算せず委譲している」ことを裏取りするために直接も使う）。
 import { startTypingSession } from '../../domain/session/typingSession.entity.js'
@@ -17,7 +17,7 @@ import {
   createRankingRepository,
   createInMemoryRankingStore,
 } from '../../domain/records/ranking.repository.js'
-import { createEventBus } from '../../application/events/eventBus.js'
+import { createEventBus } from '../../application/events/eventBus.service.js'
 
 // 代表的な完走セッションを組み立てるヘルパ（keys/mistakes/elapsed を注入）。
 function playedSession({ id = 's1', keys = 20, mistakes = 5, elapsedMs = 60000 } = {}) {

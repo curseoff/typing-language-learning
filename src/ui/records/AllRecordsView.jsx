@@ -3,8 +3,8 @@
 // 行クリックは記録詳細（useRecordDetail/RecordDetail）を開く（#250）。open 呼び出しは container 側で組む。
 import { useMemo } from 'react'
 import { AllRecordsView as AllRecordsPresenter } from '@tll/ui'
-import { loadRecords, loadDictRecords, loadWordRecords, loadAllStoryRecords } from '../../application/records.js'
-import { flattenRecords, sortAllRecords } from '../../application/allRecords.js'
+import { loadRecords, loadDictRecords, loadWordRecords, loadAllStoryRecords } from '../../application/records.service.js'
+import { flattenRecords, sortAllRecords } from '../../application/allRecords.policy.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 
 // 行→記録ランキングの見出し文字列（RecordDetail のヘッダー）。既存 RecordsTable の rankText 流儀に倣う。

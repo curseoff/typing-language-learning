@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { RankSectionView } from '@tll/ui'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
-import { dictRanking } from '../../application/records.js'
+import { dictRanking } from '../../application/records.service.js'
 import ItemList from './ItemList.jsx'
 import EndConditionSelect from './EndConditionSelect.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'

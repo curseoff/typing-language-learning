@@ -2,11 +2,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './App.css'
-import { resolvePersistBackend, diagnosePersistFallback } from './application/persist/backend.js'
+import { resolvePersistBackend, diagnosePersistFallback } from './application/persist/backend.policy.js'
 import { initStorage } from './infrastructure/db/initStorage.adapter.js'
-import { electionTransition } from './application/persist/election.js'
-import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
-import { createEventBus } from './application/events/eventBus.js'
+import { electionTransition } from './application/persist/election.policy.js'
+import { handleSecondaryMessage } from './application/persist/secondaryMessage.policy.js'
+import { createEventBus } from './application/events/eventBus.service.js'
 import { startMultiTabPersistence } from './infrastructure/persist/multiTab.adapter.js'
 import { ensurePersistentStorage } from './infrastructure/persist/persistentStorage.adapter.js'
 import {
@@ -16,10 +16,10 @@ import {
   promoteToPrimary,
   replaceImage,
   getPersistImage,
-} from './application/records.js'
-import { ensureHealthyOrRestore, snapshotInternalBackup } from './application/recovery.js'
-import { scheduleExternalBackup } from './application/externalBackup.js'
-import { setPersistNotice } from './application/persist/persistNotice.js'
+} from './application/records.service.js'
+import { ensureHealthyOrRestore, snapshotInternalBackup } from './application/recovery.service.js'
+import { scheduleExternalBackup } from './application/externalBackup.service.js'
+import { setPersistNotice } from './application/persist/persistNotice.store.js'
 import { startContentFallbackPersistence } from './infrastructure/observability/contentFallbackStore.adapter.js'
 
 // 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する

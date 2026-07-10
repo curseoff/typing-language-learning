@@ -10,7 +10,7 @@ import { END_KINDS, DEFAULT_END_CONDITION, endKind, endConditionForKind } from '
 import { makeEndCondition } from './domain/session/endCondition.vo.js'
 import { TARGET_KEYS } from './domain/marathon/passage.service.js'
 import { recKey } from './domain/records/ranking.service.js'
-import { loadRecords, saveRecord } from './application/records.js'
+import { loadRecords, saveRecord } from './application/records.service.js'
 import { useMarathon } from './application/useMarathon.js'
 import Ready from './ui/ready/Ready.jsx'
 import MarathonView from './ui/marathon/MarathonView.jsx'
@@ -29,7 +29,7 @@ import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.jsx'
 import PersistNotice from './ui/pwa/PersistNotice.jsx'
 import SoundToggle from './ui/sound/SoundToggle.jsx'
 import AppMenuBar from './ui/menu/AppMenuBar.jsx'
-import { makeSeed } from './application/seed.js'
+import { makeSeed } from './application/seed.policy.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
 const MODE_KEYS = MODES.map((m) => m.key)

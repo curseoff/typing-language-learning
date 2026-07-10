@@ -5,7 +5,7 @@
 import { StorySectionView } from '@tll/ui'
 import { MODES, modeLabel } from '../../content/modes.js'
 import { STORIES, storyById } from '../../content/stories/index.js'
-import { loadStoryRecords, loadItemStats, storyStatId } from '../../application/records.js'
+import { loadStoryRecords, loadItemStats, storyStatId } from '../../application/records.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 
 const STORY_MODE_GROUPS = [...new Set(MODES.map((m) => m.group))].map((g) => ({

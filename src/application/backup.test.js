@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { applySchema } from '../infrastructure/db/applySchema.schema.js'
-import { looksLikeSqlite, buildBackupFilename, isValidUserDb } from './backup.js'
+import { looksLikeSqlite, buildBackupFilename, isValidUserDb } from './backup.service.js'
 
 let sqlite3
 beforeAll(async () => {

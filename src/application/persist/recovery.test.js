@@ -18,7 +18,7 @@ import {
   computeChecksum,
   rotateBackups,
   selectRestoreCandidate,
-} from './recovery.js'
+} from './recovery.policy.js'
 
 describe('evaluateIntegrity（integrity_check 結果→健全/破損の純判定）', () => {
   describe('健全（true）', () => {

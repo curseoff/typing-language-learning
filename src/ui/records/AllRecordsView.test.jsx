@@ -5,7 +5,7 @@
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import AllRecordsView from './AllRecordsView.jsx'
-import { initMemoryPersistence, saveStoryRecord } from '../../application/records.js'
+import { initMemoryPersistence, saveStoryRecord } from '../../application/records.service.js'
 
 afterEach(cleanup)
 beforeEach(() => {

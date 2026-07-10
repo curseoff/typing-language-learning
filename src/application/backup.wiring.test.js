@@ -14,8 +14,8 @@ import {
   canImportDatabase,
   prepareDatabaseExport,
   importDatabaseBytes,
-} from './backup.js'
-import { flushWrites, initSqlitePersistence, saveRecord } from './records.js'
+} from './backup.service.js'
+import { flushWrites, initSqlitePersistence, saveRecord } from './records.service.js'
 
 // "SQLite format 3\0" の16バイト。
 const MAGIC = [

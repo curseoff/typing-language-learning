@@ -9,13 +9,13 @@
 // （restoreFromExternal は保存済みハンドルが無ければ選び直しへ誘導し、UI がフォルダ選択を経てから復元する）。
 // backup.js（Phase4 export/import 配線）／recovery.js（Phase5a 内部復元配線）と同じく Worker/FSA への配線。
 import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
-import { computeChecksum, selectRestoreCandidate, rotateBackups } from './persist/recovery.js'
-import { looksLikeSqlite } from './backup.js'
-import { flushWrites } from './records.js'
+import { computeChecksum, selectRestoreCandidate, rotateBackups } from './persist/recovery.policy.js'
+import { looksLikeSqlite } from './backup.service.js'
+import { flushWrites } from './records.service.js'
 import {
   buildExternalBackupName,
   toBackupEntries,
-} from './persist/externalBackup.js'
+} from './persist/externalBackup.policy.js'
 import {
   supportsFsa,
   pickBackupDirectory,
