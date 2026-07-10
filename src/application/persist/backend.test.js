@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // 受理値は 'sqlite' | 'memory' の 2 値。レガシー 'local' は無効値として扱う。
 // 既定は 'sqlite'。非対応環境は 'memory'（非永続・メモリのみ）へ縮退する。
 // coder が後で Green にする src/application/persist/backend.js を対象にする。
-import { resolvePersistBackend, chooseBackend, diagnosePersistFallback } from './backend.js'
+import { resolvePersistBackend, chooseBackend, diagnosePersistFallback } from './backend.policy.js'
 
 describe('resolvePersistBackend（url > ls > env > 既定 sqlite の優先順・受理値は sqlite|memory）', () => {
   it('全て未指定なら既定 sqlite（空オブジェクト）', () => {

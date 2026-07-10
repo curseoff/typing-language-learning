@@ -1,7 +1,7 @@
 // 記録の識別キー生成（純粋）の単体テスト。#274 で localStorage リポジトリから分離した
 // wordRecKey/dictRecKey/storyRecKey/itemId を被覆する（各 repo テストのキー生成ケースを移植）。
 import { describe, it, expect } from 'vitest'
-import { wordRecKey, dictRecKey, storyRecKey, itemId } from './recordKeys.js'
+import { wordRecKey, dictRecKey, storyRecKey, itemId } from './recordKeys.service.js'
 
 describe('wordRecKey', () => {
   it('L{level}__{theme}__{mode} 形式（終了条件なし＝time60/未指定はタグ無し）', () => {

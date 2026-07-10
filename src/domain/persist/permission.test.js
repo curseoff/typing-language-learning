@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 // FSA 権限状態→次アクションの純判定（#274 L-2 で application/persist/externalBackup.js から domain へ移設）。
 // 'granted'→'write' / 'prompt'→'request' / それ以外（未知/null/undefined/空/非文字列）は安全側で 'skip'。
-import { decidePermissionAction } from './permission.js'
+import { decidePermissionAction } from './permission.service.js'
 
 describe('decidePermissionAction（FSA 権限状態→次アクションの純判定）', () => {
   it("'granted' なら 'write'（そのまま書ける）", () => {

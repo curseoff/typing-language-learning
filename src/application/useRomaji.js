@@ -9,13 +9,13 @@
 // を内包。finish のトリガはタイマー（useCountdownTimer）据え置きで挙動不変。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { kanaOf } from '@tll/core'
-import { buildKanaDrill } from '../domain/romaji/drill.js'
-import { acceptsRomaji, isKanaComplete } from '../domain/romaji/input.js'
-import { makeEndCondition } from '../domain/session/endCondition.js'
-import { createTypingSessionFactory } from '../domain/session/typingSessionFactory.js'
+import { buildKanaDrill } from '../domain/romaji/drill.service.js'
+import { acceptsRomaji, isKanaComplete } from '../domain/romaji/input.service.js'
+import { makeEndCondition } from '../domain/session/endCondition.vo.js'
+import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { ROMAJI_LEVELS } from '../content/romaji.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 
 // application 層のモジュールカウンタで session ID を採番する（純ドメインは ID を作れない）。
 let romajiSessionSeq = 0

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { STORIES } from './stories/index.js'
 import { STORY } from './story.js'
-import { toRomaji, kanaConsumed } from '../domain/romaji/romaji.js'
+import { toRomaji, kanaConsumed } from '../domain/romaji/romaji.service.js'
 
 // 句読点を除いた kana が canonical(toRomaji) を打つと全かな消費できるか（=実際に打鍵可能か）
 const PUNCT = /[。、！？]/g

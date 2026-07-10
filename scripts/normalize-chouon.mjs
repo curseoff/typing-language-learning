@@ -5,8 +5,8 @@
 //   node scripts/normalize-chouon.mjs           # ドライラン（変換結果を表示）
 //   node scripts/normalize-chouon.mjs --write    # L1..L4.js を再生成
 import { writeFileSync } from 'node:fs'
-import { alignJaToKana } from '../src/domain/typing/progress.js'
-import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.js'
+import { alignJaToKana } from '../src/domain/typing/progress.service.js'
+import { toRomaji, kanaConsumed } from '../src/domain/romaji/romaji.service.js'
 import L1 from '../src/content/wordSentences/L1.js'
 import L2 from '../src/content/wordSentences/L2.js'
 import L3 from '../src/content/wordSentences/L3.js'

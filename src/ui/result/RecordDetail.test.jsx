@@ -3,7 +3,7 @@
 // 直後に時系列で差し込み、旧記録（choices 無し）・afterSeg 無しでも壊れない（後方互換）。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import RecordDetail from './RecordDetail.jsx'
+import RecordDetail from './RecordDetail.container.jsx'
 
 afterEach(cleanup)
 

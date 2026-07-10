@@ -9,14 +9,14 @@ import {
   levelEntries,
   makeDictQuiz,
   makeDictPick,
-} from '../domain/dictionary/dictset.js'
-import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
+} from '../domain/dictionary/dictset.service.js'
+import { mulberry32 } from '../domain/rng.service.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.vo.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
-import { loadDictRecords, saveDictRecord } from './records.js'
-import { buildQuizSegStat } from './quizSegStat.js'
-import { makeSeed } from './seed.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { loadDictRecords, saveDictRecord } from './records.service.js'
+import { buildQuizSegStat } from './quizSegStat.policy.js'
+import { makeSeed } from './seed.policy.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 
 // エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6

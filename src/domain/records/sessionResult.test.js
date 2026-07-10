@@ -5,11 +5,11 @@ import { describe, it, expect } from 'vitest'
 //   - Session Entity 自身の責務でも、score VO 的計算の責務でもない＝どちらにも属さない横断操作＝Service。
 //   - session を破壊しない（読み取りのみ）＝Service は状態を持たず副作用も持たない。
 //
-// 本体 src/domain/records/sessionResult.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { sessionToRecord } from './sessionResult.js'
+// 本体 src/domain/records/sessionResult.service.js は coder が Green で作る（現状未実装＝import で undefined）。
+import { sessionToRecord } from './sessionResult.service.js'
 // またぐ対象：Session Entity（progress を提供）と採点ロジック。
-import { startTypingSession } from '../session/typingSession.js'
-import { makeEndCondition } from '../session/endCondition.js'
+import { startTypingSession } from '../session/typingSession.entity.js'
+import { makeEndCondition } from '../session/endCondition.vo.js'
 
 // 代表的な完走セッションを組み立てるヘルパ（keys/mistakes/elapsed を注入）。
 function playedSession({ id = 's1', keys = 0, mistakes = 0, elapsedMs = 0 } = {}) {

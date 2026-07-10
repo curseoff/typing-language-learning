@@ -5,17 +5,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // getStorageHandle だけ差し替える（Worker handle の有無で経路を切替えるため）。
-vi.mock('../infrastructure/db/initStorage.js', () => ({
+vi.mock('../infrastructure/db/initStorage.adapter.js', () => ({
   getStorageHandle: vi.fn(),
 }))
-import { getStorageHandle } from '../infrastructure/db/initStorage.js'
+import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
 import {
   canExportDatabase,
   canImportDatabase,
   prepareDatabaseExport,
   importDatabaseBytes,
-} from './backup.js'
-import { flushWrites, initSqlitePersistence, saveRecord } from './records.js'
+} from './backup.service.js'
+import { flushWrites, initSqlitePersistence, saveRecord } from './records.service.js'
 
 // "SQLite format 3\0" の16バイト。
 const MAGIC = [

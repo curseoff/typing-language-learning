@@ -2,12 +2,12 @@
 // 問題ごとの打鍵・ミス・時間の集計（id 切替で flush・ミス加算・flush の記録と ms 計算）の単体テスト。
 // recordItemStat はモックして呼び出し引数を検証する。performance.now は fake timer で制御する。
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 // itemTracker は記録ファサード(records.js)の recordItemStat を呼ぶ（infra 直呼びは撤去）。
 // 呼び出し引数を検証するため facade をモックする。
-import { recordItemStat } from './records.js'
+import { recordItemStat } from './records.service.js'
 
-vi.mock('./records.js', () => ({
+vi.mock('./records.service.js', () => ({
   recordItemStat: vi.fn(),
 }))
 

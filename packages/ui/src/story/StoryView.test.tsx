@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 本文/分岐選択/エンディングの3ステージ。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import StoryView from './StoryView'
+import StoryView from './StoryView.presenter'
 
 afterEach(cleanup)
 

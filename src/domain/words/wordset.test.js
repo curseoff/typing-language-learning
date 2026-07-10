@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { buildWordSet, buildWordPassage, levelWords, makeQuiz, WORD_COUNT } from './wordset.js'
-import { buildUnits } from '../typing/units.js'
-import { TARGET_KEYS } from '../marathon/passage.js'
+import { buildWordSet, buildWordPassage, levelWords, makeQuiz, WORD_COUNT } from './wordset.service.js'
+import { buildUnits } from '../typing/units.service.js'
+import { TARGET_KEYS } from '../marathon/passage.service.js'
 import { WORDS } from '../../content/wordsAll.js'
-import { mulberry32 } from '../rng.js'
-import { romajiVariants } from '../romaji/romaji.js'
+import { mulberry32 } from '../rng.service.js'
+import { romajiVariants } from '../romaji/romaji.service.js'
 
 const MODES = ['en', 'ja', 'both']
 const LEVELS = [1, 2, 3, 4]

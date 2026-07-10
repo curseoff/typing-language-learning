@@ -4,9 +4,9 @@ import {
   levelEntries,
   makeDictQuiz,
   makeDictPick,
-} from './dictset.js'
+} from './dictset.service.js'
 import { DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
-import { mulberry32 } from '../rng.js'
+import { mulberry32 } from '../rng.service.js'
 
 const DICT = await loadDict()
 

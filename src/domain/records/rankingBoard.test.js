@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 // #290 Phase 3（Aggregate + Aggregate Root + Invariant）の Red。
 // RankingBoard は記録ランキングを表す集約。集約ルートが不変条件（top MAX_RECORDS・
 // compareRecords 順の整列）を常に保証し、状態変更はルートの submit() 経由のみとする。
-// 本体（src/domain/records/rankingBoard.js）は未実装＝import で Red になる想定。
-import { makeRankingBoard, rankingBoardEquals } from './rankingBoard.js'
-import { MAX_RECORDS, compareRecords } from './ranking.js'
-import { makeEndCondition, isEndCondition } from '../session/endCondition.js'
+// 本体（src/domain/records/rankingBoard.vo.js）は未実装＝import で Red になる想定。
+import { makeRankingBoard, rankingBoardEquals } from './rankingBoard.vo.js'
+import { MAX_RECORDS, compareRecords } from './ranking.service.js'
+import { makeEndCondition, isEndCondition } from '../session/endCondition.vo.js'
 
 const TIME60 = makeEndCondition('time', 60)
 const CHARS = makeEndCondition('chars', 600)

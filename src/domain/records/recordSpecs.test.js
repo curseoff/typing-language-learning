@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest'
 // 具体 Specification を makeSpec で組み立て、and/or/not で合成する。
 // 分岐（速い/正確/長い）をドメインに閉じ込め、組み合わせ可能にする。
 //
-// 本体 src/domain/records/recordSpecs.js は coder が Green で作る（現状未実装＝import で undefined）。
+// 本体 src/domain/records/recordSpecs.specification.js は coder が Green で作る（現状未実装＝import で undefined）。
 import {
   fasterThan,
   atLeastAccuracy,
   longerThan,
   isGreatRecord,
-} from './recordSpecs.js'
+} from './recordSpecs.specification.js'
 
 // 記録レコードのヘルパ（既存記録に倣った形）。
 const rec = ({ speed = 0, accuracy = 100, seconds = 0 } = {}) => ({

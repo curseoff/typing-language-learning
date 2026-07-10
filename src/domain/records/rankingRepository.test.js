@@ -3,14 +3,14 @@ import { describe, it, expect } from 'vitest'
 // RankingBoard 集約を「コレクションのように出し入れする永続化抽象＝Repository」で扱う。
 // Repository は注入された store（Port）に依存し、実体（in-memory / sqlite）は差し替え可能。
 // ドメインは永続化の詳細を知らない（永続化無知）。今回は in-memory アダプタで完結する。
-// 本体（src/domain/records/rankingRepository.js）は未実装＝import で Red になる想定。
+// 本体（src/domain/records/ranking.repository.js）は未実装＝import で Red になる想定。
 import {
   createInMemoryRankingStore,
   createRankingRepository,
-} from './rankingRepository.js'
-import { makeRankingBoard, rankingBoardEquals } from './rankingBoard.js'
-import { MAX_RECORDS } from './ranking.js'
-import { makeEndCondition } from '../session/endCondition.js'
+} from './ranking.repository.js'
+import { makeRankingBoard, rankingBoardEquals } from './rankingBoard.vo.js'
+import { MAX_RECORDS } from './ranking.service.js'
+import { makeEndCondition } from '../session/endCondition.vo.js'
 
 const TIME60 = makeEndCondition('time', 60)
 const CHARS = makeEndCondition('chars', 600)

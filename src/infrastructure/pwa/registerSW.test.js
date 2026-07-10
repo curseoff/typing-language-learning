@@ -5,7 +5,7 @@
 //  - controllerchange は「ユーザーが更新を押した後」だけ reload する。初回 claim では reload しない
 //    （初回訪問で一瞬リロードしないため／check:pwa のコンテキスト破壊回避）。
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { registerServiceWorker } from './registerSW.js'
+import { registerServiceWorker } from './registerSW.adapter.js'
 
 // マイクロタスク/タイマーを掃き出す（register の await 後の配線を待つ）。
 const flush = () => new Promise((r) => setTimeout(r, 0))

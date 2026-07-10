@@ -22,8 +22,8 @@ import {
   saveStoryRecord,
   loadFound,
   saveFound,
-} from './records.js'
-import { wordRecKey, dictRecKey, storyRecKey } from '../domain/records/recordKeys.js'
+} from './records.service.js'
+import { wordRecKey, dictRecKey, storyRecKey } from '../domain/records/recordKeys.service.js'
 
 // 現状 localStorage をクリアするのは既存流儀（隠れ状態の混入を避ける）。memory モードでは
 // そもそも localStorage に触れないことを本ファイルで検証する。

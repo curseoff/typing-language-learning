@@ -1,7 +1,7 @@
 // 「最初の打鍵から一定時間で終了」の共通タイマー。now の刻み・上限到達の1回限り発火・
 // 経過秒/速度計算を集約し、各ゲームフックの重複を排除する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 
 // active: 時間を刻む条件（marathon は active prop、他は !finished）
 // startTime: 最初の打鍵時刻（呼び出し側が保持・null は未開始）

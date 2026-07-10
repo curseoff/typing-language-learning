@@ -2,14 +2,14 @@
 // 問題が尽きたら再シャッフルで継ぎ足し、60秒の間ずっと出題する。スコアはタイピング数(typedKeys)。
 // dir='en'(英語訳: 和訳→英単語) / 'ja'(日本語訳: 英単語→和訳をローマ字)
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.js'
-import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
+import { WORD_COUNT, buildWordSet, levelWords, makeQuiz } from '../domain/words/wordset.service.js'
+import { mulberry32 } from '../domain/rng.service.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.vo.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
-import { loadWordRecords, saveWordRecord } from './records.js'
-import { buildQuizSegStat } from './quizSegStat.js'
-import { makeSeed } from './seed.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { loadWordRecords, saveWordRecord } from './records.service.js'
+import { buildQuizSegStat } from './quizSegStat.policy.js'
+import { makeSeed } from './seed.policy.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 
 // エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6

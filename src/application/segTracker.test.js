@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.js'
+import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 
 describe('segTracker（問題ごとの記録）', () => {
   it('セグメント完了で1件積み、type/label/keys/ミス/秒/速度を持つ', () => {

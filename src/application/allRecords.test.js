@@ -7,7 +7,7 @@
 //   - word-records-v2(loadWordRecords): キー→記録配列。record は level/theme/mode/keys… を持ち source:'word'。
 //   - 記録の数値/日時フィールド: speed / accuracy / mistakes / keys / seconds / date(toLocaleString('ja-JP'))。
 import { describe, it, expect } from 'vitest'
-import { flattenRecords, sortAllRecords } from './allRecords.js'
+import { flattenRecords, sortAllRecords } from './allRecords.policy.js'
 
 // ── 契約①: flattenRecords({ records, dictRecords, wordRecords }) ──
 describe('flattenRecords（3リポジトリの生データを正規化フラット配列へ）', () => {

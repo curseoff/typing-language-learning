@@ -5,22 +5,22 @@
 // 検証オラクル＝現行 localStorage 実装と同値。
 //
 // 対象（未実装 API）:
-//   src/infrastructure/db/schema.js          → applySchema(db)
-//   src/infrastructure/db/repos/storyDb.js   →
+//   src/infrastructure/db/applySchema.schema.js          → applySchema(db)
+//   src/infrastructure/db/repos/story.repository.js   →
 //     saveStoryRecordDb(db, storyId, record) / loadStoryRecordsDb(db, storyId, endCondition)
 //     loadAllStoryRecordsDb(db) / saveFoundDb(db, storyId, ids) / loadFoundDb(db, storyId)
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { applySchema } from '../schema.js'
+import { applySchema } from '../applySchema.schema.js'
 import {
   saveStoryRecordDb,
   loadStoryRecordsDb,
   loadAllStoryRecordsDb,
   saveFoundDb,
   loadFoundDb,
-} from './storyDb.js'
-import { storyRecKey } from '../../../domain/records/recordKeys.js'
-import { MAX_RECORDS } from '../../../domain/records/ranking.js'
+} from './story.repository.js'
+import { storyRecKey } from '../../../domain/records/recordKeys.service.js'
+import { MAX_RECORDS } from '../../../domain/records/ranking.service.js'
 
 let sqlite3
 beforeAll(async () => {

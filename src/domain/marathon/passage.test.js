@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildPassage, TARGET_KEYS } from './passage.js'
-import { mulberry32 } from '../rng.js'
+import { buildPassage, TARGET_KEYS } from './passage.service.js'
+import { mulberry32 } from '../rng.service.js'
 
 // buildUnits が扱える最小限の文データ
 const pool = [

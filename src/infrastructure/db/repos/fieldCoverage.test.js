@@ -7,12 +7,12 @@
 // （＝この時点で coder/司令塔がスキーマ拡張要否を判断する）。既に十分なら緑のガードとして残る。
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { applySchema } from '../schema.js'
-import { saveRecordDb, loadRecordsDb } from './recordsDb.js'
-import { saveWordRecordDb, loadWordRecordsDb } from './wordsDb.js'
-import { saveDictRecordDb, loadDictRecordsDb } from './dictDb.js'
-import { saveStoryRecordDb, loadStoryRecordsDb } from './storyDb.js'
-import { recordItemStatDb, loadItemStatsDb } from './itemStatsDb.js'
+import { applySchema } from '../applySchema.schema.js'
+import { saveRecordDb, loadRecordsDb } from './records.repository.js'
+import { saveWordRecordDb, loadWordRecordsDb } from './words.repository.js'
+import { saveDictRecordDb, loadDictRecordsDb } from './dict.repository.js'
+import { saveStoryRecordDb, loadStoryRecordsDb } from './story.repository.js'
+import { recordItemStatDb, loadItemStatsDb } from './itemStats.repository.js'
 
 let sqlite3
 beforeAll(async () => {

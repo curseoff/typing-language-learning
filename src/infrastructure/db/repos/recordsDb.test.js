@@ -5,13 +5,13 @@
 // 加えて壊れやすい点（undefined 省略・endCondition 再生成・上位15キャップ）は個別アサーションも置く。
 //
 // 対象（coder が後で実装する未実装 API）:
-//   src/infrastructure/db/schema.js        → applySchema(db)
-//   src/infrastructure/db/repos/recordsDb.js → saveRecordDb(db, record) / loadRecordsDb(db)
+//   src/infrastructure/db/applySchema.schema.js        → applySchema(db)
+//   src/infrastructure/db/repos/records.repository.js → saveRecordDb(db, record) / loadRecordsDb(db)
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { applySchema } from '../schema.js'
-import { saveRecordDb, loadRecordsDb } from './recordsDb.js'
-import { recKey, MAX_RECORDS, compareRecords } from '../../../domain/records/ranking.js'
+import { applySchema } from '../applySchema.schema.js'
+import { saveRecordDb, loadRecordsDb } from './records.repository.js'
+import { recKey, MAX_RECORDS, compareRecords } from '../../../domain/records/ranking.service.js'
 
 let sqlite3
 beforeAll(async () => {

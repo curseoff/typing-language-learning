@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { score } from './scoring.js'
+import { score } from './scoring.service.js'
 
 describe('score', () => {
   it('速度=文字数/分、正確率、秒を計算する', () => {

@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import OptionJa from './OptionJa'
+import OptionJa from './OptionJa.presenter'
 
 afterEach(cleanup)
 

@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useCountdownTimer } from './useCountdownTimer.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 
 // performance.now を fake timer に同期させ、時間経過を制御する。
 beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] }))

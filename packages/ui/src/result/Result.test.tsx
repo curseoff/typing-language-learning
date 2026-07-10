@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 入力結果と4択結果。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import Result from './Result'
+import Result from './Result.presenter'
 
 afterEach(cleanup)
 

@@ -2,8 +2,8 @@
 // presenter smoke（#248）: 記録あり/空・列ヘッダークリックでソートが呼ばれ aria-sort が動く。
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, cleanup, fireEvent } from '@testing-library/react'
-import AllRecordsView from './AllRecordsView'
-import type { AllRecordRow, SortDir } from './AllRecordsView'
+import AllRecordsView from './AllRecordsView.presenter'
+import type { AllRecordRow, SortDir } from './AllRecordsView.presenter'
 
 afterEach(cleanup)
 

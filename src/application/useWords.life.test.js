@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWords } from './useWords.js'
 import { WORDS } from '../content/wordsAll.js'
-import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'
+import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.service.js'
 
 beforeEach(() => {
   localStorage.clear()

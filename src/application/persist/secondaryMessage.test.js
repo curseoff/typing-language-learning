@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // coder が後で Green にする src/application/persist/secondaryMessage.js を対象にする。
 // state = { epoch: number }（副が把握している最新 epoch）
 // 戻り値 = { nextState, effect } / effect ∈ 'request-snapshot'|'replace-image'|'ignore'
-import { isStale, handleSecondaryMessage } from './secondaryMessage.js'
+import { isStale, handleSecondaryMessage } from './secondaryMessage.policy.js'
 
 describe('isStale（古いエポックのメッセージ棄却判定）', () => {
   it('msgEpoch が myEpoch より小さければ stale=true', () => {

@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 単語/辞書/クイズの各一覧。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import ItemList from './ItemList'
+import ItemList from './ItemList.presenter'
 
 afterEach(cleanup)
 

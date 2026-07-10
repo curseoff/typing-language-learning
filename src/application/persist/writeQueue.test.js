@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 // #266 Phase3a: write-through 用の FIFO 直列キュー（純ロジック・注入 exec）。
 // coder が後で Green にする src/application/persist/writeQueue.js を対象にする。
-import { createWriteQueue } from './writeQueue.js'
+import { createWriteQueue } from './writeQueue.service.js'
 
 // マクロタスク境界まで待ってマイクロタスク（.then 連鎖）を吐き切らせる。
 const tick = () => new Promise((r) => setTimeout(r, 0))

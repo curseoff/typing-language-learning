@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { toRomaji } from '@tll/core'
 import { useRomaji } from './useRomaji.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 
 beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'performance'] }))
 afterEach(() => vi.useRealTimers())

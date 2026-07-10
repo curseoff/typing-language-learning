@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 // 未実装モジュール（契約C）。coder が Green にする対象。
-import { acceptsRomaji, isKanaComplete } from './input.js'
+import { acceptsRomaji, isKanaComplete } from './input.service.js'
 
 describe('acceptsRomaji（契約C: 入力途中として妥当か）', () => {
   it.each([

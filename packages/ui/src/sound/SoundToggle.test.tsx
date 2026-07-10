@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import SoundToggle from './SoundToggle'
+import SoundToggle from './SoundToggle.presenter'
 
 afterEach(cleanup)
 

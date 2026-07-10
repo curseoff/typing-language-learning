@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // 効果音ミュート設定の永続化（既定オン・get/set・破損ガード・購読通知）の単体テスト。
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { isSoundMuted, setSoundMuted, subscribeSoundMuted } from './soundSettingsRepository.js'
+import { isSoundMuted, setSoundMuted, subscribeSoundMuted } from './soundSettings.repository.js'
 
 describe('infrastructure/soundSettingsRepository', () => {
   beforeEach(() => localStorage.clear())

@@ -18,7 +18,7 @@ afterEach(() => {
 async function loadIsolated() {
   vi.resetModules()
   const content = await import('../../content/contentFallback.js')
-  const mod = await import('./ContentFallbackNotice.jsx')
+  const mod = await import('./ContentFallbackNotice.container.jsx')
   return { record: content.recordContentFallback, Notice: mod.default }
 }
 

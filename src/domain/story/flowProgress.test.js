@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { storyFlowProgress } from './flowProgress.js'
-import { alignJaToKana } from '../typing/progress.js'
+import { storyFlowProgress } from './flowProgress.service.js'
+import { alignJaToKana } from '../typing/progress.service.js'
 
 // 短いノードで決定的に検証
 const node = {

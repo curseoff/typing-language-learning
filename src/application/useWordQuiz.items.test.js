@@ -6,9 +6,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWordQuiz } from './useWordQuiz.js'
-import { TIME_LIMIT_MS } from '../domain/marathon/passage.js'
+import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { WORDS } from '../content/wordsAll.js'
-import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'
+import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.service.js'
 
 beforeEach(() => {
   localStorage.clear()

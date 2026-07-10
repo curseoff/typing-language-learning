@@ -5,7 +5,7 @@
 // RubyTyped のふりがな(rt)には rch を付けない(下線をルビと干渉させない)ことを確認する。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { Typed, RubyTyped } from './Text.jsx'
+import { Typed, RubyTyped } from './Text.presenter.jsx'
 
 afterEach(cleanup)
 

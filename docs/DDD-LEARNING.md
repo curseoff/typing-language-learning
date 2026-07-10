@@ -414,4 +414,50 @@ multiTab.js: onChange = () => bus.publish(RecordsChanged{epoch})
 
 ---
 
-_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO・Entity×useRomaji/useTouch・useWords部分採用）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition/compareRecords の Strategy 化）＋Domain Event の本番配線（RecordsChanged）。DDD 学習アーク完了。_
+## 20. 命名規約：ファイル名の DDD ステレオタイプ・サフィックス（#306）
+
+**課題**：コード上で VO / Entity / Factory 等の区別が散文コメントにしか無く、判別しにくかった。このコードベースは**ファクトリ関数ベースでクラスが無い**ため、「クラス名に `Entity` を付ける」に相当する印を**ファイル名**へ載せる。
+
+**規約**：`src/domain/**` と `packages/core/src/**` の非テスト `.js`（barrel の `index.js` を除く）は、必ず次のサフィックスのいずれかで終える。
+
+| suffix | stereotype | 例 |
+|---|---|---|
+| `.entity.js` | Entity（同一性・可変・ライフサイクル） | `typingSession.entity.js` |
+| `.vo.js` | Value Object（不変・値等価） | `endCondition.vo.js` / `rankingBoard.vo.js` / `kanaTable.vo.js` |
+| `.factory.js` | Factory（同一性注入つき生成） | `typingSession.factory.js` |
+| `.event.js` | Domain Event | `recordEvents.event.js` |
+| `.specification.js` | Specification（`.spec` はテストと紛らわしいので不採用） | `combinators.specification.js` / `recordSpecs.specification.js` |
+| `.repository.js` | Repository（Port） | `ranking.repository.js` |
+| `.service.js` | Domain Service（純関数の判定/計算/変換・大多数） | `scoring.service.js` / `ranking.service.js` |
+
+**強制**：`src/domain/_ddd-naming.test.js` が上記2ツリーを走査し、未分類ファイルがあれば**違反一覧を挙げて CI を赤**にする（新規ファイルにも分類を強制）。基底名が冗長になる所は基底も調整した（`rankingRepository.js→ranking.repository.js`・`typingSessionFactory.js→typingSession.factory.js`・`specification.js→combinators.specification.js`）。
+
+**学びの要点**
+- **名前は最も安いドキュメント**：散文コメントは腐るが、ファイル名は grep でき・タブに出て・テストで強制できる。ステレオタイプを名前に載せると「このファイルは何か」が読む前に分かる。
+- **クラスが無くても戦術は表現できる**：OOP なら型名で背負う区別を、関数型スタイルでは**ファイル名の規約＋メタテスト**で担保できる。パターンは言語機能ではなく「意図の可視化と強制」で効く。
+- **挙動不変の大規模リネームの安全網**：28ファイル改名＋約186 import 更新を、①メタテスト Red 先行 → ②`git mv`（履歴保持）→ ③`npm run check` 緑（1140 tests・build）で守った。ロジックに触れない機械的変更でも、差分が「パス差し替えのみ」であることを検証してからコミットする。
+
+---
+
+## 21. 命名規約を全層へ拡張（#308）
+
+#306 の「ファイル名サフィックス＋メタテスト強制」を **application / infrastructure / ui** へ広げ、各層の役割もファイル名で判別可能にした。メタテストは層別構成（`_ddd-naming.test.js` の `TREES`）で、**ツリーごとに許可サフィックスを分けて**検査する（層をまたいだ誤サフィックスも検出）。
+
+### 層別サフィックス
+| 層（ツリー・拡張子） | サフィックス | 除外 |
+|---|---|---|
+| `src/infrastructure`（.js） | `.repository.js`（Repository 実装）／`.adapter.js`（Port 実装・ブラウザ/DB/Worker 配線）／`.migration.js`（DDL 定義）／`.schema.js`（適用ファサード）／`.mapper.js`（列⇄record 純マッパ） | — |
+| `src/application`（.js） | `.service.js`（Application Service＝infra を束ねる副作用ファサード・機構）／`.policy.js`（純ロジック・判定/計算/状態機械/変換）／`.store.js`（module 可変ストア＋pub/sub） | `use*.js`（React フック） |
+| `src/ui`（.jsx） | `.container.jsx`（フック/application/content を束ねる）／`.presenter.jsx`（@tll/ui 再エクスポート薄板）／`.context.jsx`（React Context） | `use*.jsx` |
+| `packages/ui/src`（.tsx／.ts） | `.presenter.tsx`（純プレゼンター）／`.util.ts`（純計算・静的データ） | `*.stories.tsx`・`*.d.ts`・`index.ts` |
+
+`.service.js` は domain（DomainService）と application（ApplicationService）で同綴りだが、**ディレクトリ（層）で意味が決まる**。
+
+### 学びの要点
+- **層で語彙が変わる＝ヘキサゴナルの実感**：domain は VO/Entity/…、infra は Adapter/Repository、application は Service/Policy/Store、ui は Container/Presenter/Context。同じ「ファイル名で役割を背負う」規約でも、**層ごとに登場するステレオタイプが違う**こと自体が層の責務境界を可視化する。
+- **判定は"中身を読む"に尽きる**：planner が全ファイルを読み、司令塔の当初案の誤り（`allRecords`/`appMenu` は service でなく純関数＝policy、`schema.js` は DDL 本体でなく適用ファサード、src/ui に純再エクスポート薄板が11件）を是正した。命名は「そう呼びたい」ではなく「実際に何をしているか」で決める。
+- **段階リリースの安全網**：application/infrastructure/ui の3層を **層ごとに Red→Green** で分け、各段で `npm run check` 緑（メタテストにその層のツリーを追加→当該層だけ赤→リネームで緑）を確認しながら積んだ。約155ファイル改名の大規模リネームでも、差分が「パス差し替えのみ」であることを層ごとに検証してコミットした。
+
+---
+
+_この文書は #290/#306/#308 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO・Entity×useRomaji/useTouch・useWords部分採用）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition/compareRecords の Strategy 化）＋Domain Event の本番配線（RecordsChanged）＋命名規約でステレオタイプをファイル名へ可視化・テスト強制（#306 domain/core → #308 全層）。DDD 学習アーク完了。_

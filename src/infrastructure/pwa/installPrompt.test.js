@@ -3,7 +3,7 @@
 // 合成 beforeinstallprompt を dispatch すると canInstall() が true になる。promptInstall() は
 // prompt() を呼び userChoice 後に導線を消す。appinstalled / standalone 起動では導線を出さない。
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { canInstall, subscribeInstall, promptInstall } from './installPrompt.js'
+import { canInstall, subscribeInstall, promptInstall } from './installPrompt.adapter.js'
 
 // 合成 beforeinstallprompt イベントを作る（preventDefault はモック、prompt()/userChoice も差し替え可能）。
 function makeBIPEvent({ outcome = 'accepted' } = {}) {

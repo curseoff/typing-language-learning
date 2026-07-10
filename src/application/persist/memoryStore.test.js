@@ -12,9 +12,9 @@ import {
   applyRecordItemStat,
   applySaveStoryRecord,
   applySaveFound,
-} from './memoryStore.js'
-import { recKey } from '../../domain/records/ranking.js'
-import { itemId } from '../../domain/records/recordKeys.js'
+} from './memoryStore.policy.js'
+import { recKey } from '../../domain/records/ranking.service.js'
+import { itemId } from '../../domain/records/recordKeys.service.js'
 
 beforeEach(() => localStorage.clear())
 

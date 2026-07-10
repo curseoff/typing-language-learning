@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: プレイ中/ミス/完了。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import TouchView from './TouchView'
+import TouchView from './TouchView.presenter'
 
 afterEach(cleanup)
 

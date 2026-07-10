@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest'
 //   - イベントは payload を注入して作る純ドメイン（Date/乱数を内部で生成しない）。
 //   - 生成物は Object.freeze で不変＝「起きた事実」は後から書き換わらない。
 //   - 事実の同定に必要な必須情報（sessionId / key）が欠ければ throw。
-// 本体 src/domain/events/recordEvents.js は coder が Green で作る（現状未実装＝import で undefined）。
+// 本体 src/domain/events/recordEvents.event.js は coder が Green で作る（現状未実装＝import で undefined）。
 import {
   sessionFinishedEvent,
   recordAchievedEvent,
   recordsChangedEvent,
   isDomainEvent,
-} from './recordEvents.js'
+} from './recordEvents.event.js'
 
 // 時刻は payload の既存値を使う（イベント内で Date を作らない）方針の確認用サンプル。
 const sampleRecord = () => ({ date: '2026-07-09T00:00:00.000Z', speed: 120, miss: 3 })
