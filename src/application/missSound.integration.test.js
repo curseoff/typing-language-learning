@@ -5,10 +5,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
-vi.mock('../infrastructure/sound.js', () => ({ playMiss: vi.fn() }))
+vi.mock('../infrastructure/sound.adapter.js', () => ({ playMiss: vi.fn() }))
 
 import { useTouch } from './useTouch.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.restoreAllMocks())

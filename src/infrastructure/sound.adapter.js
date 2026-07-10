@@ -2,7 +2,7 @@
 // AudioContext を遅延生成し、WAV を一度だけ decode してキャッシュ、都度 BufferSource を作って鳴らす
 // （連打に強い）。読み込み/再生失敗・非対応環境は握りつぶす（例外を投げず＝タイピングを妨げない）。
 // ミュート時は AudioContext に触れる前に return する（gate は純粋関数 shouldPlayMiss で判定）。
-import { isSoundMuted } from './soundSettingsRepository.js'
+import { isSoundMuted } from './soundSettings.repository.js'
 
 // public/ 配下の miss.wav の URL（Vite の base に追従。GitHub Pages のサブパス配信でも相対解決される）。
 const MISS_URL = `${import.meta.env.BASE_URL}miss.wav`

@@ -5,12 +5,12 @@
 // 検証オラクル＝現行 localStorage 実装と同値。
 //
 // 対象（未実装 API）:
-//   src/infrastructure/db/schema.js             → applySchema(db)
-//   src/infrastructure/db/repos/itemStatsDb.js  → recordItemStatDb(db, id, {keys,mistakes,ms}) / loadItemStatsDb(db)
+//   src/infrastructure/db/applySchema.schema.js             → applySchema(db)
+//   src/infrastructure/db/repos/itemStats.repository.js  → recordItemStatDb(db, id, {keys,mistakes,ms}) / loadItemStatsDb(db)
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { applySchema } from '../schema.js'
-import { recordItemStatDb, loadItemStatsDb } from './itemStatsDb.js'
+import { applySchema } from '../applySchema.schema.js'
+import { recordItemStatDb, loadItemStatsDb } from './itemStats.repository.js'
 import { itemId } from '../../../domain/records/recordKeys.service.js'
 
 let sqlite3

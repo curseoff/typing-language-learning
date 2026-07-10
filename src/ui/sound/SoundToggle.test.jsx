@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import SoundToggle from './SoundToggle.jsx'
-import { isSoundMuted } from '../../infrastructure/soundSettingsRepository.js'
+import { isSoundMuted } from '../../infrastructure/soundSettings.repository.js'
 
 beforeEach(() => localStorage.clear())
 afterEach(() => cleanup())

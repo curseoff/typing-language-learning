@@ -14,7 +14,7 @@ import {
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 
 export function useStory({ mode, storyId, start, onExit }) {
   const story = storyById(storyId)

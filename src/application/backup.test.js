@@ -9,7 +9,7 @@
 // 実インメモリ sqlite-wasm ＋ Phase2 の applySchema を使い、実バイト/実 DB で検証する。
 import { describe, it, expect, beforeAll } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { applySchema } from '../infrastructure/db/schema.js'
+import { applySchema } from '../infrastructure/db/applySchema.schema.js'
 import { looksLikeSqlite, buildBackupFilename, isValidUserDb } from './backup.js'
 
 let sqlite3

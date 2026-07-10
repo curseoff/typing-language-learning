@@ -3,12 +3,12 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './App.css'
 import { resolvePersistBackend, diagnosePersistFallback } from './application/persist/backend.js'
-import { initStorage } from './infrastructure/db/initStorage.js'
+import { initStorage } from './infrastructure/db/initStorage.adapter.js'
 import { electionTransition } from './application/persist/election.js'
 import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
 import { createEventBus } from './application/events/eventBus.js'
-import { startMultiTabPersistence } from './infrastructure/persist/multiTab.js'
-import { ensurePersistentStorage } from './infrastructure/persist/persistentStorage.js'
+import { startMultiTabPersistence } from './infrastructure/persist/multiTab.adapter.js'
+import { ensurePersistentStorage } from './infrastructure/persist/persistentStorage.adapter.js'
 import {
   initSqlitePersistence,
   initSecondaryPersistence,
@@ -20,7 +20,7 @@ import {
 import { ensureHealthyOrRestore, snapshotInternalBackup } from './application/recovery.js'
 import { scheduleExternalBackup } from './application/externalBackup.js'
 import { setPersistNotice } from './application/persist/persistNotice.js'
-import { startContentFallbackPersistence } from './infrastructure/observability/contentFallbackStore.js'
+import { startContentFallbackPersistence } from './infrastructure/observability/contentFallbackStore.adapter.js'
 
 // 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する
 // （#266 Phase3a：メモリ像＋write-through、#273 Phase3b：主タブ選出＋副タブ read-only＋
@@ -102,4 +102,4 @@ setupPersistence().finally(() => {
 // Service Worker の登録と更新検知は UI 側の <UpdateToast /> が担う
 // （本番ビルドのみ。dev では HMR 干渉を避けて無効）。更新を検知したらトーストで告知し、
 // ユーザーが「更新」を押したタイミングで新 SW へ切り替える。詳細は
-// src/infrastructure/pwa/registerSW.js / src/ui/pwa/UpdateToast.jsx を参照。
+// src/infrastructure/pwa/registerSW.adapter.js / src/ui/pwa/UpdateToast.jsx を参照。

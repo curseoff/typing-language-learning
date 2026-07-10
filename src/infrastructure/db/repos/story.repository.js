@@ -3,7 +3,7 @@
 // キー/並び/キャップはドメイン・storyRecKey を再利用（rankInsert）。
 import { rankInsert } from '../../../domain/records/ranking.service.js'
 import { storyRecKey } from '../../../domain/records/recordKeys.service.js'
-import { assign, ecToColumns, ecFromRow, jsonToColumn, jsonFromColumn } from './_codec.js'
+import { assign, ecToColumns, ecFromRow, jsonToColumn, jsonFromColumn } from './_codec.mapper.js'
 
 const COLS =
   '"story_id","ec_kind","ec_value","pos","mode","source","ending","endLabel",' +

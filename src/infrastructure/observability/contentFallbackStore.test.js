@@ -17,7 +17,7 @@ describe('infrastructure/observability/contentFallbackStore', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const content = await import('../../content/contentFallback.js')
     recordContentFallback = content.recordContentFallback
-    const store = await import('./contentFallbackStore.js')
+    const store = await import('./contentFallbackStore.adapter.js')
     startContentFallbackPersistence = store.startContentFallbackPersistence
   })
 

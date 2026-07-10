@@ -1,7 +1,7 @@
 // #278 [#264 Phase5b] File System Access（FSA）で「ユーザーのディスク上フォルダ」へ外部バックアップする
 // ためのブラウザ API 配線（infrastructure）。application/externalBackup.js だけがここを import する
 // （依存方向 application → infrastructure）。FSA・IndexedDB は jsdom/node で単体計測できない＝
-// db/initStorage.js と同種のブラウザ API エントリ配線として計測除外（判断は persist/externalBackup.js の純関数）。
+// db/initStorage.adapter.js と同種のブラウザ API エントリ配線として計測除外（判断は persist/externalBackup.js の純関数）。
 //
 // 選んだディレクトリハンドル（FileSystemDirectoryHandle）は構造化複製可なので IndexedDB に永続化する。
 // ただしサイトデータ消去は IndexedDB も消す＝消去後はハンドルが失われ、ユーザーが同じフォルダを選び直す

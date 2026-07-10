@@ -20,10 +20,10 @@ import {
   pickAndGetDirectory,
   restoreFromExternal,
 } from '../../application/externalBackup.js'
-import { getStorageHandle } from '../../infrastructure/db/initStorage.js'
-import { supportsFsa } from '../../infrastructure/persist/externalBackupStore.js'
+import { getStorageHandle } from '../../infrastructure/db/initStorage.adapter.js'
+import { supportsFsa } from '../../infrastructure/persist/externalBackupStore.adapter.js'
 import { useInstallPrompt } from '../pwa/useInstallPrompt.js'
-import { promptInstall } from '../../infrastructure/pwa/installPrompt.js'
+import { promptInstall } from '../../infrastructure/pwa/installPrompt.adapter.js'
 
 // reason コード → 表示用の日本語文言（appMenu.js が返す安定コードを UI 側で写像する）。
 const REASON_TEXT = {

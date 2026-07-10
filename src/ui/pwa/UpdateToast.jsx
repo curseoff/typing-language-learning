@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { registerServiceWorker } from '../../infrastructure/pwa/registerSW.js'
+import { registerServiceWorker } from '../../infrastructure/pwa/registerSW.adapter.js'
 
 // PWA 更新通知トースト。新しい版を検知したら画面下部に控えめに告知し、
 // 「更新」で待機中の新 SW に切り替え（→ 自動リロード）、「後で」で閉じる。

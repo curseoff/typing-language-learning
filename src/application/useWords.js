@@ -18,7 +18,7 @@ import { loadWordRecords, saveWordRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 

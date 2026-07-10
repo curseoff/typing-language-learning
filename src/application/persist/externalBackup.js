@@ -2,7 +2,7 @@
 // すべて DOM/infra/FSA 非依存・副作用なし・入力非破壊の純関数（externalBackup.test.js で被覆＝計測対象）。
 // N世代ローテ/checksum/復元候補選定は 5a の recovery.js を再利用する（ここには書かない）。
 // 配線（FSA ディレクトリハンドル・IndexedDB・自動バックアップ）は
-// infrastructure/persist/externalBackupStore.js と application/externalBackup.js が担い、判断はここに閉じる。
+// infrastructure/persist/externalBackupStore.adapter.js と application/externalBackup.js が担い、判断はここに閉じる。
 
 // 外部バックアップのファイル名規約。
 //   tll-backup-<createdAt(epoch ms)>-v<userVersion>-<checksum>.sqlite3

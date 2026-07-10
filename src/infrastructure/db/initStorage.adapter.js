@@ -65,7 +65,7 @@ function call(type, payload, transfer) {
 }
 
 async function doInit() {
-  worker = new Worker(new URL('./sqliteWorker.js', import.meta.url), { type: 'module' })
+  worker = new Worker(new URL('./sqliteWorker.adapter.js', import.meta.url), { type: 'module' })
   worker.addEventListener('message', onMessage)
   worker.addEventListener('error', (ev) => {
     // Worker 読み込み/実行エラーは待機中の要求（主に open）を失敗させフォールバックへ。

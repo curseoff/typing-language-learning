@@ -4,7 +4,7 @@
 import { useCallback } from 'react'
 import { SoundToggle as SoundToggleView } from '@tll/ui'
 import { useSoundMuted } from './useSoundMuted.js'
-import { setSoundMuted } from '../../infrastructure/soundSettingsRepository.js'
+import { setSoundMuted } from '../../infrastructure/soundSettings.repository.js'
 
 export default function SoundToggle() {
   const muted = useSoundMuted()

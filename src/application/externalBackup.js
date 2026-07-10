@@ -8,7 +8,7 @@
 // 「消去後の復元」は「起動→ユーザーが同じフォルダを選び直す→復元」の再許可を挟む半自動になる
 // （restoreFromExternal は保存済みハンドルが無ければ選び直しへ誘導し、UI がフォルダ選択を経てから復元する）。
 // backup.js（Phase4 export/import 配線）／recovery.js（Phase5a 内部復元配線）と同じく Worker/FSA への配線。
-import { getStorageHandle } from '../infrastructure/db/initStorage.js'
+import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
 import { computeChecksum, selectRestoreCandidate, rotateBackups } from './persist/recovery.js'
 import { looksLikeSqlite } from './backup.js'
 import { flushWrites } from './records.js'
@@ -26,7 +26,7 @@ import {
   listBackupFiles,
   readBackupFile,
   deleteBackupFile,
-} from '../infrastructure/persist/externalBackupStore.js'
+} from '../infrastructure/persist/externalBackupStore.adapter.js'
 
 // 外部バックアップの保持世代数（直近 N 世代を残し、古い世代は世代ローテで削除する）。
 // 内部（Phase5a）は 3 世代だが、外部は容量に余裕があるので少し多めの 5 世代とする。

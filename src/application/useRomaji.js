@@ -15,7 +15,7 @@ import { makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { ROMAJI_LEVELS } from '../content/romaji.js'
-import { playMiss } from '../infrastructure/sound.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
 
 // application 層のモジュールカウンタで session ID を採番する（純ドメインは ID を作れない）。
 let romajiSessionSeq = 0

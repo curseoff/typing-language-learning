@@ -2,8 +2,8 @@
 // 効果音再生のミュートゲート単体テスト。純粋な shouldPlayMiss と、playMiss がミュート時に
 // AudioContext へ一切触れない（＝実再生に入らない）ことを検証する。
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { shouldPlayMiss, playMiss, _resetForTest } from './sound.js'
-import { setSoundMuted } from './soundSettingsRepository.js'
+import { shouldPlayMiss, playMiss, _resetForTest } from './sound.adapter.js'
+import { setSoundMuted } from './soundSettings.repository.js'
 
 // AudioContext のスパイ生成器。コンストラクタ呼び出し回数で「実再生に入ったか」を観測する。
 function installFakeAudio() {

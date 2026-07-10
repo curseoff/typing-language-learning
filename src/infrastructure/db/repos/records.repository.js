@@ -1,7 +1,7 @@
 // マラソン記録の DB リポジトリ（現行 recordsRepository と同値な round-trip）。
 // キー生成/並び/キャップはドメインを再利用（recKey/rankInsert）＝localStorage 版と同一ロジック。
 import { recKey, rankInsert } from '../../../domain/records/ranking.service.js'
-import { assign, ecToColumns, ecFromRow } from './_codec.js'
+import { assign, ecToColumns, ecFromRow } from './_codec.mapper.js'
 
 const COLS =
   '"mode","rank","source","theme","ec_kind","ec_value","pos",' +

@@ -4,7 +4,7 @@
 // （依存方向 ui/main → application → infrastructure）。判断は persist/recovery.js の純関数に委ね、ここは
 // handle への薄い配線＋フェイルセーフ（何が起きてもアプリを止めず local 相当へ縮退）に徹する。
 // backup.js（Phase4 の export/import 配線）と同じく Worker への配線＝計測対象（recovery.wiring.test.js で被覆）。
-import { getStorageHandle } from '../infrastructure/db/initStorage.js'
+import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
 import { evaluateIntegrity, selectRestoreCandidate, rotateBackups } from './persist/recovery.js'
 import { setPersistNotice } from './persist/persistNotice.js'
 

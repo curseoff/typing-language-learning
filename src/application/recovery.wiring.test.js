@@ -4,10 +4,10 @@
 // が担保する。ここは handle への薄い配線＋フェイルセーフ＋告知連携を mock で確認する（backup.wiring と同様）。
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('./../infrastructure/db/initStorage.js', () => ({
+vi.mock('./../infrastructure/db/initStorage.adapter.js', () => ({
   getStorageHandle: vi.fn(),
 }))
-import { getStorageHandle } from '../infrastructure/db/initStorage.js'
+import { getStorageHandle } from '../infrastructure/db/initStorage.adapter.js'
 import { ensureHealthyOrRestore, snapshotInternalBackup } from './recovery.js'
 import { getPersistNotice, resetPersistNotice } from './persist/persistNotice.js'
 

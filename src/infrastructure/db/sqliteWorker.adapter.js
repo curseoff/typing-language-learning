@@ -19,18 +19,18 @@
 //   in  { id, type:'deleteBackup', name }  → 指定内部バックアップを削除 → out { id, type:'deleted' }（#268 世代ローテ）
 //   失敗時は out { id, type:'error', message }
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { migrations } from './migrations.js'
-import { runMigrations } from './runMigrations.js'
-import { loadRecordsDb, saveRecordDb } from './repos/recordsDb.js'
-import { loadWordRecordsDb, saveWordRecordDb } from './repos/wordsDb.js'
-import { loadDictRecordsDb, saveDictRecordDb } from './repos/dictDb.js'
-import { loadItemStatsDb, recordItemStatDb } from './repos/itemStatsDb.js'
+import { migrations } from './migrations.migration.js'
+import { runMigrations } from './runMigrations.adapter.js'
+import { loadRecordsDb, saveRecordDb } from './repos/records.repository.js'
+import { loadWordRecordsDb, saveWordRecordDb } from './repos/words.repository.js'
+import { loadDictRecordsDb, saveDictRecordDb } from './repos/dict.repository.js'
+import { loadItemStatsDb, recordItemStatDb } from './repos/itemStats.repository.js'
 import {
   loadAllStoryRecordsDb,
   saveStoryRecordDb,
   loadFoundDb,
   saveFoundDb,
-} from './repos/storyDb.js'
+} from './repos/story.repository.js'
 
 // 先頭スラッシュ必須：SAHPool の importDb は名前を verbatim 格納するが、OpfsSAHPoolDb の
 // open は VFS が '/name' へ正規化する。スラッシュ無しだと importDb と open で別ファイル扱いになり
