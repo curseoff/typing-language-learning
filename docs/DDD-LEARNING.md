@@ -340,4 +340,25 @@ Phase 0 で素描した文脈候補を、戦術を作った経験を踏まえて
 
 ---
 
-_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走。_
+## 16. Phase 2b 記録：Entity を実フックに配線（TypingSession × useRomaji）
+
+**やったこと**：学習で作った `TypingSession` Entity と `createTypingSessionFactory` を、**実運用中のフック `useRomaji`（ローマ字練習）に実採用**した。`keys`/`mistakes`/`finished` を Entity の `progress()`/`status()` へ集約（挙動は完全同一・既存テスト無編集で緑）。これは「加算的な学習」ではなく**本番コードへの初の DDD 部品採用**（endCondition VO に続く2例目）。
+
+### 一番の学び：可変 Entity と React の摩擦、そして定石
+- Entity は**可変**（`registerHit()` で内部状態が変わる）。一方 React は**不変 state の差し替え**で再描画する。素朴に「ref に Entity を持ち、render 中に `sessionRef.current.progress()` を読む」とすると、**`react-hooks/refs`（render 中に ref を読むな）で lint エラー**になる（render の純粋性を壊すため）。
+- 解決＝**「Entity は ref、投影(snapshot)は state」**：
+  1. 可変 Entity は `useRef` に置く（React の管理外の"生きているオブジェクト"）。
+  2. **イベントハンドラの中だけ**で Entity を変更し、直後にその**現在像を state へ sync**（`setSnap({ keys, mistakes, finished })`）。
+  3. render は state（像）だけを読む＝純粋・lint クリーン・挙動不変。
+- これは DDD と React の**世界観の違いを橋渡しするパターン**：ドメインは可変な実体で状態遷移を表し、UI 層はその"スナップショット"を不変 state として受け取る。ドメインの表現力（Entity の振る舞い）を保ちつつ、React の制約に従える。今後 `useTouch`/`useMarathon` 等を Entity 化する際も同じ形が効く。
+
+### 設計判断のメモ
+- **finish のトリガはタイマー据え置き**：タイミング差を出さないため、60秒の終了は従来の `useCountdownTimer` の `onTimeout` で `session.finish()` を呼ぶだけにした（isFinished の shouldFinish 経路は使わず）。「挙動不変」を最優先にすると、Entity は"状態の器"として使い、既存の副作用配線（タイマー・音・キー入力）は残すのが安全。
+- **restart は session 差し替え**：`factory.start()` で新しい Entity を作れば keys/mistakes/status が一括リセット＝個別の setState 群が1行になった（Entity 化の副次的な整理効果）。
+
+### 正直な評価
+- 実利は中程度：`useRomaji` の状態管理が「散らばった setState」から「Entity＋像の sync」に整理され、可読性は上がった。ただしこの1フックだけでは劇的な差ではない。**価値は"横展開したときの一貫性"**（全プレイフックが同じ Entity/パターンを共有）に出る。全フック展開するかは費用対効果で判断（今回は useRomaji の1例で"実採用の感触"を掴むに留める）。
+
+---
+
+_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋Phase 2b（Entity の本番採用・useRomaji）。_
