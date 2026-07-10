@@ -5,6 +5,7 @@
 // キー生成/並び/キャップはドメイン（recKey/rankInsert）と現行リポジトリのキー関数を再利用する。
 import { recKey, rankInsert } from '../../domain/records/ranking.service.js'
 import { wordRecKey, dictRecKey, storyRecKey } from '../../domain/records/recordKeys.service.js'
+import { makeItemStat } from '../../domain/records/itemStat.entity.js'
 
 // 6マップを束ねた像を作る。欠損枠は {} に正規化（undefined でも空マップ）。
 export function buildImage({
@@ -44,16 +45,14 @@ export function applySaveDictRecord(dictRecords, record) {
 }
 
 // 問題別の累積統計を1件適用（itemStatsRepository.recordItemStat と同値・count+1/各値加算）。
+// 累積ルールは domain の ItemStat Entity に委譲し一本化する（infra の SQL upsert が同規則をミラーする）。
+// 保存する map の値は従来どおり素データ {count, keys, mistakes, ms} に射影する（id/メソッドは混ぜない）。
 export function applyRecordItemStat(itemStats, id, { keys, mistakes, ms }) {
-  const c = itemStats[id] || { count: 0, keys: 0, mistakes: 0, ms: 0 }
+  const cur = makeItemStat({ id, ...(itemStats[id] || {}) })
+  const next = cur.recordAttempt({ keys, mistakes, ms })
   return {
     ...itemStats,
-    [id]: {
-      count: c.count + 1,
-      keys: c.keys + keys,
-      mistakes: c.mistakes + mistakes,
-      ms: c.ms + ms,
-    },
+    [id]: { count: next.count, keys: next.keys, mistakes: next.mistakes, ms: next.ms },
   }
 }
 
