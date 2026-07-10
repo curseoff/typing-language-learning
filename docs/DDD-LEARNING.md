@@ -399,4 +399,19 @@ multiTab.js: onChange = () => bus.publish(RecordsChanged{epoch})
 
 ---
 
-_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO/Entity×useRomaji・useTouch）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition Strategy 化）＋Domain Event の本番配線（RecordsChanged）。DDD 学習アーク完了。_
+## 19. 追記：複雑フックへの"部分採用"（useWords×Entity）
+
+**やったこと**：`useWords`（単語入力・最も複雑なプレイフック）に `TypingSession` Entity を**部分採用**。`keys`(打鍵数)/`mistakes`(ミス数) の2値**だけ** Entity に集約し、`items`/`life`(missedItems)・二重 finish 経路・`segTracker`・タイマーは**据え置いた**。
+
+### なぜ"全部"ではなく"一部"か
+- useWords の `items`/`life` は**単純カウンタではなく `segTracker` から導出**（「一発正解の問題数」「ミスした問題数」）。Entity の `advanceItem/missedItems` の counter モデルとは**意味論が違う**。無理に全部を Entity に移すと、segTracker と二重管理になり境界（life の1ミス即終了・items の完了判定）を壊すリスクが高い。
+- そこで **Entity がきれいに写る keys/mistakes だけ**を移し、合わない部分は既存のまま共存させた。ui-auditor が time/chars/items/life/endless の全終了条件で非退行を実測（off-by-one なし）。
+
+### 学びの要点
+- **DDD は"全部入れ替える"ものではない**：1つのフックの中で「Entity が持つべき状態（keys/mistakes）」と「別の集計器が持つべき状態（segTracker の items/life）」は**共存してよい**。パターンは"合う所に合う分だけ"当てる。
+- **部分採用は"どこまでが Entity の責務か"を線引きする練習**：keys/mistakes は「打鍵の進捗」＝Entity の progress に自然。items/life の"問題単位の成否"は segTracker という別の集計の関心。境界を無理に消さないのが正解。
+- **リスク管理**：リリース済みの複雑ゲームプレイ（21テスト・5終了条件）を、①既存テストを安全網に、②スコープを keys/mistakes に限定、③ui-auditor で全モード実測、の三段で守った。「高リスクにあえて進む」時ほど**スコープを小さく・網を厚く**。
+
+---
+
+_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO・Entity×useRomaji/useTouch・useWords部分採用）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition/compareRecords の Strategy 化）＋Domain Event の本番配線（RecordsChanged）。DDD 学習アーク完了。_
