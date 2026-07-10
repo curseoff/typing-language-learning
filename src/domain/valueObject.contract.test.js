@@ -3,8 +3,10 @@
 // ファイル名は .test.js ＝命名メタテスト（.vo.js サフィックス強制）の対象外。
 //
 // 【本 Issue で対象外の .vo.js（理由を明記・無理に契約へ載せない）】
-//   - ScoreRecord（records/scoreRecord.vo.js）… *Equals を持たない。#311 で meta が可変ゆえ値等価を
-//     定義しなかった＝値等価法則に載らない。値等価を持たせるかは design 判断（#323 で司令塔へ）。
+//   - ScoreRecord（records/scoreRecord.vo.js）… VO（集約 RankingBoard の内部エントリ値）だが、ドメインの
+//     操作は順序づけ（compareRecords）であって値等価ではない＝ *Equals を持たないのは妥当（scoreRecordEquals
+//     は YAGNI）。不変・自己検証は満たすので、将来 VO 契約を「普遍層(不変+自己検証+非identity等価) ＋
+//     任意層(値等価)」の2層に分ければ普遍層で被覆できる。本 Issue の“値等価”契約には載せない。
 //   - RankingBoard（records/rankingBoard.vo.js）… Aggregate（集約ルート）で同一性は key の Entity。
 //     rankingBoardEquals は key 基準の identity 等価（entries が違っても等しい）＝値等価法則
 //     （値が違えば等しくない）に載らない＝本契約の対象外。
