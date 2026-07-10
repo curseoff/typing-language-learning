@@ -6,6 +6,7 @@ import { resolvePersistBackend, diagnosePersistFallback } from './application/pe
 import { initStorage } from './infrastructure/db/initStorage.js'
 import { electionTransition } from './application/persist/election.js'
 import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
+import { createEventBus } from './application/events/eventBus.js'
 import { startMultiTabPersistence } from './infrastructure/persist/multiTab.js'
 import { ensurePersistentStorage } from './infrastructure/persist/persistentStorage.js'
 import {
@@ -58,6 +59,7 @@ async function setupPersistence() {
     const { whenReady } = startMultiTabPersistence({
       electionTransition,
       handleSecondaryMessage,
+      bus: createEventBus(), // イベントバス（application）は composition root で生成して注入
       openStorage: async () => {
         const handle = await initStorage() // 失敗時は null → 配線が閲覧のみで続行
         if (handle) await ensureHealthyOrRestore()
