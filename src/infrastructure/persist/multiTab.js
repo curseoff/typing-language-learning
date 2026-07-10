@@ -19,6 +19,12 @@
 //   （②③は requestSnapshot のタイマー再送で実装）。
 //   epoch 単調性：昇格前に観測済みの最新 epoch を election 状態へ種として与えてから promote する
 //     （タブごとに 0 起点の election.epoch がハンドオフで衝突しないように）。
+//
+// 主の write-through 通知は RecordsChanged ドメインイベントを介して BroadcastChannel へ流す
+// （発行=records.js から呼ばれる onChange／購読=change を post して多タブへ伝播）。
+
+import { createEventBus } from '../../application/events/eventBus.js'
+import { recordsChangedEvent } from '../../domain/events/recordEvents.js'
 
 const CHANNEL = 'tll-db'
 const LOCK = 'tll-db'
@@ -53,6 +59,7 @@ export function startMultiTabPersistence(deps) {
 
   const tabId = newId()
   const channel = new BroadcastChannel(channelName)
+  const bus = createEventBus()
 
   let election = { role: 'unknown', epoch: 0 } // 自タブの選出状態
   let secState = { epoch: 0 } // 副タブが把握している最新 epoch（snapshot 判定用）
@@ -86,7 +93,11 @@ export function startMultiTabPersistence(deps) {
   }
   const broadcastPrimaryChanged = () =>
     post({ type: 'primary-changed', epoch: election.epoch, primaryTabId: tabId })
-  const broadcastChange = () => post({ type: 'change', epoch: election.epoch })
+  // 購読：RecordsChanged を受けたら change を BroadcastChannel へ post（実 post は購読側で行う）。
+  bus.subscribe('RecordsChanged', (e) => post({ type: 'change', epoch: e.epoch }))
+  // 発行：records.js の write-through から onChange が呼ばれると RecordsChanged を発行する
+  //   （epoch は自タブ election の世代＝購読側が e.epoch で post するので挙動不変）。
+  const broadcastChange = () => bus.publish(recordsChangedEvent({ epoch: election.epoch }))
 
   // ── 主タブ：初回主確定 or handoff 昇格の共通後処理 ──
   async function becomePrimary(kind) {
