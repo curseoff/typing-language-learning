@@ -2,7 +2,7 @@
 // presenter smoke: 主要見出し・CTA の存在・onStart 発火。
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, cleanup, fireEvent } from '@testing-library/react'
-import AboutView from './AboutView'
+import AboutView from './AboutView.presenter'
 
 afterEach(cleanup)
 

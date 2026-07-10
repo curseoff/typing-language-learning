@@ -35,37 +35,37 @@ export default defineConfig({
         'src/content/**',
         'src/test/**',
         'src/main.jsx',
-        'src/infrastructure/pwa/registerSW.js',
+        'src/infrastructure/pwa/registerSW.adapter.js',
         // SQLite/OPFS 保存基盤（#264）。Worker 内実行/Worker・window 配線・DDL データは
         // jsdom/node で単体計測できない＝registerSW.js と同種のエントリ配線として計測除外。
         // 実挙動は pwa-verifier の実ブラウザ検証と Phase2 の round-trip テストで被覆する。
         // runMigrations.js は純ロジック（テスト済み）なので除外しない。
-        'src/infrastructure/db/sqliteWorker.js',
-        'src/infrastructure/db/initStorage.js',
-        'src/infrastructure/db/migrations.js',
+        'src/infrastructure/db/sqliteWorker.adapter.js',
+        'src/infrastructure/db/initStorage.adapter.js',
+        'src/infrastructure/db/migrations.migration.js',
         // #273 Phase3b: Web Locks 主タブ選出＋BroadcastChannel 伝播＋handoff 昇格の配線。
         // navigator.locks/BroadcastChannel/Worker は jsdom/node で単体計測できない＝上記 db/* と
         // 同種のブラウザ API エントリ配線として計測除外。純ロジック（election/secondaryMessage）は
         // 計測対象（各 spec で被覆）。実挙動は pwa-verifier の実ブラウザ検証で担保する。
-        'src/infrastructure/persist/multiTab.js',
+        'src/infrastructure/persist/multiTab.adapter.js',
         // #267 Phase4: navigator.storage.persist() の取得配線と、Ready のバックアップバー UI。
         // navigator.storage / Blob ダウンロード / file input / location.reload は jsdom/node で
         // 単体計測できない＝上記 db/* と同種のブラウザ API エントリ配線として計測除外。純関数
         // （backup.js の looksLikeSqlite/buildBackupFilename/isValidUserDb）は計測対象（backup.test.js）。
-        'src/infrastructure/persist/persistentStorage.js',
+        'src/infrastructure/persist/persistentStorage.adapter.js',
         'src/ui/ready/DataBackupBar.jsx',
         // #268 Phase5a: 永続化の縮退/復元の告知 UI とその購読フック。useSyncExternalStore/ブラウザ描画の
-        // 薄い配線＝上記 UI 配線と同種で計測除外。状態源（application/persist/persistNotice.js）と判断
-        // （application/persist/recovery.js）・facade（application/recovery.js）は計測対象（各 spec で被覆）。
+        // 薄い配線＝上記 UI 配線と同種で計測除外。状態源（application/persist/persistNotice.store.js）と判断
+        // （application/persist/recovery.policy.js）・facade（application/recovery.service.js）は計測対象（各 spec で被覆）。
         'src/ui/pwa/PersistNotice.jsx',
         'src/ui/pwa/usePersistNotice.js',
         // #278 Phase5b: File System Access（FSA）で外部フォルダへ自動バックアップ／復元するブラウザ API 配線。
         // showDirectoryPicker / FileSystemDirectoryHandle / IndexedDB（ハンドル永続）は jsdom/node で
-        // 単体計測できない＝上記 db/* と同種のエントリ配線として計測除外。純ロジック（persist/externalBackup.js の
+        // 単体計測できない＝上記 db/* と同種のエントリ配線として計測除外。純ロジック（persist/externalBackup.policy.js の
         // decidePermissionAction/build/parse/toBackupEntries）は計測対象（externalBackup.test.js で被覆）。
         // 実挙動（実許可・無言 write・消去→復元）は pwa-verifier の実ブラウザ検証と手動実機に委ねる。
-        'src/infrastructure/persist/externalBackupStore.js',
-        'src/application/externalBackup.js',
+        'src/infrastructure/persist/externalBackupStore.adapter.js',
+        'src/application/externalBackup.service.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',

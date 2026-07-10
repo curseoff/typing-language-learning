@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useStory } from './useStory.js'
-import { loadStoryRecords, initMemoryPersistence } from './records.js'
+import { loadStoryRecords, initMemoryPersistence } from './records.service.js'
 
 const typeKey = (key) =>
   act(() => {

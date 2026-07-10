@@ -13,10 +13,10 @@ import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
-import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
+import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
-import { playMiss } from '../infrastructure/sound.js'
-import { makeSeed } from './seed.js'
+import { playMiss } from '../infrastructure/sound.adapter.js'
+import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 
 // エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6

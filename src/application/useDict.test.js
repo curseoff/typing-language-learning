@@ -7,7 +7,7 @@ import { useDict } from './useDict.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { DICT } from '../content/dictionaryAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
-import { loadDictRecords, dictRecKey, initMemoryPersistence } from './records.js'
+import { loadDictRecords, dictRecKey, initMemoryPersistence } from './records.service.js'
 
 beforeEach(() => {
   localStorage.clear()

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { makeSeed } from './seed.js'
+import { makeSeed } from './seed.policy.js'
 
 describe('makeSeed', () => {
   it('0..2^32-1 の整数を返す', () => {

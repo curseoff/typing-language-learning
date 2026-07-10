@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { canInstall, subscribeInstall } from '../../infrastructure/pwa/installPrompt.js'
+import { canInstall, subscribeInstall } from '../../infrastructure/pwa/installPrompt.adapter.js'
 
 // PWA インストール導線を出せるか(boolean)を購読して返すフック。
 // 購読・解除は useSyncExternalStore が面倒を見る（unmount で subscribeInstall の解除関数を呼ぶ）。

@@ -1,7 +1,7 @@
 // 版付きマイグレーションランナー（PRAGMA user_version 基準・前方のみ・各Tx適用）の単体テスト。
 // OPFS/Worker には依存せず、db 抽象（selectValue/transaction/exec の3メソッド）をフェイクで注入して純ロジックだけ検証する。
 import { describe, it, expect, vi } from 'vitest'
-import { runMigrations } from './runMigrations.js'
+import { runMigrations } from './runMigrations.adapter.js'
 
 // --- フェイク db -------------------------------------------------------------
 // 実 sqlite-wasm oo1 DB と同じ3メソッド（selectValue/transaction/exec）を最小実装する。

@@ -1,7 +1,7 @@
 // #268 Phase5a（Phase4 持ち越しUX）: humanizeImportError の純関数テスト。
 // SQLite-WASM の生エラーコードを利用者向け日本語へ丸め、既に日本語のメッセージは尊重する。
 import { describe, it, expect } from 'vitest'
-import { humanizeImportError } from './backup.js'
+import { humanizeImportError } from './backup.service.js'
 
 describe('humanizeImportError', () => {
   it('SQLITE_NOTADB は「SQLite のデータベースではありません」に丸める', () => {

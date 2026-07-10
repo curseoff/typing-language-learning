@@ -4,12 +4,12 @@
 // 検証オラクル＝現行 localStorage 実装と同値。
 //
 // 対象（未実装 API）:
-//   src/infrastructure/db/schema.js         → applySchema(db)
-//   src/infrastructure/db/repos/dictDb.js   → saveDictRecordDb(db, record) / loadDictRecordsDb(db)
+//   src/infrastructure/db/applySchema.schema.js         → applySchema(db)
+//   src/infrastructure/db/repos/dict.repository.js   → saveDictRecordDb(db, record) / loadDictRecordsDb(db)
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
-import { applySchema } from '../schema.js'
-import { saveDictRecordDb, loadDictRecordsDb } from './dictDb.js'
+import { applySchema } from '../applySchema.schema.js'
+import { saveDictRecordDb, loadDictRecordsDb } from './dict.repository.js'
 import { dictRecKey } from '../../../domain/records/recordKeys.service.js'
 
 let sqlite3

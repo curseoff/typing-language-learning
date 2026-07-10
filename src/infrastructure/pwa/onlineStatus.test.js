@@ -3,7 +3,7 @@
 // onLine が boolean でなければ true（安全側）。subscribeOnline は online/offline を
 // 購読し、解除関数で両リスナを外す。
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { isOnline, subscribeOnline } from './onlineStatus.js'
+import { isOnline, subscribeOnline } from './onlineStatus.adapter.js'
 
 // navigator.onLine を一時的に上書きする（jsdom では既定 true・configurable）。
 function setOnLine(value) {

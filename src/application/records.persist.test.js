@@ -20,7 +20,7 @@ import {
   saveFound,
   wordRanking,
   dictRanking,
-} from './records.js'
+} from './records.service.js'
 import { recKey } from '../domain/records/ranking.service.js'
 import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.service.js'
 

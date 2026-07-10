@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import TranslateView from './TranslateView'
+import TranslateView from './TranslateView.presenter'
 
 afterEach(cleanup)
 

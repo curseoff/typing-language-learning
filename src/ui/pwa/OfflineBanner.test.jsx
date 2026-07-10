@@ -3,7 +3,7 @@
 // オンライン時は何も描画しない。offline→online の遷移で自動的に消える。
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, act, cleanup } from '@testing-library/react'
-import OfflineBanner from './OfflineBanner.jsx'
+import OfflineBanner from './OfflineBanner.container.jsx'
 
 function setOnLine(value) {
   Object.defineProperty(navigator, 'onLine', { value, configurable: true })

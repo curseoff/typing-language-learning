@@ -4,7 +4,7 @@
 // ('need-sqlite-primary' | 'need-fsa' | 'not-installable' | null)。
 // メニュー自体は常に表示（隠さず disabled＋理由）方針なので show フラグは無し。
 import { describe, it, expect } from 'vitest'
-import { buildTopMenuVisibility } from './appMenu.js'
+import { buildTopMenuVisibility } from './appMenu.policy.js'
 
 describe('buildTopMenuVisibility（トップメニューの有効/理由を導出する純関数）', () => {
   it('全 true のとき、全項目が enabled:true・reason:null になる', () => {

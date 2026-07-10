@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, within, waitFor, act } from '@testing-library/react'
 import App from '../App.jsx'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
-import { initMemoryPersistence, loadRecords } from '../application/records.js'
+import { initMemoryPersistence, loadRecords } from '../application/records.service.js'
 
 const TABS = ['物語', '単語', '単語例文', '英英辞典', 'タッチタイピング', 'ローマ字入力']
 

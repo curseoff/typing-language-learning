@@ -7,13 +7,13 @@ import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 
 // vi.mock のファクトリはホイストされるため、捕捉先は vi.hoisted で用意する。
 const h = vi.hoisted(() => ({ onUpdate: undefined }))
-vi.mock('../../infrastructure/pwa/registerSW.js', () => ({
+vi.mock('../../infrastructure/pwa/registerSW.adapter.js', () => ({
   registerServiceWorker: ({ onUpdate }) => {
     h.onUpdate = onUpdate
   },
 }))
 
-import UpdateToast from './UpdateToast.jsx'
+import UpdateToast from './UpdateToast.container.jsx'
 
 describe('UpdateToast', () => {
   beforeEach(() => {

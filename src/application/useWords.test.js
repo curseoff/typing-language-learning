@@ -7,7 +7,7 @@ import { useWords } from './useWords.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { WORDS } from '../content/wordsAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
-import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.js'
+import { loadWordRecords, wordRecKey, initMemoryPersistence } from './records.service.js'
 
 beforeEach(() => {
   localStorage.clear()

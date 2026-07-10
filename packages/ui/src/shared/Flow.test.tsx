@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: wrap/ticker 双方の描画パスを通す。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { Flow } from './Flow'
+import { Flow } from './Flow.presenter'
 
 afterEach(cleanup)
 

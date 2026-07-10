@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 // #267 Phase4: write-queue に足した flush()（保留分を drain して完了を待つ）の被覆。
 // FIFO 直列・fire-and-forget 本体は writeQueue.test.js（test-author）が担保済み。ここは flush のみ。
-import { createWriteQueue } from './writeQueue.js'
+import { createWriteQueue } from './writeQueue.service.js'
 
 const tick = () => new Promise((r) => setTimeout(r, 0))
 

@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 物語タブの一覧/記録。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import StorySectionView from './StorySectionView'
+import StorySectionView from './StorySectionView.presenter'
 
 afterEach(cleanup)
 

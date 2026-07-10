@@ -2,7 +2,7 @@
 // 各テーブルで const { open, modal } = useRecordDetail() し、行 onClick で
 // open(record, position, { rankText, modeKey, list, isQuiz, hasEnding }) を呼び、末尾で {modal} を描画する。
 import { useState } from 'react'
-import RecordDetail from './RecordDetail.jsx'
+import RecordDetail from './RecordDetail.container.jsx'
 
 export function useRecordDetail() {
   const [sel, setSel] = useState(null)

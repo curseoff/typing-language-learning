@@ -6,7 +6,7 @@ import {
   getPersistNotice,
   subscribePersistNotice,
   resetPersistNotice,
-} from './persistNotice.js'
+} from './persistNotice.store.js'
 
 beforeEach(() => {
   resetPersistNotice()
