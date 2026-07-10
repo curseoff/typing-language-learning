@@ -6,6 +6,7 @@ import { resolvePersistBackend, diagnosePersistFallback } from './application/pe
 import { initStorage } from './infrastructure/db/initStorage.js'
 import { electionTransition } from './application/persist/election.js'
 import { handleSecondaryMessage } from './application/persist/secondaryMessage.js'
+import { createEventBus } from './application/events/eventBus.js'
 import { startMultiTabPersistence } from './infrastructure/persist/multiTab.js'
 import { ensurePersistentStorage } from './infrastructure/persist/persistentStorage.js'
 import {
@@ -19,6 +20,7 @@ import {
 import { ensureHealthyOrRestore, snapshotInternalBackup } from './application/recovery.js'
 import { scheduleExternalBackup } from './application/externalBackup.js'
 import { setPersistNotice } from './application/persist/persistNotice.js'
+import { startContentFallbackPersistence } from './infrastructure/observability/contentFallbackStore.js'
 
 // 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する
 // （#266 Phase3a：メモリ像＋write-through、#273 Phase3b：主タブ選出＋副タブ read-only＋
@@ -57,6 +59,7 @@ async function setupPersistence() {
     const { whenReady } = startMultiTabPersistence({
       electionTransition,
       handleSecondaryMessage,
+      bus: createEventBus(), // イベントバス（application）は composition root で生成して注入
       openStorage: async () => {
         const handle = await initStorage() // 失敗時は null → 配線が閲覧のみで続行
         if (handle) await ensureHealthyOrRestore()
@@ -83,6 +86,10 @@ async function setupPersistence() {
     console.warn('[persist] 永続化の初期化に失敗。memory（非永続）で続行します。', e)
   }
 }
+
+// content の SQLite→.js フォールバック発生を購読して localStorage/window へ永続化する
+// observability を起動する（依存逆転：infra→content・アプリ生存期間なので解除は不要）。
+startContentFallbackPersistence()
 
 setupPersistence().finally(() => {
   ReactDOM.createRoot(document.getElementById('root')).render(

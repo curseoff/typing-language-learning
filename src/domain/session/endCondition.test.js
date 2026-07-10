@@ -6,6 +6,11 @@ import {
   normalizeEndCondition,
   progressRatio,
   endLimitMs,
+  // #290 Phase 1: endCondition を Value Object へ育てる（不変・自己検証・値等価・生成の一元化）。
+  // 以下 3 つは coder が Green で実装する（現状未実装＝import で undefined）。
+  makeEndCondition,
+  isEndCondition,
+  endConditionEquals,
 } from './endCondition.js'
 
 describe('shouldFinish', () => {
@@ -202,5 +207,216 @@ describe('endLimitMs（#208 段2・タイマー制限時間）', () => {
     expect(endLimitMs({ kind: 'items', value: 20 })).toBe(Infinity)
     expect(endLimitMs({ kind: 'life', value: 3 })).toBe(Infinity)
     expect(endLimitMs({ kind: 'endless', value: null })).toBe(Infinity)
+  })
+})
+
+// #290 Phase 1: endCondition を Value Object へ育てる。
+// ---- makeEndCondition：ファクトリ＋自己検証＋不変（凍結） ----
+describe('makeEndCondition（#290 Phase1・ファクトリ/自己検証/凍結）', () => {
+  describe('正常系', () => {
+    it('time の VO は { kind:"time", value:60 } 相当の値を持つ', () => {
+      const ec = makeEndCondition('time', 60)
+      expect(ec.kind).toBe('time')
+      expect(ec.value).toBe(60)
+    })
+
+    it('生成された VO は凍結されている（不変）', () => {
+      const ec = makeEndCondition('time', 60)
+      expect(Object.isFrozen(ec)).toBe(true)
+    })
+
+    it('凍結ゆえ value を書き換えても変化しない', () => {
+      const ec = makeEndCondition('chars', 100)
+      // strict モードでは throw、非 strict では黙って無視される。どちらでも値は不変であること。
+      try {
+        ec.value = 999
+      } catch {
+        // 凍結オブジェクトへの代入は TypeError になり得る（許容）。
+      }
+      expect(ec.value).toBe(100)
+    })
+
+    it('counted 系（chars/items/life）も正の値で生成できる', () => {
+      expect(makeEndCondition('chars', 600).value).toBe(600)
+      expect(makeEndCondition('items', 20).value).toBe(20)
+      expect(makeEndCondition('life', 3).value).toBe(3)
+    })
+
+    it('endless は value を無視して null になり、凍結される', () => {
+      const ec = makeEndCondition('endless', 999)
+      expect(ec.kind).toBe('endless')
+      expect(ec.value).toBe(null)
+      expect(Object.isFrozen(ec)).toBe(true)
+    })
+
+    it('endless は value 未指定でも null になる', () => {
+      const ec = makeEndCondition('endless')
+      expect(ec.kind).toBe('endless')
+      expect(ec.value).toBe(null)
+    })
+
+    it('同一入力からは値等価な VO を生成する（参照は別でよい）', () => {
+      const a = makeEndCondition('time', 60)
+      const b = makeEndCondition('time', 60)
+      expect(a).not.toBe(b)
+      expect(endConditionEquals(a, b)).toBe(true)
+    })
+  })
+
+  describe('不変条件違反は throw する（自己検証）', () => {
+    it('未知 kind は throw する', () => {
+      expect(() => makeEndCondition('bogus', 1)).toThrow()
+    })
+
+    it('counted 系で value=0 は throw する（正の数が必須）', () => {
+      expect(() => makeEndCondition('time', 0)).toThrow()
+    })
+
+    it('counted 系で value が負は throw する', () => {
+      expect(() => makeEndCondition('chars', -1)).toThrow()
+    })
+
+    it('counted 系で value=NaN は throw する', () => {
+      expect(() => makeEndCondition('items', NaN)).toThrow()
+    })
+
+    it('counted 系で value=Infinity は throw する（有限が必須）', () => {
+      expect(() => makeEndCondition('life', Infinity)).toThrow()
+    })
+
+    it('counted 系で value=undefined は throw する', () => {
+      expect(() => makeEndCondition('time', undefined)).toThrow()
+    })
+
+    it('counted 系で value が非数（文字列）は throw する', () => {
+      expect(() => makeEndCondition('time', '60')).toThrow()
+    })
+  })
+})
+
+// ---- isEndCondition：型ガード（値の妥当性で判定） ----
+describe('isEndCondition（#290 Phase1・型ガード）', () => {
+  it('makeEndCondition の戻り値は true', () => {
+    expect(isEndCondition(makeEndCondition('time', 60))).toBe(true)
+  })
+
+  it('妥当な形の plain object（counted）も true', () => {
+    expect(isEndCondition({ kind: 'time', value: 60 })).toBe(true)
+    expect(isEndCondition({ kind: 'chars', value: 600 })).toBe(true)
+  })
+
+  it('妥当な endless の plain object（value:null）も true', () => {
+    expect(isEndCondition({ kind: 'endless', value: null })).toBe(true)
+  })
+
+  it('value 欠落は false', () => {
+    expect(isEndCondition({ kind: 'time' })).toBe(false)
+  })
+
+  it('未知 kind は false', () => {
+    expect(isEndCondition({ kind: 'x', value: 1 })).toBe(false)
+  })
+
+  it('counted 系で value が負は false', () => {
+    expect(isEndCondition({ kind: 'time', value: -1 })).toBe(false)
+  })
+
+  it('counted 系で value=0 は false', () => {
+    expect(isEndCondition({ kind: 'chars', value: 0 })).toBe(false)
+  })
+
+  it('null は false', () => {
+    expect(isEndCondition(null)).toBe(false)
+  })
+
+  it('非オブジェクト（数値・文字列）は false', () => {
+    expect(isEndCondition(60)).toBe(false)
+    expect(isEndCondition('time')).toBe(false)
+    expect(isEndCondition(undefined)).toBe(false)
+  })
+})
+
+// ---- endConditionEquals：値等価（throw しない） ----
+describe('endConditionEquals（#290 Phase1・値等価）', () => {
+  it('同 kind・同 value は true（VO 同士）', () => {
+    expect(endConditionEquals(makeEndCondition('time', 60), makeEndCondition('time', 60))).toBe(true)
+  })
+
+  it('同 kind・同 value は true（plain object 同士）', () => {
+    expect(endConditionEquals({ kind: 'chars', value: 600 }, { kind: 'chars', value: 600 })).toBe(true)
+  })
+
+  it('kind 違いは false', () => {
+    expect(endConditionEquals({ kind: 'time', value: 60 }, { kind: 'chars', value: 60 })).toBe(false)
+  })
+
+  it('value 違いは false', () => {
+    expect(endConditionEquals({ kind: 'time', value: 60 }, { kind: 'time', value: 30 })).toBe(false)
+  })
+
+  it('endless 同士（value:null）は true', () => {
+    expect(endConditionEquals({ kind: 'endless', value: null }, makeEndCondition('endless'))).toBe(true)
+  })
+
+  it('一方が null でも throw せず false を返す', () => {
+    expect(endConditionEquals(makeEndCondition('time', 60), null)).toBe(false)
+    expect(endConditionEquals(null, makeEndCondition('time', 60))).toBe(false)
+  })
+
+  it('一方が不正（未知 kind）でも throw せず false を返す', () => {
+    expect(endConditionEquals({ kind: 'x', value: 1 }, { kind: 'time', value: 60 })).toBe(false)
+  })
+})
+
+// ---- normalizeEndCondition：未信頼入力の入口アダプタ（常に妥当な凍結 VO・throw しない） ----
+describe('normalizeEndCondition（#290 Phase1・凍結/寛容フォールバックの強化）', () => {
+  it('null は既定 time,60 と値等価', () => {
+    expect(endConditionEquals(normalizeEndCondition(null), makeEndCondition('time', 60))).toBe(true)
+  })
+
+  it('null の戻り値は isEndCondition true・凍結されている', () => {
+    const ec = normalizeEndCondition(null)
+    expect(isEndCondition(ec)).toBe(true)
+    expect(Object.isFrozen(ec)).toBe(true)
+  })
+
+  it('妥当な {chars,600} はその VO と値等価・凍結', () => {
+    const ec = normalizeEndCondition({ kind: 'chars', value: 600 })
+    expect(endConditionEquals(ec, makeEndCondition('chars', 600))).toBe(true)
+    expect(Object.isFrozen(ec)).toBe(true)
+  })
+
+  it('endless は value=null の妥当 VO・凍結', () => {
+    const ec = normalizeEndCondition({ kind: 'endless', value: null })
+    expect(ec.kind).toBe('endless')
+    expect(ec.value).toBe(null)
+    expect(Object.isFrozen(ec)).toBe(true)
+  })
+
+  it('不正な value（負）でも throw せず妥当な凍結 VO へフォールバックする', () => {
+    const ec = normalizeEndCondition({ kind: 'time', value: -1 })
+    expect(isEndCondition(ec)).toBe(true)
+    expect(Object.isFrozen(ec)).toBe(true)
+  })
+
+  it('未知 kind でも throw せず妥当な凍結 VO へフォールバックする', () => {
+    const ec = normalizeEndCondition({ kind: 'bogus', value: 1 })
+    expect(isEndCondition(ec)).toBe(true)
+    expect(Object.isFrozen(ec)).toBe(true)
+  })
+})
+
+// ---- 既存の判定関数が VO を受けても現状どおり動く（非退行の明示固定） ----
+describe('判定関数は VO を受けても現状どおり（#290 Phase1・非退行）', () => {
+  it('shouldFinish(make(time,60), {elapsedMs:60000}) は true', () => {
+    expect(shouldFinish(makeEndCondition('time', 60), { elapsedMs: 60000 })).toBe(true)
+  })
+
+  it('endLimitMs(make(chars,600)) は Infinity', () => {
+    expect(endLimitMs(makeEndCondition('chars', 600))).toBe(Infinity)
+  })
+
+  it('progressRatio(make(time,60), {elapsedMs:30000}) は 0.5', () => {
+    expect(progressRatio(makeEndCondition('time', 60), { elapsedMs: 30000 })).toBeCloseTo(0.5, 5)
   })
 })

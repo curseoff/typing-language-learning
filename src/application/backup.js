@@ -1,7 +1,7 @@
 // #267 [#264 Phase4] 耐久＝export/import(.sqlite3) を application 層に集約するファサード。
 // UI(.jsx) は infrastructure を直接触らず、ここ経由で DB を書き出し／復元する
 // （依存方向 ui → application → infrastructure）。DOM 操作（Blob ダウンロード・file 選択・
-// リロード）は UI 層（DataBackupBar.jsx）が行い、ここはバイト列の入出力と入口検証だけを担う。
+// リロード）は UI 層（AppMenuBar のデータメニュー）が行い、ここはバイト列の入出力と入口検証だけを担う。
 //
 // 純関数（looksLikeSqlite / buildBackupFilename / isValidUserDb）は計測対象（backup.test.js で被覆）。
 // export/import 配線（can*/prepare/importDatabaseBytes）は Worker/handle への薄い配線。
@@ -9,7 +9,7 @@ import { getStorageHandle } from '../infrastructure/db/initStorage.js'
 import { flushWrites } from './records.js'
 
 // #269 Phase6: 保存基盤の起動完了を UI が購読するための再エクスポート（ui → application 経由で infra に触らせない）。
-// DataBackupBar が起動前に初描画されても、起動完了通知で導線可否（can*）を再評価しバーが一瞬消えるのを防ぐ。
+// AppMenuBar（データメニュー）が起動前に初描画されても、起動完了通知で導線可否（can*）を再評価し項目の一瞬のちらつきを防ぐ。
 export { isStorageReady, subscribeStorageReady } from '../infrastructure/db/initStorage.js'
 
 // SQLite ファイルの先頭16バイトのマジック "SQLite format 3\0"。
@@ -86,7 +86,7 @@ export async function prepareDatabaseExport(date = new Date()) {
 // 復元失敗時のエラーを利用者向けの日本語に丸める（純関数）。
 // Worker/入口が投げる文言は既に日本語なのでそのまま通す。SQLite-WASM の生コード
 // （SQLITE_NOTADB / file is not a database / malformed 等）だけ分かりやすい日本語へ変換する。
-// UI（DataBackupBar）が catch 節で表示前に通す（生の英語コードを画面に出さない）。
+// UI（AppMenuBar のデータメニュー）が catch 節で表示前に通す（生の英語コードを画面に出さない）。
 export function humanizeImportError(err) {
   const msg = String((err && err.message) || err || '')
   // 既に日本語（ひらがな/カタカナ/漢字）を含むメッセージは丸めず尊重する。

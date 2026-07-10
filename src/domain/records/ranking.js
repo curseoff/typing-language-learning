@@ -24,30 +24,28 @@ export function isRecordable() {
 // 昇順比較（Infinity 同士でも NaN を出さず 0 を返す。減算だと Infinity-Infinity=NaN になる）。
 const cmpAsc = (x, y) => (x < y ? -1 : x > y ? 1 : 0)
 
+// ランキングの並び順は kind→比較器の RANKING_COMPARATORS テーブルに集約（Strategy・
+// 種別追加は1エントリ・items/life は同一規則）。各比較器は Array.sort 準拠（負=a 上位）。
+const RANKING_COMPARATORS = {
+  // 少ない秒数が上位＝速い方が上。同秒はミスの少ない順。
+  chars: (a, b) =>
+    cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity) || (a.mistakes ?? 0) - (b.mistakes ?? 0),
+  // 正解数の多い方が上位。同数は速い方が上。
+  items: (a, b) =>
+    (b.correctCount ?? 0) - (a.correctCount ?? 0) ||
+    cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity),
+  // 速度(WPM)の速い方が上位。同速はミスの少ない順（#208 段6）。
+  endless: (a, b) => (b.speed ?? 0) - (a.speed ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0),
+  // タイピング数の多い方が上位。同数はミスの少ない順（未知 kind もここへ既定）。
+  time: (a, b) => (b.keys ?? 0) - (a.keys ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0),
+}
+RANKING_COMPARATORS.life = RANKING_COMPARATORS.items // items と life は同一規則
+
 export function compareRecords(endCondition, a, b) {
   const { kind } = normalizeEndCondition(endCondition)
-  switch (kind) {
-    case 'chars':
-      // 少ない秒数が上位＝速い方が上。同秒はミスの少ない順。
-      return (
-        cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity) ||
-        (a.mistakes ?? 0) - (b.mistakes ?? 0)
-      )
-    case 'items':
-    case 'life':
-      // 正解数の多い方が上位。同数は速い方が上。
-      return (
-        (b.correctCount ?? 0) - (a.correctCount ?? 0) ||
-        cmpAsc(a.seconds ?? Infinity, b.seconds ?? Infinity)
-      )
-    case 'endless':
-      // 速度(WPM)の速い方が上位。同速はミスの少ない順（#208 段6）。
-      return (b.speed ?? 0) - (a.speed ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0)
-    case 'time':
-    default:
-      // タイピング数の多い方が上位。同数はミスの少ない順（未知 kind もここへ）。
-      return (b.keys ?? 0) - (a.keys ?? 0) || (a.mistakes ?? 0) - (b.mistakes ?? 0)
-  }
+  // 未知 kind は time 既定へフォールバック（従来 switch の default と同値）。
+  const cmp = RANKING_COMPARATORS[kind] ?? RANKING_COMPARATORS.time
+  return cmp(a, b)
 }
 
 // モード×ランクの記録キー。source で出題元を分ける（文章=sentence / 単語例文=wsent）。

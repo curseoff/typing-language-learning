@@ -16,47 +16,11 @@ import { describe, it, expect } from 'vitest'
 //   `{ name, createdAt, userVersion, checksum }` の配列にする（name は元ファイル名を保持）。
 //   rotateBackups / selectRestoreCandidate（createdAt を持つ前提）へそのまま渡せる形。
 import {
-  decidePermissionAction,
   buildExternalBackupName,
   parseExternalBackupName,
   toBackupEntries,
 } from './externalBackup.js'
-
-describe('decidePermissionAction（FSA 権限状態→次アクションの純判定）', () => {
-  it("'granted' なら 'write'（そのまま書ける）", () => {
-    expect(decidePermissionAction('granted')).toBe('write')
-  })
-
-  it("'prompt' なら 'request'（requestPermission を促す）", () => {
-    expect(decidePermissionAction('prompt')).toBe('request')
-  })
-
-  it("'denied' なら 'skip'（書かない）", () => {
-    expect(decidePermissionAction('denied')).toBe('skip')
-  })
-
-  it("未知の文字列は安全側で 'skip'", () => {
-    expect(decidePermissionAction('unknown')).toBe('skip')
-  })
-
-  it("null は安全側で 'skip'", () => {
-    expect(decidePermissionAction(null)).toBe('skip')
-  })
-
-  it("undefined は安全側で 'skip'", () => {
-    expect(decidePermissionAction(undefined)).toBe('skip')
-  })
-
-  it("空文字列は安全側で 'skip'", () => {
-    expect(decidePermissionAction('')).toBe('skip')
-  })
-
-  it("常に 'write'|'request'|'skip' のいずれかを返す（boolean 等を返さない）", () => {
-    for (const input of ['granted', 'prompt', 'denied', 'unknown', '', null, undefined, 0, {}]) {
-      expect(['write', 'request', 'skip']).toContain(decidePermissionAction(input))
-    }
-  })
-})
+// decidePermissionAction の被覆は domain/persist/permission.test.js へ移設（#274 L-2）。
 
 describe('buildExternalBackupName（外部バックアップ名の生成・純関数）', () => {
   it('規約どおり tll-backup-<createdAt(epoch ms)>-v<userVersion>-<checksum>.sqlite3 を作る', () => {

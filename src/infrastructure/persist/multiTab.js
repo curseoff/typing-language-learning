@@ -19,6 +19,13 @@
 //   （②③は requestSnapshot のタイマー再送で実装）。
 //   epoch 単調性：昇格前に観測済みの最新 epoch を election 状態へ種として与えてから promote する
 //     （タブごとに 0 起点の election.epoch がハンドオフで衝突しないように）。
+//
+// 主の write-through 通知は RecordsChanged ドメインイベントを介して BroadcastChannel へ流す
+// （発行=records.js から呼ばれる onChange／購読=change を post して多タブへ伝播）。
+// イベントバス（application）は他の純ロジック同様 composition root から deps.bus で注入する
+//   （infra → application の逆流を避ける。ここで createEventBus を直 import しない）。
+
+import { recordsChangedEvent } from '../../domain/events/recordEvents.js'
 
 const CHANNEL = 'tll-db'
 const LOCK = 'tll-db'
@@ -33,6 +40,7 @@ const MAX_SNAPSHOT_RETRIES = 6 // 主不在の過渡を吸収する再送上限�
 
 // 多タブ永続化を起動する。deps はすべて composition root から注入（infra 純度を保つため）。
 //   electionTransition, handleSecondaryMessage … application の純ロジック
+//   bus … application のイベントバス（createEventBus() の戻り＝同期 pub/sub）
 //   openStorage … async () => handle|null（infrastructure/db の initStorage ラッパ。null＝失敗）
 //   facade … { initPrimary(handle,image,{epoch,onChange}), promote(handle,image,{epoch,onChange}),
 //             initSecondary(image,{epoch}), replaceImage(image,epoch), getImage() }
@@ -42,6 +50,7 @@ export function startMultiTabPersistence(deps) {
   const {
     electionTransition,
     handleSecondaryMessage,
+    bus,
     openStorage,
     facade,
     channelName = CHANNEL,
@@ -86,7 +95,11 @@ export function startMultiTabPersistence(deps) {
   }
   const broadcastPrimaryChanged = () =>
     post({ type: 'primary-changed', epoch: election.epoch, primaryTabId: tabId })
-  const broadcastChange = () => post({ type: 'change', epoch: election.epoch })
+  // 購読：RecordsChanged を受けたら change を BroadcastChannel へ post（実 post は購読側で行う）。
+  bus.subscribe('RecordsChanged', (e) => post({ type: 'change', epoch: e.epoch }))
+  // 発行：records.js の write-through から onChange が呼ばれると RecordsChanged を発行する
+  //   （epoch は自タブ election の世代＝購読側が e.epoch で post するので挙動不変）。
+  const broadcastChange = () => bus.publish(recordsChangedEvent({ epoch: election.epoch }))
 
   // ── 主タブ：初回主確定 or handoff 昇格の共通後処理 ──
   async function becomePrimary(kind) {
