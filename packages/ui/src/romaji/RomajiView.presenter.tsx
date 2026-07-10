@@ -2,9 +2,9 @@
 // メタ表示／完了カード／プレイ中（ステータス・出題の予告ストリップ・かな表）を描くだけ。
 // 記録保存・キー入力配線・タイマーは container 側。
 import { toRomaji } from '@tll/core'
-import { StatsRow } from '../shared/Stats'
-import { Typed } from '../shared/Text'
-import KanaTable from './KanaTable'
+import { StatsRow } from '../shared/Stats.presenter'
+import { Typed } from '../shared/Text.presenter'
+import KanaTable from './KanaTable.presenter'
 
 export interface RomajiViewProps {
   levelLabel: string

@@ -1,7 +1,7 @@
 // タッチタイピングタブ：レベル・モードの選択＋記録ランキング。
 import { TOUCH_LEVELS, TOUCH_MODES } from '../../content/keyboard.js'
 import { recKey, MAX_RECORDS } from '../../domain/records/ranking.service.js'
-import { selCls, ModeButtons, SectionLabel, StartRow } from './parts.jsx'
+import { selCls, ModeButtons, SectionLabel, StartRow } from './parts.container.jsx'
 
 // タッチタイピングの記録（速い順）。クリック詳細は持たない簡易テーブル。
 function TouchRecords({ list, rankText }) {

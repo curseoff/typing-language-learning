@@ -2,10 +2,10 @@
 // 選択肢ビュー・翻訳入力ビューを props で受け、本文/フロー/選択肢/エンディングを描くだけ。
 // フック・content・application・domain には依存しない（記録詳細モーダルは recordsNode で受ける）。
 import type { ReactNode } from 'react'
-import { StatsRow } from '../shared/Stats'
-import { Flow, type FlowItem } from '../shared/Flow'
-import { Chars, Chips, MaskedText, type Chip } from '../shared/Text'
-import SegStatsTable, { type SegStat } from '../result/SegStatsTable'
+import { StatsRow } from '../shared/Stats.presenter'
+import { Flow, type FlowItem } from '../shared/Flow.presenter'
+import { Chars, Chips, MaskedText, type Chip } from '../shared/Text.presenter'
+import SegStatsTable, { type SegStat } from '../result/SegStatsTable.presenter'
 
 export interface StoryEndResult {
   speed: number

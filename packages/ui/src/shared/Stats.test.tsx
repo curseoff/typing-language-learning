@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 代表 props で描画が落ちず主要文言が出ることを確認する。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { Stat, StatsRow } from './Stats'
+import { Stat, StatsRow } from './Stats.presenter'
 
 afterEach(cleanup)
 

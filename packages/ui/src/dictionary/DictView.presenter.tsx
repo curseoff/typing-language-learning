@@ -3,10 +3,10 @@
 // container が算出した HUD 値・和訳・記録ノード（resultNode）を props で受ける。
 // フック・content・application には依存しない。
 import type { ReactNode } from 'react'
-import { StatsRow } from '../shared/Stats'
-import OptionJa from '../shared/OptionJa'
-import QuizOptionLabel from '../shared/QuizOptionLabel'
-import TopFlow, { type TopSeg } from '../marathon/TopFlow'
+import { StatsRow } from '../shared/Stats.presenter'
+import OptionJa from '../shared/OptionJa.presenter'
+import QuizOptionLabel from '../shared/QuizOptionLabel.presenter'
+import TopFlow, { type TopSeg } from '../marathon/TopFlow.presenter'
 
 function PlayMeta({ levelLabel, sub }: { levelLabel: string; sub: string }) {
   return (

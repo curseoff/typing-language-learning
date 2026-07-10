@@ -1,6 +1,6 @@
 // 翻訳モード(英訳/和訳)。上に原文、下に単語チップ、入力欄は伏せて打つと現れる。
 import { chipProgress, guideText } from '@tll/core'
-import { Chips, MaskedText, RubyText } from '../shared/Text'
+import { Chips, MaskedText, RubyText } from '../shared/Text.presenter'
 
 interface TrSeg {
   type: 'ja' | 'en'

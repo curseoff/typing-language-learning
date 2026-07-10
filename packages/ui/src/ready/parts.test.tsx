@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: parts.tsx の各部品。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { ModeButtons, SectionLabel, BottomTabs, StartRow } from './parts'
+import { ModeButtons, SectionLabel, BottomTabs, StartRow } from './parts.presenter'
 
 afterEach(cleanup)
 

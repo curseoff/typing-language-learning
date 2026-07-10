@@ -2,11 +2,11 @@
 // それぞれ描くだけ。useWords/useWordQuiz の state・ハンドラと、container が算出した HUD 値・
 // 記録ノード（resultNode）を props で受ける。フック・content・application には依存しない。
 import type { ReactNode } from 'react'
-import { StatsRow } from '../shared/Stats'
-import { RubyText } from '../shared/Text'
-import OptionJa from '../shared/OptionJa'
-import QuizOptionLabel from '../shared/QuizOptionLabel'
-import TopFlow, { type TopSeg } from '../marathon/TopFlow'
+import { StatsRow } from '../shared/Stats.presenter'
+import { RubyText } from '../shared/Text.presenter'
+import OptionJa from '../shared/OptionJa.presenter'
+import QuizOptionLabel from '../shared/QuizOptionLabel.presenter'
+import TopFlow, { type TopSeg } from '../marathon/TopFlow.presenter'
 
 // プレイ画面の上部メタ（レベル／モード・テーマ）。
 function PlayMeta({ levelLabel, sub }: { levelLabel: string; sub: string }) {

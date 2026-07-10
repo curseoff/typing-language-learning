@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 一覧タブ/記録タブ。ノード props はダミー要素で与える。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import RankSectionView from './RankSectionView'
+import RankSectionView from './RankSectionView.presenter'
 
 afterEach(cleanup)
 

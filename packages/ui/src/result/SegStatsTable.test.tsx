@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import SegStatsTable from './SegStatsTable'
+import SegStatsTable from './SegStatsTable.presenter'
 
 afterEach(cleanup)
 

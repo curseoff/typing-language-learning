@@ -3,8 +3,8 @@
 // - ticker: 入力位置を一定に保ち1文字ごとに左スクロール（単語モード向け）。
 // - ticker かつ both（英語・日本語）: 英語と和訳を「ペア」で交互に並べる。
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
-import { Typed, RubyTyped, RubyText } from './Text'
-import { tickerMaskImage } from './tickerMask'
+import { Typed, RubyTyped, RubyText } from './Text.presenter'
+import { tickerMaskImage } from './tickerMask.util'
 
 export interface FlowItem {
   en: string

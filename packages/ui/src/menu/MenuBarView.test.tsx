@@ -2,8 +2,8 @@
 // #286 メニューバー presenter の smoke/挙動テスト（開閉トグル・disabled 非発火）。
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import MenuBarView from './MenuBarView'
-import type { MenuBarMenu } from './MenuBarView'
+import MenuBarView from './MenuBarView.presenter'
+import type { MenuBarMenu } from './MenuBarView.presenter'
 
 afterEach(cleanup)
 

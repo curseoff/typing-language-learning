@@ -2,8 +2,8 @@
 import { modeLabel } from '../../content/modes.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { StatsRow } from '../shared/index.js'
-import TopFlow from './TopFlow.jsx'
-import TranslateView from './TranslateView.jsx'
+import TopFlow from './TopFlow.presenter.jsx'
+import TranslateView from './TranslateView.presenter.jsx'
 
 export default function MarathonView({
   mode,

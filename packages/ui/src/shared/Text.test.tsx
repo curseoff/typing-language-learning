@@ -11,7 +11,7 @@ import {
   Typed,
   MaskedText,
   Chips,
-} from './Text'
+} from './Text.presenter'
 
 afterEach(cleanup)
 

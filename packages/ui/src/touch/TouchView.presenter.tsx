@@ -1,9 +1,9 @@
 // タッチタイピング練習の画面（presenter）：useTouch の state・ハンドラを props で受け、
 // メタ表示／完了カード／プレイ中（ステータス・打鍵ストリップ・指ガイド・キーボード）を描くだけ。
 // 記録保存・キー入力配線・タイマーは container 側。
-import { StatsRow } from '../shared/Stats'
-import Keyboard, { type KeyboardPressed } from './Keyboard'
-import { FINGER, FINGER_LABEL } from './keyboardLayout'
+import { StatsRow } from '../shared/Stats.presenter'
+import Keyboard, { type KeyboardPressed } from './Keyboard.presenter'
+import { FINGER, FINGER_LABEL } from './keyboardLayout.util'
 
 export interface TouchViewProps {
   levelLabel: string

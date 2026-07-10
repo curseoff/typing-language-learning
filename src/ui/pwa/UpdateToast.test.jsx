@@ -13,7 +13,7 @@ vi.mock('../../infrastructure/pwa/registerSW.adapter.js', () => ({
   },
 }))
 
-import UpdateToast from './UpdateToast.jsx'
+import UpdateToast from './UpdateToast.container.jsx'
 
 describe('UpdateToast', () => {
   beforeEach(() => {

@@ -2,8 +2,8 @@
 // content（STORIES）・application（loadItemStats/records）・フック（useRecordDetail）には依存せず、
 // 選択肢・選択値・コールバック・描画済みノード（browseNode）を props で受ける。
 import type { ReactNode } from 'react'
-import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow } from './parts'
-import type { ModeGroup } from './RankSectionView'
+import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow } from './parts.presenter'
+import type { ModeGroup } from './RankSectionView.presenter'
 
 export interface StoryOption {
   id: string

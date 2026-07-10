@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 入力モードと4択モード。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { WordTypeView, WordQuizView } from './WordsView'
+import { WordTypeView, WordQuizView } from './WordsView.presenter'
 
 afterEach(cleanup)
 

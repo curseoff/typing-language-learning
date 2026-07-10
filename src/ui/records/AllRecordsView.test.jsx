@@ -4,7 +4,7 @@
 // rankText の組み立て（種類＋レベル＋テーマ／物語は種類名のみ）と onRowClick 配線を通す。
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import AllRecordsView from './AllRecordsView.jsx'
+import AllRecordsView from './AllRecordsView.container.jsx'
 import { initMemoryPersistence, saveStoryRecord } from '../../application/records.service.js'
 
 afterEach(cleanup)

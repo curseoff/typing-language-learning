@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）: 入力系と4択系の結果を描く。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import PlayResultView from './PlayResultView'
+import PlayResultView from './PlayResultView.presenter'
 
 afterEach(cleanup)
 

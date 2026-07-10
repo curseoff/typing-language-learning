@@ -3,9 +3,9 @@
 // 結果画面の主成績・ランキング列がエンドレスで速度になること、0件でも壊れないことを確認する。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
-import RecordsTable from './RecordsTable.jsx'
-import Result from './Result.jsx'
-import { WordRecords } from '../ready/parts.jsx'
+import RecordsTable from './RecordsTable.container.jsx'
+import Result from './Result.container.jsx'
+import { WordRecords } from '../ready/parts.container.jsx'
 
 afterEach(cleanup)
 

@@ -3,7 +3,7 @@
 // targetKeys（既定 600）を超えた位置の語は薄く表示する（旧・文字数制の名残）。
 // 定数の正本は domain/marathon/passage.service.js の TARGET_KEYS。app 側から prop で渡す（UI を domain から切り離す）。
 import { alignJaToKana, guideText, kanaConsumed } from '@tll/core'
-import { Chars, RubyChars } from '../shared/Text'
+import { Chars, RubyChars } from '../shared/Text.presenter'
 
 interface Seg {
   type: 'ja' | 'en'

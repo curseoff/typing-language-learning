@@ -8,11 +8,11 @@ import { MODES, modeDesc } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.service.js'
-import RecordsTable from '../result/RecordsTable.jsx'
-import ItemList from './ItemList.jsx'
-import EndConditionSelect from './EndConditionSelect.jsx'
+import RecordsTable from '../result/RecordsTable.container.jsx'
+import ItemList from './ItemList.container.jsx'
+import EndConditionSelect from './EndConditionSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
-import { THEME_OPTIONS } from './parts.jsx'
+import { THEME_OPTIONS } from './parts.container.jsx'
 
 const WSENT_LEVEL_OPTIONS = WORD_LEVELS.map((l) => ({ value: l.level, no: `L${l.level}`, label: l.label }))
 // モードは MODES の group 単位でまとめる（course=group 名）。

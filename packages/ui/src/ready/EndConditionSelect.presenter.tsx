@@ -2,7 +2,7 @@
 // content 依存（END_KINDS/endValueLabel 等）は container（app 側）で解決し、ここは props だけで描く。
 // ↑↓で行移動（種別行 endKind / 値行 end）、←→で行内の選択移動＝既存ナビ流儀に合わせる。
 // 既存 mode-btn/selCls/SectionLabel を流用（新規CSS・ハードコード色なし）。
-import { selCls, SectionLabel } from './parts'
+import { selCls, SectionLabel } from './parts.presenter'
 
 export interface EndKindOption {
   kind: string

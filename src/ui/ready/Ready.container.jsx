@@ -1,11 +1,11 @@
 // スタート画面。種類タブ（文章/物語/単語）で切り替え、選んだ種類の選択肢だけ表示する。
-import { selCls } from './parts.jsx'
-import WordSentenceSection from './WordSentenceSection.jsx'
-import StorySection from './StorySection.jsx'
-import WordsSection from './WordsSection.jsx'
-import DictSection from './DictSection.jsx'
-import TouchSection from './TouchSection.jsx'
-import RomajiSection from './RomajiSection.jsx'
+import { selCls } from './parts.container.jsx'
+import WordSentenceSection from './WordSentenceSection.container.jsx'
+import StorySection from './StorySection.container.jsx'
+import WordsSection from './WordsSection.container.jsx'
+import DictSection from './DictSection.container.jsx'
+import TouchSection from './TouchSection.container.jsx'
+import RomajiSection from './RomajiSection.container.jsx'
 
 const GAME_TYPES = [
   { key: 'story', icon: '📖', label: '物語', sub: '分岐ストーリー' },

@@ -2,7 +2,7 @@
 // presenter smoke: プレイ中（予告ストリップ・現在かな強調・かな表）／ミス／完了。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import RomajiView from './RomajiView'
+import RomajiView from './RomajiView.presenter'
 
 afterEach(cleanup)
 

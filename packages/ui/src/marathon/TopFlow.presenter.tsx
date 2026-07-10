@@ -2,7 +2,7 @@
 // 入力モードに関わらず英語・日本語の両方を常に表示し、入力中の言語だけ進捗を色づける。
 import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '@tll/core'
-import { Flow } from '../shared/Flow'
+import { Flow } from '../shared/Flow.presenter'
 
 export interface TopSeg {
   type: 'ja' | 'en'

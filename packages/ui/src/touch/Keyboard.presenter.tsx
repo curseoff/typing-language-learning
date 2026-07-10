@@ -8,7 +8,7 @@ import {
   FINGER,
   HOME_KEYS,
   BUMP_KEYS,
-} from './keyboardLayout'
+} from './keyboardLayout.util'
 
 // 数字段・記号キーは英字キーと違って main が大きい一文字でないため、刻印の出し分けに使う。
 const ALPHA = /^[a-z]$/

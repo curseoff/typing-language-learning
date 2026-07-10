@@ -3,7 +3,7 @@
 // aria-label が状態に追従する。設定は soundSettingsRepository（localStorage）に保存される。
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import SoundToggle from './SoundToggle.jsx'
+import SoundToggle from './SoundToggle.container.jsx'
 import { isSoundMuted } from '../../infrastructure/soundSettings.repository.js'
 
 beforeEach(() => localStorage.clear())

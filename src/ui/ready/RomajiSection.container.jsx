@@ -1,7 +1,7 @@
 // ローマ字入力タブ：練習範囲（行グループ）の選択＋記録ランキング。
 import { ROMAJI_LEVELS, ROMAJI_MODE } from '../../content/romaji.js'
 import { recKey, MAX_RECORDS } from '../../domain/records/ranking.service.js'
-import { selCls, SectionLabel, StartRow } from './parts.jsx'
+import { selCls, SectionLabel, StartRow } from './parts.container.jsx'
 
 // ローマ字入力の記録（タイピング数＝かな数順）。クリック詳細は持たない簡易テーブル。
 function RomajiRecords({ list, rankText }) {

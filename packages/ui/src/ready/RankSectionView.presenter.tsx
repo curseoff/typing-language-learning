@@ -3,7 +3,7 @@
 // 下部タブ→一覧/記録）なので1つの View に集約する。content/records/フックには依存せず、選択肢・選択値・
 // コールバック・描画済みノード（endConditionNode / browseNode）を props で受けて描くだけ。
 import type { ReactNode } from 'react'
-import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow, type Mode } from './parts'
+import { selCls, ModeButtons, SectionLabel, BottomTabs, StartRow, type Mode } from './parts.presenter'
 
 export interface RankLevel {
   value: number

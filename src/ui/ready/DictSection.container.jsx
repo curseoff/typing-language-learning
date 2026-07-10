@@ -6,10 +6,10 @@ import { useState, useEffect } from 'react'
 import { RankSectionView } from '@tll/ui'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { dictRanking } from '../../application/records.service.js'
-import ItemList from './ItemList.jsx'
-import EndConditionSelect from './EndConditionSelect.jsx'
+import ItemList from './ItemList.container.jsx'
+import EndConditionSelect from './EndConditionSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
-import { WordRecords, THEME_OPTIONS, dictLevelLabel } from './parts.jsx'
+import { WordRecords, THEME_OPTIONS, dictLevelLabel } from './parts.container.jsx'
 
 const DICT_QUIZ = DICT_MODES.filter((m) => m.key === 'quiz' || m.key === 'pick')
 const DICT_INPUT = DICT_MODES.filter((m) => m.key === 'both' || m.key === 'en' || m.key === 'ja')

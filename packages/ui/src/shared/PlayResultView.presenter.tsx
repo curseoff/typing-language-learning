@@ -2,7 +2,7 @@
 // 主成績の種類（正解数／速度／タイピング数）は result.endCondition.kind から純粋に導出する。
 // 記録詳細モーダル（useRecordDetail フック）は container 側で開き、onRowClick と modal を受ける。
 import type { ReactNode } from 'react'
-import SegStatsTable, { type SegStat } from '../result/SegStatsTable'
+import SegStatsTable, { type SegStat } from '../result/SegStatsTable.presenter'
 
 export interface PlayResultData {
   endCondition?: { kind?: string; value?: number } | null

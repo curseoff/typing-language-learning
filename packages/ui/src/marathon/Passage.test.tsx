@@ -2,7 +2,7 @@
 // presenter smoke（#233 M7）
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import Passage from './Passage'
+import Passage from './Passage.presenter'
 
 afterEach(cleanup)
 

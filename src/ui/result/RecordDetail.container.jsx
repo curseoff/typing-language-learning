@@ -3,8 +3,8 @@
 // ページ内のランキングをクリックすると他の記録に切り替わる。
 import { useEffect, useState } from 'react'
 import { modeLabel } from '../../content/modes.js'
-import SegStatsTable from './SegStatsTable.jsx'
-import { useReplay } from './ReplayContext.jsx'
+import SegStatsTable from './SegStatsTable.presenter.jsx'
+import { useReplay } from './ReplayContext.context.jsx'
 
 export default function RecordDetail({
   list,

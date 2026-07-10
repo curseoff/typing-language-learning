@@ -2,7 +2,7 @@
 // 和訳（kana あり）の選択肢はルビ付きで表示する。
 // opt = { display, variants, kana? }
 import { kanjiDone, kanaConsumed } from '@tll/core'
-import { RubyTyped } from './Text'
+import { RubyTyped } from './Text.presenter'
 
 export interface QuizOpt {
   display: string

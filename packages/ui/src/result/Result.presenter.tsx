@@ -2,8 +2,8 @@
 // records の解決（recKey）・modeLabel・記録詳細（useRecordDetail）は container に置き、
 // ここは props（result / modeText / segStats / 解決済み records / onRowClick / recordsModal 等）で描く。
 import type { ReactNode } from 'react'
-import SegStatsTable, { type SegStat } from './SegStatsTable'
-import RecordsTable, { type RecordRow, type RecordsTableProps } from './RecordsTable'
+import SegStatsTable, { type SegStat } from './SegStatsTable.presenter'
+import RecordsTable, { type RecordRow, type RecordsTableProps } from './RecordsTable.presenter'
 
 export interface ResultData {
   mode: string
