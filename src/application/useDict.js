@@ -1,11 +1,18 @@
 // 英英辞典の入力モード（英語入力=定義文を打つ / 日本語入力=和訳を打つ / both=英→日）。
 // 単語例文（マラソン）と同じ「最初の打鍵から60秒で終了」方式。問題が尽きたら継ぎ足してループする。
 // 記録は dict 記録（DictResult）を維持する。
+//
+// 打鍵数(keys)とミス数(mistakes)は TypingSession Entity（domain/session）で保持する
+// （#290 部分採用）。可変 Entity は render 中に読めない（react-hooks/refs）ので ref に持ち、
+// 変更のたび syncSession() が像を state(snap) へ写す＝React はその state で再描画する。
+// items/life・終了判定（finish/finishByProgress/finishByEsc/onTimeout・タイマー）・segTracker は
+// 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.js'
 import { score } from '../domain/marathon/scoring.js'
 import { mulberry32 } from '../domain/rng.js'
-import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.js'
+import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.js'
+import { createTypingSessionFactory } from '../domain/session/typingSessionFactory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.js'
@@ -17,6 +24,10 @@ import { END_TIME_VALUES } from '../content/endConditions.js'
 
 // エンドレスを ESC で記録するのに必要な最低プレイ時間（30秒＝時間制の最短値）。#208 段6
 const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
+
+// application 層のモジュールカウンタで session ID を採番する（純ドメインは ID を作れない）。
+let dictSessionSeq = 0
+const nextDictId = () => `dict-${++dictSessionSeq}`
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
 function dictPool(dict, level, theme) {
@@ -43,8 +54,6 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
   const [segIndex, setSegIndex] = useState(0)
   const [segInput, setSegInput] = useState('') // 現在セグメントに打った文字
   const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
-  const [typedKeys, setTypedKeys] = useState(0)
-  const [mistakes, setMistakes] = useState(0)
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [startTime, setStartTime] = useState(null)
@@ -54,9 +63,22 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const keysRef = useRef(0) // 時間切れ finish 用の最新打鍵数
-  const mistakesRef = useRef(0) // 時間切れ finish 用の最新ミス数
   const startTimeRef = useRef(null) // 進捗 finish 用の開始時刻（startTime と同値）
+
+  // 打鍵数(keys)とミス数(mistakes)を保持する可変 Entity（部分採用）。器の endCondition VO は
+  // ダミー（finish 判定には使わない＝session.finish()/isFinished() は呼ばない）。Factory と VO は初回のみ生成。
+  const sessionEnd = useMemo(() => makeEndCondition('time', 60), [])
+  const factory = useMemo(() => createTypingSessionFactory(nextDictId), [])
+  const sessionRef = useRef(null)
+  if (sessionRef.current === null) sessionRef.current = factory.start(sessionEnd)
+  const [snap, setSnap] = useState({ keys: 0, mistakes: 0 })
+  // ref 読みはイベント/finish 側に閉じる（render 中は ref を読まない＝react-hooks/refs 回避）。
+  const syncSession = useCallback(() => {
+    const p = sessionRef.current.progress()
+    setSnap({ keys: p.keys, mistakes: p.mistakes })
+  }, [])
+  const typedKeys = snap.keys // 打鍵数（session 像由来）
+  const mistakes = snap.mistakes // ミス総数（session 像由来）
 
   const restart = useCallback(() => {
     flushTracker(trackerRef.current)
@@ -69,18 +91,17 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     setSegIndex(0)
     setSegInput('')
     setCompleted([])
-    setTypedKeys(0)
-    setMistakes(0)
+    // 新 session（keys/mistakes を 0 にリセット）。像も 0 へ同期する。
+    sessionRef.current = factory.start(sessionEnd)
+    syncSession()
     setMissedItems(0)
     setHasError(false)
     setStartTime(null)
     setFinished(false)
     setResult(null)
     finishedRef.current = false
-    keysRef.current = 0
-    mistakesRef.current = 0
     startTimeRef.current = null
-  }, [buildSegments])
+  }, [buildSegments, factory, sessionEnd, syncSession])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -162,7 +183,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
       })
     }
     flushTracker(trackerRef.current)
-    finish(keysRef.current, mistakesRef.current, t, startedAt)
+    const p = sessionRef.current.progress()
+    finish(p.keys, p.mistakes, t, startedAt)
     return true
   }, [segments, segIndex, segInput, finish])
 
@@ -196,9 +218,9 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
         setHasError(false)
         segMark(segTrackerRef.current, t) // この問題の最初の打鍵時刻
         trackKey(trackerRef.current, itemId('d', mode, seg.word)) // 見出し語ごと×モード別
-        const newKeys = typedKeys + 1
-        setTypedKeys(newKeys)
-        keysRef.current = newKeys
+        sessionRef.current.registerHit() // keys++（Entity 保持）
+        syncSession()
+        const ph = sessionRef.current.progress()
 
         const completesSeg = seg.variants.includes(candidate)
 
@@ -226,26 +248,25 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
-          finishByProgress(t, newKeys, completed.length + 1, mistakesRef.current, seg, 0)
+          finishByProgress(t, ph.keys, completed.length + 1, ph.mistakes, seg, 0)
         } else {
           setSegInput(candidate)
-          finishByProgress(t, newKeys, completed.length, mistakesRef.current, seg, candidate.length)
+          finishByProgress(t, ph.keys, completed.length, ph.mistakes, seg, candidate.length)
         }
       } else {
-        setMistakes((m) => {
-          mistakesRef.current = m + 1
-          return m + 1
-        })
+        sessionRef.current.registerMiss() // mistakes++（Entity 保持）
+        syncSession()
         trackMiss(trackerRef.current)
         segMiss(segTrackerRef.current)
         setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
         setHasError(true)
         // ミス数（life 制）の到達を判定。
-        finishByProgress(performance.now(), typedKeys, completed.length, mistakesRef.current, seg, segInput.length)
+        const pm = sessionRef.current.progress()
+        finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
     },
-    [finished, segments, segIndex, segInput, typedKeys, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc],
+    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession],
   )
 
   useEffect(() => {
@@ -269,7 +290,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
       })
     }
     flushTracker(trackerRef.current)
-    finish(keysRef.current, mistakesRef.current, t, startedAt)
+    const p = sessionRef.current.progress()
+    finish(p.keys, p.mistakes, t, startedAt)
   }
   const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({
     active: !finished,
@@ -287,7 +309,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
     typedKeys,
     mistakes,
     missedItems,
-    liveSpeed: speedFor(typedKeys),
+    liveSpeed: speedFor(snap.keys),
     elapsedSec,
     word: segments[segIndex]?.word, // 現在セグの見出し語
     finished,
