@@ -414,4 +414,29 @@ multiTab.js: onChange = () => bus.publish(RecordsChanged{epoch})
 
 ---
 
-_この文書は #290 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO・Entity×useRomaji/useTouch・useWords部分採用）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition/compareRecords の Strategy 化）＋Domain Event の本番配線（RecordsChanged）。DDD 学習アーク完了。_
+## 20. 命名規約：ファイル名の DDD ステレオタイプ・サフィックス（#306）
+
+**課題**：コード上で VO / Entity / Factory 等の区別が散文コメントにしか無く、判別しにくかった。このコードベースは**ファクトリ関数ベースでクラスが無い**ため、「クラス名に `Entity` を付ける」に相当する印を**ファイル名**へ載せる。
+
+**規約**：`src/domain/**` と `packages/core/src/**` の非テスト `.js`（barrel の `index.js` を除く）は、必ず次のサフィックスのいずれかで終える。
+
+| suffix | stereotype | 例 |
+|---|---|---|
+| `.entity.js` | Entity（同一性・可変・ライフサイクル） | `typingSession.entity.js` |
+| `.vo.js` | Value Object（不変・値等価） | `endCondition.vo.js` / `rankingBoard.vo.js` / `kanaTable.vo.js` |
+| `.factory.js` | Factory（同一性注入つき生成） | `typingSession.factory.js` |
+| `.event.js` | Domain Event | `recordEvents.event.js` |
+| `.specification.js` | Specification（`.spec` はテストと紛らわしいので不採用） | `combinators.specification.js` / `recordSpecs.specification.js` |
+| `.repository.js` | Repository（Port） | `ranking.repository.js` |
+| `.service.js` | Domain Service（純関数の判定/計算/変換・大多数） | `scoring.service.js` / `ranking.service.js` |
+
+**強制**：`src/domain/_ddd-naming.test.js` が上記2ツリーを走査し、未分類ファイルがあれば**違反一覧を挙げて CI を赤**にする（新規ファイルにも分類を強制）。基底名が冗長になる所は基底も調整した（`rankingRepository.js→ranking.repository.js`・`typingSessionFactory.js→typingSession.factory.js`・`specification.js→combinators.specification.js`）。
+
+**学びの要点**
+- **名前は最も安いドキュメント**：散文コメントは腐るが、ファイル名は grep でき・タブに出て・テストで強制できる。ステレオタイプを名前に載せると「このファイルは何か」が読む前に分かる。
+- **クラスが無くても戦術は表現できる**：OOP なら型名で背負う区別を、関数型スタイルでは**ファイル名の規約＋メタテスト**で担保できる。パターンは言語機能ではなく「意図の可視化と強制」で効く。
+- **挙動不変の大規模リネームの安全網**：28ファイル改名＋約186 import 更新を、①メタテスト Red 先行 → ②`git mv`（履歴保持）→ ③`npm run check` 緑（1140 tests・build）で守った。ロジックに触れない機械的変更でも、差分が「パス差し替えのみ」であることを検証してからコミットする。
+
+---
+
+_この文書は #290/#306 の学習記録。ロードマップ Phase 0〜10 完走＋本番採用（VO・Entity×useRomaji/useTouch・useWords部分採用）＋層の健全化（L-2 逆流解消・contentFallback 依存逆転・endCondition/compareRecords の Strategy 化）＋Domain Event の本番配線（RecordsChanged）＋命名規約でステレオタイプをファイル名へ可視化・テスト強制（#306）。DDD 学習アーク完了。_
