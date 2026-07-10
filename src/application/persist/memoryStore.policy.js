@@ -2,7 +2,7 @@
 // sqlite バックエンド時、ファサードはこのメモリ像から同期読み／同期更新し、
 // 書き込みは write-queue 経由で Worker へ流す（write-through）。
 // apply* は「現行 localStorage リポジトリと同じ最終結果」でなければならないため、
-// キー生成/並び/キャップはドメイン（recKey/rankInsert）と現行リポジトリのキー関数を再利用する。
+// キー生成はドメインのキー関数、並び/キャップは集約ルート RankingBoard.submit() を再利用する。
 import { recKey } from '../../domain/records/ranking.service.js'
 import { wordRecKey, dictRecKey, storyRecKey } from '../../domain/records/recordKeys.service.js'
 import { makeItemStat } from '../../domain/records/itemStat.entity.js'
