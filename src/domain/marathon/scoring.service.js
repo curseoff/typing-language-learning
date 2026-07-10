@@ -1,9 +1,7 @@
-// マラソンの採点（速度・正確率・経過秒）。
-export function score({ keys, mistakes, elapsedMs }) {
-  const minutes = elapsedMs / 60000
-  const speed = minutes > 0 ? Math.round(keys / minutes) : 0 // 打/分
-  const denom = keys + mistakes
-  const accuracy = denom > 0 ? Math.round((keys / denom) * 100) : 100
-  const seconds = Math.round(elapsedMs / 100) / 10
-  return { speed, accuracy, seconds }
+// マラソンの採点（速度・正確率・経過秒）。採点式は Score VO（records/score.vo.js）に一本化する。
+// makeScore は {speed, accuracy, seconds} のみの凍結オブジェクトを返す＝既存の分割代入消費側と形状互換。
+import { makeScore } from '../records/score.vo.js'
+
+export function score(input) {
+  return makeScore(input)
 }

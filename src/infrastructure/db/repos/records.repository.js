@@ -1,6 +1,8 @@
 // マラソン記録の DB リポジトリ（現行 recordsRepository と同値な round-trip）。
-// キー生成/並び/キャップはドメインを再利用（recKey/rankInsert）＝localStorage 版と同一ロジック。
-import { recKey, rankInsert } from '../../../domain/records/ranking.service.js'
+// キー生成/並び/キャップはドメインを再利用（recKey／集約 RankingBoard.submit）＝localStorage 版と同一ロジック。
+import { recKey } from '../../../domain/records/ranking.service.js'
+import { makeRankingBoard } from '../../../domain/records/rankingBoard.vo.js'
+import { normalizeEndCondition } from '../../../domain/session/endCondition.vo.js'
 import { assign, ecToColumns, ecFromRow } from './_codec.mapper.js'
 
 const COLS =
@@ -44,7 +46,12 @@ export function saveRecordDb(db, record) {
   db.transaction(() => {
     const key = recKey(record.mode, record.rank, record.source, record.theme, record.endCondition)
     const current = loadRecordsDb(db)[key] || []
-    const list = rankInsert(current, record)
+    const board = makeRankingBoard({
+      key,
+      endCondition: normalizeEndCondition(record.endCondition),
+      entries: current,
+    })
+    const list = [...board.submit(record).entries()]
     const ec = ecToColumns(record.endCondition)
     db.exec({
       sql:

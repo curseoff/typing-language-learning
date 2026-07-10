@@ -1,6 +1,7 @@
 // 問題ごとの累積記録の DB リポジトリ（現行 itemStatsRepository と同値）。
 // id='type:mode:key'。key は文中コロンを含みうるので分解は先頭2つの ':' のみ（id 原文は PK として温存）。
 // 積算は upsert（ON CONFLICT DO UPDATE で count+1・keys/mistakes/ms を合算）。
+// 累積規則は domain の ItemStat.recordAttempt と同一（この SQL upsert は同じ規則を SQL でミラーする）。
 
 // 先頭2つの ':' で type/mode/item_key に割る（3つ目以降の ':' は item_key に残す）。
 function splitId(id) {

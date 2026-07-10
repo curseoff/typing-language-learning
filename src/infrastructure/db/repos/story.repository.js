@@ -1,7 +1,8 @@
 // 物語の永続化（発見エンド＋記録ランキング）の DB リポジトリ（現行 storyRepository と同値）。
 // story 記録は endCondition を持たない場合が基本（＝ec_kind/ec_value は nullable）。持つ場合は列化する。
-// キー/並び/キャップはドメイン・storyRecKey を再利用（rankInsert）。
-import { rankInsert } from '../../../domain/records/ranking.service.js'
+// キー/並び/キャップはドメイン・storyRecKey を再利用（並び/キャップは集約 RankingBoard.submit）。
+import { makeRankingBoard } from '../../../domain/records/rankingBoard.vo.js'
+import { normalizeEndCondition } from '../../../domain/session/endCondition.vo.js'
 import { storyRecKey } from '../../../domain/records/recordKeys.service.js'
 import { assign, ecToColumns, ecFromRow, jsonToColumn, jsonFromColumn } from './_codec.mapper.js'
 
@@ -62,7 +63,12 @@ export function loadAllStoryRecordsDb(db) {
 export function saveStoryRecordDb(db, storyId, record) {
   db.transaction(() => {
     const current = loadStoryRecordsDb(db, storyId, record.endCondition)
-    const list = rankInsert(current, record)
+    const board = makeRankingBoard({
+      key: storyRecKey(storyId, record.endCondition),
+      endCondition: normalizeEndCondition(record.endCondition),
+      entries: current,
+    })
+    const list = [...board.submit(record).entries()]
     const ec = ecToColumns(record.endCondition)
     db.exec({
       sql: 'DELETE FROM "story_records" WHERE "story_id" IS ? AND "ec_kind" IS ? AND "ec_value" IS ?',
