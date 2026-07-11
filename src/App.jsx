@@ -87,8 +87,14 @@ export default function App() {
   // gameType が一致するページのときだけ RouteState の値を初期値に使い、そうでなければ従来の既定へ。
   const irIf = (gt, key, fallback) => (IR.gameType === gt ? IR[key] : fallback)
 
-  const [phase, setPhase] = useState('ready') // ready | playing | result | story | words | about | allrecords
-  const [gameType, setGameType] = useState(IR.gameType) // wsent | story | words | dict | touch
+  // #359 cold ロード時は view URL から初期 phase を復元する（about/records は直接・result は
+  // lastResult がまだ無い＝ready へ丸め）。view 以外は従来どおり ready から。
+  const [phase, setPhase] = useState(() => {
+    if (IR.view === 'about') return 'about'
+    if (IR.view === 'records') return 'allrecords'
+    return 'ready' // view:'result' の cold ロードは lastResult 不在＝TOP へ丸め
+  }) // ready | playing | result | story | words | about | allrecords
+  const [gameType, setGameType] = useState(IR.gameType ?? 'wsent') // wsent | story | words | dict | touch（view IR は gameType 無し＝既定 wsent）
   const [mode, setMode] = useState(irIf('wsent', 'mode', 'both')) // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(irIf('wsent', 'level', 1)) // 単語例文のレベル(1-4)
   const [wsentTheme, setWsentTheme] = useState(irIf('wsent', 'theme', 'すべて')) // 単語例文のテーマフィルタ
@@ -212,9 +218,17 @@ export default function App() {
     }
   }, [gameType, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, storyId, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, mode, endCondition])
 
-  // #357 RouteState を各ページの state セッターへ写像する（popstate 復元で使う）。
-  // 初回はこの写像を使わず useState 初期値で直接復元している（IR/irIf）。
+  // #357/#359 RouteState を phase＋各ページの state セッターへ写像する（popstate 復元で使う）。
+  // 初回はこの写像を使わず useState 初期値で直接復元している（IR/irIf/初期 phase）。
   const applyRouteToState = useCallback((state) => {
+    // #359 view ルート（about/records/result）：コンテンツ選択は保持し phase だけ切替える。
+    // result は lastResult があれば結果画面・無ければ TOP へ丸める（直リンク/戻るでの白画面回避）。
+    if (state.view) {
+      if (state.view === 'about') setPhase('about')
+      else if (state.view === 'records') setPhase('allrecords')
+      else setPhase(lastResult ? 'result' : 'ready') // view:'result'
+      return
+    }
     setGameType(state.gameType)
     switch (state.gameType) {
       case 'words': setWordLevel(state.level); setWordTheme(state.theme); setWordMode(state.mode); break
@@ -225,30 +239,44 @@ export default function App() {
       default: setWsentLevel(state.level); setWsentTheme(state.theme); setMode(state.mode)
     }
     setEndCondition(state.endCondition)
-  }, [])
+    setPhase('ready') // content ルートは常に ready（プレイ中に戻る→ready 復帰）
+  }, [lastResult])
 
-  // #357 URL 反映：ready のときだけ現在選択を URL へ書き戻す。playing/result/story 実行中や
-  // about/allrecords・seed/records などの一過性・ユーザー情報は URL に載せない（phase!=='ready' は不更新）。
-  // gameType/storyId 切替は pushState（戻る/進むが効く）、同一ページ内の param 変更は replaceState
-  // （履歴を汚さずアドレスバーは常に現在選択）。?preview/?persist/?tab 等の search は温存する。
-  const routeRef = useRef({ gameType, storyId })
+  // #357/#359 URL 反映：ready は現在選択、about/allrecords/result(結果有り) は view 最小形を URL へ
+  // 書き戻す。playing/story/words/dict/touch/romaji 実行中や seed/records 等の一過性・ユーザー情報は
+  // URL に載せない（それ以外の phase は不更新）。gameType/storyId 切替と view への遷移は pushState
+  // （戻る/進むが効く／view の上に content 履歴を重ね、戻るで直前の content URL に復帰）、同一ページ内の
+  // param 変更は replaceState（履歴を汚さずアドレスバーは追従）。?preview/?persist/?tab 等の search は温存。
+  const routeRef = useRef({ gameType, storyId, view: null })
   useEffect(() => {
-    if (phase !== 'ready' || typeof location === 'undefined') return
-    const target = BASE + buildRoute(currentRouteState()).slice(1) + location.search
-    const changed = gameType !== routeRef.current.gameType || storyId !== routeRef.current.storyId
-    routeRef.current = { gameType, storyId }
+    if (typeof location === 'undefined') return
+    // phase に応じて URL へ反映する RouteState を決める（該当しない一過性 phase は更新しない）。
+    let routeState
+    if (phase === 'about') routeState = { view: 'about' }
+    else if (phase === 'allrecords') routeState = { view: 'records' }
+    else if (phase === 'result' && lastResult) routeState = { view: 'result' }
+    else if (phase === 'ready') routeState = currentRouteState()
+    else return
+    const view = routeState.view ?? null
+    const target = BASE + buildRoute(routeState).slice(1) + location.search
+    // ページ識別（view／content の gameType・storyId）が変われば pushState、同一ページ内の変更は replace。
+    const changed =
+      view !== routeRef.current.view ||
+      gameType !== routeRef.current.gameType ||
+      storyId !== routeRef.current.storyId
+    routeRef.current = { gameType, storyId, view }
     // 既に一致（初期の canonical URL・popstate 復元後）なら何もしない＝二重 push を避ける。
     if (target === location.pathname + location.search) return
     if (changed) history.pushState(null, '', target)
     else history.replaceState(null, '', target)
-  }, [phase, currentRouteState, gameType, storyId])
+  }, [phase, currentRouteState, gameType, storyId, lastResult])
 
-  // #357 戻る/進む（popstate）：URL からルートを復元し ready へ戻す（プレイ中に戻る→ready 復帰）。
-  // 復元後の URL は canonical なので、上の URL 反映効果は target===現URL で no-op になる（書き戻しなし）。
+  // #357/#359 戻る/進む（popstate）：URL からルートを復元し phase を写像する（content→ready・
+  // view→対応 phase／cold result は TOP へ丸め）。復元後の URL は canonical なので、上の URL 反映
+  // 効果は target===現URL で no-op になる（書き戻しなし）。
   useEffect(() => {
     const onPop = () => {
       applyRouteToState(parseRoute(appPathFromLocation()))
-      setPhase('ready')
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)

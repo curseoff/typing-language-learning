@@ -91,6 +91,9 @@ const PAGES = {
   },
 }
 const DEFAULT_SLUG = 'sentences' // 未知 slug・ルートはここ（wsent）の既定へ丸める
+// #359 アプリレベルの3画面（about/すべての記録/結果）にも URL を与える。これらは
+// gameType/コンテンツ param/endCondition を持たない最小形 { view } で表す（内部 phase 写像は App 側）。
+const VIEW_SLUGS = new Set(['about', 'records', 'result'])
 const SLUG_BY_GAMETYPE = Object.fromEntries(
   Object.entries(PAGES).map(([slug, p]) => [p.gameType, slug]),
 )
@@ -133,6 +136,8 @@ export function parseRoute(appPath) {
     .split('/')
     .filter(Boolean)
     .map(safeDecode)
+  // #359 先頭が view slug のときは最小形 { view } を返す（末尾スラッシュ・余分な末尾セグメント無視）。
+  if (VIEW_SLUGS.has(segs[0])) return { view: segs[0] }
   const known = PAGES[segs[0]]
   const page = known ?? PAGES[DEFAULT_SLUG] // 未知 slug → wsent 既定
   const rest = known ? segs.slice(1) : [] // 未知 slug は残りを無視し全既定へ
@@ -163,6 +168,8 @@ const ROOT_PATH = rawBuild({
 })
 
 export function buildRoute(state) {
+  // #359 view は最小形（'/about'|'/records'|'/result'）。endCondition/content param を参照しない。
+  if (state.view) return `/${state.view}`
   const path = rawBuild(state)
   return path === ROOT_PATH ? '/' : path
 }
