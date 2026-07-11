@@ -181,15 +181,17 @@ describe('routing.policy: parseRoute（URL → RouteState）', () => {
 
 describe('routing.policy: buildRoute（RouteState → URL）', () => {
   it('8. 基本の buildRoute（slug は sentences・theme は encode・既定 ec は省略）', () => {
+    // 完全な既定状態は正準 root '/' に畳む（test 8b が担保）ため、
+    // wsent の full-path 形は「非既定状態」で示す（level:2）。
     expect(
       buildRoute({
         gameType: 'wsent',
-        level: 1,
+        level: 2,
         theme: 'すべて',
         mode: 'both',
         endCondition: { kind: 'time', value: 60 },
       }),
-    ).toBe('/sentences/1/%E3%81%99%E3%81%B9%E3%81%A6/both')
+    ).toBe('/sentences/2/%E3%81%99%E3%81%B9%E3%81%A6/both')
 
     expect(
       buildRoute({
