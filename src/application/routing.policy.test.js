@@ -263,6 +263,48 @@ describe('routing.policy: buildRoute（RouteState → URL）', () => {
   })
 })
 
+describe('routing.policy: view ルート（about/records/result）#359', () => {
+  // アプリレベルの3画面にも URL を与える。view のときは gameType/コンテンツ param/endCondition を
+  // 持たない「最小形」 { view: '...' } を契約とする（内部 phase への写像は App 側の責務）。
+  const VIEWS = ['about', 'records', 'result']
+
+  it('12. parseRoute の /about・/records・/result が最小形 {view:...} になる', () => {
+    expect(parseRoute('/about')).toEqual({ view: 'about' })
+    expect(parseRoute('/records')).toEqual({ view: 'records' })
+    expect(parseRoute('/result')).toEqual({ view: 'result' })
+  })
+
+  it('13. buildRoute({view:...}) が /about|/records|/result になる', () => {
+    expect(buildRoute({ view: 'about' })).toBe('/about')
+    expect(buildRoute({ view: 'records' })).toBe('/records')
+    expect(buildRoute({ view: 'result' })).toBe('/result')
+  })
+
+  it('14. view の往復不変（parse∘build と build∘parse の冪等）', () => {
+    for (const v of VIEWS) {
+      expect(parseRoute(buildRoute({ view: v }))).toEqual({ view: v })
+      expect(parseRoute(buildRoute(parseRoute(`/${v}`)))).toEqual(parseRoute(`/${v}`))
+    }
+  })
+
+  it('15. 末尾スラッシュ・余分な末尾セグメントは view として無視される', () => {
+    expect(parseRoute('/about/')).toEqual({ view: 'about' })
+    expect(parseRoute('/records/x')).toEqual({ view: 'records' })
+    expect(parseRoute('/result/foo/bar')).toEqual({ view: 'result' })
+  })
+
+  it('16. content ルート・未知 slug は view キーを持たない（回帰防止）', () => {
+    // content ルートは従来どおり内部キーの RouteState（view 無し）
+    expect(parseRoute('/words/1/日常/en')).not.toHaveProperty('view')
+    expect(parseRoute('/words/1/日常/en').gameType).toBe('words')
+    // ルート既定 wsent も view 無し
+    expect(parseRoute('/')).not.toHaveProperty('view')
+    // about/records/result 以外の未知 slug は従来どおり wsent 既定（view にならない）
+    expect(parseRoute('/xyz')).not.toHaveProperty('view')
+    expect(parseRoute('/xyz').gameType).toBe('wsent')
+  })
+})
+
 describe('routing.policy: 往復不変（最重要）', () => {
   // 代表的な valid RouteState 群（各ページ・各 ec 種別を横断）
   const states = [
