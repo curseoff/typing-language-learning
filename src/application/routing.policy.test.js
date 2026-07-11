@@ -305,6 +305,211 @@ describe('routing.policy: view ルート（about/records/result）#359', () => {
   })
 })
 
+describe('routing.policy: record-detail ルート（/records 下ネスト）#360', () => {
+  // 記録詳細に共有可能な URL を与える。URL 文法は
+  //   /records/<slug>/<coords...>/[ec]/<position>
+  // - slug: words/dict/sentences/story（#357 と一貫。sentences ⇄ 内部 kind 'wsent'）。
+  // - coords 個数固定: words/dict/sentences=3（level/theme/mode）、story=1（storyId）。
+  // - ec: #357 の ec セグメント（t30/c600/i25/l3/e・既定 time60 は省略）。省略可。
+  // - position: 末尾の裸の正整数（1 始まり）。
+  // 解析規則: slug で coords 個数が決まる → coords を除いた残りで判定
+  //   残り1=position（ec 既定）／残り2=[ec,position]／残り0=不正。
+  // RouteState（最小形）: { view:'record-detail', kind, level?/theme?/mode?/storyId?, endCondition, position }。
+  // 不正・欠落は記録一覧ビュー { view:'records' } へ丸める（throw しない）。
+
+  it('R1. /records は従来どおり {view:"records"}（record-detail と非衝突・回帰防止）', () => {
+    expect(parseRoute('/records')).toEqual({ view: 'records' })
+  })
+
+  it('R2. words の基本 parse（ec 既定 time60・position は末尾正整数）', () => {
+    expect(parseRoute('/records/words/1/日常/en/2')).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 1,
+      theme: '日常',
+      mode: 'en',
+      endCondition: EC_DEFAULT,
+      position: 2,
+    })
+  })
+
+  it('R3. 非既定 ec は position の直前セグメント（t30 → time30）', () => {
+    expect(parseRoute('/records/words/1/日常/en/t30/2')).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 1,
+      theme: '日常',
+      mode: 'en',
+      endCondition: ec('time', 30),
+      position: 2,
+    })
+  })
+
+  it('R4. dict / sentences(wsent) の基本 parse（sentences ⇄ kind wsent）', () => {
+    expect(parseRoute('/records/dict/2/ビジネス/quiz/3')).toEqual({
+      view: 'record-detail',
+      kind: 'dict',
+      level: 2,
+      theme: 'ビジネス',
+      mode: 'quiz',
+      endCondition: EC_DEFAULT,
+      position: 3,
+    })
+    expect(parseRoute('/records/sentences/1/すべて/both/2')).toEqual({
+      view: 'record-detail',
+      kind: 'wsent', // slug 'sentences' ⇄ RouteState.kind 'wsent'
+      level: 1,
+      theme: 'すべて',
+      mode: 'both',
+      endCondition: EC_DEFAULT,
+      position: 2,
+    })
+  })
+
+  it('R5. story の基本 parse（coords は storyId 1個・level/theme/mode を持たない）', () => {
+    expect(parseRoute('/records/story/travel/1')).toEqual({
+      view: 'record-detail',
+      kind: 'story',
+      storyId: 'travel',
+      endCondition: EC_DEFAULT,
+      position: 1,
+    })
+    expect(parseRoute('/records/story/travel/e/3')).toEqual({
+      view: 'record-detail',
+      kind: 'story',
+      storyId: 'travel',
+      endCondition: ec('endless', null),
+      position: 3,
+    })
+  })
+
+  it('R6. percent-encoding された theme を復号する', () => {
+    // %E6%97%A5%E5%B8%B8 === encodeURIComponent('日常')
+    expect(parseRoute('/records/words/1/%E6%97%A5%E5%B8%B8/en/2').theme).toBe('日常')
+  })
+
+  it('R7. 不正・欠落は記録一覧 {view:"records"} へ丸める（throw しない）', () => {
+    // position 無し（coords 消化後の残り0）
+    expect(parseRoute('/records/words/1/日常/en')).toEqual({ view: 'records' })
+    // position が正整数でない（0 / 非数字）
+    expect(parseRoute('/records/words/1/日常/en/0')).toEqual({ view: 'records' })
+    expect(parseRoute('/records/words/1/日常/en/abc')).toEqual({ view: 'records' })
+    // 未知 slug（record-detail の kind ではない）
+    expect(parseRoute('/records/unknownkind/1/2')).toEqual({ view: 'records' })
+    // coords 不足（story は storyId が要る）
+    expect(parseRoute('/records/story')).toEqual({ view: 'records' })
+  })
+
+  it('R8. 座標の不正値はそのページ内の既定へ丸める（kind と position は保持）', () => {
+    expect(parseRoute('/records/words/99/xxx/zzz/2')).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 1, // 存在しない level → 1
+      theme: 'すべて', // 不明 theme → すべて
+      mode: 'en', // 不明 mode → words 既定 en
+      endCondition: EC_DEFAULT,
+      position: 2,
+    })
+  })
+
+  it('R9. buildRoute（words・theme encode・既定 ec は省略・末尾 position）', () => {
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'words',
+        level: 1,
+        theme: '日常',
+        mode: 'en',
+        endCondition: EC_DEFAULT,
+        position: 2,
+      }),
+    ).toBe('/records/words/1/%E6%97%A5%E5%B8%B8/en/2')
+  })
+
+  it('R10. buildRoute（kind wsent → slug sentences・非既定 ec は position の前）', () => {
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'wsent',
+        level: 2,
+        theme: 'すべて',
+        mode: 'both',
+        endCondition: ec('time', 30),
+        position: 2,
+      }),
+    ).toBe('/records/sentences/2/%E3%81%99%E3%81%B9%E3%81%A6/both/t30/2')
+  })
+
+  it('R11. buildRoute（story → /records/story/<storyId>/<position>・endless は e）', () => {
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'story',
+        storyId: 'travel',
+        endCondition: EC_DEFAULT,
+        position: 1,
+      }),
+    ).toBe('/records/story/travel/1')
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'story',
+        storyId: 'climbing',
+        endCondition: ec('endless', null),
+        position: 2,
+      }),
+    ).toBe('/records/story/climbing/e/2')
+  })
+
+  it('R12. buildRoute({view:"records"}) は /records（従来・非衝突）', () => {
+    expect(buildRoute({ view: 'records' })).toBe('/records')
+  })
+
+  it('R13. record-detail の往復不変（全 kind × ec 有無で parse∘build が正規化 s と一致）', () => {
+    const states = [
+      { view: 'record-detail', kind: 'words', level: 1, theme: '日常', mode: 'en', endCondition: ec('time', 60), position: 2 },
+      { view: 'record-detail', kind: 'words', level: 4, theme: 'ビジネス', mode: 'quiz-ja', endCondition: ec('time', 30), position: 1 },
+      { view: 'record-detail', kind: 'wsent', level: 2, theme: 'すべて', mode: 'both', endCondition: ec('chars', 600), position: 3 },
+      { view: 'record-detail', kind: 'dict', level: 3, theme: '旅行', mode: 'pick', endCondition: ec('items', 25), position: 5 },
+      { view: 'record-detail', kind: 'story', storyId: 'travel', endCondition: ec('time', 60), position: 1 },
+      { view: 'record-detail', kind: 'story', storyId: 'climbing', endCondition: ec('endless', null), position: 2 },
+    ]
+    for (const s of states) {
+      expect(parseRoute(buildRoute(s))).toEqual(s)
+    }
+  })
+
+  it('R14. record-detail path の冪等（parse∘build∘parse が parse と一致）', () => {
+    const paths = [
+      '/records/words/1/日常/en/2',
+      '/records/words/1/日常/en/t30/2',
+      '/records/sentences/1/すべて/both/2',
+      '/records/dict/2/ビジネス/quiz/3',
+      '/records/story/travel/1',
+      '/records/story/travel/e/3',
+      '/records/words/99/xxx/zzz/2', // 不正座標混じり → 丸め後で安定
+      '/records/words/1/日常/en', // 不正（position 無し）→ {view:'records'} で安定
+    ]
+    for (const p of paths) {
+      const once = parseRoute(p)
+      expect(parseRoute(buildRoute(once))).toEqual(once)
+    }
+  })
+
+  it('R15. 既存 content ルート・view ルート・未知 slug フォールバックは壊れない（回帰）', () => {
+    // content ルートは従来どおり内部キー（view 無し）
+    expect(parseRoute('/words/1/日常/en').gameType).toBe('words')
+    expect(parseRoute('/words/1/日常/en')).not.toHaveProperty('view')
+    // 他 view はそのまま
+    expect(parseRoute('/about')).toEqual({ view: 'about' })
+    expect(parseRoute('/result')).toEqual({ view: 'result' })
+    // /records 直下の未知 slug は記録一覧へ（従来 {view:'records'} を維持）
+    expect(parseRoute('/records/x')).toEqual({ view: 'records' })
+    // 未知トップ slug は従来どおり wsent 既定
+    expect(parseRoute('/xyz').gameType).toBe('wsent')
+  })
+})
+
 describe('routing.policy: 往復不変（最重要）', () => {
   // 代表的な valid RouteState 群（各ページ・各 ec 種別を横断）
   const states = [
