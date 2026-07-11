@@ -11,11 +11,15 @@ import { storyFlowProgress } from '../../domain/story/flowProgress.service.js'
 import { segMatches } from '../../domain/typing/units.service.js'
 import { consumedWords, guideText, kanjiDone } from '../../domain/typing/progress.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
 // 物語の記録ランキング（速い順・最大15件、分岐により長さは異なる）。useRecordDetail フックを
 // 使うため container 側に置き、presenter へは描画済みノードとして渡す。
 function StoryRecords({ list, highlight, rankText }) {
-  const { open, modal } = useRecordDetail()
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   if (!list || list.length === 0) return null
   return (
     <div className="records">
@@ -52,7 +56,7 @@ function StoryRecords({ list, highlight, rankText }) {
           ))}
         </tbody>
       </table>
-      {modal}
+      {!openDetail && modal}
     </div>
   )
 }

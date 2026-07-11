@@ -9,6 +9,7 @@ import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
 export default function DictView({ dict, gloss, wordRuby, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `英英 / ${modeLabel} / ${theme}`
@@ -20,7 +21,10 @@ export default function DictView({ dict, gloss, wordRuby, level, theme, mode, se
 // 英英の記録ランキング（useRecordDetail フックを使うため container 側）。finished 時だけマウント。
 function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
   const list = records[dictRecKey(level, theme, mode, result.endCondition)] || []
-  const { open, modal } = useRecordDetail()
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   const isQuiz = mode === 'quiz' || mode === 'pick' // 選択式＝正解数で表示
   return (
     <PlayResultView
@@ -31,7 +35,7 @@ function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
       onRetry={onRetry}
       onExit={onExit}
       onRowClick={(r, rank) => open(r, rank, { rankText: '英英', list, isQuiz })}
-      modal={modal}
+      modal={!openDetail && modal}
     />
   )
 }

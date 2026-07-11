@@ -8,6 +8,7 @@ import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
 export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `${modeLabel} / ${theme}`
@@ -42,7 +43,10 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
 // 単語の記録ランキング（useRecordDetail フックを使うため container 側）。finished 時だけマウント。
 function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
   const list = records[wordRecKey(level, theme, mode, result.endCondition)] || []
-  const { open, modal } = useRecordDetail()
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   const isQuiz = mode.startsWith('quiz')
   return (
     <PlayResultView
@@ -52,7 +56,7 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
       onRetry={onRetry}
       onExit={onExit}
       onRowClick={(r, rank) => open(r, rank, { rankText: '単語', list, isQuiz })}
-      modal={modal}
+      modal={!openDetail && modal}
     />
   )
 }
