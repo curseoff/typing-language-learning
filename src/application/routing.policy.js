@@ -91,9 +91,16 @@ const PAGES = {
   },
 }
 const DEFAULT_SLUG = 'sentences' // 未知 slug・ルートはここ（wsent）の既定へ丸める
+// #359 アプリレベルの3画面（about/すべての記録/結果）にも URL を与える。これらは
+// gameType/コンテンツ param/endCondition を持たない最小形 { view } で表す（内部 phase 写像は App 側）。
+const VIEW_SLUGS = new Set(['about', 'records', 'result'])
 const SLUG_BY_GAMETYPE = Object.fromEntries(
   Object.entries(PAGES).map(([slug, p]) => [p.gameType, slug]),
 )
+// #360 記録詳細（record-detail）で使う slug 集合（PAGES のコンテンツ4種を流用）。
+// URL 文法: /records/<slug>/<coords...>/[ec]/<position>。coords 個数は PAGES[slug].params で決まる
+//   （words/dict/sentences=3〔level/theme/mode〕・story=1〔storyId〕）。座標 clamp と ec codec は流用。
+const RECORD_DETAIL_SLUGS = new Set(['words', 'dict', 'sentences', 'story'])
 
 // --- 終了条件（ec）セグメント ⇄ EndCondition VO ---
 // t{N}=time / c{N}=chars / i{N}=items / l{N}=life / e=endless。
@@ -125,6 +132,33 @@ function buildEndCondition(endCondition) {
   return `${EC_PREFIX_BY_KIND[kind]}${value}`
 }
 
+// #360 /records 下ネストの record-detail を解析する。coords を除いた残りセグメントで
+//   残り1=position(ec 既定)／残り2=[ec,position]／それ以外(0/3+)=不正 とみなす。
+// position は末尾の裸の正整数（1 始まり）。不正・欠落・未知 slug・coords 不足は記録一覧 {view:'records'} へ丸める。
+function parseRecordDetail(segs) {
+  const slug = segs[0]
+  if (!RECORD_DETAIL_SLUGS.has(slug)) return { view: 'records' } // 未知 kind
+  const page = PAGES[slug]
+  const nCoords = page.params.length
+  const coordSegs = segs.slice(1, 1 + nCoords)
+  if (coordSegs.length < nCoords) return { view: 'records' } // coords 不足（story の storyId 欠落 等）
+  const rest = segs.slice(1 + nCoords)
+  let ecSeg = null
+  let posSeg
+  if (rest.length === 1) posSeg = rest[0] // ec 省略（既定 time60）
+  else if (rest.length === 2) [ecSeg, posSeg] = rest // [ec, position]
+  else return { view: 'records' } // 残り0（position 無し）・3+（余剰）は不正
+  const position = Number(posSeg)
+  if (!Number.isInteger(position) || position < 1) return { view: 'records' } // 非整数/0/負は不正
+  const state = { view: 'record-detail', kind: page.gameType }
+  page.params.forEach((p, i) => {
+    state[p.key] = p.parse(coordSegs[i]) // 座標の不正値はそのページ既定へ clamp
+  })
+  state.endCondition = parseEndCondition(ecSeg)
+  state.position = position
+  return state
+}
+
 // base 除去済み app 相対パス（先頭 '/'）を、位置ベースで RouteState へ解析する。
 // 常に valid な最小形 RouteState を返す（欠落は既定補完・不正値/未知 slug/不正 ec は throw せず既定へ丸め）。
 // 余分な末尾セグメント・末尾スラッシュは無視する。
@@ -133,6 +167,10 @@ export function parseRoute(appPath) {
     .split('/')
     .filter(Boolean)
     .map(safeDecode)
+  // #360 /records/<slug>/... は記録詳細（record-detail）。素の /records は従来どおり一覧 view。
+  if (segs[0] === 'records' && segs.length > 1) return parseRecordDetail(segs.slice(1))
+  // #359 先頭が view slug のときは最小形 { view } を返す（末尾スラッシュ・余分な末尾セグメント無視）。
+  if (VIEW_SLUGS.has(segs[0])) return { view: segs[0] }
   const known = PAGES[segs[0]]
   const page = known ?? PAGES[DEFAULT_SLUG] // 未知 slug → wsent 既定
   const rest = known ? segs.slice(1) : [] // 未知 slug は残りを無視し全既定へ
@@ -162,7 +200,22 @@ const ROOT_PATH = rawBuild({
   endCondition: DEFAULT_END_CONDITION,
 })
 
+// RouteState(record-detail) → /records/<slug>/<coords...>/[ec]/<position>。
+// kind→slug（wsent→sentences 等）・座標 build・既定 ec 省略は content ルートと同じ codec を流用。
+function buildRecordDetail(state) {
+  const slug = SLUG_BY_GAMETYPE[state.kind] ?? DEFAULT_SLUG
+  const parts = PAGES[slug].params.map((p) => p.build(state[p.key]))
+  const ecSeg = buildEndCondition(state.endCondition)
+  if (ecSeg != null) parts.push(ecSeg) // 既定 time60 は省略・endless は 'e'
+  parts.push(String(state.position)) // position は常に末尾
+  return `/records/${[slug, ...parts].join('/')}`
+}
+
 export function buildRoute(state) {
+  // #360 record-detail は /records 下ネスト（view 分岐より先に処理）。
+  if (state.view === 'record-detail') return buildRecordDetail(state)
+  // #359 view は最小形（'/about'|'/records'|'/result'）。endCondition/content param を参照しない。
+  if (state.view) return `/${state.view}`
   const path = rawBuild(state)
   return path === ROOT_PATH ? '/' : path
 }

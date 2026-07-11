@@ -118,7 +118,10 @@ export default defineConfig(({ command }) => ({
       // #357: パス型ルーティング（routing.policy codec の 17 テスト＋App のルーティング配線結合テスト）と
       // 直近の契約テスト（#323/#324）で実測が上振れ（S86.75/B79.29/F87.92/L87.86）→ 実測から
       // ≈0.4〜0.6 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
-      thresholds: { statements: 86.3, branches: 78.8, functions: 87.3, lines: 87.3 },
+      // #360: 記録詳細 URL（App の単一オーバーレイ所有・cold 直開き/not-found・行クリック pushState・
+      // 戻るで閉じるの配線テスト）を追加し実測が上振れ（S87.04/B79.78/F88.09/L88.19）→ 実測から
+      // ≈0.15〜0.4 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
+      thresholds: { statements: 86.9, branches: 79.4, functions: 87.9, lines: 88.0 },
     },
   },
 }))
