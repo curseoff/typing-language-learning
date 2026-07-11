@@ -36,7 +36,7 @@ export function buildWordPassage(words, level, theme, mode, { rng = Math.random,
   while (chars < target + 30 && i < 8000) {
     const w = shuffled[i % shuffled.length]
     out.push(w)
-    chars += buildUnits(w, mode).reduce((s, seg) => s + minKeys(seg), 0)
+    chars += buildUnits(w, mode, { rng }).reduce((s, seg) => s + minKeys(seg), 0)
     i++
   }
   return out
