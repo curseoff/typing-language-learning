@@ -40,12 +40,15 @@ export function assertDomainService({
   if (checkNoMathRandom) {
     it('外部乱数非依存：Math.random を掴まない（決定性の源は引数に閉じる）', () => {
       const spy = vi.spyOn(Math, 'random')
+      let calls
       try {
         fn(...sampleInput())
+        // mockRestore は呼び出し履歴もリセットするため、復元前に回数を捕捉して判定する。
+        calls = spy.mock.calls.length
       } finally {
         spy.mockRestore()
       }
-      expect(spy).not.toHaveBeenCalled()
+      expect(calls).toBe(0)
     })
   }
 }

@@ -142,6 +142,24 @@ describe('DomainService契約: wordset.buildWordPassage', () =>
     sampleInput: () => [words(), 1, 'すべて', 'both', { rng: mulberry32(SEED), target: 60 }],
   }))
 
+// buildWordPassage は tr モード（en-tr/ja-tr）で内部 buildUnits(w, mode) に rng を伝播していない
+// （buildPassage は buildUnits(s, mode, {rng}) で伝播しており不一致）＝tr モードの scramble が
+// Math.random にフォールバックする＝DomainService の「外部乱数非依存」契約に違反する。
+// scramble 結果は minKeys 集計に使われず破棄されるため出力は決定的（決定性・非破壊の it は緑）だが、
+// 契約上グローバル乱数を掴んではならない（外部乱数非依存の it が赤）。
+// この契約で Green にする＝coder が buildWordPassage の buildUnits 呼び出しに rng を伝播する。
+// en-tr は enWords(item.en) を scramble する。scramble は要素2個以上でないと Math.random を呼ばない
+// （Fisher–Yates の i>0 ループ）ため、fixture の en は複数語にして scramble を実際に通す。
+const trWords = () => [
+  { en: 'red apple', ja: '赤いりんご', kana: 'あかいりんご', word: 'apple', level: 1, theme: '日常' },
+  { en: 'big brown table', ja: '大きい机', kana: 'おおきいつくえ', word: 'table', level: 1, theme: '日常' },
+]
+describe('DomainService契約: wordset.buildWordPassage(en-tr)', () =>
+  assertDomainService({
+    fn: buildWordPassage,
+    sampleInput: () => [trWords(), 1, 'すべて', 'en-tr', { rng: mulberry32(SEED), target: 60 }],
+  }))
+
 describe('DomainService契約: wordset.makeQuiz', () =>
   assertDomainService({
     // 出題2語・誤答候補は fixture 全語（en が互いに衝突しない＝4択が埋まる）。
