@@ -91,9 +91,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return // 同一オリジンのみキャッシュ対象
 
-  // #357: ナビゲーション（deep-link の直アクセス）はネットワーク優先で、オフライン時は
-  // キャッシュ済み app-shell（BASE 直下の index）を返す。未キャッシュの深いパス
-  // （/…/story/travel）をオフラインで開いても app-shell が起動し SPA が復元する。
+  // #357: ナビゲーション（deep-link の直アクセス）は cache-first で app-shell を即返し、
+  // 背景でネットワーク更新する。SPA なので shell は全ルート共通＝キャッシュ済み shell を
+  // 返せばどの深いパス（/…/story/travel）でも SPA が起動して復元する。
   // navigate 以外は従来どおり（SWR）。
   if (req.mode === 'navigate') {
     event.respondWith(navigationFallback(event))
@@ -103,21 +103,37 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(routeAndRespond(event, url))
 })
 
-// ナビゲーション応答：まずネットワーク（オンラインは常に最新の shell/404.html を得る＝
-// GitHub Pages は未知パスに 404.html を返し、その中身が app-shell なので直アクセスで復元する）。
-// 失敗（オフライン）時はプリキャッシュ済み app-shell を返す。SHELL に無ければ 404.html を試す。
+// ナビゲーション応答：cache-first で app-shell を即返し、背景でネットワーク更新する。
+// SPA なので shell は全ルート共通＝キャッシュ済み shell を返せばどのパスでも SPA が起動する。
+//   - オンライン起動：キャッシュ shell を即描画（HTML 往復待ちなし）＋背景で shell を更新。
+//     鮮度は既存の版管理＋UpdateToast が担保する。
+//   - オフライン deep-link：キャッシュ shell 即返しで成立。
+//   - 未キャッシュ（初回・SW 未インストール）はネットワーク、失敗時は 404.html を最後の砦に。
 async function navigationFallback(event) {
+  const cache = await caches.open(SHELL)
+  const scope = self.registration.scope
+  // Vary: Origin 等で strict match が外れるのを回避（実キャッシュは scope 直下＝origin+BASE）。
+  const opts = { ignoreVary: true, ignoreSearch: true }
+  const cachedShell =
+    (await cache.match(new URL('./', scope).href, opts)) ||
+    (await cache.match(new URL('index.html', scope).href, opts)) ||
+    (await cache.match(new URL('404.html', scope).href, opts))
+  if (cachedShell) {
+    // cache-first：即返し。背景でネットワークから shell を更新（失敗は無視）。
+    event.waitUntil(
+      fetch(event.request)
+        .then((res) => {
+          if (res && res.ok) return cache.put(new URL('./', scope).href, res.clone())
+        })
+        .catch(() => {}),
+    )
+    return cachedShell
+  }
+  // 未キャッシュ（初回・SW 未インストール）はネットワーク、失敗時は 404.html 相当を最後の砦に。
   try {
     return await fetch(event.request)
   } catch {
-    const cache = await caches.open(SHELL)
-    // install で addAll(['./', ...]) した index は scope 直下（origin+BASE）にキャッシュされる。
-    const scope = self.registration.scope
-    const shell =
-      (await cache.match(new URL('./', scope).href)) ||
-      (await cache.match(new URL('index.html', scope).href)) ||
-      (await cache.match(new URL('404.html', scope).href))
-    return shell || Response.error()
+    return (await cache.match(new URL('404.html', scope).href, opts)) || Response.error()
   }
 }
 

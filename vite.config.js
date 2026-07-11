@@ -4,14 +4,20 @@ import react from '@vitejs/plugin-react'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
+// vite preview（command==='serve'）は本番ビルド済み資産を配信するので、資産が参照する
+// サブパス（/typing-language-learning/…）で配信しないと preview/check:pwa が空振りする。
+// argv で preview を判定し、build と同じ base に揃える（dev は '/' のまま）。
+const isPreview = process.argv.includes('preview')
+
 export default defineConfig(({ command }) => ({
   // #357 パス型ルーティング：深いパス直アクセス（/…/story/travel）でも 404.html の
-  // アセットが解決するよう base を絶対化する。本番（build）は GitHub Pages のサブパス
-  // 配信に合わせて '/typing-language-learning/'、dev/preview は '/'。
+  // アセットが解決するよう base を絶対化する。本番（build）と preview は GitHub Pages の
+  // サブパス配信に合わせて '/typing-language-learning/'、dev（vite/vite dev）は '/'。
   //   - 相対 base（'./'）だと deep-link 時に document.baseURI が深いパス基準になり
   //     アセット/SW scope が解決できない（#357 の核心）。絶対 base で常に scope 直下へ解決する。
+  //   - preview はビルド済み資産をそのまま配信するので本番 base に一致させないと 404 になる。
   //   - precache は sw.js（scope 直下）基準の相対パスなので base を変えても不変（precache.test.js）。
-  base: command === 'build' ? '/typing-language-learning/' : '/',
+  base: command === 'build' || isPreview ? '/typing-language-learning/' : '/',
   plugins: [react()],
   // sqlite-wasm は事前バンドルすると .wasm の locate に失敗しがちなので最適化から除外。
   // 教材コンテンツを content.sqlite3 から読む contentDb.js が動的 import する。
