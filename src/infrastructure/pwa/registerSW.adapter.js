@@ -14,7 +14,13 @@ export function registerServiceWorker({ onUpdate } = {}) {
   const start = async () => {
     let registration
     try {
-      registration = await navigator.serviceWorker.register(new URL('sw.js', document.baseURI).href)
+      // #357: 深いパス（/…/story/travel）から登録しても scope が base 直下になるよう、
+      // document.baseURI（＝現在の深い URL に化けうる）ではなく BASE_URL 基準で解決する。
+      // BASE_URL は先頭 '/' の絶対パス（本番 '/typing-language-learning/'・dev '/'）なので、
+      // register() はこれを現在パスではなくオリジン基準で解決する＝常に scope 直下の sw.js を指す。
+      // scope も base に明示固定する。
+      const base = import.meta.env.BASE_URL
+      registration = await navigator.serviceWorker.register(base + 'sw.js', { scope: base })
     } catch {
       return // 登録失敗は無視（PWA 無しの通常動作にフォールバック）
     }

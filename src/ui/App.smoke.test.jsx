@@ -21,6 +21,10 @@ describe('App スモーク', () => {
   beforeEach(() => {
     cleanup()
     localStorage.clear()
+    // #357 パス型ルーティング：App は初回レンダーで URL からルートを復元し、選択変更で URL を
+    // 書き換える。jsdom の location はテスト間で持続するため、各テストを root から始める
+    // （前テストが残した深いパスで初期レベル等が変わり別テストが揺れるのを防ぐ）。
+    window.history.replaceState(null, '', '/')
     initMemoryPersistence() // 記録メモリ像を空にリセット（sqlite専用化で facade は localStorage を読まない）
   })
 

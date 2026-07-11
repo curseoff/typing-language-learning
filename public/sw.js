@@ -91,8 +91,35 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return // 同一オリジンのみキャッシュ対象
 
+  // #357: ナビゲーション（deep-link の直アクセス）はネットワーク優先で、オフライン時は
+  // キャッシュ済み app-shell（BASE 直下の index）を返す。未キャッシュの深いパス
+  // （/…/story/travel）をオフラインで開いても app-shell が起動し SPA が復元する。
+  // navigate 以外は従来どおり（SWR）。
+  if (req.mode === 'navigate') {
+    event.respondWith(navigationFallback(event))
+    return
+  }
+
   event.respondWith(routeAndRespond(event, url))
 })
+
+// ナビゲーション応答：まずネットワーク（オンラインは常に最新の shell/404.html を得る＝
+// GitHub Pages は未知パスに 404.html を返し、その中身が app-shell なので直アクセスで復元する）。
+// 失敗（オフライン）時はプリキャッシュ済み app-shell を返す。SHELL に無ければ 404.html を試す。
+async function navigationFallback(event) {
+  try {
+    return await fetch(event.request)
+  } catch {
+    const cache = await caches.open(SHELL)
+    // install で addAll(['./', ...]) した index は scope 直下（origin+BASE）にキャッシュされる。
+    const scope = self.registration.scope
+    const shell =
+      (await cache.match(new URL('./', scope).href)) ||
+      (await cache.match(new URL('index.html', scope).href)) ||
+      (await cache.match(new URL('404.html', scope).href))
+    return shell || Response.error()
+  }
+}
 
 // manifest.data のメンバーシップで DATA/SHELL を決めて応答する。
 // 集合を取れない時は従来の正規表現（sqlite3/wasm）へフォールバック（安全側）。

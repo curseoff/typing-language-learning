@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
 import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
@@ -6,7 +6,7 @@ import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionar
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
 import { ROMAJI_LEVELS, ROMAJI_MODE } from './content/romaji.js'
-import { END_KINDS, DEFAULT_END_CONDITION, endKind, endConditionForKind } from './content/endConditions.js'
+import { END_KINDS, endKind, endConditionForKind } from './content/endConditions.js'
 import { makeEndCondition } from './domain/session/endCondition.vo.js'
 import { TARGET_KEYS } from './domain/marathon/passage.service.js'
 import { recKey } from './domain/records/ranking.service.js'
@@ -30,6 +30,7 @@ import PersistNotice from './ui/pwa/PersistNotice.container.jsx'
 import SoundToggle from './ui/sound/SoundToggle.container.jsx'
 import AppMenuBar from './ui/menu/AppMenuBar.container.jsx'
 import { makeSeed } from './application/seed.policy.js'
+import { parseRoute, buildRoute } from './application/routing.policy.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
 const MODE_KEYS = MODES.map((m) => m.key)
@@ -50,41 +51,69 @@ const STORY_IDS = STORIES.map((s) => s.id)
 const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 const LEVEL_VALUES = WORD_LEVELS.map((l) => l.level)
 
-// 初期タブ（?tab=wsent 等のディープリンク。スクショ撮影や共有リンクに使える）
-const initialTab = (() => {
-  if (typeof location === 'undefined') return 'wsent'
-  const t = new URLSearchParams(location.search).get('tab')
-  return TYPE_KEYS.includes(t) ? t : 'wsent'
-})()
+// #357 パス型ルーティング：base（末尾スラッシュ付き。本番 '/typing-language-learning/'・dev '/'）。
+const BASE = import.meta.env.BASE_URL
+
+// location.pathname から BASE prefix を除いた「app 相対パス（先頭 '/'）」を返す（codec に渡す形）。
+function appPathFromLocation() {
+  if (typeof location === 'undefined') return '/'
+  const p = location.pathname
+  const rel = p.startsWith(BASE) ? p.slice(BASE.length) : p.replace(/^\/+/, '')
+  return '/' + rel
+}
+
+// 旧共有リンク（?tab=）の値（gameType）→ URL slug。wsent だけ 'sentences'（codec の PAGES と対応）。
+// base 直下（app 相対 '/'）のときだけ後方互換で参照するための最小シム。
+const SLUG_FOR_TAB = {
+  wsent: 'sentences', story: 'story', words: 'words', dict: 'dict', touch: 'touch', romaji: 'romaji',
+}
+
+// 初期 RouteState：初回レンダー時の URL パスから復元する（location は呼び出し時に読む＝
+// useState の遅延初期化から1度だけ呼ぶ）。base 直下のときだけ旧 ?tab= を後方互換で拾う
+// （深いパスは常にパスを正とする＝共有/ブックマークがそのまま開く）。
+function computeInitialRoute() {
+  if (typeof location === 'undefined') return parseRoute('/')
+  const appPath = appPathFromLocation()
+  if (appPath === '/') {
+    const t = new URLSearchParams(location.search).get('tab')
+    if (TYPE_KEYS.includes(t)) return parseRoute('/' + SLUG_FOR_TAB[t])
+  }
+  return parseRoute(appPath)
+}
 
 export default function App() {
+  // 初回マウント時に1度だけ URL からルートを復元する（遅延初期化＝location を読むのはこの1回）。
+  const [IR] = useState(computeInitialRoute)
+  // gameType が一致するページのときだけ RouteState の値を初期値に使い、そうでなければ従来の既定へ。
+  const irIf = (gt, key, fallback) => (IR.gameType === gt ? IR[key] : fallback)
+
   const [phase, setPhase] = useState('ready') // ready | playing | result | story | words | about | allrecords
-  const [gameType, setGameType] = useState(initialTab) // wsent | story | words | dict | touch
-  const [mode, setMode] = useState('both') // 文章/物語: both | en | ja | en-tr | ja-tr
-  const [wsentLevel, setWsentLevel] = useState(1) // 単語例文のレベル(1-4)
-  const [wsentTheme, setWsentTheme] = useState('すべて') // 単語例文のテーマフィルタ
+  const [gameType, setGameType] = useState(IR.gameType) // wsent | story | words | dict | touch
+  const [mode, setMode] = useState(irIf('wsent', 'mode', 'both')) // 文章/物語: both | en | ja | en-tr | ja-tr
+  const [wsentLevel, setWsentLevel] = useState(irIf('wsent', 'level', 1)) // 単語例文のレベル(1-4)
+  const [wsentTheme, setWsentTheme] = useState(irIf('wsent', 'theme', 'すべて')) // 単語例文のテーマフィルタ
   const [wsentGloss, setWsentGloss] = useState(null) // 単語例文の英→和グロッサリ(プレイ中の和訳併記用)
-  const [storyId, setStoryId] = useState(DEFAULT_STORY_ID) // 選択中の物語(travel | climbing …)
+  const [storyId, setStoryId] = useState(irIf('story', 'storyId', DEFAULT_STORY_ID)) // 選択中の物語(travel | climbing …)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
   const [storyNonce, setStoryNonce] = useState(0) // リプレイで物語を強制再マウントするための一意キー
-  const [wordLevel, setWordLevel] = useState(1) // 単語のレベル(1-4)
-  const [wordTheme, setWordTheme] = useState('すべて') // 単語のテーマフィルタ
-  const [wordMode, setWordMode] = useState('en') // both | en | ja | quiz-en | quiz-ja
+  const [wordLevel, setWordLevel] = useState(irIf('words', 'level', 1)) // 単語のレベル(1-4)
+  const [wordTheme, setWordTheme] = useState(irIf('words', 'theme', 'すべて')) // 単語のテーマフィルタ
+  const [wordMode, setWordMode] = useState(irIf('words', 'mode', 'en')) // both | en | ja | quiz-en | quiz-ja
   const [wordSeed, setWordSeed] = useState(null) // 単語の問題列シード（リプレイ再現用）
   const [wordsData, setWordsData] = useState(null) // 単語データ（遅延読み込み）
-  const [dictLevel, setDictLevel] = useState(DICT_AVAILABLE_LEVELS[0] ?? 1) // 英英のレベル
-  const [dictTheme, setDictTheme] = useState('すべて') // 英英のテーマ
-  const [dictMode, setDictMode] = useState('quiz') // quiz | en | ja
+  const [dictLevel, setDictLevel] = useState(irIf('dict', 'level', DICT_AVAILABLE_LEVELS[0] ?? 1)) // 英英のレベル
+  const [dictTheme, setDictTheme] = useState(irIf('dict', 'theme', 'すべて')) // 英英のテーマ
+  const [dictMode, setDictMode] = useState(irIf('dict', 'mode', 'quiz')) // quiz | en | ja
   const [dictSeed, setDictSeed] = useState(null) // 英英の問題列シード（リプレイ再現用）
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
   const [dictGloss, setDictGloss] = useState(null) // 英英の英→和グロッサリ(回答後の単語和訳表示用)
   const [dictWordRuby, setDictWordRuby] = useState(null) // 英英の英→{ja,kana}(単語4択の回答後にルビ表示用)
-  const [touchLevel, setTouchLevel] = useState('home') // タッチタイピングのレベル
-  const [touchMode, setTouchMode] = useState('easy') // タッチタイピングのモード(easy|hard)
-  const [romajiLevel, setRomajiLevel] = useState('a') // ローマ字入力練習のレベル(行グループ)
+  const [touchLevel, setTouchLevel] = useState(irIf('touch', 'touchLevel', 'home')) // タッチタイピングのレベル
+  const [touchMode, setTouchMode] = useState(irIf('touch', 'touchMode', 'easy')) // タッチタイピングのモード(easy|hard)
+  const [romajiLevel, setRomajiLevel] = useState(irIf('romaji', 'romajiLevel', 'a')) // ローマ字入力練習のレベル(行グループ)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
   const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
-  const [endCondition, setEndCondition] = useState(DEFAULT_END_CONDITION) // 終了条件（段1は時間のみ・既定60秒＝従来）
+  const [endCondition, setEndCondition] = useState(IR.endCondition) // 終了条件（URL の ec から復元・既定60秒）
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
@@ -169,6 +198,61 @@ export default function App() {
     (id) => setFocusRow(Math.max(0, rows.findIndex((r) => r.id === id))),
     [rows],
   )
+
+  // #357 現在の選択（gameType＋そのページの param＋endCondition）から最小 RouteState を組む。
+  // codec（buildRoute）が期待する「当該ページの param のみ」の形にする。
+  const currentRouteState = useCallback(() => {
+    switch (gameType) {
+      case 'words': return { gameType, level: wordLevel, theme: wordTheme, mode: wordMode, endCondition }
+      case 'dict': return { gameType, level: dictLevel, theme: dictTheme, mode: dictMode, endCondition }
+      case 'story': return { gameType, storyId, endCondition }
+      case 'touch': return { gameType, touchLevel, touchMode, endCondition }
+      case 'romaji': return { gameType, romajiLevel, endCondition }
+      default: return { gameType: 'wsent', level: wsentLevel, theme: wsentTheme, mode, endCondition }
+    }
+  }, [gameType, wordLevel, wordTheme, wordMode, dictLevel, dictTheme, dictMode, storyId, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, mode, endCondition])
+
+  // #357 RouteState を各ページの state セッターへ写像する（popstate 復元で使う）。
+  // 初回はこの写像を使わず useState 初期値で直接復元している（IR/irIf）。
+  const applyRouteToState = useCallback((state) => {
+    setGameType(state.gameType)
+    switch (state.gameType) {
+      case 'words': setWordLevel(state.level); setWordTheme(state.theme); setWordMode(state.mode); break
+      case 'dict': setDictLevel(state.level); setDictTheme(state.theme); setDictMode(state.mode); break
+      case 'story': setStoryId(state.storyId); break
+      case 'touch': setTouchLevel(state.touchLevel); setTouchMode(state.touchMode); break
+      case 'romaji': setRomajiLevel(state.romajiLevel); break
+      default: setWsentLevel(state.level); setWsentTheme(state.theme); setMode(state.mode)
+    }
+    setEndCondition(state.endCondition)
+  }, [])
+
+  // #357 URL 反映：ready のときだけ現在選択を URL へ書き戻す。playing/result/story 実行中や
+  // about/allrecords・seed/records などの一過性・ユーザー情報は URL に載せない（phase!=='ready' は不更新）。
+  // gameType/storyId 切替は pushState（戻る/進むが効く）、同一ページ内の param 変更は replaceState
+  // （履歴を汚さずアドレスバーは常に現在選択）。?preview/?persist/?tab 等の search は温存する。
+  const routeRef = useRef({ gameType, storyId })
+  useEffect(() => {
+    if (phase !== 'ready' || typeof location === 'undefined') return
+    const target = BASE + buildRoute(currentRouteState()).slice(1) + location.search
+    const changed = gameType !== routeRef.current.gameType || storyId !== routeRef.current.storyId
+    routeRef.current = { gameType, storyId }
+    // 既に一致（初期の canonical URL・popstate 復元後）なら何もしない＝二重 push を避ける。
+    if (target === location.pathname + location.search) return
+    if (changed) history.pushState(null, '', target)
+    else history.replaceState(null, '', target)
+  }, [phase, currentRouteState, gameType, storyId])
+
+  // #357 戻る/進む（popstate）：URL からルートを復元し ready へ戻す（プレイ中に戻る→ready 復帰）。
+  // 復元後の URL は canonical なので、上の URL 反映効果は target===現URL で no-op になる（書き戻しなし）。
+  useEffect(() => {
+    const onPop = () => {
+      applyRouteToState(parseRoute(appPathFromLocation()))
+      setPhase('ready')
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [applyRouteToState])
 
   // マラソンのゲームセッション
   const onFinish = useCallback((record, stats) => {
