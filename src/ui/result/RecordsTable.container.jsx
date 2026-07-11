@@ -5,9 +5,13 @@ import { RecordsTable as RecordsTableView } from '@tll/ui'
 import { modeLabel } from '../../content/modes.js'
 import { MAX_RECORDS } from '../../domain/records/ranking.service.js'
 import { useRecordDetail } from './useRecordDetail.jsx'
+import { useOpenDetail } from './RecordDetailContext.context.jsx'
 
 export default function RecordsTable({ records, modeKey, rankText, endCondition, highlight }) {
-  const { open, modal } = useRecordDetail()
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   return (
     <>
       <RecordsTableView
@@ -20,7 +24,7 @@ export default function RecordsTable({ records, modeKey, rankText, endCondition,
         maxRecords={MAX_RECORDS}
         onRowClick={open}
       />
-      {modal}
+      {!openDetail && modal}
     </>
   )
 }

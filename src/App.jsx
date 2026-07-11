@@ -10,11 +10,12 @@ import { END_KINDS, endKind, endConditionForKind, DEFAULT_END_CONDITION } from '
 import { makeEndCondition } from './domain/session/endCondition.vo.js'
 import { TARGET_KEYS } from './domain/marathon/passage.service.js'
 import { recKey } from './domain/records/ranking.service.js'
-import { loadRecords, saveRecord } from './application/records.service.js'
+import { loadRecords, loadDictRecords, loadWordRecords, loadAllStoryRecords, saveRecord } from './application/records.service.js'
 import { useMarathon } from './application/useMarathon.js'
 import Ready from './ui/ready/Ready.container.jsx'
 import MarathonView from './ui/marathon/MarathonView.container.jsx'
 import Result from './ui/result/Result.container.jsx'
+import RecordDetail from './ui/result/RecordDetail.container.jsx'
 import StoryView from './ui/story/StoryView.container.jsx'
 import WordsView from './ui/words/WordsView.container.jsx'
 import DictView from './ui/dictionary/DictView.container.jsx'
@@ -23,6 +24,7 @@ import RomajiView from './ui/romaji/RomajiView.container.jsx'
 import AboutView from './ui/about/AboutView.presenter.jsx'
 import AllRecordsView from './ui/records/AllRecordsView.container.jsx'
 import { ReplayProvider } from './ui/result/ReplayContext.context.jsx'
+import { RecordDetailProvider } from './ui/result/RecordDetailContext.context.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.container.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.container.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.container.jsx'
@@ -31,6 +33,7 @@ import SoundToggle from './ui/sound/SoundToggle.container.jsx'
 import AppMenuBar from './ui/menu/AppMenuBar.container.jsx'
 import { makeSeed } from './application/seed.policy.js'
 import { parseRoute, buildRoute } from './application/routing.policy.js'
+import { routeFromRawRecord, resolveColdDetail } from './application/recordDetailRoute.policy.js'
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
 const MODE_KEYS = MODES.map((m) => m.key)
@@ -92,6 +95,8 @@ export default function App() {
   const [phase, setPhase] = useState(() => {
     if (IR.view === 'about') return 'about'
     if (IR.view === 'records') return 'allrecords'
+    // #360 record-detail の cold ロードは一覧（allrecords）を下敷きにモーダルを重ねる（#359 の view 写像に倣う）。
+    if (IR.view === 'record-detail') return 'allrecords'
     return 'ready' // view:'result' の cold ロードは lastResult 不在＝TOP へ丸め
   }) // ready | playing | result | story | words | about | allrecords
   const [gameType, setGameType] = useState(IR.gameType ?? 'wsent') // wsent | story | words | dict | touch（view IR は gameType 無し＝既定 wsent）
@@ -125,6 +130,9 @@ export default function App() {
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
+  // #360 記録詳細（record-detail）オーバーレイの真実源＝URL 由来の RouteState（無ければ null）。
+  // cold ロードで URL が record-detail のときは初期復元し、以後は openDetail/popstate で更新する。
+  const [detailRoute, setDetailRoute] = useState(IR.view === 'record-detail' ? IR : null)
 
   // TOP画面の行（セクション）構成。↑↓で行移動、←→で行内の選択移動。種類によって行が変わる。
   const rows = useMemo(() => {
@@ -223,6 +231,15 @@ export default function App() {
   // #357/#359 RouteState を phase＋各ページの state セッターへ写像する（popstate 復元で使う）。
   // 初回はこの写像を使わず useState 初期値で直接復元している（IR/irIf/初期 phase）。
   const applyRouteToState = useCallback((state) => {
+    // #360 record-detail ルート：一覧（allrecords）を下敷きに detailRoute を立てオーバーレイを開く。
+    // 戻る/進むで detail URL を跨ぐたびここを通り、URL を真実源にモーダルの開閉が同期する。
+    if (state.view === 'record-detail') {
+      setDetailRoute(state)
+      setPhase('allrecords')
+      return
+    }
+    // record-detail 以外のルートへ移ったら（戻る/進むで detail を抜けたら）オーバーレイを閉じる。
+    setDetailRoute(null)
     // #359 view ルート（about/records/result）：コンテンツ選択は保持し phase だけ切替える。
     // result は lastResult があれば結果画面・無ければ TOP へ丸める（直リンク/戻るでの白画面回避）。
     if (state.view) {
@@ -252,6 +269,9 @@ export default function App() {
   const routeRef = useRef({ gameType, storyId, view: null })
   useEffect(() => {
     if (typeof location === 'undefined') return
+    // #360 detail オーバーレイが開いている間は URL の真実源は detail 側（openDetail の pushState/
+    // 戻るの popstate）＝ここでは書き戻さない（phase の allrecords 反映で detail URL を潰さない）。
+    if (detailRoute) return
     // phase に応じて URL へ反映する RouteState を決める（該当しない一過性 phase は更新しない）。
     let routeState
     if (phase === 'about') routeState = { view: 'about' }
@@ -271,7 +291,7 @@ export default function App() {
     if (target === location.pathname + location.search) return
     if (changed) history.pushState(null, '', target)
     else history.replaceState(null, '', target)
-  }, [phase, currentRouteState, gameType, storyId, lastResult])
+  }, [phase, currentRouteState, gameType, storyId, lastResult, detailRoute])
 
   // #357/#359 戻る/進む（popstate）：URL からルートを復元し phase を写像する（content→ready・
   // view→対応 phase／cold result は TOP へ丸め）。復元後の URL は canonical なので、上の URL 反映
@@ -283,6 +303,37 @@ export default function App() {
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [applyRouteToState])
+
+  // #360 記録行クリックの共通ハンドラ（3サイト＝AllRecordsView / Result / RecordsTable が Context 経由で呼ぶ）。
+  // 生記録＋順位から record-detail の URL を組んで pushState し、detailRoute を立ててオーバーレイを開く。
+  // touch/romaji 等 URL 非対象（routeFromRawRecord=null）は何もしない。
+  const openDetail = useCallback((record, position) => {
+    const route = routeFromRawRecord(record, position)
+    if (route == null) return
+    if (typeof location !== 'undefined' && typeof history !== 'undefined') {
+      const target = BASE + buildRoute(route).slice(1) + location.search
+      history.pushState(null, '', target) // open で1エントリ積む＝閉じる＝戻る
+    }
+    setDetailRoute(route)
+  }, [])
+
+  // 閉じる（× / Esc / 閉じるボタン）＝open で積んだ1エントリを戻す。→ popstate で detailRoute を再計算し unmount。
+  const closeDetail = useCallback(() => {
+    if (typeof history !== 'undefined') history.back()
+  }, [])
+
+  // detailRoute（URL 由来）から実記録を解決する。cold 直開き・range 外・未知 kind・legacy 不一致は
+  // null＝オーバーレイを描かない（一覧のみ・白画面/例外にしない＝#359 の教訓）。detailRoute が立つ
+  // 瞬間（open/popstate/cold）に記録ストア（メモリ像）を読み直して解決する。
+  const detailResolved = useMemo(() => {
+    if (detailRoute == null) return null
+    return resolveColdDetail(detailRoute, {
+      records: loadRecords(),
+      dictRecords: loadDictRecords(),
+      wordRecords: loadWordRecords(),
+      storyRecords: loadAllStoryRecords(),
+    })
+  }, [detailRoute])
 
   // マラソンのゲームセッション
   const onFinish = useCallback((record, stats) => {
@@ -451,6 +502,7 @@ export default function App() {
       if (e.key === 'Escape') {
         if (phase === 'about' || phase === 'allrecords') {
           e.preventDefault()
+          setDetailRoute(null) // detail が cold not-found でオーバーレイ非表示のときも URL 反映を戻す
           setPhase('ready')
           return
         }
@@ -554,10 +606,11 @@ export default function App() {
 
   return (
     <ReplayProvider onReplay={replay}>
+    <RecordDetailProvider openDetail={openDetail}>
     <AppMenuBar
       appName="英文・和文タイピング"
-      onNavigateAbout={() => setPhase('about')}
-      onNavigateAllRecords={() => setPhase('allrecords')}
+      onNavigateAbout={() => { setDetailRoute(null); setPhase('about') }}
+      onNavigateAllRecords={() => { setDetailRoute(null); setPhase('allrecords') }}
     />
     <div className="app">
       {import.meta.env.DEV && (
@@ -706,6 +759,20 @@ export default function App() {
         <Result result={lastResult} records={records} segStats={segStats} onRetry={startGame} />
       )}
 
+      {/* #360 URL 由来の記録詳細オーバーレイ（単一・真実源は detailRoute＝URL）。resolveColdDetail が
+          非 null のときだけ現画面の上に重ねる（null＝cold not-found/range 外/未知 kind は描かない）。 */}
+      {detailResolved && (
+        <RecordDetail
+          list={detailResolved.ctx.list?.length ? detailResolved.ctx.list : [detailResolved.record]}
+          initial={{ record: detailResolved.record, position: detailResolved.position }}
+          rankText={detailResolved.ctx.rankText}
+          modeKey={detailResolved.ctx.modeKey}
+          isQuiz={detailResolved.ctx.isQuiz}
+          hasEnding={detailResolved.ctx.hasEnding}
+          onClose={closeDetail}
+        />
+      )}
+
       {phase === 'ready' && <p className="version">v{__APP_VERSION__}</p>}
 
       <SoundToggle />
@@ -714,6 +781,7 @@ export default function App() {
       <ContentFallbackNotice />
       <PersistNotice />
     </div>
+    </RecordDetailProvider>
     </ReplayProvider>
   )
 }
