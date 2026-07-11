@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // これまで {keys, mistakes, items, missedItems, elapsedMs} という生リテラルが層をまたいで流れ、
 // 不変条件（非負整数・elapsedMs 非負有限・missedItems<=items）が誰にも守られていなかった。
 // 本体 src/domain/session/progress.vo.js は coder が Green で実装する（現状未実装＝import で undefined）。
-// 既存 VO（endCondition.vo.js / rankingBoard.vo.js）と同じ流儀：純ドメイン・React/DOM/Date/乱数 非依存・決定的。
+// 既存 VO（endCondition.vo.js / rankingBoard.aggregate.js）と同じ流儀：純ドメイン・React/DOM/Date/乱数 非依存・決定的。
 import {
   makeProgress,
   isProgress,

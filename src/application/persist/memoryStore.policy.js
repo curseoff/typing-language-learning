@@ -6,7 +6,7 @@
 import { recKey } from '../../domain/records/ranking.service.js'
 import { wordRecKey, dictRecKey, storyRecKey } from '../../domain/records/recordKeys.service.js'
 import { makeItemStat } from '../../domain/records/itemStat.entity.js'
-import { makeRankingBoard } from '../../domain/records/rankingBoard.vo.js'
+import { makeRankingBoard } from '../../domain/records/rankingBoard.aggregate.js'
 import { normalizeEndCondition } from '../../domain/session/endCondition.vo.js'
 
 // 記録を集約ルート RankingBoard.submit() へ通して整列＋上限を適用し、非凍結の素配列で返す
