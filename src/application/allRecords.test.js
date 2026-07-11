@@ -24,7 +24,7 @@ describe('flattenRecords（3リポジトリの生データを正規化フラッ�
     expect(out).toEqual([])
   })
 
-  it('typing-records の wsent 記録を kind=wsent（文章）へ正規化する（level は rank から）', () => {
+  it('typing-records の wsent 記録を kind=wsent（単語例文）へ正規化する（level は rank から）', () => {
     const rec = {
       source: 'wsent',
       mode: 'both',
@@ -44,7 +44,7 @@ describe('flattenRecords（3リポジトリの生データを正規化フラッ�
     })
     expect(el).toMatchObject({
       kind: 'wsent',
-      kindLabel: '文章',
+      kindLabel: '単語例文',
       level: 2,
       mode: 'both',
       theme: '旅行',
@@ -134,7 +134,7 @@ describe('flattenRecords（3リポジトリの生データを正規化フラッ�
     expect(out.some((e) => e.kind === 'touch')).toBe(false)
   })
 
-  // Issue #261: ローマ字練習(source=romaji)の記録が横断ビューに「文章(wsent)」として誤表示される。
+  // Issue #261: ローマ字練習(source=romaji)の記録が横断ビューに「単語例文(wsent)」として誤表示される。
   // romaji は練習モードで level がかな行の文字列・mode='normal' と横断ビューの数値レベル/モード体系に
   // 合わないため、touch と同様に対象外として除外されるべき（既定 return 'wsent' に落ちてはならない）。
   it('ローマ字(source=romaji)記録は対象外として除外する（#261）', () => {
@@ -497,14 +497,14 @@ describe('sortAllRecords（列キーと昇降で並べ替える純関数）', ()
     expect(out.map((r) => r.keys)).toEqual([90, 60, 40])
   })
 
-  it('kind は意味順（文章→物語→単語→英英）で並ぶ', () => {
+  it('kind は意味順（単語例文→物語→単語→英英）で並ぶ', () => {
     const kinds = ['dict', 'wsent', 'words', 'story']
     const list = kinds.map((k) => row({ kind: k }))
     const out = sortAllRecords(list, 'kind', 'asc')
     expect(out.map((r) => r.kind)).toEqual(['wsent', 'story', 'words', 'dict'])
   })
 
-  it('kind の降順は意味順の逆（英英→単語→物語→文章）', () => {
+  it('kind の降順は意味順の逆（英英→単語→物語→単語例文）', () => {
     const kinds = ['wsent', 'dict', 'story', 'words']
     const list = kinds.map((k) => row({ kind: k }))
     const out = sortAllRecords(list, 'kind', 'desc')
