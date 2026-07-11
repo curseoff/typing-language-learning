@@ -8,7 +8,7 @@ import {
   createInMemoryRankingStore,
   createRankingRepository,
 } from './ranking.repository.js'
-import { makeRankingBoard, rankingBoardEquals } from './rankingBoard.vo.js'
+import { makeRankingBoard, rankingBoardEquals } from './rankingBoard.aggregate.js'
 import { MAX_RECORDS } from './ranking.service.js'
 import { makeEndCondition } from '../session/endCondition.vo.js'
 

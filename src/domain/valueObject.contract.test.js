@@ -7,7 +7,7 @@
 //     操作は順序づけ（compareRecords）であって値等価ではない＝ *Equals を持たないのは妥当（scoreRecordEquals
 //     は YAGNI）。不変・自己検証は満たすので、将来 VO 契約を「普遍層(不変+自己検証+非identity等価) ＋
 //     任意層(値等価)」の2層に分ければ普遍層で被覆できる。本 Issue の“値等価”契約には載せない。
-//   - RankingBoard（records/rankingBoard.vo.js）… Aggregate（集約ルート）で同一性は key の Entity。
+//   - RankingBoard（records/rankingBoard.aggregate.js）… Aggregate（集約ルート）で同一性は key の Entity。
 //     rankingBoardEquals は key 基準の identity 等価（entries が違っても等しい）＝値等価法則
 //     （値が違えば等しくない）に載らない＝本契約の対象外。
 //   - kanaTable（packages/core/src/romaji/kanaTable.vo.js）… KANA_TABLE は凍結済みの定数テーブルで

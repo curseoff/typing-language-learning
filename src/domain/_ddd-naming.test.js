@@ -16,6 +16,7 @@ const REPO_ROOT = join(HERE, '..', '..') // .../ (repo root)
 // DDD ステレオタイプ（#306 で確定した domain/core 用の集合）。
 const DDD_SUFFIXES = [
   'entity',
+  'aggregate',
   'vo',
   'factory',
   'event',

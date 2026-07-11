@@ -423,7 +423,8 @@ multiTab.js: onChange = () => bus.publish(RecordsChanged{epoch})
 | suffix | stereotype | 例 |
 |---|---|---|
 | `.entity.js` | Entity（同一性・可変・ライフサイクル） | `typingSession.entity.js` |
-| `.vo.js` | Value Object（不変・値等価） | `endCondition.vo.js` / `rankingBoard.vo.js` / `kanaTable.vo.js` |
+| `.aggregate.js` | Aggregate Root（集約ルート・不変条件を根が保証） | `rankingBoard.aggregate.js` |
+| `.vo.js` | Value Object（不変・値等価） | `endCondition.vo.js` / `kanaTable.vo.js` |
 | `.factory.js` | Factory（同一性注入つき生成） | `typingSession.factory.js` |
 | `.event.js` | Domain Event | `recordEvents.event.js` |
 | `.specification.js` | Specification（`.spec` はテストと紛らわしいので不採用） | `combinators.specification.js` / `recordSpecs.specification.js` |
