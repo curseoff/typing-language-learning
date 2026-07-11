@@ -69,3 +69,90 @@ describe('App パス型ルーティング配線 (#357)', () => {
     expect(window.history.length).toBe(before) // push されていない＝履歴が増えない
   })
 })
+
+// #359 view ルート（about/records/result）の App 配線テスト（characterization / 回帰固定）。
+// 純 codec（parseRoute/buildRoute の view 分岐）は routing.policy.test.js が別途担保し、ここは
+// 「view URL からの cold 初期化・view への遷移で pushState・戻る（popstate）での復元・cold /result の
+// TOP 丸め」という location/history とアプリ phase の配線を検証する。BASE は '/'（vite dev と同じ）。
+describe('App view ルート配線 (#359)', () => {
+  beforeEach(() => {
+    cleanup()
+    localStorage.clear()
+    initMemoryPersistence()
+    setPath('/')
+  })
+  afterEach(() => setPath('/'))
+
+  // menu-bar の trigger を開いてから item を選ぶ（AboutView/AllRecordsView への導線）。
+  const openMenuItem = (container, triggerLabel, itemLabel) => {
+    const bar = container.querySelector('.menu-bar')
+    act(() => fireEvent.click(within(bar).getByText(triggerLabel)))
+    act(() => fireEvent.click(within(bar).getByText(itemLabel)))
+  }
+
+  it('cold /about で初期化すると「このアプリについて」画面(AboutView)が出る', () => {
+    setPath('/about')
+    const { container } = render(<App />)
+    expect(container.querySelector('.about')).not.toBeNull() // AboutView が描画される
+    expect(within(container).getByText('打って、覚える。')).toBeTruthy()
+    expect(container.querySelector('.type-tabs')).toBeNull() // TOP(ready) ではない
+    expect(location.pathname).toBe('/about') // canonical な view URL のまま
+  })
+
+  it('cold /records で初期化すると「すべての記録」画面(AllRecordsView)が出る', () => {
+    setPath('/records')
+    const { container } = render(<App />)
+    expect(container.querySelector('.all-records')).not.toBeNull() // AllRecordsView が描画される
+    expect(within(container).getByText('すべての記録')).toBeTruthy() // 一覧の見出し
+    expect(container.querySelector('.type-tabs')).toBeNull() // TOP(ready) ではない
+    expect(location.pathname).toBe('/records')
+  })
+
+  it('cold /result（lastResult 無し）は結果画面でなく TOP(ready) へ丸まり URL も canonical 化される', () => {
+    setPath('/result')
+    const { container } = render(<App />)
+    // lastResult 不在＝結果画面は出さず TOP(ready) を表示（白画面にならない）
+    expect(container.querySelector('.type-tabs')).not.toBeNull()
+    expect(container.querySelector('.about')).toBeNull()
+    expect(container.querySelector('.all-records')).toBeNull()
+    // view:'result' の cold ロードは phase ready へ丸め、URL は現在選択の canonical（既定＝root '/'）へ
+    expect(location.pathname).toBe('/')
+  })
+
+  it('ready からメニューで「このアプリについて」へ遷移すると /about へ pushState され、戻る(popstate)で content 画面へ復帰する', () => {
+    const { container } = render(<App />)
+    expect(location.pathname).toBe('/') // 初期は単語例文＝root
+    const before = window.history.length
+    // メニュー導線（onNavigateAbout）で about へ → pushState（戻る/進むが効く）
+    openMenuItem(container, '英文・和文タイピング', 'このアプリについて')
+    expect(container.querySelector('.about')).not.toBeNull()
+    expect(location.pathname).toBe('/about')
+    expect(window.history.length).toBe(before + 1)
+    // 戻る（履歴の別エントリを模擬）→ popstate で直前の content ルート(root=ready)へ復元
+    act(() => {
+      window.history.pushState(null, '', '/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    expect(container.querySelector('.type-tabs')).not.toBeNull() // TOP(ready) に復帰
+    expect(container.querySelector('.about')).toBeNull()
+    expect(location.pathname).toBe('/')
+  })
+
+  it('深い content ルートから「すべての記録」へ遷移し、戻る(popstate)で直前の content 画面・URL に復帰する', () => {
+    setPath('/story/climbing')
+    const { container } = render(<App />)
+    expect(selectedTab(container, '物語').className).toMatch(/sel/)
+    // メニュー導線（onNavigateAllRecords）で allrecords へ → view URL へ pushState
+    openMenuItem(container, 'データ', 'すべての記録')
+    expect(container.querySelector('.all-records')).not.toBeNull()
+    expect(location.pathname).toBe('/records')
+    // 戻る → popstate で物語ルート（直前の content 画面・URL）へ復元
+    act(() => {
+      window.history.pushState(null, '', '/story/climbing')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+    expect(selectedTab(container, '物語').className).toMatch(/sel/)
+    expect(container.querySelector('.all-records')).toBeNull()
+    expect(location.pathname).toBe('/story/climbing')
+  })
+})

@@ -6,7 +6,7 @@ import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionar
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
 import { ROMAJI_LEVELS, ROMAJI_MODE } from './content/romaji.js'
-import { END_KINDS, endKind, endConditionForKind } from './content/endConditions.js'
+import { END_KINDS, endKind, endConditionForKind, DEFAULT_END_CONDITION } from './content/endConditions.js'
 import { makeEndCondition } from './domain/session/endCondition.vo.js'
 import { TARGET_KEYS } from './domain/marathon/passage.service.js'
 import { recKey } from './domain/records/ranking.service.js'
@@ -119,7 +119,9 @@ export default function App() {
   const [romajiLevel, setRomajiLevel] = useState(irIf('romaji', 'romajiLevel', 'a')) // ローマ字入力練習のレベル(行グループ)
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
   const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
-  const [endCondition, setEndCondition] = useState(IR.endCondition) // 終了条件（URL の ec から復元・既定60秒）
+  // 終了条件（URL の ec から復元・既定60秒）。view IR（{view}のみ）は endCondition を持たない＝
+  // 既定 VO へフォールバック（未定義だと rows useMemo の endCondition.kind で落ちて白画面＝#359）。
+  const [endCondition, setEndCondition] = useState(IR.endCondition ?? DEFAULT_END_CONDITION)
   const [records, setRecords] = useState(loadRecords())
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
