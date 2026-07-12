@@ -528,10 +528,10 @@ describe('routing.policy: words の固定範囲 range セグメント（r{n}）#
     })
   })
 
-  it('r2. ec セグメントと range セグメントが併存できる（/words/1/日常/en/i20/r2）', () => {
-    expect(parseRoute('/words/1/日常/en/i20/r2')).toEqual({
+  it('r2. ec セグメントと range セグメントが併存できる（/words/1/日常/en/i25/r2）', () => {
+    expect(parseRoute('/words/1/日常/en/i25/r2')).toEqual({
       ...wordsBase,
-      endCondition: ec('items', 20),
+      endCondition: ec('items', 25),
       range: 2,
     })
   })
@@ -555,8 +555,8 @@ describe('routing.policy: words の固定範囲 range セグメント（r{n}）#
   })
 
   it('r6. ec 非既定＋range は ec セグメント→range セグメントの順', () => {
-    expect(buildRoute({ ...wordsBase, endCondition: ec('items', 20), range: 2 })).toBe(
-      `/words/1/${enc日常}/en/i20/r2`,
+    expect(buildRoute({ ...wordsBase, endCondition: ec('items', 25), range: 2 })).toBe(
+      `/words/1/${enc日常}/en/i25/r2`,
     )
   })
 
@@ -583,7 +583,7 @@ describe('routing.policy: words の固定範囲 range セグメント（r{n}）#
   it('r9. range を含む path の冪等（parse∘build∘parse が parse と一致）', () => {
     const paths = [
       '/words/1/日常/en/r2',
-      '/words/1/日常/en/i20/r2',
+      '/words/1/日常/en/i25/r2',
       '/words/1/日常/en/r0', // 不正 range → 丸め後で安定
       '/words/1/日常/en', // range 無し
     ]

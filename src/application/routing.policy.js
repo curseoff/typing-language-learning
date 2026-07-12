@@ -132,6 +132,15 @@ function buildEndCondition(endCondition) {
   return `${EC_PREFIX_BY_KIND[kind]}${value}`
 }
 
+// #362 words の固定範囲 range セグメント（r{n}・1 始まりの正整数）⇄ 値。
+// 末尾の残りセグメントを接頭辞で分類する（`r`→range・`t/c/i/l/e`→ec）。
+// r{n} セグメント → range 値。正整数でなければ null（range 無し）へ丸める。
+function parseRange(seg) {
+  if (seg == null || seg[0] !== 'r') return null
+  const n = Number(seg.slice(1))
+  return Number.isInteger(n) && n >= 1 ? n : null
+}
+
 // #360 /records 下ネストの record-detail を解析する。coords を除いた残りセグメントで
 //   残り1=position(ec 既定)／残り2=[ec,position]／それ以外(0/3+)=不正 とみなす。
 // position は末尾の裸の正整数（1 始まり）。不正・欠落・未知 slug・coords 不足は記録一覧 {view:'records'} へ丸める。
@@ -178,7 +187,20 @@ export function parseRoute(appPath) {
   page.params.forEach((p, i) => {
     state[p.key] = p.parse(rest[i]) // rest[i] が undefined＝欠落なら parse が既定へ丸める
   })
-  state.endCondition = parseEndCondition(rest[page.params.length]) // 位置パラメータ直後が ec
+  // #362 words は末尾セグメントを接頭辞で分類（`r`→range・他→ec）。他ページは従来どおり ec のみ。
+  if (page.gameType === 'words') {
+    const tail = rest.slice(page.params.length)
+    let ecSeg = null
+    let range = null
+    for (const s of tail) {
+      if (s[0] === 'r') range ??= parseRange(s)
+      else ecSeg ??= s
+    }
+    state.endCondition = parseEndCondition(ecSeg)
+    if (range != null) state.range = range // 不正 range は付けない（省略時 undefined）
+  } else {
+    state.endCondition = parseEndCondition(rest[page.params.length]) // 位置パラメータ直後が ec
+  }
   return state
 }
 
@@ -188,6 +210,10 @@ function rawBuild(state) {
   const parts = PAGES[slug].params.map((p) => p.build(state[p.key]))
   const ecSeg = buildEndCondition(state.endCondition)
   if (ecSeg != null) parts.push(ecSeg)
+  // #362 words のみ range を末尾に付ける（ec セグメント→range セグメントの順）。range 無しは出さない。
+  if (state.gameType === 'words' && Number.isInteger(state.range) && state.range >= 1) {
+    parts.push(`r${state.range}`)
+  }
   return `/${[slug, ...parts].join('/')}`
 }
 
