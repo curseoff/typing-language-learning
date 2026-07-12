@@ -30,9 +30,11 @@ export default function Ready({
   wordLevel,
   wordTheme,
   wordMode,
+  wordRange,
   onWordLevelChange,
   onThemeChange,
   onWordModeChange,
+  onWordRangeChange,
   dictLevel,
   dictTheme,
   dictMode,
@@ -120,9 +122,11 @@ export default function Ready({
           wordLevel={wordLevel}
           wordTheme={wordTheme}
           wordMode={wordMode}
+          wordRange={wordRange}
           onWordLevelChange={onWordLevelChange}
           onThemeChange={onThemeChange}
           onWordModeChange={onWordModeChange}
+          onWordRangeChange={onWordRangeChange}
           focusSection={focusSection}
           onFocusSection={onFocusSection}
           bottomTab={bottomTab}

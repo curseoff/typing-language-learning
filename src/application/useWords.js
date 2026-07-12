@@ -30,7 +30,8 @@ let wordsSessionSeq = 0
 const nextWordsId = () => `words-${++wordsSessionSeq}`
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, onExit }) {
+// #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, onExit }) {
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
   const limitMs = endLimitMs(ec)
@@ -39,8 +40,8 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
   // この seed を record に必ず保存することで、通常プレイの記録も再現可能になる。
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
   const buildPassage = useCallback(
-    () => buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(sessionSeed) }),
-    [allWords, level, theme, mode, sessionSeed],
+    () => buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(sessionSeed), range }),
+    [allWords, level, theme, mode, sessionSeed, range],
   )
   const [words, setWords] = useState(buildPassage)
   const [segIndex, setSegIndex] = useState(0)
@@ -84,7 +85,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
     // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
     const next = makeSeed()
     setSessionSeed(next)
-    setWords(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(next) }))
+    setWords(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(next), range }))
     setSegIndex(0)
     setInput('')
     setCompleted([])
@@ -97,7 +98,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
     setResult(null)
     setStartTime(null)
     finishedRef.current = false
-  }, [allWords, level, theme, mode, factory, sessionEnd, syncSession])
+  }, [allWords, level, theme, mode, range, factory, sessionEnd, syncSession])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -122,6 +123,8 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
         accuracy,
         correctCount,
         seconds,
+        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+        ...(range != null ? { range } : {}),
         segStats: segTrackerRef.current.list,
         date: new Date().toLocaleString('ja-JP'),
       }
@@ -129,7 +132,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, sessionSeed, ec],
+    [level, theme, mode, range, sessionSeed, ec],
   )
 
   useEffect(() => {
@@ -227,7 +230,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
           if (segIndex + 1 >= segments.length) {
             setWords((prev) => [
               ...prev,
-              ...buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(makeSeed()) }),
+              ...buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(makeSeed()), range }),
             ])
           }
           setCompleted((c) => [...c, candidate])
@@ -254,7 +257,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, onE
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, mode, allWords, level, theme, onExit, restart, finish, syncSession])
+  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, mode, allWords, level, theme, range, onExit, restart, finish, syncSession])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。

@@ -139,3 +139,47 @@ describe('#265 infrastructure/db/repos/wordsDb（現行 localStorage 実装と�
     })
   })
 })
+
+// #362 S2: word_records に range 列を追加（migration version 3・単語固定範囲）。
+// range を持つ record はキーが __R{range} で分かれ range を往復する。range 無しは従来と完全同値。
+describe('#362 word_records range 列の round-trip（後方互換＋範囲別記録）', () => {
+  let db
+  beforeEach(() => {
+    db = freshDb()
+  })
+
+  // 非回帰オラクル（最重要）：range を持たない record は従来キー・range プロパティ無しで戻る。
+  // range 列（NULL）を足しても range 無し記録は像が不変であることを固定する。
+  it('range を持たない記録は従来キー・range プロパティ無しで round-trip する（後方互換）', () => {
+    const r = wordNormal({ keys: 70 })
+    saveWordRecordDb(db, r)
+    const key = wordRecKey(r.level, r.theme, r.mode, r.endCondition)
+    const rec = loadWordRecordsDb(db)[key][0]
+    expect('range' in rec).toBe(false)
+    expect(rec).toEqual(wordNormal({ keys: 70 }))
+  })
+
+  it('range=2 の記録は __R2 キーで戻り range:2 を保持する', () => {
+    const r = wordNormal({ range: 2, keys: 50 })
+    saveWordRecordDb(db, r)
+    const all = loadWordRecordsDb(db)
+    const key = wordRecKey(r.level, r.theme, r.mode, r.endCondition, 2)
+    expect(key.endsWith('__R2')).toBe(true)
+    expect(Object.keys(all)).toContain(key)
+    expect(all[key][0].range).toBe(2)
+    expect(all[key][0]).toEqual(wordNormal({ range: 2, keys: 50 }))
+  })
+
+  it('同 level/theme/mode/ec でも range 有り無しは別キーで共存する', () => {
+    const noRange = wordNormal({ theme: '日常', keys: 40 })
+    const withRange = wordNormal({ theme: '日常', range: 2, keys: 50 })
+    saveWordRecordDb(db, noRange)
+    saveWordRecordDb(db, withRange)
+    const all = loadWordRecordsDb(db)
+    const baseKey = wordRecKey(2, '日常', 'en', { kind: 'time', value: 60 })
+    const rangeKey = wordRecKey(2, '日常', 'en', { kind: 'time', value: 60 }, 2)
+    expect(rangeKey).not.toBe(baseKey)
+    expect(all[baseKey]).toEqual([wordNormal({ theme: '日常', keys: 40 })])
+    expect(all[rangeKey]).toEqual([wordNormal({ theme: '日常', range: 2, keys: 50 })])
+  })
+})

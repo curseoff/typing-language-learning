@@ -44,7 +44,7 @@ export function applySaveRecord(records, record) {
 
 // 単語記録を1件適用（wordsRepository.saveWordRecord と同値＝rankInsert は sort+slice と等価）。
 export function applySaveWordRecord(wordRecords, record) {
-  const key = wordRecKey(record.level, record.theme, record.mode, record.endCondition)
+  const key = wordRecKey(record.level, record.theme, record.mode, record.endCondition, record.range)
   return { ...wordRecords, [key]: rankedEntries(key, wordRecords[key], record) }
 }
 

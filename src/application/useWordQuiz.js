@@ -16,7 +16,8 @@ import { END_TIME_VALUES } from '../content/endConditions.js'
 const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
-export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit }) {
+// #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
+export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, range, onExit }) {
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
   const limitMs = endLimitMs(ec)
@@ -25,10 +26,10 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
   const buildWith = useCallback(
     (s) => {
-      const opts = { rng: mulberry32(s) }
+      const opts = { rng: mulberry32(s), range }
       return makeQuiz(buildWordSet(words, level, theme, WORD_COUNT, opts), levelWords(words, level), dir, 4, opts)
     },
-    [words, level, theme, dir],
+    [words, level, theme, dir, range],
   )
   const [questions, setQuestions] = useState(() => buildWith(sessionSeed))
   const [index, setIndex] = useState(0)
@@ -106,6 +107,8 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
         mistakes: totalMistakes,
         accuracy,
         seconds,
+        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+        ...(range != null ? { range } : {}),
         segStats: segStatsRef.current,
         date: new Date().toLocaleString('ja-JP'),
       }
@@ -113,7 +116,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, sessionSeed, ec],
+    [level, theme, mode, range, sessionSeed, ec],
   )
 
   // 進捗（タイピング数/設問数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。

@@ -8,7 +8,7 @@ import { assign, ecToColumns, ecFromRow, jsonToColumn, jsonFromColumn } from './
 const COLS =
   '"level","theme","mode","ec_kind","ec_value","pos",' +
   '"source","seed","speed","keys","mistakes","accuracy",' +
-  '"correct","correctCount","words","seconds","date","seg_stats"'
+  '"correct","correctCount","words","seconds","date","seg_stats","range"'
 
 function rowToRecord(row) {
   const rec = {}
@@ -26,6 +26,7 @@ function rowToRecord(row) {
   assign(rec, 'words', row.words)
   assign(rec, 'seconds', row.seconds)
   assign(rec, 'date', row.date)
+  assign(rec, 'range', row.range)
   const ec = ecFromRow(row)
   if (ec) rec.endCondition = ec
   const seg = jsonFromColumn(row.seg_stats)
@@ -35,7 +36,7 @@ function rowToRecord(row) {
 
 // table＝'word_records'|'dict_records'、keyFn＝wordRecKey|dictRecKey。
 export function makeWordDictDb(table, keyFn) {
-  const key = (r) => keyFn(r.level, r.theme, r.mode, r.endCondition)
+  const key = (r) => keyFn(r.level, r.theme, r.mode, r.endCondition, r.range)
 
   function load(db) {
     const rows = db.selectObjects(`SELECT ${COLS} FROM "${table}" ORDER BY "pos","id"`)
@@ -60,13 +61,20 @@ export function makeWordDictDb(table, keyFn) {
       db.exec({
         sql:
           `DELETE FROM "${table}" WHERE "level" IS ? AND "theme" IS ? AND "mode" IS ? AND ` +
-          '"ec_kind" IS ? AND "ec_value" IS ?',
-        bind: [record.level ?? null, record.theme ?? null, record.mode ?? null, ec.ec_kind, ec.ec_value],
+          '"ec_kind" IS ? AND "ec_value" IS ? AND "range" IS ?',
+        bind: [
+          record.level ?? null,
+          record.theme ?? null,
+          record.mode ?? null,
+          ec.ec_kind,
+          ec.ec_value,
+          record.range ?? null,
+        ],
       })
       list.forEach((r, pos) => {
         const rec = ecToColumns(r.endCondition)
         db.exec({
-          sql: `INSERT INTO "${table}" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          sql: `INSERT INTO "${table}" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           bind: [
             r.level ?? null,
             r.theme ?? null,
@@ -86,6 +94,7 @@ export function makeWordDictDb(table, keyFn) {
             r.seconds ?? null,
             r.date ?? null,
             jsonToColumn(r.segStats),
+            r.range ?? null,
           ],
         })
       })

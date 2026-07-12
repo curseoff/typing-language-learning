@@ -71,6 +71,47 @@ describe('App パス型ルーティング配線 (#357)', () => {
   })
 })
 
+// #362 単語の固定範囲（range）の App 配線テスト。純 codec（parseRoute/buildRoute の range）と
+// wordRange.service は各 policy テストが担保し、ここは「range URL からの cold 初期化・ステッパー操作での
+// URL 反映・level/theme 変更での range 無効化（clamp）」という location/history とアプリ state の配線を検証する。
+describe('App 単語固定範囲 URL 配線 (#362)', () => {
+  beforeEach(() => {
+    cleanup()
+    localStorage.clear()
+    initMemoryPersistence()
+    setPath('/')
+  })
+  afterEach(() => setPath('/'))
+
+  it('cold /words/1/日常/en/r2 で単語タブが選択され URL に r2 が残る', () => {
+    setPath('/words/1/日常/en/r2')
+    const { container } = render(<App />)
+    expect(selectedTab(container, '単語').className).toMatch(/sel/)
+    expect(location.pathname).toBe(canonical('/words/1/日常/en/r2'))
+    expect(decodeURIComponent(location.pathname)).toContain('/r2')
+  })
+
+  it('範囲ステッパーで範囲を選ぶと URL に r1 が付き、範囲指定なしに戻すと従来 URL へ戻る', () => {
+    setPath('/words/1/日常/en')
+    const { container } = render(<App />)
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+    act(() => fireEvent.click(within(container).getByLabelText('次の範囲'))) // 範囲1へ
+    expect(decodeURIComponent(location.pathname)).toContain('/r1')
+    act(() => fireEvent.click(within(container).getByLabelText('前の範囲'))) // 範囲指定なしへ
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+  })
+
+  it('テーマ変更で範囲数が減ると range が無効化され URL から消える（clamp）', () => {
+    setPath('/words/1/日常/en/r3') // 日常=220語→3範囲（r3 有効）
+    const { container } = render(<App />)
+    expect(decodeURIComponent(location.pathname)).toContain('/r3')
+    // ビジネス=40語→1範囲。r3 は範囲外＝未選択へ丸め、URL から range が消える。
+    act(() => fireEvent.click(within(container).getByText('ビジネス')))
+    expect(decodeURIComponent(location.pathname)).toContain('ビジネス')
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+  })
+})
+
 // #359 view ルート（about/records/result）の App 配線テスト（characterization / 回帰固定）。
 // 純 codec（parseRoute/buildRoute の view 分岐）は routing.policy.test.js が別途担保し、ここは
 // 「view URL からの cold 初期化・view への遷移で pushState・戻る（popstate）での復元・cold /result の
