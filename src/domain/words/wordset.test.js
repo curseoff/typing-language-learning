@@ -32,6 +32,40 @@ describe('buildWordSet (4択用)', () => {
   })
 })
 
+describe('range オプション（単語固定範囲・#362）', () => {
+  // freq を持つ小さな pool（同一 level×theme）を作る。poolForRange は freq 昇順・decimal 決定的。
+  const ranged = Array.from({ length: 12 }, (_, i) => ({
+    en: `w${String(i).padStart(2, '0')}`,
+    ja: `語${i}`,
+    kana: 'あ',
+    level: 1,
+    theme: '日常',
+    freq: i + 1,
+  }))
+
+  it('buildWordSet は range 有りで poolForRange の freq 順そのまま（rng 不使用・count 無視）を返す', () => {
+    // size=100 だが小 pool（12語）なので range=1 は全12語を freq 順で返す。
+    const set = buildWordSet(ranged, 1, '日常', WORD_COUNT, { rng: mulberry32(1), range: 1 })
+    expect(set.map((w) => w.en)).toEqual(ranged.map((w) => w.en)) // freq 昇順そのまま
+    // rng を変えても range モードは同じ並び（決定的・シャッフルしない）
+    const set2 = buildWordSet(ranged, 1, '日常', WORD_COUNT, { rng: mulberry32(999), range: 1 })
+    expect(set2.map((w) => w.en)).toEqual(set.map((w) => w.en))
+  })
+
+  it('buildWordSet は無効 range（該当語なし）で従来のランダム全体出題へフォールバックする', () => {
+    const set = buildWordSet(ranged, 1, '日常', 5, { rng: mulberry32(1), range: 99 })
+    expect(set).toHaveLength(5) // フォールバック＝count 語（従来挙動）
+  })
+
+  it('buildWordPassage は range 有りで freq 順を順番に継ぎ足す（rng 不使用・決定的）', () => {
+    const a = buildWordPassage(ranged, 1, '日常', 'en', { rng: mulberry32(1), range: 1 })
+    const b = buildWordPassage(ranged, 1, '日常', 'en', { rng: mulberry32(2), range: 1 })
+    expect(a.map((w) => w.en)).toEqual(b.map((w) => w.en)) // seed 非依存＝決定的
+    // 循環の先頭は freq 最小（w00）から始まる（範囲内 freq 順を保つ）
+    expect(a[0].en).toBe('w00')
+  })
+})
+
 describe('buildWordPassage (入力用・600文字)', () => {
   it('最短綴りで打っても600キーに到達できる（短い綴りで詰む不具合の回帰）', () => {
     for (const mode of MODES) {

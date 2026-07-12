@@ -74,6 +74,19 @@ describe('useWordQuiz（4択・60秒・結合）', () => {
     expect(rec.source).toBe('word')
   })
 
+  it('range 指定時は範囲別キー（__R{n}）に記録し record.range を載せる（#362）', () => {
+    const { result } = renderHook(() =>
+      useWordQuiz({ words: WORDS, level: 1, theme: '日常', dir: 'en', mode: 'quiz-en', range: 1, onExit: () => {} }),
+    )
+    solve(result, 5, correctOf)
+    runOutClock()
+    const ranged = loadWordRecords()[wordRecKey(1, '日常', 'quiz-en', undefined, 1)]
+    expect(ranged?.length).toBeGreaterThan(0)
+    expect(ranged[0].range).toBe(1)
+    // range 未指定は record に range を載せない（後方互換）。
+    expect(loadWordRecords()[wordRecKey(1, '日常', 'quiz-en')]).toBeUndefined()
+  })
+
   it('不正解の選択肢を打つと、その設問の segStats.correct が false になる', () => {
     const { result } = renderHook(() =>
       useWordQuiz({ words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }),

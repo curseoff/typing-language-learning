@@ -121,7 +121,10 @@ export default defineConfig(({ command }) => ({
       // #360: 記録詳細 URL（App の単一オーバーレイ所有・cold 直開き/not-found・行クリック pushState・
       // 戻るで閉じるの配線テスト）を追加し実測が上振れ（S87.04/B79.78/F88.09/L88.19）→ 実測から
       // ≈0.15〜0.4 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
-      thresholds: { statements: 86.9, branches: 79.4, functions: 87.9, lines: 88.0 },
+      // #362: 単語固定範囲（range）の出題配線＋範囲ステッパー UI に対し wordset の range 分岐・
+      // useWords/useWordQuiz の range 記録往復・WordsSection ステッパー・App の range URL 配線テストを
+      // 追加し実測が上振れ（S87.04/B79.67/F88.11/L88.18）→ 実測直下へラチェット（up-only）。
+      thresholds: { statements: 87.0, branches: 79.6, functions: 88.0, lines: 88.1 },
     },
   },
 }))

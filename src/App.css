@@ -232,6 +232,53 @@ h1 {
 }
 /* .mode-desc は @tll/ui の RankSectionView presenter へ移設＝section.css */
 
+/* #362 単語の固定範囲ステッパー（◀ ラベル(n/総数) ▶）。範囲数が最大152でも1つの操作で収める。 */
+.range-stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+.range-step-btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 8px 12px;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.range-step-btn:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+.range-step-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.range-current {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.range-label {
+  font-weight: 700;
+  color: var(--text);
+}
+.range-pos {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .btn-primary {
   display: block;
   margin: 18px auto 24px;

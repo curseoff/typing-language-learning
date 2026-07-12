@@ -3,6 +3,7 @@
 import { romajiVariants } from '../romaji/romaji.service.js'
 import { buildUnits } from '../typing/units.service.js'
 import { PASSAGE_KEYS } from '../marathon/passage.service.js'
+import { poolForRange } from './wordRange.service.js'
 
 export const WORD_COUNT = 30 // 4択クイズの問題数
 
@@ -14,7 +15,14 @@ function levelThemePool(words, level, theme) {
 }
 
 // 4択クイズ用：count語（既定30）。rng は乱数源（既定 Math.random）。
-export function buildWordSet(words, level, theme, count = WORD_COUNT, { rng = Math.random } = {}) {
+// #362 range 有り（単語固定範囲）→ プールを poolForRange（strict・freq 順・決定的）へ差し替え、
+// rng シャッフルを掛けない（本人決定＝範囲内は freq 順固定）。出題列は poolForRange の順そのまま
+// （100語未満の端数はその数）。無効 range（該当語なし）は従来のランダム全体出題へフォールバック。
+export function buildWordSet(words, level, theme, count = WORD_COUNT, { rng = Math.random, range } = {}) {
+  if (range != null) {
+    const ranged = poolForRange(words, level, theme, range)
+    if (ranged.length > 0) return ranged
+  }
   const pool = levelThemePool(words, level, theme)
   const shuffled = [...pool].sort(() => rng() - 0.5)
   const out = []
@@ -25,21 +33,33 @@ export function buildWordSet(words, level, theme, count = WORD_COUNT, { rng = Ma
 // 1セグメントを打つのに最低限必要なキー数（最短の綴り）
 const minKeys = (seg) => Math.min(...seg.variants.map((v) => v.length))
 
-// 入力モード用：最短の綴りで打っても target(既定 PASSAGE_KEYS=2000) を超えるよう語を並べる（足りなければ循環）。
-// canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても60秒の間に打ち尽くさない。
-export function buildWordPassage(words, level, theme, mode, { rng = Math.random, target = PASSAGE_KEYS } = {}) {
-  const pool = levelThemePool(words, level, theme)
-  const shuffled = [...pool].sort(() => rng() - 0.5)
+// pool を先頭から順に（足りなければ循環）並べ、最短綴りで測った合計キー数が target を超えるまで積む。
+// unitsOpts は buildUnits へ渡す（rng を含む／range モードは rng 不使用＝{}）。
+function fillToTarget(pool, mode, target, unitsOpts) {
   const out = []
   let chars = 0
   let i = 0
   while (chars < target + 30 && i < 8000) {
-    const w = shuffled[i % shuffled.length]
+    const w = pool[i % pool.length]
     out.push(w)
-    chars += buildUnits(w, mode, { rng }).reduce((s, seg) => s + minKeys(seg), 0)
+    chars += buildUnits(w, mode, unitsOpts).reduce((s, seg) => s + minKeys(seg), 0)
     i++
   }
   return out
+}
+
+// 入力モード用：最短の綴りで打っても target(既定 PASSAGE_KEYS=2000) を超えるよう語を並べる（足りなければ循環）。
+// canonical長でなく最短綴り長で測ることで、shi→si 等で短く打っても60秒の間に打ち尽くさない。
+// #362 range 有り → poolForRange（freq 順・決定的）を rng を使わず順番に継ぎ足す（範囲内は毎回同じ並び）。
+// 無効 range（該当語なし）は従来のランダム全体出題へフォールバック。
+export function buildWordPassage(words, level, theme, mode, { rng = Math.random, target = PASSAGE_KEYS, range } = {}) {
+  if (range != null) {
+    const ranged = poolForRange(words, level, theme, range)
+    if (ranged.length > 0) return fillToTarget(ranged, mode, target, {})
+  }
+  const pool = levelThemePool(words, level, theme)
+  const shuffled = [...pool].sort(() => rng() - 0.5)
+  return fillToTarget(shuffled, mode, target, { rng })
 }
 
 // 同レベルの全語（4択の誤答候補に使う）
