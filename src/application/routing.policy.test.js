@@ -510,6 +510,98 @@ describe('routing.policy: record-detail ルート（/records 下ネスト）#360
   })
 })
 
+describe('routing.policy: words の固定範囲 range セグメント（r{n}）#362', () => {
+  // 単語ルートの末尾に range セグメント `r{n}`（1 始まりの正整数）を付ける。
+  // 既存の ec セグメント（t/c/i/l/e）と接頭辞で区別し、末尾の残りセグメントを分類する
+  //   （`r`→range・`t/c/i/l/e`→ec＝record-detail parser の「残り分類」流儀）。
+  // RouteState(words) には range?（正整数・省略時 undefined）を足す。
+  // build 順は「ec 非既定セグメント → range セグメント」（range 無しは出さない）。
+  // range は words 専用（story/dict/sentences/touch/romaji には付けない・付いても従来どおり無視）。
+  const enc日常 = enc('日常')
+  const wordsBase = { gameType: 'words', level: 1, theme: '日常', mode: 'en' }
+
+  it('r1. /words/1/日常/en/r2 が range:2 を持つ（ec は既定 time60）', () => {
+    expect(parseRoute('/words/1/日常/en/r2')).toEqual({
+      ...wordsBase,
+      endCondition: EC_DEFAULT,
+      range: 2,
+    })
+  })
+
+  it('r2. ec セグメントと range セグメントが併存できる（/words/1/日常/en/i20/r2）', () => {
+    expect(parseRoute('/words/1/日常/en/i20/r2')).toEqual({
+      ...wordsBase,
+      endCondition: ec('items', 20),
+      range: 2,
+    })
+  })
+
+  it('r3. range 無しの words ルートは range を持たない（undefined）', () => {
+    expect(parseRoute('/words/1/日常/en')).not.toHaveProperty('range')
+  })
+
+  it('r4. 不正な range（r0・rx・r1.5）は range 無しへ丸める（他は従来通り）', () => {
+    expect(parseRoute('/words/1/日常/en/r0')).not.toHaveProperty('range')
+    expect(parseRoute('/words/1/日常/en/rx')).not.toHaveProperty('range')
+    expect(parseRoute('/words/1/日常/en/r1.5')).not.toHaveProperty('range')
+    // 不正 range でも他フィールドは従来どおり
+    expect(parseRoute('/words/1/日常/en/r0')).toEqual({ ...wordsBase, endCondition: EC_DEFAULT })
+  })
+
+  it('r5. buildRoute（range → 末尾 r セグメント・theme encode）', () => {
+    expect(buildRoute({ ...wordsBase, endCondition: EC_DEFAULT, range: 2 })).toBe(
+      `/words/1/${enc日常}/en/r2`,
+    )
+  })
+
+  it('r6. ec 非既定＋range は ec セグメント→range セグメントの順', () => {
+    expect(buildRoute({ ...wordsBase, endCondition: ec('items', 20), range: 2 })).toBe(
+      `/words/1/${enc日常}/en/i20/r2`,
+    )
+  })
+
+  it('r7. range 無しは r セグメントを出さない', () => {
+    expect(buildRoute({ ...wordsBase, endCondition: EC_DEFAULT })).toBe(
+      `/words/1/${enc日常}/en`,
+    )
+  })
+
+  it('r8. range 有無×ec 有無で往復不変（parseRoute(buildRoute(s)) === s）', () => {
+    const states = [
+      { ...wordsBase, endCondition: EC_DEFAULT, range: 2 },
+      { gameType: 'words', level: 4, theme: 'ビジネス', mode: 'quiz-ja', endCondition: ec('items', 25), range: 3 },
+      { gameType: 'words', level: 1, theme: 'すべて', mode: 'en', endCondition: ec('time', 30), range: 1 },
+      // range 無し（従来形）も壊れない
+      { ...wordsBase, endCondition: EC_DEFAULT },
+      { gameType: 'words', level: 4, theme: 'ビジネス', mode: 'quiz-ja', endCondition: ec('items', 25) },
+    ]
+    for (const s of states) {
+      expect(parseRoute(buildRoute(s))).toEqual(s)
+    }
+  })
+
+  it('r9. range を含む path の冪等（parse∘build∘parse が parse と一致）', () => {
+    const paths = [
+      '/words/1/日常/en/r2',
+      '/words/1/日常/en/i20/r2',
+      '/words/1/日常/en/r0', // 不正 range → 丸め後で安定
+      '/words/1/日常/en', // range 無し
+    ]
+    for (const p of paths) {
+      const once = parseRoute(p)
+      expect(parseRoute(buildRoute(once))).toEqual(once)
+    }
+  })
+
+  it('r10. range は words 専用（story/dict は range を持たない・付いても無視）', () => {
+    // 末尾 r セグメントを付けても range は付与されない（従来どおり無視）
+    expect(parseRoute('/story/travel/r2')).not.toHaveProperty('range')
+    expect(parseRoute('/dict/2/ビジネス/quiz/r2')).not.toHaveProperty('range')
+    // range プロパティを与えても words 以外は URL に出さない
+    expect(buildRoute({ gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: EC_DEFAULT, range: 2 })).not.toContain('r2')
+  })
+})
+
 describe('routing.policy: 往復不変（最重要）', () => {
   // 代表的な valid RouteState 群（各ページ・各 ec 種別を横断）
   const states = [
