@@ -593,12 +593,12 @@ describe('routing.policy: words の固定範囲 range セグメント（r{n}）#
     }
   })
 
-  it('r10. range は words 専用（story/dict は range を持たない・付いても無視）', () => {
-    // 末尾 r セグメントを付けても range は付与されない（従来どおり無視）
+  it('r10. story は range 非対応（付いても無視・URL に出さない）', () => {
+    // #364 で range は words/dict/wsent(sentences) へ拡張された（dict/sentences の担保は g1/g6/g12）。
+    // ここでは range 非対応ページ（story）だけを担保する（touch/romaji は g12 で担保）。
     expect(parseRoute('/story/travel/r2')).not.toHaveProperty('range')
-    expect(parseRoute('/dict/2/ビジネス/quiz/r2')).not.toHaveProperty('range')
-    // range プロパティを与えても words 以外は URL に出さない
-    expect(buildRoute({ gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: EC_DEFAULT, range: 2 })).not.toContain('r2')
+    // range プロパティを与えても range 非対応ページは URL に出さない
+    expect(buildRoute({ gameType: 'story', storyId: 'travel', endCondition: EC_DEFAULT, range: 2 })).not.toContain('r2')
   })
 })
 

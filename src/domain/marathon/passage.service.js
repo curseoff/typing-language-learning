@@ -12,16 +12,18 @@ export const PASSAGE_KEYS = 2000
 // pool（出題対象の文配列。呼び出し側がレベル別に遅延読み込みして渡す）からセグメント列を作る。
 // 各文は buildUnits でセグメント化し、sentenceIndex を付与して連結（target 文字を超えるまで）。
 // 60秒制では尽きないよう target を大きく取る（既定 PASSAGE_KEYS）。
-export function buildPassage(mode, pool, { rng = Math.random, target = PASSAGE_KEYS } = {}) {
+// #364 ordered:true→rng シャッフルせず pool 順のまま充填（固定範囲を毎回同じ並びで流す・決定的）。
+// ordered:false（既定）→従来どおり rng シャッフル（非回帰）。
+export function buildPassage(mode, pool, { rng = Math.random, target = PASSAGE_KEYS, ordered = false } = {}) {
   const base = pool && pool.length ? pool : []
   if (base.length === 0) return []
-  const shuffled = [...base].sort(() => rng() - 0.5)
+  const sequence = ordered ? [...base] : [...base].sort(() => rng() - 0.5)
   const segments = []
   let approx = 0
   let si = 0 // 文の通し番号
   let idx = 0
   while (approx < target + 60) {
-    const s = shuffled[idx % shuffled.length]
+    const s = sequence[idx % sequence.length]
     for (const seg of buildUnits(s, mode, { rng })) {
       segments.push({ ...seg, sentenceIndex: si })
       approx += seg.canonical.length
