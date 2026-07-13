@@ -14,6 +14,7 @@ import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } fro
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
+import { recordItemStat } from './records.service.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
@@ -153,7 +154,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
           },
         ]
       }
-      flushTracker(trackerRef.current)
+      {
+        const { next, emit } = flushTracker(trackerRef.current)
+        trackerRef.current = next
+        if (emit) recordItemStat(emit.id, emit.delta)
+      }
       finish(keys, missCount, t, startedAt)
     },
     [ec, finish],
@@ -175,7 +180,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
         startTimeRef.current = startTimeRef.current ?? t // 時間切れ finish 用
         if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
-        trackKey(trackerRef.current, itemId('s', ctxRef.current.mode, seg.en)) // 文ごと×モード別
+        {
+          const { next, emit } = trackKey(trackerRef.current, itemId('s', ctxRef.current.mode, seg.en), performance.now()) // 文ごと×モード別
+          trackerRef.current = next
+          if (emit) recordItemStat(emit.id, emit.delta)
+        }
         sessionRef.current.registerHit() // keys++（Entity 保持）
         syncSession()
         const ph = sessionRef.current.progress()
@@ -228,7 +237,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
         sessionRef.current.registerMiss() // mistakes++（Entity 保持）
         syncSession()
         segMistakesRef.current += 1
-        trackMiss(trackerRef.current)
+        trackerRef.current = trackMiss(trackerRef.current).next
         playMiss()
         setHasError(true)
         // ミスした問題数（life 制HUD用）を live 更新＝確定問題のミス>0件数＋進行中問題が既ミスなら+1。
@@ -274,7 +283,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
         },
       ]
     }
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, t, startedAt)
   }
@@ -305,7 +318,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
         },
       ]
     }
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, t, startedAt)
     return true
