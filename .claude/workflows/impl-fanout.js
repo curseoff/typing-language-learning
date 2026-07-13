@@ -3,8 +3,7 @@ export const meta = {
   description:
     '契約済みの独立タスクを worktree 隔離で並列実装→検証し、マージ可能ブランチ＋裁定レポートを司令塔/本人へ返す（合流の直列詰まりを解消。マージ/push/PR はしない＝本人ゲート温存）',
   whenToUse:
-    'planner が契約(spec)を切った独立タスクが複数あるとき。args: { items:[{id,kind,issue,title,contract,files}], base? }。kind は logic(=TDD:Red→Green)/simple(=coder直). マージ・push・PR・Issue操作はしない。' +
-    ' 【注意】domain 配下のタスクは契約に DDD 準拠のファイル名(*.vo.js / *.service.js 等)を指定すること（src/domain の命名メタテスト _ddd-naming.test.js に掛かり check:fast が赤になるため）。',
+    'planner が契約(spec)を切った独立タスクが複数あるとき。args: { items:[{id,kind,issue,title,contract,files}], base? }。kind は logic(=TDD:Red→Green)/simple(=coder直). マージ・push・PR・Issue操作はしない。 【注意】domain 配下のタスクは契約に DDD 準拠のファイル名(*.vo.js / *.service.js 等)を指定すること（src/domain の命名メタテスト _ddd-naming.test.js に掛かり check:fast が赤になるため）。',
   phases: [
     { title: 'Setup' },   // タスクごとに worktree + ブランチを作る
     { title: 'Red' },      // logic のみ: test-author が失敗テストを書いてコミット
