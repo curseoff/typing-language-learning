@@ -510,6 +510,184 @@ describe('routing.policy: record-detail ルート（/records 下ネスト）#360
   })
 })
 
+describe('routing.policy: record-detail に range セグメント（r{n}）#366', () => {
+  // #366 記録詳細 URL（#360）に range 次元が無く、固定範囲(#362/#364)の記録詳細が
+  //   別記録に取り違えられる問題への対応。record-detail URL 文法に range セグメントを足す:
+  //     /records/<slug>/<coords...>/[ec]/[r{n}]/<position>
+  //   （ec と position の間に range セグメント r{n} を挿入）。
+  // - parse: coords 後の残りセグメントを接頭辞分類する（t/c/i/l/e→ec・r{n}→range・裸の正整数→position）。
+  // - build: coords→[ec 非既定]→[range 有り r{n}]→position の順（range 無しは r セグメントを出さない）。
+  // - range を持つのは words/dict/wsent(sentences) の record-detail のみ（story は range 非対象）。
+  // - #360 の非 range record-detail は byte 同一で非回帰（既存 R2〜R14 が緑のまま）。
+  const enc日常 = enc('日常')
+  const encすべて = enc('すべて')
+
+  it('r-d1. 非 range record-detail は従来と byte 同一・range を持たない（#360 後方互換）', () => {
+    // 既存 R2 と同一パス＝range セグメントが無いときは従来の RouteState（range キー無し）。
+    expect(parseRoute('/records/words/1/日常/en/2')).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 1,
+      theme: '日常',
+      mode: 'en',
+      endCondition: EC_DEFAULT,
+      position: 2,
+    })
+    expect(parseRoute('/records/words/1/日常/en/2')).not.toHaveProperty('range')
+  })
+
+  it('r-d2. ec 既定＋range（/records/words/1/日常/en/r3/2 → range3・position2）', () => {
+    expect(parseRoute('/records/words/1/日常/en/r3/2')).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 1,
+      theme: '日常',
+      mode: 'en',
+      endCondition: EC_DEFAULT,
+      range: 3,
+      position: 2,
+    })
+  })
+
+  it('r-d3. ec 非既定＋range（/records/words/1/日常/en/i25/r3/2 → items25・range3・position2）', () => {
+    expect(parseRoute('/records/words/1/日常/en/i25/r3/2')).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 1,
+      theme: '日常',
+      mode: 'en',
+      endCondition: ec('items', 25),
+      range: 3,
+      position: 2,
+    })
+  })
+
+  it('r-d4. dict / sentences(wsent) の record-detail も range を持つ', () => {
+    expect(parseRoute('/records/dict/2/ビジネス/quiz/r3/5')).toEqual({
+      view: 'record-detail',
+      kind: 'dict',
+      level: 2,
+      theme: 'ビジネス',
+      mode: 'quiz',
+      endCondition: EC_DEFAULT,
+      range: 3,
+      position: 5,
+    })
+    expect(parseRoute('/records/sentences/1/すべて/both/r2/2')).toEqual({
+      view: 'record-detail',
+      kind: 'wsent',
+      level: 1,
+      theme: 'すべて',
+      mode: 'both',
+      endCondition: EC_DEFAULT,
+      range: 2,
+      position: 2,
+    })
+  })
+
+  it('r-d5. buildRoute（range → ec の後・position の前に r{n}）', () => {
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'words',
+        level: 1,
+        theme: '日常',
+        mode: 'en',
+        endCondition: EC_DEFAULT,
+        range: 3,
+        position: 2,
+      }),
+    ).toBe(`/records/words/1/${enc日常}/en/r3/2`)
+  })
+
+  it('r-d6. buildRoute（ec 非既定＋range → coords→ec→range→position の順）', () => {
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'words',
+        level: 1,
+        theme: '日常',
+        mode: 'en',
+        endCondition: ec('items', 25),
+        range: 3,
+        position: 2,
+      }),
+    ).toBe(`/records/words/1/${enc日常}/en/i25/r3/2`)
+    // wsent → slug sentences
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'wsent',
+        level: 1,
+        theme: 'すべて',
+        mode: 'both',
+        endCondition: EC_DEFAULT,
+        range: 2,
+        position: 2,
+      }),
+    ).toBe(`/records/sentences/1/${encすべて}/both/r2/2`)
+  })
+
+  it('r-d7. range 無しの record-detail は r セグメントを出さない（#360 build と byte 同一）', () => {
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'words',
+        level: 1,
+        theme: '日常',
+        mode: 'en',
+        endCondition: EC_DEFAULT,
+        position: 2,
+      }),
+    ).toBe(`/records/words/1/${enc日常}/en/2`)
+  })
+
+  it('r-d8. record-detail × range 有無 × ec 有無で往復不変（parse∘build === s）', () => {
+    const states = [
+      { view: 'record-detail', kind: 'words', level: 1, theme: '日常', mode: 'en', endCondition: ec('time', 60), range: 3, position: 2 },
+      { view: 'record-detail', kind: 'words', level: 4, theme: 'ビジネス', mode: 'quiz-ja', endCondition: ec('items', 25), range: 2, position: 1 },
+      { view: 'record-detail', kind: 'dict', level: 3, theme: '旅行', mode: 'pick', endCondition: ec('items', 25), range: 1, position: 5 },
+      { view: 'record-detail', kind: 'wsent', level: 2, theme: 'すべて', mode: 'both', endCondition: ec('chars', 600), range: 4, position: 3 },
+      { view: 'record-detail', kind: 'wsent', level: 1, theme: '日常', mode: 'en', endCondition: ec('endless', null), range: 2, position: 1 },
+      // range 無し（従来形）も維持（byte 同一の非回帰オラクル）
+      { view: 'record-detail', kind: 'words', level: 1, theme: '日常', mode: 'en', endCondition: ec('time', 60), position: 2 },
+      { view: 'record-detail', kind: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: ec('items', 25), position: 3 },
+    ]
+    for (const s of states) {
+      expect(parseRoute(buildRoute(s))).toEqual(s)
+    }
+  })
+
+  it('r-d9. range を含む record-detail path の冪等（parse∘build∘parse === parse）', () => {
+    const paths = [
+      '/records/words/1/日常/en/r3/2',
+      '/records/words/1/日常/en/i25/r3/2',
+      '/records/sentences/1/すべて/both/r2/2',
+      '/records/dict/2/ビジネス/quiz/r3/5',
+      '/records/words/1/日常/en/2', // range 無し（従来）
+    ]
+    for (const p of paths) {
+      const once = parseRoute(p)
+      expect(parseRoute(buildRoute(once))).toEqual(once)
+    }
+  })
+
+  it('r-d10. story の record-detail は range 非対象（付いても range を持たず・URL に出さない）', () => {
+    // story 記録詳細に range は付けない（付いても無視）。
+    expect(parseRoute('/records/story/travel/r2/1')).not.toHaveProperty('range')
+    expect(
+      buildRoute({
+        view: 'record-detail',
+        kind: 'story',
+        storyId: 'travel',
+        endCondition: EC_DEFAULT,
+        range: 2,
+        position: 1,
+      }),
+    ).toBe('/records/story/travel/1')
+  })
+})
+
 describe('routing.policy: words の固定範囲 range セグメント（r{n}）#362', () => {
   // 単語ルートの末尾に range セグメント `r{n}`（1 始まりの正整数）を付ける。
   // 既存の ec セグメント（t/c/i/l/e）と接頭辞で区別し、末尾の残りセグメントを分類する

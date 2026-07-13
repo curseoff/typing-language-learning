@@ -146,9 +146,11 @@ function parseRange(seg) {
   return Number.isInteger(n) && n >= 1 ? n : null
 }
 
-// #360 /records 下ネストの record-detail を解析する。coords を除いた残りセグメントで
-//   残り1=position(ec 既定)／残り2=[ec,position]／それ以外(0/3+)=不正 とみなす。
-// position は末尾の裸の正整数（1 始まり）。不正・欠落・未知 slug・coords 不足は記録一覧 {view:'records'} へ丸める。
+// #360 /records 下ネストの record-detail を解析する。coords を除いた残りセグメントを
+//   接頭辞で分類する（`t/c/i/l/e`→ec・`r{n}`→range〔#366〕・裸の正整数→position）。
+// URL 文法: /records/<slug>/<coords...>/[ec]/[r{n}]/<position>（ec と position の間に range）。
+// position は裸の正整数（1 始まり）。range は words/dict/sentences のみ（story は非対象＝付いても無視）。
+// 不正・欠落・未知 slug・coords 不足・position 欠落は記録一覧 {view:'records'} へ丸める。
 function parseRecordDetail(segs) {
   const slug = segs[0]
   if (!RECORD_DETAIL_SLUGS.has(slug)) return { view: 'records' } // 未知 kind
@@ -158,17 +160,26 @@ function parseRecordDetail(segs) {
   if (coordSegs.length < nCoords) return { view: 'records' } // coords 不足（story の storyId 欠落 等）
   const rest = segs.slice(1 + nCoords)
   let ecSeg = null
-  let posSeg
-  if (rest.length === 1) posSeg = rest[0] // ec 省略（既定 time60）
-  else if (rest.length === 2) [ecSeg, posSeg] = rest // [ec, position]
-  else return { view: 'records' } // 残り0（position 無し）・3+（余剰）は不正
+  let rangeSeg = null
+  let posSeg = null
+  for (const s of rest) {
+    const c = s[0]
+    if (c === 'r') rangeSeg ??= s // range セグメント r{n}
+    else if (EC_KIND_BY_PREFIX[c] || c === 'e') ecSeg ??= s // ec セグメント t/c/i/l/e
+    else posSeg ??= s // 裸の正整数＝position
+  }
   const position = Number(posSeg)
-  if (!Number.isInteger(position) || position < 1) return { view: 'records' } // 非整数/0/負は不正
+  if (!Number.isInteger(position) || position < 1) return { view: 'records' } // 欠落/非整数/0/負は不正
   const state = { view: 'record-detail', kind: page.gameType }
   page.params.forEach((p, i) => {
     state[p.key] = p.parse(coordSegs[i]) // 座標の不正値はそのページ既定へ clamp
   })
   state.endCondition = parseEndCondition(ecSeg)
+  // #366 range 対応ページ（words/dict/sentences）のみ range を通す（不正 range は付けない・story は無視）。
+  if (page.range && rangeSeg != null) {
+    const range = parseRange(rangeSeg)
+    if (range != null) state.range = range
+  }
   state.position = position
   return state
 }
@@ -233,13 +244,17 @@ const ROOT_PATH = rawBuild({
   endCondition: DEFAULT_END_CONDITION,
 })
 
-// RouteState(record-detail) → /records/<slug>/<coords...>/[ec]/<position>。
+// RouteState(record-detail) → /records/<slug>/<coords...>/[ec]/[r{n}]/<position>。
 // kind→slug（wsent→sentences 等）・座標 build・既定 ec 省略は content ルートと同じ codec を流用。
+// #366 range 対応ページ（words/dict/sentences）は ec の後・position の前に r{n} を挿す（range 無しは出さない）。
 function buildRecordDetail(state) {
   const slug = SLUG_BY_GAMETYPE[state.kind] ?? DEFAULT_SLUG
   const parts = PAGES[slug].params.map((p) => p.build(state[p.key]))
   const ecSeg = buildEndCondition(state.endCondition)
   if (ecSeg != null) parts.push(ecSeg) // 既定 time60 は省略・endless は 'e'
+  if (PAGES[slug].range && Number.isInteger(state.range) && state.range >= 1) {
+    parts.push(`r${state.range}`) // range セグメント（story は非対象＝出さない）
+  }
   parts.push(String(state.position)) // position は常に末尾
   return `/records/${[slug, ...parts].join('/')}`
 }

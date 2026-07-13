@@ -259,3 +259,94 @@ describe('resolveColdDetail（route + maps → { record, position, ctx } | null�
     expect(resolveColdDetail(null, maps())).toBeNull()
   })
 })
+
+// ── #366 range 次元を record-detail の座標へ通す（固定範囲 #362/#364 の記録詳細の取り違え修正） ──
+// バグ: record-detail の座標が range を持たないため、固定範囲の記録（record.range 有り）と
+//   非 range 記録・別 range 同士が同一詳細キーに衝突し、range 記録の行を開くと別記録が解決される
+//   （resolveColdDetail が最初の一致行を返すため）。修正＝route/detailMatchKey/resolve に range を通す。
+// detailMatchKey は非公開のため、その「range 有無で別キー＝衝突しない」性質は resolveColdDetail の
+//   振る舞い（range 違いの記録を取り違えない）として外形固定する。
+describe('#366 record-detail に range 次元を通す（routeFromRawRecord / resolveColdDetail）', () => {
+  it('routeFromRawRecord は record.range を RouteState.range に載せる（range 有り）', () => {
+    const rec = { source: 'word', level: 3, theme: '旅行', mode: 'en', keys: 80, range: 2, endCondition: ec('time', 60) }
+    expect(routeFromRawRecord(rec, 1)).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 3,
+      theme: '旅行',
+      mode: 'en',
+      endCondition: EC_DEFAULT,
+      position: 1,
+      range: 2,
+    })
+  })
+
+  it('routeFromRawRecord は range を持たない記録では range を undefined のまま（後方互換＝従来 RouteState）', () => {
+    const rec = { source: 'word', level: 3, theme: '旅行', mode: 'en', keys: 80 } // range 欠落
+    const route = routeFromRawRecord(rec, 1)
+    expect(route.range).toBeUndefined() // range 無しは従来と同じ（#360 の非 range 契約を非回帰）
+    // 非 range の RouteState は従来どおり（range キー無し／undefined として等価）
+    expect(route).toEqual({
+      view: 'record-detail',
+      kind: 'words',
+      level: 3,
+      theme: '旅行',
+      mode: 'en',
+      endCondition: EC_DEFAULT,
+      position: 1,
+    })
+  })
+
+  it('routeFromRawRecord は dict/wsent の range も RouteState.range に載せる', () => {
+    const dictRec = { source: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', keys: 40, range: 3, endCondition: ec('items', 25) }
+    expect(routeFromRawRecord(dictRec, 2)).toMatchObject({ kind: 'dict', range: 3 })
+    const wsentRec = { source: 'wsent', rank: 2, theme: '旅行', mode: 'both', keys: 300, range: 4 }
+    expect(routeFromRawRecord(wsentRec, 1)).toMatchObject({ kind: 'wsent', level: 2, range: 4 })
+  })
+
+  // バグ再現の直接固定：同一 kind/level/theme/mode/ec/position で range だけ異なる2記録を用意する。
+  // 非 range 記録を先頭（＝最初の一致行）に置くことで、range を無視する現状コードは route{range:2}
+  //   に対して「非 range の別記録」を返す（＝これが #366 の取り違え＝Red）。
+  const wordNoRange = { source: 'word', level: 3, theme: '旅行', mode: 'en', keys: 80, date: 'd1' } // range 無し pos1
+  const wordRange2 = { source: 'word', level: 3, theme: '旅行', mode: 'en', keys: 70, range: 2, date: 'd2' } // range=2 pos1
+
+  const bugMaps = () => ({
+    records: {},
+    dictRecords: {},
+    wordRecords: {
+      'L3__旅行__en': [wordNoRange], // 非 range ランキング（先頭＝最初の一致行）
+      'L3__旅行__en__R2': [wordRange2], // range=2 ランキング（別キー・#362 の __R{range}）
+    },
+    storyRecords: {},
+  })
+
+  const rdWords = (over) => ({
+    view: 'record-detail', kind: 'words', level: 3, theme: '旅行', mode: 'en',
+    endCondition: EC_DEFAULT, position: 1, ...over,
+  })
+
+  it('range=2 の route は range=2 の記録を返す（従来は非 range の別記録を返す＝#366 の取り違え）', () => {
+    const got = resolveColdDetail(rdWords({ range: 2, position: 1 }), bugMaps())
+    expect(got).not.toBeNull()
+    expect(got.record).toBe(wordRange2) // 現状は wordNoRange を返す → Red
+  })
+
+  it('range 無しの route は非 range の記録を返す（range=2 の記録に取り違えない）', () => {
+    const got = resolveColdDetail(rdWords({ position: 1 }), bugMaps())
+    expect(got).not.toBeNull()
+    expect(got.record).toBe(wordNoRange)
+  })
+
+  it('range 有無で別記録に解決する＝同一詳細キーに衝突しない（range 有りと range 無しが混同されない）', () => {
+    const gotNone = resolveColdDetail(rdWords({ position: 1 }), bugMaps())
+    const gotR2 = resolveColdDetail(rdWords({ range: 2, position: 1 }), bugMaps())
+    // 現状は両方とも最初の一致行（wordNoRange）を返し衝突する → not.toBe が Red
+    expect(gotR2.record).not.toBe(gotNone.record)
+    expect(gotNone.record).toBe(wordNoRange)
+    expect(gotR2.record).toBe(wordRange2)
+  })
+
+  it('存在しない range の route は null（該当 range のランキングが無い＝range 外）', () => {
+    expect(resolveColdDetail(rdWords({ range: 9, position: 1 }), bugMaps())).toBeNull()
+  })
+})
