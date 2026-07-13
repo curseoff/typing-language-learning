@@ -19,6 +19,7 @@ import { loadDictRecords, saveDictRecord, recordItemStat } from './records.servi
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
+import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -137,7 +138,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       // 打ち終えた「文の数」。both は1文=en+ja の2セグなので、sentenceIndex のユニーク数で数える。
       const words = new Set(list.map((s) => s.sentenceIndex)).size
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
-      const correctCount = list.filter((s) => !s.partial && (s.mistakes ?? 0) === 0).length
+      const correctCount = firstTryCorrectCount(list)
       const record = {
         source: 'dict', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）

@@ -1,6 +1,9 @@
 // 1プレイの「問題ごとの記録」(segStats)を作る共有ヘルパ。
 // 各セグメント（語/文）の最初の打鍵時刻とミス数を追い、完了時に1件積む。
 // 記録に segStats として保存し、結果ページ・記録詳細で表示する。
+// 1問単位の採点・指標ルールは domain の正準純関数に委譲する（#388）。
+import { segmentScore, missedItemCount } from '../domain/records/segmentStats.service.js'
+
 export const newSegTracker = () => ({ list: [], start: null, mistakes: 0 })
 
 // セグメントの最初の打鍵時刻を記録（既に開始済みなら無視）
@@ -15,8 +18,7 @@ export function segMiss(tr) {
 // ライフ制（life）の「ミスした問題数」。確定済み問題(list)でミス>0の件数に、
 // 進行中の問題が既にミス済みなら +1（打鍵ミス総数ではなく問題単位で数える・#208 段5）。
 export function segMissedItems(tr) {
-  const done = tr.list.filter((s) => (s.mistakes ?? 0) > 0).length
-  return done + (tr.mistakes > 0 ? 1 : 0)
+  return missedItemCount(tr.list, tr.mistakes)
 }
 
 // セグメント完了（または打ち切り partial=true）で1件積む。keys=その語/文の打鍵数、t=完了時刻。
@@ -30,8 +32,7 @@ export function segPush(tr, { type, label, keys, t, partial = false, sentenceInd
     label,
     keys,
     mistakes: tr.mistakes,
-    seconds: Math.round(ms / 100) / 10,
-    speed: ms > 0 ? Math.round(keys / (ms / 60000)) : 0,
+    ...segmentScore({ keys, ms }),
     partial,
     ...(sentenceIndex != null ? { sentenceIndex } : {}),
     ...(en != null ? { en } : {}),
