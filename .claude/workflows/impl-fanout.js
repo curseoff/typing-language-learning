@@ -108,15 +108,18 @@ const results = await pipeline(
 // ---- マージ可否は素の JS で判定（コミッタ役の恣意を排除）----
 const scored = results.filter(Boolean).map((r) => {
   const id = r.item?.id
-  const redOk = r.item?.kind !== 'logic' || r.red?.redConfirmed === true
+  const isLogic = r.item?.kind === 'logic'
+  const redOk = !isLogic || r.red?.redConfirmed === true
   const greenOk = r.green?.passed === true
-  const testsClean = r.green?.touchedTests !== true // coder がテストを触っていない
+  // logic は test-author の Red テストを coder が触っていないことが規約。
+  // simple は契約テスト自体が coder の成果物なので touchedTests は正常（ゲート対象外）。
+  const testsClean = !isLogic || r.green?.touchedTests !== true
   const verdict = r.verify?.verdict
   const ready = redOk && greenOk && testsClean && verdict === 'pass'
   const blockers = []
   if (!redOk) blockers.push('Red未確認(logic)')
   if (!greenOk) blockers.push('check:fast赤')
-  if (!testsClean) blockers.push('coderがテストを変更(規約違反)')
+  if (!testsClean) blockers.push('coderがRedテストを変更(logic規約違反)')
   if (verdict !== 'pass') blockers.push(`reviewer=${verdict ?? '不明'}`)
   return { id, issue: r.item?.issue, title: r.item?.title, branch: BR(id), ready, blockers, verify: r.verify }
 })
