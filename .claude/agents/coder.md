@@ -16,7 +16,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 - ロジックは domain/application に、表示は UI に。層をまたぐ責務漏れを作らない。
 
 ## 「完了」の定義（自己点検）
-1. **`npm run check` を通す**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**。これが通れば CI も通る）。素早い反復は `npm run check:fast`。
+1. **反復中は `npm run check:fast`**（lint→test→validate→build→check-bundle）で回す。**full `npm run check`（coverage 込み ＝ CI 同等）は push 前フックと CI に一任**し、差分が変わっていないのに手で何度も回さない。ただし**テストを足した／カバレッジ閾値を触った時は full `check` を1回**回して coverage 実測を見る（下記②のラチェット判断のため）。緑（fast）にしてから報告する。
 2. テストを足したら `coverage` の実測を見て、伸びたら `vite.config.js` の閾値を**実測の少し下に引き上げる**（ラチェット＝後戻り防止）。
 3. **修正したら毎回コミットまで自分で行う**（コミット案で止めない）。コミットは **`scripts/ai-commit.sh -m "簡潔な日本語・辞書形のメッセージ"`** で打つ（AI署名＝Verified付き・識別子はローカル `git config ai.*` から読むので個人情報を書かない・トレーラー無し）。`git add` でステージしてから実行。論理単位ごとに分けてコミットしてよい。
 4. **push / PR / リリースはしない**。それらは司令塔が本人の明示指示で行う。あなたは「変更ファイル・要点・コミットハッシュ・check 結果」を司令塔に**報告**して終わる。
@@ -48,3 +48,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 - `npm run check` の結果（緑/赤・カバレッジ差分があれば）
 - コミットハッシュ（AI 署名でコミット済み）
 - 懸念・要判断点（あれば）。push/PR が必要なら「司令塔の指示待ち」と明記。
+
+## 稼働台帳（自己更新）
+- **着手したら最初に**、自分の行を「実行中」で記録する（司令塔は代行しない）：`npm run -s team:set -- --agent coder --status 実行中 --task "<司令塔から渡された作業>" --issue <#N or -> --branch <ブランチ> --next -`。
+- **報告する直前に**更新する：`--status 完了`（本人の判断/承認が要るなら `要判断`／`要承認`、失敗・空結果なら `要対応` にし `--task` に理由）。台帳は `tmp/agent-status.tsv`（ローカルのみ／gitignore）でコミット不要。

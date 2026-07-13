@@ -9,13 +9,13 @@
 // 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
-import { wordsInRangeBy } from '../domain/words/wordRange.service.js'
+import { wordsInRangeBy, RANGE_SIZE } from '../domain/words/wordRange.service.js'
 import { score } from '../domain/marathon/scoring.service.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
-import { loadDictRecords, saveDictRecord } from './records.service.js'
+import { loadDictRecords, saveDictRecord, recordItemStat } from './records.service.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
@@ -47,7 +47,7 @@ function dictPool(dict, level, theme) {
 function dictRangePool(dict, level, theme, range, freqMap) {
   const freqOf = (e) => freqMap?.get(e.word) ?? null
   const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  const sliced = wordsInRangeBy(strict, range, 100, freqOf, (e) => e.word)
+  const sliced = wordsInRangeBy(strict, range, RANGE_SIZE, freqOf, (e) => e.word)
   return sliced.length > 0 ? sliced.map(toDictSeg) : null
 }
 
@@ -102,8 +102,11 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const mistakes = snap.mistakes // ミス総数（session 像由来）
 
   const restart = useCallback(() => {
-    flushTracker(trackerRef.current)
-    trackerRef.current = newTracker()
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     segTrackerRef.current = newSegTracker()
     // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
     const next = makeSeed()
@@ -181,7 +184,11 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
           sentenceIndex: seg.sentenceIndex,
         })
       }
-      flushTracker(trackerRef.current)
+      {
+        const { next, emit } = flushTracker(trackerRef.current)
+        trackerRef.current = next
+        if (emit) recordItemStat(emit.id, emit.delta)
+      }
       finish(keys, missCount, t, startedAt)
     },
     [ec, finish],
@@ -205,7 +212,11 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         sentenceIndex: seg.sentenceIndex,
       })
     }
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, t, startedAt)
     return true
@@ -240,7 +251,11 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         startTimeRef.current = startTimeRef.current ?? t // 進捗 finish 用
         setHasError(false)
         segMark(segTrackerRef.current, t) // この問題の最初の打鍵時刻
-        trackKey(trackerRef.current, itemId('d', mode, seg.word)) // 見出し語ごと×モード別
+        {
+          const { next, emit } = trackKey(trackerRef.current, itemId('d', mode, seg.word), performance.now()) // 見出し語ごと×モード別
+          trackerRef.current = next
+          if (emit) recordItemStat(emit.id, emit.delta)
+        }
         sessionRef.current.registerHit() // keys++（Entity 保持）
         syncSession()
         const ph = sessionRef.current.progress()
@@ -279,7 +294,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       } else {
         sessionRef.current.registerMiss() // mistakes++（Entity 保持）
         syncSession()
-        trackMiss(trackerRef.current)
+        trackerRef.current = trackMiss(trackerRef.current).next
         segMiss(segTrackerRef.current)
         setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
@@ -312,7 +327,11 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         sentenceIndex: seg.sentenceIndex,
       })
     }
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, t, startedAt)
   }

@@ -5,8 +5,7 @@
 // 本ファイルは純粋（jsdom/sqlite 不要＝既定の node 環境）。fixture はテスト内インラインの最小データで
 // 教材 *Data.js には依存しない。ファイル名は .contract.test.js ＝命名メタテスト（.policy.js 強制）の対象外。
 //
-// 12 .policy.js のうち、以下3種は「意図的に純粋でない」ため契約から丸ごと除外する（env grep も回さない）：
-//   - itemTracker.policy.js … trackKey が performance.now() を掴み、state を破壊し、recordItemStat で IO する。
+// 12 .policy.js のうち、以下2種は「意図的に純粋でない」ため契約から丸ごと除外する（env grep も回さない）：
 //   - seed.policy.js（makeSeed）… 冒頭コメントで宣言のとおり Math.random を意図的に使う非決定関数。
 //   - segTracker.policy.js の segMark/segMiss/segPush … 引数(tr)を破壊する accumulator（非破壊契約に反する）。
 //     ただし segMissedItems のみ純読み取りなので載せる（env grep も clean なので回す）。
@@ -46,6 +45,7 @@ import {
   selectRestoreCandidate,
 } from './persist/recovery.policy.js'
 import { segMissedItems } from './segTracker.policy.js'
+import { trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 
 // このテストからの相対パスでソース文字列を読む（先例 src/domain/_ddd-naming.test.js）。
 const read = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8')
@@ -322,6 +322,34 @@ describe('Policy契約: segTracker.policy.js', () => {
     assertPolicy({
       fn: segMissedItems,
       sampleInput: () => [{ list: [{ mistakes: 1 }, { mistakes: 0 }], start: null, mistakes: 2 }],
+    }))
+})
+
+// ───────────────────────────────────────────────────────────
+// itemTracker.policy.js（#355 方針A で純化：now 注入・{next,emit} 返却・非破壊・IO/クロック非参照）
+// sampleInput は plain literal の tracker を毎回新規に返す（参照非共有）。純化後は非破壊・決定的。
+// ───────────────────────────────────────────────────────────
+const trFix = () => ({ cur: 'a', keys: 2, mistakes: 1, start: 0, last: 500 })
+describe('Policy契約: itemTracker.policy.js', () => {
+  // 静的 env 非依存：performance/clock/乱数/ストレージ/IO のグローバルを一切参照しない。
+  assertPolicyEnvIndependent({ source: read('./itemTracker.policy.js') })
+
+  describe('Policy契約: itemTracker.trackKey', () =>
+    assertPolicy({
+      fn: trackKey,
+      sampleInput: () => [trFix(), 'b', 700],
+    }))
+
+  describe('Policy契約: itemTracker.trackMiss', () =>
+    assertPolicy({
+      fn: trackMiss,
+      sampleInput: () => [trFix()],
+    }))
+
+  describe('Policy契約: itemTracker.flushTracker', () =>
+    assertPolicy({
+      fn: flushTracker,
+      sampleInput: () => [trFix()],
     }))
 })
 

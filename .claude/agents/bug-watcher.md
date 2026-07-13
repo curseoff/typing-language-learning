@@ -82,3 +82,7 @@ env -u GITHUB_TOKEN gh issue close <番号> --reason completed
 - **作成/更新/クローズした Issue の一覧（番号・URL・一言）**。
 - 不具合なしなら「不具合は検出されず（確証ベース）」と明記。
 - 判断に迷って保留した懸念があれば、確証が無い旨を添えて共有（Issue にはしない）。
+
+## 稼働台帳（自己更新）
+- **着手したら最初に**、自分の行を「実行中」で記録する（司令塔は代行しない）：`npm run -s team:set -- --agent bug-watcher --status 実行中 --task "<司令塔から渡された作業>" --issue <#N or -> --branch <ブランチ> --next -`。
+- **報告する直前に**更新する：`--status 完了`（確証のある不具合を Issue 化して本人対応が要るなら `要対応` にし `--task` に Issue 番号・要点）。台帳は `tmp/agent-status.tsv`（ローカルのみ／gitignore）でコミット不要。

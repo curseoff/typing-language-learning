@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
-import { rangeCount, wordsInRangeBy } from './domain/words/wordRange.service.js'
+import { rangeCount } from './domain/words/wordRange.service.js'
+import { headwordFreqMap, sliceByHeadwordFreq } from './application/headwordFreqSlice.policy.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, DICT_COUNTS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
@@ -420,11 +421,9 @@ export default function App() {
       const themeMap = themes[level] ?? {}
       const filtered = theme === 'すべて' ? pool : pool.filter((s) => themeMap[s.word] === theme)
       // range 時は見出し語 freq 順に 100 文区切りへスライス（決定的）。freq は単語データ由来。
-      let sliced = filtered
-      if (clamped != null) {
-        const freqMap = new Map(words.map((w) => [w.en, w.freq]))
-        sliced = wordsInRangeBy(filtered, clamped, 100, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
-      }
+      // clamped==null は素通り＝ヘルパ内でガードするため freqMap は range 時のみ構築する。
+      const freqMap = clamped != null ? headwordFreqMap(words) : null
+      const sliced = sliceByHeadwordFreq(filtered, clamped, freqMap)
       startMarathon(modeKey, level, 'wsent', sliced, seed, theme, clamped)
       setPhase('playing')
     },
@@ -466,7 +465,7 @@ export default function App() {
     setDictData(d)
     setDictGloss(gloss)
     setDictWordRuby(wordRuby)
-    setDictFreqMap(clamped != null ? new Map(words.map((w) => [w.en, w.freq])) : null)
+    setDictFreqMap(clamped != null ? headwordFreqMap(words) : null)
     setPhase('dict')
   }, [])
 

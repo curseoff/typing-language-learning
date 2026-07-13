@@ -1,7 +1,7 @@
 // スタート画面の共有プリミティブ。presenter（ModeButtons/SectionLabel/BottomTabs/StartRow/selCls）は
 // @tll/ui が正本＝ここは再エクスポート。content 依存のヘルパと、記録詳細に依存する WordRecords は app 側に残す。
 import { WORD_LEVELS, WORD_THEMES } from '../../content/words.js'
-import { rangeCount, rangeLabel } from '../../domain/words/wordRange.service.js'
+import { rangeCount, rangeLabel, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
@@ -22,7 +22,7 @@ export function RangeStepper({ total, range, onChange, unit = '語' }) {
   const atEnd = idx >= count
   const dec = () => onChange(idx <= 1 ? null : idx - 1) // 1→なし、なしで止まる
   const inc = () => onChange(idx >= count ? (count >= 1 ? count : null) : idx + 1) // なし→1、末尾で止まる
-  const label = range == null ? '範囲指定なし（全体）' : `${rangeLabel(range, 100, total)} ${unit}`
+  const label = range == null ? '範囲指定なし（全体）' : `${rangeLabel(range, RANGE_SIZE, total)} ${unit}`
   const position = range == null ? `— / ${count}` : `${range} / ${count}`
   return (
     <>
