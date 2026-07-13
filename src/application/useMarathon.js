@@ -16,6 +16,7 @@ import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { recordItemStat } from './records.service.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
+import { firstTryCorrectCount, segmentScore, missedItemCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -97,9 +98,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const { mode, rank, source, seed, theme, range } = ctxRef.current
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
-      const correctCount = segStatsRef.current.filter(
-        (s) => !s.partial && (s.mistakes ?? 0) === 0,
-      ).length
+      const correctCount = firstTryCorrectCount(segStatsRef.current)
       const record = {
         mode,
         rank,
@@ -131,9 +130,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
       const startedAt = startTimeRef.current ?? t
       // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない・#208 段5）。
       // 確定問題(segStats)のミス>0件数＋進行中問題が既にミス済みなら+1（問題単位）。
-      const missedItems =
-        segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-        (segMistakesRef.current > 0 ? 1 : 0)
+      const missedItems = missedItemCount(segStatsRef.current, segMistakesRef.current)
       if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0 && segStartRef.current !== null) {
         const ms = t - segStartRef.current
@@ -148,8 +145,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
             kana: seg.kana,
             keys: partialLen,
             mistakes: segMistakesRef.current,
-            seconds: Math.round(ms / 100) / 10,
-            speed: ms > 0 ? Math.round(partialLen / (ms / 60000)) : 0,
+            ...segmentScore({ keys: partialLen, ms }),
             partial: true,
           },
         ]
@@ -206,8 +202,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
               kana: seg.kana,
               keys: segKeys,
               mistakes: segMistakesRef.current,
-              seconds: Math.round(ms / 100) / 10,
-              speed: ms > 0 ? Math.round(segKeys / (ms / 60000)) : 0,
+              ...segmentScore({ keys: segKeys, ms }),
               partial: false,
             },
           ]
@@ -241,10 +236,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
         playMiss()
         setHasError(true)
         // ミスした問題数（life 制HUD用）を live 更新＝確定問題のミス>0件数＋進行中問題が既ミスなら+1。
-        setMissedItems(
-          segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-            (segMistakesRef.current > 0 ? 1 : 0),
-        )
+        setMissedItems(missedItemCount(segStatsRef.current, segMistakesRef.current))
         // ミス数（life 制）の到達を判定。
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
@@ -277,8 +269,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
           kana: seg.kana,
           keys: segInput.length,
           mistakes: segMistakesRef.current,
-          seconds: Math.round(ms / 100) / 10,
-          speed: ms > 0 ? Math.round(segInput.length / (ms / 60000)) : 0,
+          ...segmentScore({ keys: segInput.length, ms }),
           partial: true,
         },
       ]
@@ -312,8 +303,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
           kana: seg.kana,
           keys: segInput.length,
           mistakes: segMistakesRef.current,
-          seconds: Math.round(ms / 100) / 10,
-          speed: ms > 0 ? Math.round(segInput.length / (ms / 60000)) : 0,
+          ...segmentScore({ keys: segInput.length, ms }),
           partial: true,
         },
       ]

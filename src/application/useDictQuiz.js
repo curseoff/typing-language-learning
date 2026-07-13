@@ -15,6 +15,7 @@ import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/sessi
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.service.js'
 import { buildQuizSegStat } from './quizSegStat.policy.js'
+import { firstTryCorrectCountQuiz, missedItemCount, quizScore } from '../domain/records/segmentStats.service.js'
 import { makeSeed } from './seed.policy.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -96,15 +97,15 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
     (keys, correctCount, totalMistakes, endTime, startedAt) => {
       if (finishedRef.current) return
       finishedRef.current = true
-      const seconds = Math.round((endTime - startedAt) / 100) / 10
       const total = segStatsRef.current.length // 60秒で完答した設問数
-      const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
-      const minutes = (endTime - startedAt) / 60000
-      const speed = minutes > 0 ? Math.round(keys / minutes) : 0
+      const { seconds, accuracy, speed } = quizScore({
+        keys,
+        correct: correctCount,
+        total,
+        elapsedMs: endTime - startedAt,
+      })
       // 一発正解数（items 制の主指標）＝正答かつミス0の設問数。#208 段3a
-      const noMissCorrect = segStatsRef.current.filter(
-        (s) => s.correct && (s.mistakes ?? 0) === 0,
-      ).length
+      const noMissCorrect = firstTryCorrectCountQuiz(segStatsRef.current)
       const record = {
         source: 'dict', // リプレイの分岐用（App.replay）
         seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
@@ -142,9 +143,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
       const items = segStatsRef.current.length
       // life は「ミスした設問数」で判定（打鍵ミス総数ではない・#208 段5）。
       // 確定設問のミス>0件数＋現在設問が既にミス済みなら+1（設問単位）。
-      const missedItems =
-        segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-        (perQMissRef.current > 0 ? 1 : 0)
+      const missedItems = missedItemCount(segStatsRef.current, perQMissRef.current)
       if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys: keysRef.current, items, missedItems })) return
       finish(keysRef.current, correctRef.current, mistakesRef.current, t, startedAt)
     },
@@ -250,10 +249,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
         setMistakes((m) => (mistakesRef.current = m + 1))
         perQMissRef.current += 1
         // ミスした設問数を live 更新（life 制HUD用）＝確定設問のミス>0件数＋現在設問が既ミスなら+1。
-        setMissedItems(
-          segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-            (perQMissRef.current > 0 ? 1 : 0),
-        )
+        setMissedItems(missedItemCount(segStatsRef.current, perQMissRef.current))
         playMiss()
         setHasError(true)
         // ミス数（life 制）の到達を判定。
