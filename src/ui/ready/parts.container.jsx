@@ -71,7 +71,9 @@ export function WordRecords({ list, isQuiz, rankText, endCondition }) {
   return (
     <div className="records">
       <h3>
-        記録ランキング<span className="records-sub">（{mainSub}順・最大15件）</span>
+        記録ランキング
+        {rankText && <span className="records-mode">{rankText}</span>}
+        <span className="records-sub">（{mainSub}順・最大15件）</span>
       </h3>
       {rows.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>
