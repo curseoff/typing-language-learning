@@ -662,3 +662,132 @@ describe('routing.policy: 純粋・非破壊・環境非依存', () => {
     ).not.toThrow()
   })
 })
+
+describe('routing.policy: dict / sentences の固定範囲 range セグメント（r{n}）#364', () => {
+  // #362 で words 専用だった range を dict/sentences(wsent) ルートにも一般化する。
+  // - 末尾 r{n}（1 始まりの正整数）を range として解し、ec セグメント（t/c/i/l/e）と接頭辞で区別する。
+  // - build は「ec 非既定セグメント → range セグメント」の順（range 無しは出さない）。
+  // - story/touch/romaji は range 非対応（付いても従来どおり無視・range を持たない）。
+  // - RouteState.gameType は wsent（URL slug は sentences）。既存 words range/content/view/record-detail は非回帰。
+  const enc日常 = enc('日常')
+  const encビジネス = enc('ビジネス')
+
+  it('g1. /dict/2/ビジネス/quiz/r3 が dict RouteState に range:3 を持つ（ec は既定）', () => {
+    expect(parseRoute('/dict/2/ビジネス/quiz/r3')).toEqual({
+      gameType: 'dict',
+      level: 2,
+      theme: 'ビジネス',
+      mode: 'quiz',
+      endCondition: EC_DEFAULT,
+      range: 3,
+    })
+  })
+
+  it('g2. /sentences/1/日常/both/r2 が wsent RouteState に range:2 を持つ', () => {
+    expect(parseRoute('/sentences/1/日常/both/r2')).toEqual({
+      gameType: 'wsent',
+      level: 1,
+      theme: '日常',
+      mode: 'both',
+      endCondition: EC_DEFAULT,
+      range: 2,
+    })
+  })
+
+  it('g3. ec と range の併存（/dict/2/ビジネス/quiz/i25/r3 → items25 + range3）', () => {
+    expect(parseRoute('/dict/2/ビジネス/quiz/i25/r3')).toEqual({
+      gameType: 'dict',
+      level: 2,
+      theme: 'ビジネス',
+      mode: 'quiz',
+      endCondition: ec('items', 25),
+      range: 3,
+    })
+  })
+
+  it('g4. 不正な range（r0・rx・r1.5）は range 無しへ丸める（他フィールドは従来どおり）', () => {
+    expect(parseRoute('/dict/2/ビジネス/quiz/r0')).not.toHaveProperty('range')
+    expect(parseRoute('/dict/2/ビジネス/quiz/rx')).not.toHaveProperty('range')
+    expect(parseRoute('/sentences/1/日常/both/r1.5')).not.toHaveProperty('range')
+    expect(parseRoute('/dict/2/ビジネス/quiz/r0')).toEqual({
+      gameType: 'dict',
+      level: 2,
+      theme: 'ビジネス',
+      mode: 'quiz',
+      endCondition: EC_DEFAULT,
+    })
+  })
+
+  it('g5. range 無しの dict/sentences ルートは range を持たない（非回帰）', () => {
+    expect(parseRoute('/dict/2/ビジネス/quiz')).not.toHaveProperty('range')
+    expect(parseRoute('/sentences/1/日常/both')).not.toHaveProperty('range')
+  })
+
+  it('g6. buildRoute（dict range → 末尾 r セグメント）', () => {
+    expect(
+      buildRoute({ gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: EC_DEFAULT, range: 3 }),
+    ).toBe(`/dict/2/${encビジネス}/quiz/r3`)
+  })
+
+  it('g7. buildRoute（sentences range → slug sentences・末尾 r セグメント）', () => {
+    expect(
+      buildRoute({ gameType: 'wsent', level: 1, theme: '日常', mode: 'both', endCondition: EC_DEFAULT, range: 2 }),
+    ).toBe(`/sentences/1/${enc日常}/both/r2`)
+  })
+
+  it('g8. ec 非既定＋range は ec セグメント→range セグメントの順', () => {
+    expect(
+      buildRoute({ gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: ec('items', 25), range: 3 }),
+    ).toBe(`/dict/2/${encビジネス}/quiz/i25/r3`)
+  })
+
+  it('g9. range 無しは r セグメントを出さない（非回帰）', () => {
+    expect(
+      buildRoute({ gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: EC_DEFAULT }),
+    ).toBe(`/dict/2/${encビジネス}/quiz`)
+  })
+
+  it('g10. words/dict/sentences × range 有無 × ec 有無で往復不変（parse∘build=id）', () => {
+    const states = [
+      // words（#362 非回帰）
+      { gameType: 'words', level: 1, theme: '日常', mode: 'en', endCondition: EC_DEFAULT, range: 2 },
+      { gameType: 'words', level: 4, theme: 'ビジネス', mode: 'quiz-ja', endCondition: ec('items', 25), range: 3 },
+      // dict
+      { gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: EC_DEFAULT, range: 3 },
+      { gameType: 'dict', level: 3, theme: '旅行', mode: 'pick', endCondition: ec('items', 25), range: 1 },
+      // sentences(wsent)
+      { gameType: 'wsent', level: 1, theme: '日常', mode: 'both', endCondition: EC_DEFAULT, range: 2 },
+      { gameType: 'wsent', level: 2, theme: 'すべて', mode: 'en', endCondition: ec('chars', 600), range: 4 },
+      // range 無し（従来形）も壊れない
+      { gameType: 'dict', level: 2, theme: 'ビジネス', mode: 'quiz', endCondition: EC_DEFAULT },
+      { gameType: 'wsent', level: 1, theme: '日常', mode: 'both', endCondition: ec('time', 30) },
+    ]
+    for (const s of states) {
+      expect(parseRoute(buildRoute(s))).toEqual(s)
+    }
+  })
+
+  it('g11. range を含む path の冪等（parse∘build∘parse が parse と一致）', () => {
+    const paths = [
+      '/dict/2/ビジネス/quiz/r3',
+      '/dict/2/ビジネス/quiz/i25/r3',
+      '/sentences/1/日常/both/r2',
+      '/dict/2/ビジネス/quiz/r0', // 不正 range → 丸め後で安定
+      '/dict/2/ビジネス/quiz', // range 無し
+    ]
+    for (const p of paths) {
+      const once = parseRoute(p)
+      expect(parseRoute(buildRoute(once))).toEqual(once)
+    }
+  })
+
+  it('g12. story/touch/romaji は range 非対応（付いても無視・range を持たない）', () => {
+    expect(parseRoute('/story/travel/r2')).not.toHaveProperty('range')
+    expect(parseRoute('/touch/home/easy/r2')).not.toHaveProperty('range')
+    expect(parseRoute('/romaji/ka/r2')).not.toHaveProperty('range')
+    // range プロパティを与えても range 非対応ページは URL に出さない
+    expect(
+      buildRoute({ gameType: 'story', storyId: 'travel', endCondition: EC_DEFAULT, range: 2 }),
+    ).not.toContain('r2')
+  })
+})
