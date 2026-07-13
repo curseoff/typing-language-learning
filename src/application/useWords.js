@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildWordPassage } from '../domain/words/wordset.service.js'
 import { buildUnits, segMatches } from '../domain/typing/units.service.js'
-import { score } from '../domain/marathon/scoring.service.js'
+import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
@@ -110,26 +110,29 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
       if (finishedRef.current) return
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
-      const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
       const correctCount = firstTryCorrectCount(segTrackerRef.current.list)
+      // 記録生成は domain の makeScoreRecord に集約（採点＝makeScore を内包）。#389
+      // session Entity は elapsedMs を保持しないため明示値を渡し、凍結は plain 展開して形状を保つ。
       const record = {
-        source: 'word', // リプレイの分岐用（App.replay）
-        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
-        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
-        level,
-        theme,
-        mode,
-        speed,
-        keys,
-        mistakes: totalMistakes,
-        accuracy,
-        correctCount,
-        seconds,
-        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
-        ...(range != null ? { range } : {}),
-        segStats: segTrackerRef.current.list,
-        date: new Date().toLocaleString('ja-JP'),
+        ...makeScoreRecord({
+          keys,
+          mistakes: totalMistakes,
+          elapsedMs,
+          meta: {
+            source: 'word', // リプレイの分岐用（App.replay）
+            seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
+            endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
+            level,
+            theme,
+            mode,
+            correctCount,
+            // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+            ...(range != null ? { range } : {}),
+            segStats: segTrackerRef.current.list,
+            date: new Date().toLocaleString('ja-JP'),
+          },
+        }),
       }
       setRecords(saveWordRecord(record))
       setResult(record)

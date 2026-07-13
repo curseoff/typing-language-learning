@@ -8,7 +8,7 @@
 // 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
-import { score } from '../domain/marathon/scoring.service.js'
+import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
@@ -95,26 +95,30 @@ export function useMarathon({ active, onFinish, endCondition }) {
       if (finishedRef.current) return
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
-      const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const { mode, rank, source, seed, theme, range } = ctxRef.current
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
       const correctCount = firstTryCorrectCount(segStatsRef.current)
+      // 記録生成は domain の makeScoreRecord に集約（採点＝makeScore を内包）。#389
+      // session Entity は elapsedMs を保持しないため sessionToRecord ではなく明示値を渡す。
+      // 現行 record は plain（下流が触れる）なので凍結を plain 展開して形状を保つ。
       const record = {
-        mode,
-        rank,
-        source,
-        theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
-        // #364 range モード時のみ range を載せる（未選択は従来 record と byte 同一＝後方互換）。
-        ...(range != null ? { range } : {}),
-        seed, // 同じ問題列を再現するためのシード（リプレイ用）
-        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
-        speed,
-        keys,
-        mistakes: totalMistakes,
-        accuracy,
-        correctCount,
-        seconds,
-        date: new Date().toLocaleString('ja-JP'),
+        ...makeScoreRecord({
+          keys,
+          mistakes: totalMistakes,
+          elapsedMs,
+          meta: {
+            mode,
+            rank,
+            source,
+            theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
+            // #364 range モード時のみ range を載せる（未選択は従来 record と byte 同一＝後方互換）。
+            ...(range != null ? { range } : {}),
+            seed, // 同じ問題列を再現するためのシード（リプレイ用）
+            endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
+            correctCount,
+            date: new Date().toLocaleString('ja-JP'),
+          },
+        }),
       }
       onFinish(record, segStatsRef.current)
     },

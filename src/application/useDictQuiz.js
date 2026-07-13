@@ -15,7 +15,8 @@ import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/sessi
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord } from './records.service.js'
 import { buildQuizSegStat } from './quizSegStat.policy.js'
-import { firstTryCorrectCountQuiz, missedItemCount, quizScore } from '../domain/records/segmentStats.service.js'
+import { firstTryCorrectCountQuiz, missedItemCount } from '../domain/records/segmentStats.service.js'
+import { quizToRecord } from '../domain/records/sessionResult.service.js'
 import { makeSeed } from './seed.policy.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -98,34 +99,25 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
       if (finishedRef.current) return
       finishedRef.current = true
       const total = segStatsRef.current.length // 60秒で完答した設問数
-      const { seconds, accuracy, speed } = quizScore({
-        keys,
-        correct: correctCount,
-        total,
-        elapsedMs: endTime - startedAt,
-      })
       // 一発正解数（items 制の主指標）＝正答かつミス0の設問数。#208 段3a
       const noMissCorrect = firstTryCorrectCountQuiz(segStatsRef.current)
-      const record = {
-        source: 'dict', // リプレイの分岐用（App.replay）
-        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
-        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
-        level,
-        theme,
-        mode: kind,
-        keys, // タイピング数（主指標）
-        speed,
-        correct: correctCount,
-        correctCount: noMissCorrect,
-        words: total,
-        mistakes: totalMistakes,
-        accuracy,
-        seconds,
-        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
-        ...(range != null ? { range } : {}),
-        segStats: segStatsRef.current,
-        date: new Date().toLocaleString('ja-JP'),
-      }
+      // 記録生成は domain の quizToRecord に集約（採点＝quizScore を内包）。#389
+      const record = quizToRecord(
+        { keys, mistakes: totalMistakes, correct: correctCount, total, elapsedMs: endTime - startedAt },
+        {
+          source: 'dict', // リプレイの分岐用（App.replay）
+          seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
+          endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
+          level,
+          theme,
+          mode: kind,
+          correctCount: noMissCorrect, // 一発正解数（segStats 由来）＝meta 経由
+          // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+          ...(range != null ? { range } : {}),
+          segStats: segStatsRef.current,
+          date: new Date().toLocaleString('ja-JP'),
+        },
+      )
       setRecords(saveDictRecord(record))
       setResult(record)
       setFinished(true)
