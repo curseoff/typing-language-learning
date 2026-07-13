@@ -7,7 +7,8 @@ import { RankSectionView } from '@tll/ui'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { loadWords } from '../../content/words.js'
 import { dictRanking } from '../../application/records.service.js'
-import { rangeLabel, wordsInRangeBy, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { rangeLabel, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
@@ -41,17 +42,14 @@ function DictList({ level, theme, mode, range }) {
   useEffect(() => {
     if (range == null) return
     let alive = true
-    loadWords(level).then((ws) => alive && setFreqMap(new Map(ws.map((w) => [w.en, w.freq]))))
+    loadWords(level).then((ws) => alive && setFreqMap(headwordFreqMap(ws)))
     return () => {
       alive = false
     }
   }, [range, level])
   if (!dict || (range != null && !freqMap)) return <p className="pool-count">読み込み中…</p>
   const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  const items =
-    range != null
-      ? wordsInRangeBy(strict, range, RANGE_SIZE, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
-      : strict
+  const items = sliceByHeadwordFreq(strict, range, freqMap)
   return <ItemList items={items} type="dict" mode={mode} />
 }
 
