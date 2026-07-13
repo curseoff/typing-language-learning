@@ -9,6 +9,7 @@ import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from '../../content/wor
 import { WORD_LEVELS, loadWords } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.service.js'
 import { rangeLabel, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import RecordsTable from '../result/RecordsTable.container.jsx'
 import ItemList from './ItemList.container.jsx'
@@ -49,8 +50,7 @@ function WsentList({ level, theme, mode, range }) {
   }, [range, level])
   if (!loaded || loaded.level !== level || (range != null && !freqMap))
     return <p className="pool-count">読み込み中…</p>
-  const filtered =
-    theme === 'すべて' ? loaded.items : loaded.items.filter((s) => loaded.themes[s.word] === theme)
+  const filtered = filterWsentByTheme(loaded.items, theme, loaded.themes)
   const items = sliceByHeadwordFreq(filtered, range, freqMap)
   return <ItemList items={items} type="marathon" mode={mode} />
 }
