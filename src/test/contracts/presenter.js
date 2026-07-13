@@ -25,8 +25,12 @@ import { render, cleanup } from '@testing-library/react'
 //   element … () => ReactElement   対象 presenter に妥当な props を与えた要素を毎回新しく返す
 //             （参照非共有。省略すると描画/決定性の it を張らない＝source だけの静的検査に使える）。
 //   source  … string               当該 presenter の実体ソース文字列（hooks grep 用。省略可）。
-const FORBIDDEN_HOOK =
-  /\buse(State|Effect|LayoutEffect|InsertionEffect|Reducer|Ref|Context|ImperativeHandle|SyncExternalStore|Transition|DeferredValue)\s*\(/
+// `(?:<[^(]*>)?` は TS/TSX のジェネリクス呼び出し形（`useState<number>(0)` / `useRef<Foo>()` /
+// `useReducer<Map<string, number>>(...)` 等）を捕捉するための省略可能なジェネリクス部。これが無いと
+// `useState` と `(` の間に `<number>` が挟まる形を素通りする（\s*\( が一致しない）ため静的保証が漏れる。
+// `[^(]*` は括弧を含まない＝呼び出しの `(` まで貪欲に伸びない（ジェネリクス内に `(` は来ない前提）。
+export const FORBIDDEN_HOOK =
+  /\buse(State|Effect|LayoutEffect|InsertionEffect|Reducer|Ref|Context|ImperativeHandle|SyncExternalStore|Transition|DeferredValue)\s*(?:<[^(]*>)?\s*\(/
 
 export function assertPresenter({ element, source } = {}) {
   if (element) {

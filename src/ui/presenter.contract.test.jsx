@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { assertPresenter } from '../test/contracts/presenter.js'
+import { assertPresenter, FORBIDDEN_HOOK } from '../test/contracts/presenter.js'
 
 // src/ui の presenter 表面（薄板 shim 経由で実体を通す）。
 import SegStatsTable from './result/SegStatsTable.presenter.jsx'
@@ -236,13 +236,42 @@ describe('Presenter契約: about/AboutView.presenter', () =>
 // もし将来これらを純化（hooks 除去）したら、この it が赤くなって「純プレゼンター契約へ移すべき」と気づける。
 // ＝除外を“甘い黙認”にせず、逸脱の現状をテストで可視化する（テストを甘くしない）。
 // ───────────────────────────────────────────────────────────
-const HOOK_RE = /\buse(State|Effect|LayoutEffect|Reducer|Ref|Context)\s*\(/
+// 検出は本体ヘルパの FORBIDDEN_HOOK（＝assertPresenter が使う正規表現）に一本化する（重複を1箇所へ）。
 describe('Presenter契約: 除外の明示（純プレゼンターでない＝所見）', () => {
   it('marathon/TopFlow.presenter は hooks（useMemo）を持つ＝純プレゼンター契約の対象外', () => {
+    // useMemo は state/副作用ではなく（メモ化）FORBIDDEN_HOOK の対象外＝別途この専用パターンで固定する。
     expect(/\buseMemo\s*\(/.test(src('marathon/TopFlow.presenter.tsx'))).toBe(true)
   })
   it('shared/Flow.presenter は hooks（useLayoutEffect/useRef）を持つ＝純プレゼンター契約の対象外', () => {
-    expect(HOOK_RE.test(src('shared/Flow.presenter.tsx'))).toBe(true)
+    expect(FORBIDDEN_HOOK.test(src('shared/Flow.presenter.tsx'))).toBe(true)
+  })
+})
+
+// ───────────────────────────────────────────────────────────
+// FORBIDDEN_HOOK 自体の性質テスト：TS/TSX のジェネリクス呼び出し形も必ず捕捉する（#339 reviewer 指摘）。
+//   `useState<number>(0)` のように use◯◯ と `(` の間にジェネリクス `<…>` が挟まる形を素通りさせない。
+//   対象ファイルを増やさず、正規表現の性質だけをここで固定する。
+// ───────────────────────────────────────────────────────────
+describe('Presenter契約: FORBIDDEN_HOOK は TS ジェネリクス呼び出し形も捕捉する', () => {
+  it.each([
+    ['useState<number>(0)', 'ジェネリクス引数付き useState'],
+    ['useRef<HTMLDivElement>(null)', 'ジェネリクス引数付き useRef'],
+    ['useReducer<Map<string, number>>(fn, init)', 'ネストしたジェネリクス useReducer'],
+    ['useState < number > (0)', 'ジェネリクスと括弧の前後に空白'],
+    ['useState(0)', 'ジェネリクスなし（従来形）'],
+    ['useLayoutEffect(() => {}, [])', 'ジェネリクスなし副作用フック'],
+  ])('%s を hooks 使用として検出する（%s）', (sample) => {
+    expect(FORBIDDEN_HOOK.test(sample)).toBe(true)
+    FORBIDDEN_HOOK.lastIndex = 0 // グローバルフラグは無いが念のため（再利用時の位置持ち越し防止）。
+  })
+
+  it.each([
+    ['const useStateValue = 1', 'use◯◯ を含む単なる識別子（呼び出しでない）'],
+    ['xuseState(0)', '\\b 境界外（前方に語中文字が続く＝小文字 use が語中）'],
+    ['useThing<number>(0)', '禁止リスト外のフック名'],
+  ])('%s は誤検出しない（%s）', (sample) => {
+    expect(FORBIDDEN_HOOK.test(sample)).toBe(false)
+    FORBIDDEN_HOOK.lastIndex = 0
   })
 })
 
