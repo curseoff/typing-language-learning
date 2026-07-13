@@ -178,8 +178,8 @@ export { wordRecKey, dictRecKey }
 export function wordRanking(level, theme, mode, endCondition, range) {
   return loadWordRecords()[wordRecKey(level, theme, mode, endCondition, range)]
 }
-export function dictRanking(level, theme, mode, endCondition) {
-  return loadDictRecords()[dictRecKey(level, theme, mode, endCondition)]
+export function dictRanking(level, theme, mode, endCondition, range) {
+  return loadDictRecords()[dictRecKey(level, theme, mode, endCondition, range)]
 }
 
 // ── 問題ごとの収録統計 ──

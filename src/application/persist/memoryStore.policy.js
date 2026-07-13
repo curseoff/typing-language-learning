@@ -38,7 +38,14 @@ export function buildImage({
 
 // マラソン記録を1件適用し、更新後の全マップ（新参照）を返す（recordsRepository.saveRecord と同値）。
 export function applySaveRecord(records, record) {
-  const key = recKey(record.mode, record.rank, record.source, record.theme, record.endCondition)
+  const key = recKey(
+    record.mode,
+    record.rank,
+    record.source,
+    record.theme,
+    record.endCondition,
+    record.range
+  )
   return { ...records, [key]: rankedEntries(key, records[key], record) }
 }
 
@@ -50,7 +57,7 @@ export function applySaveWordRecord(wordRecords, record) {
 
 // 英英記録を1件適用（dictRepository.saveDictRecord と同値）。
 export function applySaveDictRecord(dictRecords, record) {
-  const key = dictRecKey(record.level, record.theme, record.mode, record.endCondition)
+  const key = dictRecKey(record.level, record.theme, record.mode, record.endCondition, record.range)
   return { ...dictRecords, [key]: rankedEntries(key, dictRecords[key], record) }
 }
 

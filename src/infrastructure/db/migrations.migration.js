@@ -91,4 +91,13 @@ export const migrations = [
       db.exec('ALTER TABLE "dict_records" ADD COLUMN "range" INTEGER')
     },
   },
+  {
+    // Phase（#364 dict/wsent 固定範囲）：マラソン記録（records）に固定範囲 range 列を足す
+    // （前方のみ＝version 1〜3 は不変）。range を使うのは単語例文 wsent のみ（sentence/touch/romaji は
+    // 常に NULL）。nullable で range 無し記録は NULL＝プロパティ省略＝従来キーと byte 同一（後方互換）。
+    version: 4,
+    up(db) {
+      db.exec('ALTER TABLE "records" ADD COLUMN "range" INTEGER')
+    },
+  },
 ]
