@@ -22,6 +22,10 @@ import puppeteer from 'puppeteer-core'
 
 const OVERALL_TIMEOUT_MS = 30_000 // 全体の上限。無限待ちを防ぐ。
 
+// preview は本番と同じサブパスで配信する（vite.config.js の base と一致させる）。
+// アプリのエントリ・キャッシュ URL はすべてこの直下に来る。
+const BASE_PATH = '/typing-language-learning/'
+
 // 1) Chrome 実行パスを解決する。環境変数優先、無ければ macOS 既定。
 function resolveChrome() {
   const cand =
@@ -56,7 +60,8 @@ async function startPreview(port) {
     ['vite', 'preview', '--port', String(port), '--strictPort'],
     { stdio: 'ignore' },
   )
-  const base = `http://localhost:${port}`
+  const origin = `http://localhost:${port}`
+  const base = `${origin}${BASE_PATH}` // アプリのエントリ（サブパス直下・末尾スラッシュ付き）
   for (let i = 0; i < 60; i++) {
     try {
       const res = await fetch(base)
@@ -73,7 +78,7 @@ async function startPreview(port) {
 // ブラウザ内でキャッシュ内容を集計し、不足項目を洗い出す。
 // Vary: Origin により strict match が外れるため ignoreVary で判定する。
 async function inspectCaches(page) {
-  return page.evaluate(async () => {
+  return page.evaluate(async (basePath) => {
     const shell = await caches.open('shell-v1')
     const data = await caches.open('data-v1')
 
@@ -86,19 +91,20 @@ async function inspectCaches(page) {
       return keys.some((r) => re.test(new URL(r.url).pathname))
     }
 
-    const origin = location.origin
+    // precache は scope 相対なので実キャッシュ URL は base 直下（origin+basePath）に来る。
+    const root = `${location.origin}${basePath}` // 例: http://localhost:4300/typing-language-learning/
     const missing = []
 
     // shell: 起動に必須の小資産
-    if (!(await hasUrl(shell, `${origin}/`))) missing.push('shell:/')
+    if (!(await hasUrl(shell, root))) missing.push('shell:/')
     if (!(await hasPattern(shell, /\.css$/))) missing.push('shell:*.css')
     if (!(await hasPattern(shell, /\/index-[^/]*\.js$/))) missing.push('shell:index-*.js')
-    if (!(await hasUrl(shell, `${origin}/manifest.webmanifest`)))
+    if (!(await hasUrl(shell, `${root}manifest.webmanifest`)))
       missing.push('shell:manifest.webmanifest')
-    if (!(await hasUrl(shell, `${origin}/icon.svg`))) missing.push('shell:icon.svg')
+    if (!(await hasUrl(shell, `${root}icon.svg`))) missing.push('shell:icon.svg')
 
     // data: 大物
-    if (!(await hasUrl(data, `${origin}/content.sqlite3`))) missing.push('data:content.sqlite3')
+    if (!(await hasUrl(data, `${root}content.sqlite3`))) missing.push('data:content.sqlite3')
     if (!(await hasPattern(data, /sqlite3-[^/]*\.wasm$/))) missing.push('data:sqlite3-*.wasm')
 
     // #173: fallback チャンク（L1〜L4/wordsData/dictionaryData/wordGlossData）は
@@ -110,7 +116,7 @@ async function inspectCaches(page) {
 
     const count = async (cache) => (await cache.keys()).length
     return { missing, strayFallback, shellCount: await count(shell), dataCount: await count(data) }
-  })
+  }, BASE_PATH)
 }
 
 // 単語モードを起動して SQLite/wasm 取得を促す。DOM テキストからボタンを引く。

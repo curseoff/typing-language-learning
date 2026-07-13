@@ -27,18 +27,24 @@ export default function Ready({
   onWsentLevelChange,
   wsentTheme,
   onWsentThemeChange,
+  wsentRange,
+  onWsentRangeChange,
   wordLevel,
   wordTheme,
   wordMode,
+  wordRange,
   onWordLevelChange,
   onThemeChange,
   onWordModeChange,
+  onWordRangeChange,
   dictLevel,
   dictTheme,
   dictMode,
+  dictRange,
   onDictLevelChange,
   onDictThemeChange,
   onDictModeChange,
+  onDictRangeChange,
   touchLevel,
   onTouchLevelChange,
   touchMode,
@@ -88,6 +94,8 @@ export default function Ready({
           onWsentLevelChange={onWsentLevelChange}
           wsentTheme={wsentTheme}
           onWsentThemeChange={onWsentThemeChange}
+          wsentRange={wsentRange}
+          onWsentRangeChange={onWsentRangeChange}
           focusSection={focusSection}
           onFocusSection={onFocusSection}
           bottomTab={bottomTab}
@@ -120,9 +128,11 @@ export default function Ready({
           wordLevel={wordLevel}
           wordTheme={wordTheme}
           wordMode={wordMode}
+          wordRange={wordRange}
           onWordLevelChange={onWordLevelChange}
           onThemeChange={onThemeChange}
           onWordModeChange={onWordModeChange}
+          onWordRangeChange={onWordRangeChange}
           focusSection={focusSection}
           onFocusSection={onFocusSection}
           bottomTab={bottomTab}
@@ -139,9 +149,11 @@ export default function Ready({
           dictLevel={dictLevel}
           dictTheme={dictTheme}
           dictMode={dictMode}
+          dictRange={dictRange}
           onDictLevelChange={onDictLevelChange}
           onDictThemeChange={onDictThemeChange}
           onDictModeChange={onDictModeChange}
+          onDictRangeChange={onDictRangeChange}
           focusSection={focusSection}
           onFocusSection={onFocusSection}
           bottomTab={bottomTab}

@@ -5,9 +5,13 @@ import { Result as ResultView } from '@tll/ui'
 import { modeLabel } from '../../content/modes.js'
 import { recKey, MAX_RECORDS } from '../../domain/records/ranking.service.js'
 import { useRecordDetail } from './useRecordDetail.jsx'
+import { useOpenDetail } from './RecordDetailContext.context.jsx'
 
 export default function Result({ result, records, segStats, onRetry }) {
-  const { open, modal } = useRecordDetail()
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   const list = records[recKey(result.mode, result.rank, result.source, result.theme, result.endCondition)]
   return (
     <ResultView
@@ -17,7 +21,7 @@ export default function Result({ result, records, segStats, onRetry }) {
       records={list}
       maxRecords={MAX_RECORDS}
       onRowClick={open}
-      recordsModal={modal}
+      recordsModal={openDetail ? null : modal}
       onRetry={onRetry}
     />
   )

@@ -7,6 +7,7 @@ import { MODES, modeLabel } from '../../content/modes.js'
 import { STORIES, storyById } from '../../content/stories/index.js'
 import { loadStoryRecords, loadItemStats, storyStatId } from '../../application/records.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
 const STORY_MODE_GROUPS = [...new Set(MODES.map((m) => m.group))].map((g) => ({
   course: g,
@@ -43,7 +44,10 @@ function StoryScenes({ story, mode }) {
 
 function StoryRecords({ list, rankText = '物語' }) {
   const rows = list || []
-  const { open, modal } = useRecordDetail()
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   return (
     <div className="records">
       <h3>
@@ -82,7 +86,7 @@ function StoryRecords({ list, rankText = '物語' }) {
           </tbody>
         </table>
       )}
-      {modal}
+      {!openDetail && modal}
     </div>
   )
 }

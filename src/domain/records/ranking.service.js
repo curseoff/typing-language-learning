@@ -52,11 +52,14 @@ export function compareRecords(endCondition, a, b) {
 // theme を渡すとテーマ別キーになる（単語例文＝単語/英英と同様にテーマ別ランキング）。
 // theme 未指定（文章・タッチ等）はキー据え置きで後方互換。
 // endCondition を渡すと終了条件別キーになる（time60/endless/未指定はタグ無し＝従来キー）。
-export function recKey(mode, rank, source = 'sentence', theme, endCondition) {
+// #364 第6引数 range（単語例文 wsent の固定範囲）：range 未指定（undefined/null）は従来と完全に同一の
+// キー（既存 5引数呼びは byte 同一）。range 有りは ec タグの後ろに __R{range}（range を使うのは wsent のみ）。
+export function recKey(mode, rank, source = 'sentence', theme, endCondition, range) {
   const base = source === 'sentence' ? `${mode}__r${rank}` : `${mode}__${source}${rank}`
   const withTheme = theme != null ? `${base}__${theme}` : base
   const t = endConditionTag(endCondition)
-  return t ? `${withTheme}__${t}` : withTheme
+  const withEc = t ? `${withTheme}__${t}` : withTheme
+  return range != null ? `${withEc}__R${range}` : withEc
 }
 
 // 記録を追加し、終了条件に応じた成績順で上位 max 件に絞った新しい配列を返す。

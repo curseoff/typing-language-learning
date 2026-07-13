@@ -5,17 +5,23 @@
 import { endConditionTag } from './ranking.service.js'
 
 // 単語問題記録のキー（レベル×テーマ×モード別。終了条件はタグで区別）。
-export function wordRecKey(level, theme, mode, endCondition) {
+// #362 第5引数 range（単語固定範囲）：range 未指定（undefined/null）は従来と完全に同一のキー、
+// range 有りは ec タグの後ろに __R{range} を連結する（base(__ecTag)?__R{range} の順）。
+export function wordRecKey(level, theme, mode, endCondition, range) {
   const base = `L${level}__${theme}__${mode}`
   const t = endConditionTag(endCondition)
-  return t ? `${base}__${t}` : base
+  const withEc = t ? `${base}__${t}` : base
+  return range != null ? `${withEc}__R${range}` : withEc
 }
 
 // 英英辞典記録のキー（wordRecKey と同形式・別ドメイン）。
-export function dictRecKey(level, theme, mode, endCondition) {
+// #364 第5引数 range（英英固定範囲）：wordRecKey と同形。range 未指定（undefined/null）は
+// 従来と完全に同一のキー、range 有りは ec タグの後ろに __R{range} を連結する。
+export function dictRecKey(level, theme, mode, endCondition, range) {
   const base = `L${level}__${theme}__${mode}`
   const t = endConditionTag(endCondition)
-  return t ? `${base}__${t}` : base
+  const withEc = t ? `${base}__${t}` : base
+  return range != null ? `${withEc}__R${range}` : withEc
 }
 
 // 物語記録のキー（物語ごとに接頭辞で分ける。終了条件はタグで区別）。

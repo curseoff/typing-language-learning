@@ -1,7 +1,7 @@
 {
   "name": "typing-language-learning",
   "private": true,
-  "version": "0.28.4",
+  "version": "0.29.0",
   "type": "module",
   "workspaces": [
     "packages/*"
@@ -21,7 +21,7 @@
     "content:sqlite": "node scripts/content-sqlite.mjs",
     "check:content": "node scripts/check-content-sqlite.mjs",
     "prebuild": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs && node scripts/gen-miss-sound.mjs",
-    "postbuild": "node scripts/gen-precache.mjs",
+    "postbuild": "node scripts/gen-404.mjs && node scripts/gen-precache.mjs",
     "predev": "node scripts/content-build.mjs && node scripts/content-sqlite.mjs && node scripts/gen-miss-sound.mjs",
     "gen-miss-sound": "node scripts/gen-miss-sound.mjs",
     "prevalidate": "node scripts/content-build.mjs",

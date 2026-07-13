@@ -23,7 +23,9 @@ import { END_TIME_VALUES } from '../content/endConditions.js'
 const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
-export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondition, onExit }) {
+// #364 range 有り（英英固定範囲）＝出題エントリを freq 順で決定的に並べ record.range に往復させる。
+// dict は freq を持たないため freqMap（Map(en→freq)）を注入して freqOf/keyOf を組む（range 時のみ渡る）。
+export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondition, range, freqMap, onExit }) {
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
   const limitMs = endLimitMs(ec)
@@ -32,12 +34,15 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
   const buildWith = useCallback(
     (s) => {
-      const opts = { rng: mulberry32(s) }
+      // range 時：freqMap 由来の freqOf/keyOf で出題プールを freq 順に固定（誤答プールは range 非依存）。
+      const freqOf = (e) => freqMap?.get(e.word) ?? null
+      const keyOf = (e) => e.word
+      const opts = { rng: mulberry32(s), range, freqOf, keyOf }
       return kind === 'pick'
         ? makeDictPick(buildDictSet(dict, level, theme, DICT_TYPE_COUNT, opts), levelEntries(dict, level), DICT_TYPE_COUNT, 4, opts)
         : makeDictQuiz(buildDictSet(dict, level, theme, DICT_QUIZ_COUNT, opts), levelEntries(dict, level), DICT_QUIZ_COUNT, 4, opts)
     },
-    [dict, level, theme, kind],
+    [dict, level, theme, kind, range, freqMap],
   )
   const [questions, setQuestions] = useState(() => buildWith(sessionSeed))
   const [index, setIndex] = useState(0)
@@ -115,6 +120,8 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
         mistakes: totalMistakes,
         accuracy,
         seconds,
+        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+        ...(range != null ? { range } : {}),
         segStats: segStatsRef.current,
         date: new Date().toLocaleString('ja-JP'),
       }
@@ -122,7 +129,7 @@ export function useDictQuiz({ dict, level, theme, kind = 'quiz', seed, endCondit
       setResult(record)
       setFinished(true)
     },
-    [level, theme, kind, sessionSeed, ec],
+    [level, theme, kind, range, sessionSeed, ec],
   )
 
   // 進捗（タイピング数/設問数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。

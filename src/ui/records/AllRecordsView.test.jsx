@@ -48,7 +48,7 @@ describe('AllRecordsView container（行クリックで記録詳細）', () => {
     // データ行（単語）をクリック。
     fireEvent.click(screen.getByText('単語'))
     // RecordDetail のヘッダーに rankText が出る（種類＋レベル＋テーマ）。
-    expect(screen.getByText('単語 基礎 / 旅行')).toBeTruthy()
+    expect(screen.getByText('単語 L1 / 旅行')).toBeTruthy()
   })
 
   it('物語記録の行クリックでは rankText が種類名のみ（レベル/テーマ無し）', () => {

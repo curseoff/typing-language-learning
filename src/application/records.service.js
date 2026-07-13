@@ -175,11 +175,11 @@ export { wordRecKey, dictRecKey }
 
 // 選択条件のランキング配列を直接取り出す（UI が records マップを持たない場面で使う）。
 // endCondition を渡すと終了条件別キー（time60/未指定は従来キー）で引く（#208 段3b）。
-export function wordRanking(level, theme, mode, endCondition) {
-  return loadWordRecords()[wordRecKey(level, theme, mode, endCondition)]
+export function wordRanking(level, theme, mode, endCondition, range) {
+  return loadWordRecords()[wordRecKey(level, theme, mode, endCondition, range)]
 }
-export function dictRanking(level, theme, mode, endCondition) {
-  return loadDictRecords()[dictRecKey(level, theme, mode, endCondition)]
+export function dictRanking(level, theme, mode, endCondition, range) {
+  return loadDictRecords()[dictRecKey(level, theme, mode, endCondition, range)]
 }
 
 // ── 問題ごとの収録統計 ──

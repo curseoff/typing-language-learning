@@ -4,9 +4,20 @@ import react from '@vitejs/plugin-react'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
-export default defineConfig({
-  // GitHub Pages のサブパス配信で相対解決するため相対パスにする
-  base: './',
+// vite preview（command==='serve'）は本番ビルド済み資産を配信するので、資産が参照する
+// サブパス（/typing-language-learning/…）で配信しないと preview/check:pwa が空振りする。
+// argv で preview を判定し、build と同じ base に揃える（dev は '/' のまま）。
+const isPreview = process.argv.includes('preview')
+
+export default defineConfig(({ command }) => ({
+  // #357 パス型ルーティング：深いパス直アクセス（/…/story/travel）でも 404.html の
+  // アセットが解決するよう base を絶対化する。本番（build）と preview は GitHub Pages の
+  // サブパス配信に合わせて '/typing-language-learning/'、dev（vite/vite dev）は '/'。
+  //   - 相対 base（'./'）だと deep-link 時に document.baseURI が深いパス基準になり
+  //     アセット/SW scope が解決できない（#357 の核心）。絶対 base で常に scope 直下へ解決する。
+  //   - preview はビルド済み資産をそのまま配信するので本番 base に一致させないと 404 になる。
+  //   - precache は sw.js（scope 直下）基準の相対パスなので base を変えても不変（precache.test.js）。
+  base: command === 'build' || isPreview ? '/typing-language-learning/' : '/',
   plugins: [react()],
   // sqlite-wasm は事前バンドルすると .wasm の locate に失敗しがちなので最適化から除外。
   // 教材コンテンツを content.sqlite3 から読む contentDb.js が動的 import する。
@@ -104,7 +115,16 @@ export default defineConfig({
       // 各項目を実測から ≈0.3 のマージンで実測直下へラチェット（揺れマージン維持・up-only）。
       // #286: メニューバー Phase1（MenuBarView presenter の開閉/disabled 非発火テスト）で branches が
       // 上振れ（S85.65/B77.76/F85.5/L86.71）→ 各項目を実測から ≈0.2 のマージンで実測直下へラチェット。
-      thresholds: { statements: 85.4, branches: 77.5, functions: 85.2, lines: 86.5 },
+      // #357: パス型ルーティング（routing.policy codec の 17 テスト＋App のルーティング配線結合テスト）と
+      // 直近の契約テスト（#323/#324）で実測が上振れ（S86.75/B79.29/F87.92/L87.86）→ 実測から
+      // ≈0.4〜0.6 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
+      // #360: 記録詳細 URL（App の単一オーバーレイ所有・cold 直開き/not-found・行クリック pushState・
+      // 戻るで閉じるの配線テスト）を追加し実測が上振れ（S87.04/B79.78/F88.09/L88.19）→ 実測から
+      // ≈0.15〜0.4 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
+      // #362: 単語固定範囲（range）の出題配線＋範囲ステッパー UI に対し wordset の range 分岐・
+      // useWords/useWordQuiz の range 記録往復・WordsSection ステッパー・App の range URL 配線テストを
+      // 追加し実測が上振れ（S87.04/B79.67/F88.11/L88.18）→ 実測直下へラチェット（up-only）。
+      thresholds: { statements: 87.9, branches: 80.2, functions: 89.3, lines: 89.0 },
     },
   },
-})
+}))

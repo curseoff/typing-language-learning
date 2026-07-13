@@ -63,11 +63,13 @@ export function useMarathon({ active, onFinish, endCondition }) {
   const typedKeys = snap.keys // 正しく打った総文字数（session 像由来）
   const mistakes = snap.mistakes // ミス総数（session 像由来）
 
-  const start = useCallback((mode, rank, source, pool, seed, theme) => {
-    ctxRef.current = { mode, rank, source, seed, theme }
+  // #364 range 有り（単語例文 wsent の固定範囲）＝pool は呼び出し側で freq 順にスライス済み。
+  // ここでは ordered:true で pool 順を崩さず流し（毎回同じ並び）、record.range に往復させる。
+  const start = useCallback((mode, rank, source, pool, seed, theme, range) => {
+    ctxRef.current = { mode, rank, source, seed, theme, range }
     poolRef.current = pool // 問題数制などで出題を継ぎ足すため保持
-    // seed があれば決定的な問題列を再現（リプレイ）。無ければ Math.random で通常出題。
-    const opts = seed != null ? { rng: mulberry32(seed) } : {}
+    // range 時は pool 順で固定（ordered）。それ以外は seed があれば決定的再現・無ければ Math.random。
+    const opts = range != null ? { ordered: true } : seed != null ? { rng: mulberry32(seed) } : {}
     setSegments(buildPassage(mode, pool, opts))
     setSegIndex(0)
     setSegInput('')
@@ -92,7 +94,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
       const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
-      const { mode, rank, source, seed, theme } = ctxRef.current
+      const { mode, rank, source, seed, theme, range } = ctxRef.current
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
       const correctCount = segStatsRef.current.filter(
         (s) => !s.partial && (s.mistakes ?? 0) === 0,
@@ -102,7 +104,8 @@ export function useMarathon({ active, onFinish, endCondition }) {
         rank,
         source,
         theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
-
+        // #364 range モード時のみ range を載せる（未選択は従来 record と byte 同一＝後方互換）。
+        ...(range != null ? { range } : {}),
         seed, // 同じ問題列を再現するためのシード（リプレイ用）
         endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
         speed,
@@ -205,7 +208,11 @@ export function useMarathon({ active, onFinish, endCondition }) {
           if (segIndex + 1 >= segments.length) {
             setSegments((prev) => [
               ...prev,
-              ...buildPassage(ctxRef.current.mode, poolRef.current, { rng: mulberry32(makeSeed()) }),
+              // range 時は継ぎ足しも pool 順（ordered）＝範囲内を毎回同じ並びでループ。
+              ...buildPassage(ctxRef.current.mode, poolRef.current, {
+                rng: mulberry32(makeSeed()),
+                ordered: ctxRef.current.range != null,
+              }),
             ])
           }
           setCompleted((c) => [...c, candidate])

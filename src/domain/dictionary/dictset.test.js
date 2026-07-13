@@ -222,3 +222,79 @@ describe('makeDictQuiz', () => {
     }
   })
 })
+
+describe('buildDictSet の固定範囲 range（#364）', () => {
+  // range 有り → 出題エントリを poolForRangeBy(dict, level, theme, range, 100, freqOf, keyOf) に
+  //   差し替える（freq 順・rng 不使用・決定的）。誤答プールは別引数（levelEntries）なので range で
+  //   絞らず、4択は range 外からも埋まる。range 無しは従来どおり（rng シャッフル・非回帰）。
+  // dict は freq を持たないため freqOf/keyOf を外部 freqMap から与える。
+  const dEntry = (word, def) => ({ word, def, ja: `${word}訳`, kana: 'あ', level: 1, theme: '日常' })
+
+  // level1/日常 を 120 件（freq 順＝d000..d119 に安定化）。
+  const MANY = Array.from({ length: 120 }, (_, i) =>
+    dEntry(`d${String(i).padStart(3, '0')}`, `def ${i} unique text`),
+  )
+  const freqMap = new Map(MANY.map((e, i) => [e.word, i + 1]))
+  const freqOf = (e) => freqMap.get(e.word) ?? null
+  const keyOf = (e) => e.word
+
+  it('range 指定で該当 100 件を freq 順・決定的に返す（rng 不使用）', () => {
+    const a = buildDictSet(MANY, 1, '日常', 100, { range: 1, freqOf, keyOf })
+    expect(a).toHaveLength(100)
+    expect(a[0].word).toBe('d000')
+    expect(a[99].word).toBe('d099')
+    // freq 昇順（外部 freqMap）で単調
+    const freqs = a.map((e) => freqMap.get(e.word))
+    expect(freqs).toEqual([...freqs].sort((x, y) => x - y))
+    // 同 range を2回呼んで一致（決定的）
+    const b = buildDictSet(MANY, 1, '日常', 100, { range: 1, freqOf, keyOf })
+    expect(a.map((e) => e.word)).toEqual(b.map((e) => e.word))
+  })
+
+  it('range 指定は該当範囲外の語を含まない（range2 は d100..d119 の 20 件）', () => {
+    const r2 = buildDictSet(MANY, 1, '日常', 100, { range: 2, freqOf, keyOf })
+    // 該当範囲は 20 件だが count=100 → 循環で 100 件（すべて d100..d119 のいずれか）
+    const inRange = new Set(
+      Array.from({ length: 20 }, (_, i) => `d${String(100 + i).padStart(3, '0')}`),
+    )
+    expect(r2.every((e) => inRange.has(e.word))).toBe(true)
+    expect(r2[0].word).toBe('d100')
+  })
+
+  it('誤答プール（levelEntries）は range で絞らず、4択が range 外からも埋まる', () => {
+    // level1/日常=3件（apple/banana/cherry）＋ level1/旅行=4件（dog/egg/fig/grape）。
+    const dict = [
+      { word: 'apple', def: 'aaa def one', ja: 'りんご', kana: 'りんご', level: 1, theme: '日常' },
+      { word: 'banana', def: 'bbb def two', ja: 'ばなな', kana: 'ばなな', level: 1, theme: '日常' },
+      { word: 'cherry', def: 'ccc def three', ja: 'さくらんぼ', kana: 'さくらんぼ', level: 1, theme: '日常' },
+      { word: 'dog', def: 'ddd def four', ja: 'いぬ', kana: 'いぬ', level: 1, theme: '旅行' },
+      { word: 'egg', def: 'eee def five', ja: 'たまご', kana: 'たまご', level: 1, theme: '旅行' },
+      { word: 'fig', def: 'fff def six', ja: 'いちじく', kana: 'いちじく', level: 1, theme: '旅行' },
+      { word: 'grape', def: 'ggg def seven', ja: 'ぶどう', kana: 'ぶどう', level: 1, theme: '旅行' },
+    ]
+    const fmap = new Map(dict.map((e, i) => [e.word, i + 1]))
+    const fOf = (e) => fmap.get(e.word) ?? null
+    const kOf = (e) => e.word
+    const 旅行 = new Set(['dog', 'egg', 'fig', 'grape'])
+
+    // 出題セットは日常 range1（3件）を循環→apple,banana,cherry,apple,banana（freq 順・決定的）
+    const set = buildDictSet(dict, 1, '日常', 5, { range: 1, freqOf: fOf, keyOf: kOf })
+    expect(set.map((e) => e.word)).toEqual(['apple', 'banana', 'cherry', 'apple', 'banana'])
+
+    // 誤答は level1 全体（旅行含む）から。日常語は3種のみ→4択のどれかは必ず旅行（range 外）。
+    const qs = makeDictQuiz(set, levelEntries(dict, 1), 5, 4, { rng: mulberry32(7) })
+    expect(qs.length).toBe(5)
+    for (const q of qs) {
+      expect(q.options.length).toBe(4)
+      expect(q.options.some((o) => 旅行.has(o.en))).toBe(true)
+    }
+  })
+
+  it('range 無しは従来どおり（freqOf/keyOf を無視し rng シャッフルに従う・非回帰）', () => {
+    const a = buildDictSet(MANY, 1, '日常', 5, { rng: mulberry32(9) })
+    const b = buildDictSet(MANY, 1, '日常', 5, { rng: mulberry32(9), freqOf, keyOf })
+    // range 無しなら freqOf/keyOf は結果に影響しない（従来経路のまま）
+    expect(a.map((e) => e.word)).toEqual(b.map((e) => e.word))
+    expect(a).toHaveLength(5)
+  })
+})

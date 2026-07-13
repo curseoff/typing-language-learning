@@ -84,6 +84,43 @@ describe('ranking', () => {
   })
 })
 
+// #364 dict/wsent 固定範囲：recKey に第6引数 range を追加（単語例文 wsent の固定範囲）。
+// 後方互換＝range 省略/未指定（undefined/null）は従来と完全に同一のキー（既存 5引数呼びは byte 同一）。
+// range 有りは末尾に __R{range}（ec タグの後ろ）。range を使うのは wsent のみ（sentence/touch 等は 5引数呼び）。
+describe('recKey range（#364 wsent 固定範囲）', () => {
+  const time60 = { kind: 'time', value: 60 }
+  const items25 = { kind: 'items', value: 25 }
+
+  it('range 省略（5引数呼び）は wsent でも従来と完全に同一のキー（後方互換）', () => {
+    expect(recKey('en', 1, 'wsent', '日常', time60)).toBe('en__wsent1__日常')
+  })
+
+  it('range が undefined/null なら range 未指定＝従来キーと同一', () => {
+    expect(recKey('en', 1, 'wsent', '日常', time60, undefined)).toBe('en__wsent1__日常')
+    expect(recKey('en', 1, 'wsent', '日常', time60, null)).toBe('en__wsent1__日常')
+  })
+
+  it('range 指定は末尾に __R{range} を付ける（ec タグ無しの time60 は theme の直後）', () => {
+    expect(recKey('en', 1, 'wsent', '日常', time60, 2)).toBe('en__wsent1__日常__R2')
+  })
+
+  it('終了条件タグ→range の順で連結する（ec タグの後ろに __R{range}）', () => {
+    expect(recKey('en', 1, 'wsent', '日常', items25, 2)).toBe('en__wsent1__日常__I25__R2')
+  })
+
+  it('range 有り無しは別キー＝別ランキングで共存する', () => {
+    expect(recKey('en', 1, 'wsent', '日常', time60, 2)).not.toBe(
+      recKey('en', 1, 'wsent', '日常', time60)
+    )
+  })
+
+  // 他 source（文章 sentence・タッチ touch）は 5引数呼びで従来キーと完全同一（range 無し）。
+  it('sentence / touch は 5引数呼びで従来キーと同一（後方互換の非回帰オラクル）', () => {
+    expect(recKey('both', 1, 'sentence', undefined, { kind: 'time', value: 30 })).toBe('both__r1__T30')
+    expect(recKey('home', 1, 'touch')).toBe('home__touch1')
+  })
+})
+
 describe('endConditionTag（#208 段0b）', () => {
   it('null / undefined は空文字（既定 time60 の従来キーへ落とす）', () => {
     expect(endConditionTag(null)).toBe('')

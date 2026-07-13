@@ -1,4 +1,4 @@
-// 全記録横断ビュー（Issue #248）の presenter。文章/物語/単語/英英の記録を1つの表に集約表示する。
+// 全記録横断ビュー（Issue #248）の presenter。単語例文/物語/単語/英英の記録を1つの表に集約表示する。
 // 純粋描画：content/application/フックを import しない。行データ（正規化済み）と並べ替え関数 sortFn を
 // props で受け取り、列ヘッダークリックのソート状態だけを内部 useState で持つ（UI 状態）。
 import { useMemo, useState } from 'react'
@@ -88,7 +88,7 @@ export default function AllRecordsView({ rows, sortFn, onExit, onRowClick }: All
         ← 戻る
       </button>
       <h2 className="all-records-title">すべての記録</h2>
-      <p className="all-records-sub">文章・物語・単語・英英の記録を横断して並べ替えられます。</p>
+      <p className="all-records-sub">単語例文・物語・単語・英英の記録を横断して並べ替えられます。</p>
 
       {sorted.length === 0 ? (
         <p className="no-records">まだ記録がありません。</p>

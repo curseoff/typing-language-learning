@@ -68,6 +68,29 @@ describe('useWords（単語入力・結合）', () => {
     expect(rec.source).toBe('word')
   }, 20000)
 
+  it('range 指定時は範囲別キー（__R{n}）に記録し record.range を載せる（#362）', () => {
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: '日常', mode: 'en', range: 1, onExit: () => {} }),
+    )
+    typeSome(result, 30)
+    runOutClock()
+    // 範囲別キーに保存され、従来キー（range 無し）は空のまま
+    const ranged = loadWordRecords()[wordRecKey(1, '日常', 'en', undefined, 1)]
+    expect(ranged?.length).toBeGreaterThan(0)
+    expect(ranged[0].range).toBe(1)
+    expect(loadWordRecords()[wordRecKey(1, '日常', 'en')]).toBeUndefined()
+  }, 20000)
+
+  it('range 未指定は record に range を載せず従来キーに保存する（後方互換・#362）', () => {
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', onExit: () => {} }),
+    )
+    typeSome(result, 30)
+    runOutClock()
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'en')][0]
+    expect(rec.range).toBeUndefined()
+  }, 20000)
+
   it('restart は新しい seed を切り直して別の問題列にする（record の seed が変わる）', () => {
     const { result } = renderHook(() =>
       useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', onExit: () => {} }),

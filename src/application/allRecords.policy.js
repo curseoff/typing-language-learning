@@ -2,18 +2,18 @@
 // 3リポジトリ（typing-records/dict-records/word-records）の生データ（キー→記録配列）を
 // 1本のフラット配列へ正規化し、列キーで並べ替える。infrastructure/React/DOM には依存しない
 // （localStorage の load 呼び出しや物語の集約は App 側で行い、正規化済みマップを渡す）。
-import { WORD_LEVELS, WORD_MODES } from '../content/words.js'
+import { WORD_MODES } from '../content/words.js'
 import { DICT_MODES } from '../content/dictionary.js'
 import { modeLabel as sentModeLabel } from '../content/modes.js'
 
-// 種類（kind）→日本語ラベル。記録の由来を表す。
-const KIND_LABELS = { wsent: '文章', story: '物語', words: '単語', dict: '英英' }
+// 種類（kind）→日本語ラベル。記録の由来を表す。wsent は結果画面/TOP と揃えた正本「単語例文」（#360）。
+const KIND_LABELS = { wsent: '単語例文', story: '物語', words: '単語', dict: '英英' }
 // 種類の意味順（文章→物語→単語→英英）。ソートの kind 昇順に使う。
 const KIND_ORDER = { wsent: 0, story: 1, words: 2, dict: 3 }
 
-// レベル数値→ラベル（単語/英英/文章とも WORD_LEVELS の語彙を共用）。null は空欄。
-const levelLabelOf = (level) =>
-  level == null ? '' : (WORD_LEVELS.find((l) => l.level === level)?.label ?? '')
+// レベル数値→記録表示用ラベル。結果画面/モーダルの正本に揃え `L{level}`（例 level1→L1）。null は空欄。
+// ※これは記録表示（すべての記録の行・rankText）専用。レベル選択チップの WORD_LEVELS.label（基礎/初級…）とは別。
+const levelLabelOf = (level) => (level == null ? '' : `L${level}`)
 
 // 種類ごとのモードラベル解決（キーが重なるため kind で辞書を切り替える）。
 const wordModeLabel = (key) => WORD_MODES.find((m) => m.key === key)?.label ?? key

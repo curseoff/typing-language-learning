@@ -1,5 +1,7 @@
 // 英英辞典の出題生成（レベル×テーマで絞り込み）。
 // 英英データ(dict)は遅延読み込みのため呼び出し側から渡す（純関数）。
+import { poolForRangeBy } from '../words/wordRange.service.js'
+
 export const DICT_TYPE_COUNT = 12 // 説明文4択(pick)の問題数
 export const DICT_QUIZ_COUNT = 20 // 4択の問題数
 
@@ -16,10 +18,16 @@ export function levelEntries(dict, level) {
 
 // count 件（不足なら循環）。各エントリは {word, def, ja, kana} をそのまま返す。
 // rng は乱数源（既定 Math.random）。
-export function buildDictSet(dict, level, theme, count, { rng = Math.random } = {}) {
-  const shuffled = [...pool(dict, level, theme)].sort(() => rng() - 0.5)
+// #364 range 有り→出題エントリを poolForRangeBy(freq 順・rng 不使用・決定的)に差し替える
+// （dict は freq を持たないため freqOf/keyOf を外部から注入）。誤答プールは別引数なので range で
+// 絞らない。range 無し→従来どおり rng シャッフル（freqOf/keyOf は無視・非回帰）。
+export function buildDictSet(dict, level, theme, count, { rng = Math.random, range, freqOf, keyOf } = {}) {
+  const base =
+    range != null
+      ? poolForRangeBy(dict, level, theme, range, 100, freqOf, keyOf)
+      : [...pool(dict, level, theme)].sort(() => rng() - 0.5)
   const out = []
-  for (let i = 0; i < count; i++) out.push(shuffled[i % shuffled.length])
+  for (let i = 0; i < count; i++) out.push(base[i % base.length])
   return out
 }
 

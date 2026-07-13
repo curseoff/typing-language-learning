@@ -8,8 +8,9 @@ import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
+import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
-export default function WordsView({ words, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
+export default function WordsView({ words, level, theme, mode, seed, range, levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `${modeLabel} / ${theme}`
   return mode.startsWith('quiz') ? (
     <QuizView
@@ -19,6 +20,7 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
       mode={mode}
       dir={mode === 'quiz-ja' ? 'ja' : 'en'}
       seed={seed}
+      range={range}
       levelLabel={levelLabel}
       metaSub={metaSub}
       endCondition={endCondition}
@@ -31,6 +33,7 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
       theme={theme}
       mode={mode}
       seed={seed}
+      range={range}
       levelLabel={levelLabel}
       metaSub={metaSub}
       endCondition={endCondition}
@@ -40,9 +43,13 @@ export default function WordsView({ words, level, theme, mode, seed, levelLabel,
 }
 
 // 単語の記録ランキング（useRecordDetail フックを使うため container 側）。finished 時だけマウント。
+// #362 range モードの記録は範囲別キー（result.range）で引く＝一覧が範囲ごとに分かれる。
 function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[wordRecKey(level, theme, mode, result.endCondition)] || []
-  const { open, modal } = useRecordDetail()
+  const list = records[wordRecKey(level, theme, mode, result.endCondition, result.range)] || []
+  // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
+  const openDetail = useOpenDetail()
+  const { open: localOpen, modal } = useRecordDetail()
+  const open = openDetail ?? localOpen
   const isQuiz = mode.startsWith('quiz')
   return (
     <PlayResultView
@@ -52,14 +59,14 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
       onRetry={onRetry}
       onExit={onExit}
       onRowClick={(r, rank) => open(r, rank, { rankText: '単語', list, isQuiz })}
-      modal={modal}
+      modal={!openDetail && modal}
     />
   )
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
-function TypeView({ words, level, theme, mode, seed, levelLabel, metaSub, endCondition, onExit }) {
-  const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, onExit })
+function TypeView({ words, level, theme, mode, seed, range, levelLabel, metaSub, endCondition, onExit }) {
+  const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, range, onExit })
   // items 制の HUD 進捗＝完了語数（segIndex）、life 制は残りライフ（missedItems）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex, missedItems: w.missedItems })
   // 時間制はフックの滑らかな progress を維持し、文字数制/問題数制は endStat 側（打鍵/問題基準）へ切替える。
@@ -96,8 +103,8 @@ function TypeView({ words, level, theme, mode, seed, levelLabel, metaSub, endCon
 }
 
 // 4択クイズ（dir='en':英語訳 / 'ja':日本語訳）
-function QuizView({ words, level, theme, mode, dir, seed, levelLabel, metaSub, endCondition, onExit }) {
-  const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, onExit })
+function QuizView({ words, level, theme, mode, dir, seed, range, levelLabel, metaSub, endCondition, onExit }) {
+  const q = useWordQuiz({ words, level, theme, dir, mode, seed, endCondition, range, onExit })
   // items 制の HUD 進捗＝完答した設問数（index）、life 制は残りライフ（missedItems）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
 
