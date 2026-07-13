@@ -13,7 +13,7 @@ argument-hint: "[Issue番号（省略時は自動検出）]"
 
 3. **自己点検（push 前・必須）**：`git fetch origin --prune` の後、未 push 差分 `origin/develop..HEAD`（無ければ `develop..HEAD`）を秘密情報（APIキー/トークン/パスワード/秘密鍵・`.env`）・個人情報（氏名/メール直書き）・絶対パスでの username 露出でスキャン。**問題があれば push せず中止して報告**。問題なければ「クリア」と伝える。
 
-4. **check 緑**：`npm run check`（CI 同等）を回して緑を確認。赤なら中止して要点を報告（push 前フックでも弾かれる）。
+4. **check（冗長回避）**：委任先が既に full `npm run check` を緑にした差分をそのまま進める場合は、ここで full `check` を**再実行しない**（差分未変更が前提。full `check` は次の push 前フックと CI が担保する）。差分に手を入れた／緑が未確認なら `npm run check:fast` で素早く確認（赤なら中止して要点を報告）。**full `check` の権威ゲート＝push 前フック（`.githooks/pre-push`）＋CI**。
 
 5. **台帳更新**：`npm run team:set -- --agent commander --status 実行中 --task "feature→develop PR/マージ" --branch <ブランチ名> --issue '#<N>'`。
 

@@ -7,7 +7,7 @@
 - **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
 - **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
-- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装(Green)／test-author＝テスト先行(Red)／ddd-auditor＝層/依存監査・ui-auditor＝見た目/a11y実画面監査（read-only）／reviewer＝並列監査の合成・裁定＋差分の品質(再利用/簡素化)レビュー（read-only）／planner＝UX/技術企画・Issue草案＋契約(spec)先回り起草／bug-watcher＝正しさ/挙動の不具合調査（リリース直前 or 本人指示）／content-author＝教材オーサリング（単語/英英/例文/グロスの追加・編集）／pwa-verifier＝PWA/オフライン実挙動の実ブラウザ検証（read-only）／ledger-keeper＝稼働台帳の管理・監視）。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う（**例外：bug-watcher は本人の常設許可で `bug` 不具合 Issue の作成・更新・クローズを自律実行してよい**。確証のある不具合のみ）。**台帳の更新粒度で役を分ける**：エージェントを委任するたび、**①起動した時と②完了した時の2回**、`tmp/agent-status.tsv`（稼働台帳・ローカルのみ／gitignore）を更新する。**1〜数行の即時ステータス更新は司令塔が `npm run team:set` を直接叩いてよい**（サブエージェント起動のオーバーヘッドを避ける）。**多数の並列（fan-out）や、停滞・失敗・空結果・要判断の滞留の監視が要るときは `ledger-keeper` に委任**し、機能不全の検知・報告を任せる。観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`npm run team`**（即時に見たいなら `! npm run team`）で各エージェントの稼働状況を確認できる。
+- **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder＝実装(Green)／test-author＝テスト先行(Red)／ddd-auditor＝層/依存監査・ui-auditor＝見た目/a11y実画面監査（read-only）／reviewer＝並列監査の合成・裁定＋差分の品質(再利用/簡素化)レビュー（read-only）／planner＝UX/技術企画・Issue草案＋契約(spec)先回り起草／bug-watcher＝正しさ/挙動の不具合調査（リリース直前 or 本人指示）／content-author＝教材オーサリング（単語/英英/例文/グロスの追加・編集）／pwa-verifier＝PWA/オフライン実挙動の実ブラウザ検証（read-only））。実装は coder に委任し、監査役で確認、push/PR/Issue作成/着手の判断は**本人**が行う（**例外：bug-watcher は本人の常設許可で `bug` 不具合 Issue の作成・更新・クローズを自律実行してよい**。確証のある不具合のみ）。**稼働台帳（`tmp/agent-status.tsv`・ローカルのみ／gitignore）は各エージェントが自己更新する**：委任された役は**着手時（最初のアクション）に自分の行を「実行中」**、**完了時（報告直前の最後のアクション）に「完了／要判断／要対応」**へ `npm run team:set` で upsert する（司令塔は起動/完了の2回代行をしない）。司令塔は自分の `commander` 行の更新と、委任先が打ち損ねた時の補完、および全体監視（`npm run team` で停滞・失敗・空結果・要判断の滞留を点検）を担う（専任の ledger-keeper は廃止）。観測しやすいよう長めのタスクは `run_in_background:true` で起動する。本人は **`npm run team`**（即時に見たいなら `! npm run team`）で各エージェントの稼働状況を確認できる。
 - **bug-watcher の起動は (a) 本人の指示があったとき、または (b) リリース（develop→master マージ）の直前に司令塔が起動、のいずれか**。**develop へマージするたびの自動起動はしない**。リリース直前は司令塔が未リリース分（`origin/master..origin/develop`）を調査させ、結果を確認してからリリースへ進む（`run_in_background:true` 推奨・急ぐなら結果を待って判断）。bug-watcher は確証のある不具合だけ `bug` ラベルで Issue 化し、解消されたら同じ Issue を更新・クローズする。
 - **TDD（テスト先行）＝ domain/application の「ロジック」と「バグ修正」に適用**。流れは **Red→Green→Refactor**：受け入れ条件（本人 or planner）→ **test-author** が失敗テスト(Red) → **coder** が通す最小実装(Green)→refactor。**coder は test-author の仕様テストを編集しない**（不備は司令塔に申告）。司令塔は「赤→緑」と「**coder の差分が `*.test.*` を触っていない**」を確認し、Red と Green をコミット分離する。**見た目・CSS・教材データは TDD 対象外**（従来どおり `check`/スクショ/`validate`）。
 - **役割の受け渡し（リスク別／司令塔の裁量ブレを封じる）**。中間ホップは従来どおり司令塔が逐次オーケストレーション（成果物＝ブランチを介して各役へ渡す）。変更の性質で役を機械的に選ぶ。**司令塔ゲート：編集/検証に着手する前に下表で役を選び、表に載る種類を司令塔が直接手を動かさない**（教材＝content-author、純粋ロジック/バグ修正＝test-author 先行→coder、PWA実挙動＝pwa-verifier、UI実画面＝ui-auditor）。**例外は小改変のみ**（typo・docs微修・台帳・自明ワンライナー）。
@@ -23,7 +23,7 @@
   | 不具合調査（正しさ/挙動） | **bug-watcher** | リリース直前/本人指示 |
   | 大きめ/曖昧な UX・技術企画・契約(spec)起草 | **planner** | 着手前 |
   | 並列監査の合成・裁定／差分の品質レビュー | **reviewer** | fan-out 大の時 |
-  | 台帳更新・稼働監視 | **ledger-keeper** | 各委任の起動時・完了時 |
+  | 台帳更新 | **各エージェントが自己更新**（司令塔は補完・全体監視） | 着手時・完了時 |
 
   各行の詳細：
   - **純粋ロジック**（domain/application の判定・計算・状態遷移・変換で**分岐/端ケースあり**）＋**バグ修正** → **test-author が Red(commit) → coder が Green**。**「UI 寄り」に分類する前に、純粋ロジックが混ざっていないか必ず確認**し、混ざれば切り出して test-author を通す（判断基準：**「そのテストは実装をなぞるだけ＝同義反復になりそうか」→ なりそうなら test-author 先行**で独立性を確保。速度を理由に省かない）。
@@ -52,7 +52,7 @@
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
   - develop マージ時には **`on-develop` ラベルが自動付与**される（`.github/workflows/label-on-develop.yml` が PR の Closes/Fixes/Resolves #N を検出）＝「develop に乗った（リリース待ち）」の目印。master 到達で auto-close。だから feature→develop PR にも必ず `Closes #N` を書くこと。
-- 何かを「完了」と言う前に必ず **`npm run check`**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**）を通す。**`check` が通れば CI も通る**。素早く回したい時は `npm run check:fast`（coverage の代わりに test）。
+- 何かを「完了」と言う前に **`npm run check`**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**。**`check` が通れば CI も通る**）を通す。ただし**同じ差分に full `check` を多重に回さない**：反復・委任先の自己確認・司令塔の中間確認は原則 **`check:fast`**（coverage の代わりに test）で済ませ、**full `check`（coverage 込み）の権威ゲートは push 前フック（`.githooks/pre-push`）＋CI に一任**する（差分が変わっていないのに手で何度も full `check` を回さない）。カバレッジ閾値を触る／実測が要る時だけ明示的に full `check`。
 - **push 前フック**（`.githooks/pre-push`）が `check` を強制（CI赤の混入防止）。急ぐ時のみ `git push --no-verify`。**master/develop はブランチ保護で CI 緑必須**（赤ではマージ不可）。
 - UI目視は **`npm run shots:play`**（dev 相手に `?preview=result|play|story` を撮影＝プレイ中/結果/記録を手動プレイ無しで確認）。リリースは **`npm run release -- <patch|minor|major>`**（自己点検→版上げ→check→PR→マージ→Release→デプロイ）。原則は本人実行だが、**`/release` コマンドを本人が呼んだ場合は例外**で、事前監査（bug-watcher/ddd-auditor）と自己点検が全てクリアなら AI がそのままリリースまで実行してよい（`/release` の呼び出し自体が明示指示）。異常があれば止めて報告する。
 - **リリースPRの head は `release/*` ブランチ**にする（develop 直接にしない＝マージ時 auto-delete で develop が消えるため）。マージ後は develop と master を揃え、不要ローカルブランチを削除。詳細は docs/DEVELOPMENT.md。

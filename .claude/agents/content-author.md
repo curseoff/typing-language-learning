@@ -43,3 +43,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 - **修正したら毎回コミットまで自分で行う**。コミットは **`scripts/ai-commit.sh -m "簡潔な日本語・辞書形のメッセージ"`**（AI署名・Verified・個人情報を書かない・トレーラー無し）。`git add` でステージしてから実行。論理単位で分ける（例：`単語を N 語追加する`）。**追記するのは正準 `content/*.ndjson`**——生成物 `.js` はコミットに含めない（gitignore 済み）。
 - **push / PR / リリースはしない**（司令塔が本人の明示指示で行う）。
 - 司令塔への**報告**：追加した種類と件数、更新した NDJSON、`validate`/`check` の結果、読み点検で直した代表例、重複や NG の残差、コミットハッシュ、要判断点。
+
+## 稼働台帳（自己更新）
+- **着手したら最初に**、自分の行を「実行中」で記録する（司令塔は代行しない）：`npm run -s team:set -- --agent content-author --status 実行中 --task "<司令塔から渡された作業>" --issue <#N or -> --branch <ブランチ> --next -`。
+- **報告する直前に**更新する：`--status 完了`（本人の判断/承認が要るなら `要判断`／`要承認`、失敗・空結果なら `要対応` にし `--task` に理由）。台帳は `tmp/agent-status.tsv`（ローカルのみ／gitignore）でコミット不要。
