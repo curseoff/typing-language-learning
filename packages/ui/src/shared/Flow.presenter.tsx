@@ -13,8 +13,13 @@ export interface FlowItem {
   sentenceIndex?: number
 }
 
-const ANCHOR_RATIO = 0.35 // 入力位置を画面のこの割合に保つ
+const ANCHOR_RATIO = 0.35 // 文頭を画面のこの割合から左へ寄せていく（開始位置）
 const CURSOR_MARGIN = 24 // 末尾カーソルを右端からこの px 内に必ず見せる（末尾優先クランプ用）
+// 等速スライド：1打ごとに文頭を左へ寄せる量(px/char)を一定にする（#394）。
+// 旧 0.35·tw·(1−frac) は「1文で必ず 0.35·tw 滑る」ため短語ほど1打が大きく＝速く・乗換で段跳びした。
+// これを typedChars 比例（打鍵数×一定px, 合計 0.35·tw で頭打ち）に変え、1打あたりを一定＝等速にする。
+// 値は実機で微調整前提（代表的な字送り幅相当）。tw に依らず px 固定で真の等速。
+const SLIDE_PX_PER_CHAR = 14
 
 // PairFlow(both モード)用：入力位置(offsetLeft + 幅×frac)を ANCHOR に保つよう transform を ref で直接更新（1文字ごと左スクロール）。
 // あわせて右端フェードを「語境界」にスナップし、収まる語はくっきり／はみ出す語だけをゴースト化する（#108）。
@@ -82,15 +87,16 @@ function applyRow(m: RowMeasure, shift: number, cur: number) {
 }
 
 // 単一言語モード(FlowRow×2)の左スクロールを2行まとめて同期する（#394）。
-// - 現在文の先頭 view-x = startX = ANCHOR_RATIO*trackWidth*(1 − frac)。frac=0→先頭≈35%、frac=1→先頭=0(左端)。
-//   → 収まる文は最後の1文字で全文表示。startX は offsetLeft 非依存なので、両行が同じ startX を使えば文頭 x が一致。
-// - frac はアクティブ言語のもので両行を同期（en 行・ja 行の現在文の先頭が常に同じ x）。
-// - アクティブのカーソル(末尾側)が右端を越える長文は shift を下限クランプ（末尾優先）。
-//   クランプ後の実効 startX を参考行にも共有して文頭一致を保つ。
+// - 現在文の先頭 view-x = startX = ANCHOR_RATIO*tw − slide、slide = min(0.35·tw, SLIDE_PX_PER_CHAR*typedChars)。
+//   → 1打あたり一定量(px/char)で左へ寄る＝等速。合計 0.35·tw で頭打ち（長文は左端0＝全文表示、短文は途中まで＝もともと収まり全文可視）。
+//   startX は offsetLeft 非依存なので、両行が同じ startX を使えば文頭 x が一致。
+// - typedChars/cursorFrac はアクティブ言語のもの（en=打鍵文字数, ja=かな数）で両行を同期。
+// - アクティブのカーソル(末尾側 = off + width*cursorFrac)が右端を越える長文は shift を下限クランプ（末尾優先）。
+//   クランプ後の実効 startX を参考行にも共有して文頭一致を保つ。乗換の段差は .flow-strip の CSS トランジションでグライド。
 function useSingleLangTicker(
   activeRow: 'en' | 'ja' | null,
-  enFrac: number,
-  jaFrac: number,
+  cursorFrac: number,
+  typedChars: number,
   cur: number,
   len: number,
 ) {
@@ -105,25 +111,27 @@ function useSingleLangTicker(
     curRef: useRef<HTMLSpanElement>(null),
   }
   useLayoutEffect(() => {
-    const frac = activeRow === 'en' ? enFrac : activeRow === 'ja' ? jaFrac : 0
     const mEn = measureRow(en)
     const mJa = measureRow(ja)
     const any = mEn ?? mJa
     if (!any) return // ticker 以外(wrap)や計測前は strip 未描画で何もしない
     const active = activeRow === 'en' ? mEn : activeRow === 'ja' ? mJa : null
-    const startX0 = any.tw * ANCHOR_RATIO * (1 - frac) // frac 連動で 35%→0 へスライド
+    // 等速スライド：1打×一定px を左へ寄せ、0.35·tw で頭打ち。frac ではなく打鍵数駆動なので語長で速度が変わらない。
+    const anchor = any.tw * ANCHOR_RATIO
+    const slide = Math.min(anchor, SLIDE_PX_PER_CHAR * typedChars)
+    const startX0 = anchor - slide
     let effStartX = startX0
     if (active) {
-      // 末尾優先クランプ：カーソル(off + width*frac)を (tw − margin) 内に収める shift の“よりカーソルを見せる方”。
+      // 末尾優先クランプ：カーソル(off + width*cursorFrac)を (tw − margin) 内に収める shift の“よりカーソルを見せる方”。
       const shiftNoClamp = startX0 - active.off
-      const shiftKeepCursor = active.tw - CURSOR_MARGIN - (active.off + active.width * frac)
+      const shiftKeepCursor = active.tw - CURSOR_MARGIN - (active.off + active.width * cursorFrac)
       const shift = Math.min(shiftNoClamp, shiftKeepCursor)
       effStartX = shift + active.off // 実効の文頭 view-x（両行で共有）
     }
     if (mEn) applyRow(mEn, effStartX - mEn.off, cur)
     if (mJa) applyRow(mJa, effStartX - mJa.off, cur)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref 束(en/ja)は不変。計測トリガは frac/cur/len で十分。
-  }, [activeRow, enFrac, jaFrac, cur, len])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref 束(en/ja)は不変。計測トリガは cursorFrac/typedChars/cur/len で十分。
+  }, [activeRow, cursorFrac, typedChars, cur, len])
   return { en, ja }
 }
 
@@ -267,17 +275,22 @@ export function Flow({
   const enLen = current ? [...current.en].length : 0
   const enFrac = enLen ? Math.min(1, enDone / enLen) : 0
   let jaFrac = 0
+  let jaUnits = 0 // 日本語の打鍵数（かな数。無ければ本文文字数）＝等速スライドの駆動量
   if (current) {
     const unit = current.kana ? [...current.kana].length : [...current.ja].length
     const doneU = current.kana ? jaKanaDone : jaDone
+    jaUnits = doneU
     jaFrac = unit ? Math.min(1, doneU / unit) : 0
   }
 
-  // 単一言語モードは2行の左スクロールを親で同期（アクティブ言語の frac で文頭 x を一致させる）。
+  // 単一言語モードは2行の左スクロールを親で同期。等速スライドはアクティブ言語の打鍵数(typedChars)で駆動し、
+  // 末尾優先クランプの実カーソルは cursorFrac で測る。両行が同じ startX を共有＝文頭 x が一致。
+  const cursorFrac = activeRow === 'en' ? enFrac : activeRow === 'ja' ? jaFrac : 0
+  const typedChars = activeRow === 'en' ? enDone : activeRow === 'ja' ? jaUnits : 0
   const { en: enScroll, ja: jaScroll } = useSingleLangTicker(
     activeRow,
-    enFrac,
-    jaFrac,
+    cursorFrac,
+    typedChars,
     cur,
     items.length,
   )
