@@ -1,6 +1,6 @@
 // 英英辞典の出題生成（レベル×テーマで絞り込み）。
 // 英英データ(dict)は遅延読み込みのため呼び出し側から渡す（純関数）。
-import { poolForRangeBy } from '../words/wordRange.service.js'
+import { poolForRangeBy, RANGE_SIZE } from '../words/wordRange.service.js'
 
 export const DICT_TYPE_COUNT = 12 // 説明文4択(pick)の問題数
 export const DICT_QUIZ_COUNT = 20 // 4択の問題数
@@ -24,7 +24,7 @@ export function levelEntries(dict, level) {
 export function buildDictSet(dict, level, theme, count, { rng = Math.random, range, freqOf, keyOf } = {}) {
   const base =
     range != null
-      ? poolForRangeBy(dict, level, theme, range, 100, freqOf, keyOf)
+      ? poolForRangeBy(dict, level, theme, range, RANGE_SIZE, freqOf, keyOf)
       : [...pool(dict, level, theme)].sort(() => rng() - 0.5)
   const out = []
   for (let i = 0; i < count; i++) out.push(base[i % base.length])

@@ -8,7 +8,7 @@ import { MODES, modeDesc } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS, loadWords } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.service.js'
-import { rangeLabel, wordsInRangeBy } from '../../domain/words/wordRange.service.js'
+import { rangeLabel, wordsInRangeBy, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
 import RecordsTable from '../result/RecordsTable.container.jsx'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
@@ -52,7 +52,7 @@ function WsentList({ level, theme, mode, range }) {
     theme === 'すべて' ? loaded.items : loaded.items.filter((s) => loaded.themes[s.word] === theme)
   const items =
     range != null
-      ? wordsInRangeBy(filtered, range, 100, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
+      ? wordsInRangeBy(filtered, range, RANGE_SIZE, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
       : filtered
   return <ItemList items={items} type="marathon" mode={mode} />
 }
@@ -76,7 +76,7 @@ export default function WordSentenceSection({
   onEndConditionChange,
 }) {
   // #364 範囲選択時は記録も収録一覧も「その範囲だけ」を映す（範囲別の達成度＝範囲別キーで引く）。
-  const rangeText = wsentRange != null ? ` ${rangeLabel(wsentRange, 100, WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0)}` : ''
+  const rangeText = wsentRange != null ? ` ${rangeLabel(wsentRange, RANGE_SIZE, WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0)}` : ''
   const browseNode =
     bottomTab === 'list' ? (
       <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} range={wsentRange} />
