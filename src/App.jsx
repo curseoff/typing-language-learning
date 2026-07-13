@@ -465,7 +465,7 @@ export default function App() {
     setDictData(d)
     setDictGloss(gloss)
     setDictWordRuby(wordRuby)
-    setDictFreqMap(clamped != null ? new Map(words.map((w) => [w.en, w.freq])) : null)
+    setDictFreqMap(clamped != null ? headwordFreqMap(words) : null)
     setPhase('dict')
   }, [])
 
