@@ -7,7 +7,7 @@ import { RankSectionView } from '@tll/ui'
 import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { loadWords } from '../../content/words.js'
 import { dictRanking } from '../../application/records.service.js'
-import { rangeLabel, wordsInRangeBy } from '../../domain/words/wordRange.service.js'
+import { rangeLabel, wordsInRangeBy, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
@@ -50,7 +50,7 @@ function DictList({ level, theme, mode, range }) {
   const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
   const items =
     range != null
-      ? wordsInRangeBy(strict, range, 100, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
+      ? wordsInRangeBy(strict, range, RANGE_SIZE, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
       : strict
   return <ItemList items={items} type="dict" mode={mode} />
 }
@@ -88,7 +88,7 @@ export default function DictSection({
   onEndConditionChange,
 }) {
   // #364 範囲選択時は記録も収録一覧も「その範囲だけ」を映す（範囲別の達成度＝範囲別キーで引く）。
-  const rangeText = dictRange != null ? ` ${rangeLabel(dictRange, 100, DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0)}` : ''
+  const rangeText = dictRange != null ? ` ${rangeLabel(dictRange, RANGE_SIZE, DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0)}` : ''
   const browseNode =
     bottomTab === 'list' ? (
       <DictList level={dictLevel} theme={dictTheme} mode={dictMode} range={dictRange} />

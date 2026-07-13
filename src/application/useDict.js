@@ -9,7 +9,7 @@
 // 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
-import { wordsInRangeBy } from '../domain/words/wordRange.service.js'
+import { wordsInRangeBy, RANGE_SIZE } from '../domain/words/wordRange.service.js'
 import { score } from '../domain/marathon/scoring.service.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
@@ -47,7 +47,7 @@ function dictPool(dict, level, theme) {
 function dictRangePool(dict, level, theme, range, freqMap) {
   const freqOf = (e) => freqMap?.get(e.word) ?? null
   const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  const sliced = wordsInRangeBy(strict, range, 100, freqOf, (e) => e.word)
+  const sliced = wordsInRangeBy(strict, range, RANGE_SIZE, freqOf, (e) => e.word)
   return sliced.length > 0 ? sliced.map(toDictSeg) : null
 }
 

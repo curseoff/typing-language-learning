@@ -3,6 +3,9 @@
 // 固定範囲を1始まりで切り出す（毎回同じ範囲＝復習しやすい）。Word={en,ja,kana,level,theme,freq?}。
 // levelThemePool（フォールバック有り）とは別に、poolForRange は strict な level×theme を使う。
 
+// range の刻み（単一ソース）。全 API の size 既定・呼び出し側の直書きはこれを参照する。
+export const RANGE_SIZE = 100
+
 // #364 freqOf/keyOf を注入する正準順の全順序コンパレータ（dict/wsent でも再利用）：
 //   ①freqOf(e)!=null が先（有り<無し）②freq 有り同士は freqOf 昇順（小=高頻度が先）
 //   ③freq 同値／freq 無し同士は keyOf 昇順（keyOf は一意前提で全順序になる。words は en、
@@ -52,17 +55,17 @@ export function numberedWords(pool) {
 
 // numberedWords の [(i-1)*size, i*size) スライス（rangeIndex は1始まり）。
 // 0/負/非整数/範囲外・空 pool は []（全域性を保つ）。
-export function wordsInRange(pool, rangeIndex, size = 100) {
+export function wordsInRange(pool, rangeIndex, size = RANGE_SIZE) {
   return wordsInRangeBy(pool, rangeIndex, size, freqOfWord, keyOfWord)
 }
 
 // 総数から範囲数を導く（端数繰り上げ）。0→0。
-export function rangeCount(total, size = 100) {
+export function rangeCount(total, size = RANGE_SIZE) {
   return Math.ceil(total / size)
 }
 
 // 範囲の表示ラベル `${(i-1)*size+1}-${i*size}`。total 指定時は末尾範囲を実長に丸める。
-export function rangeLabel(rangeIndex, size = 100, total) {
+export function rangeLabel(rangeIndex, size = RANGE_SIZE, total) {
   const start = (rangeIndex - 1) * size + 1
   const end = total != null ? Math.min(rangeIndex * size, total) : rangeIndex * size
   return `${start}-${end}`
@@ -70,6 +73,6 @@ export function rangeLabel(rangeIndex, size = 100, total) {
 
 // strict な level×theme プール（theme='すべて'→全テーマ／else theme 一致・空でも level 全体へ
 // フォールバックしない）に wordsInRange を当てる。
-export function poolForRange(words, level, theme, rangeIndex, size = 100) {
+export function poolForRange(words, level, theme, rangeIndex, size = RANGE_SIZE) {
   return poolForRangeBy(words, level, theme, rangeIndex, size, freqOfWord, keyOfWord)
 }

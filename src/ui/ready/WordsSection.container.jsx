@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { RankSectionView } from '@tll/ui'
 import { WORD_LEVELS, WORD_MODES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { wordRanking } from '../../application/records.service.js'
-import { rangeLabel, poolForRange } from '../../domain/words/wordRange.service.js'
+import { rangeLabel, poolForRange, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
@@ -72,7 +72,7 @@ export default function WordsSection({
   onEndConditionChange,
 }) {
   // #362 範囲選択時は記録も収録一覧も「その範囲だけ」を映す（範囲別の達成度＝範囲別キーで引く）。
-  const rangeText = wordRange != null ? ` ${rangeLabel(wordRange, 100, WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0)}` : ''
+  const rangeText = wordRange != null ? ` ${rangeLabel(wordRange, RANGE_SIZE, WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0)}` : ''
   const browseNode =
     bottomTab === 'list' ? (
       <WordsList level={wordLevel} theme={wordTheme} mode={wordMode} range={wordRange} />

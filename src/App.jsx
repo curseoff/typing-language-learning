@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
-import { rangeCount, wordsInRangeBy } from './domain/words/wordRange.service.js'
+import { rangeCount, wordsInRangeBy, RANGE_SIZE } from './domain/words/wordRange.service.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, DICT_COUNTS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
@@ -423,7 +423,7 @@ export default function App() {
       let sliced = filtered
       if (clamped != null) {
         const freqMap = new Map(words.map((w) => [w.en, w.freq]))
-        sliced = wordsInRangeBy(filtered, clamped, 100, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
+        sliced = wordsInRangeBy(filtered, clamped, RANGE_SIZE, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
       }
       startMarathon(modeKey, level, 'wsent', sliced, seed, theme, clamped)
       setPhase('playing')
