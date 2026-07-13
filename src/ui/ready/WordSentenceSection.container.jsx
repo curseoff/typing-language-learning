@@ -6,13 +6,14 @@ import { useState, useEffect } from 'react'
 import { RankSectionView } from '@tll/ui'
 import { MODES, modeDesc } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from '../../content/wordSentences/index.js'
-import { WORD_LEVELS } from '../../content/words.js'
+import { WORD_LEVELS, loadWords } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.service.js'
+import { rangeLabel, wordsInRangeBy } from '../../domain/words/wordRange.service.js'
 import RecordsTable from '../result/RecordsTable.container.jsx'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
-import { THEME_OPTIONS } from './parts.container.jsx'
+import { RangeStepper, THEME_OPTIONS } from './parts.container.jsx'
 
 const WSENT_LEVEL_OPTIONS = WORD_LEVELS.map((l) => ({ value: l.level, no: `L${l.level}`, label: l.label }))
 // モードは MODES の group 単位でまとめる（course=group 名）。
@@ -23,8 +24,11 @@ const WSENT_MODE_GROUPS = [...new Set(MODES.map((m) => m.group))].map((g) => ({
 
 // 単語例文の収録一覧。レベルの例文＋テーママップを遅延読み込みしてから ItemList を出す（初回バンドルに含めない）。
 // 読み込んだ結果は対象レベルと一緒に持ち、レベルが変わった直後は「読み込み中…」を表示する。テーマで絞り込む。
-function WsentList({ level, theme, mode }) {
+// #364 範囲(range)選択時はその 100 文（見出し語の freq 順）だけを一覧に出す。freq は単語データ側に
+// あるため range 時のみ単語(level 分)を読んで freqMap（Map(en→freq)）を作る。
+function WsentList({ level, theme, mode, range }) {
   const [loaded, setLoaded] = useState(null) // { level, items, themes }
+  const [freqMap, setFreqMap] = useState(null)
   useEffect(() => {
     let alive = true
     Promise.all([loadWsentLevel(level), loadWsentThemes()]).then(
@@ -34,9 +38,22 @@ function WsentList({ level, theme, mode }) {
       alive = false
     }
   }, [level])
-  if (!loaded || loaded.level !== level) return <p className="pool-count">読み込み中…</p>
-  const items =
+  useEffect(() => {
+    if (range == null) return
+    let alive = true
+    loadWords(level).then((ws) => alive && setFreqMap(new Map(ws.map((w) => [w.en, w.freq]))))
+    return () => {
+      alive = false
+    }
+  }, [range, level])
+  if (!loaded || loaded.level !== level || (range != null && !freqMap))
+    return <p className="pool-count">読み込み中…</p>
+  const filtered =
     theme === 'すべて' ? loaded.items : loaded.items.filter((s) => loaded.themes[s.word] === theme)
+  const items =
+    range != null
+      ? wordsInRangeBy(filtered, range, 100, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
+      : filtered
   return <ItemList items={items} type="marathon" mode={mode} />
 }
 
@@ -47,6 +64,8 @@ export default function WordSentenceSection({
   onWsentLevelChange,
   wsentTheme,
   onWsentThemeChange,
+  wsentRange,
+  onWsentRangeChange,
   focusSection,
   onFocusSection,
   bottomTab,
@@ -56,14 +75,16 @@ export default function WordSentenceSection({
   endCondition,
   onEndConditionChange,
 }) {
+  // #364 範囲選択時は記録も収録一覧も「その範囲だけ」を映す（範囲別の達成度＝範囲別キーで引く）。
+  const rangeText = wsentRange != null ? ` ${rangeLabel(wsentRange, 100, WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0)}` : ''
   const browseNode =
     bottomTab === 'list' ? (
-      <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} />
+      <WsentList level={wsentLevel} theme={wsentTheme} mode={mode} range={wsentRange} />
     ) : (
       <RecordsTable
-        records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme, endCondition)]}
+        records={records[recKey(mode, wsentLevel, 'wsent', wsentTheme, endCondition, wsentRange)]}
         modeKey={mode}
-        rankText={`単語例文 L${wsentLevel} / ${wsentTheme}`}
+        rankText={`単語例文 L${wsentLevel} / ${wsentTheme}${rangeText}`}
         endCondition={endCondition}
       />
     )
@@ -80,6 +101,14 @@ export default function WordSentenceSection({
       onModeChange={onModeChange}
       focusSection={focusSection}
       onFocusSection={onFocusSection}
+      rangeNode={
+        <RangeStepper
+          total={WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0}
+          range={wsentRange}
+          onChange={onWsentRangeChange}
+          unit="文"
+        />
+      }
       modeDesc={`${modeDesc(mode)} 単語を使った例文を打ちます。${endConditionSummary(endCondition)}します。`}
       poolCount={`この条件の収録: ${WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0} 文`}
       endConditionNode={

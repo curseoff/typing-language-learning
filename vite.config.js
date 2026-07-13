@@ -124,7 +124,7 @@ export default defineConfig(({ command }) => ({
       // #362: 単語固定範囲（range）の出題配線＋範囲ステッパー UI に対し wordset の range 分岐・
       // useWords/useWordQuiz の range 記録往復・WordsSection ステッパー・App の range URL 配線テストを
       // 追加し実測が上振れ（S87.04/B79.67/F88.11/L88.18）→ 実測直下へラチェット（up-only）。
-      thresholds: { statements: 87.0, branches: 79.6, functions: 88.0, lines: 88.1 },
+      thresholds: { statements: 87.9, branches: 80.2, functions: 89.3, lines: 89.0 },
     },
   },
 }))
