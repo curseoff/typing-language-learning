@@ -7,7 +7,7 @@ import { assign, ecToColumns, ecFromRow } from './_codec.mapper.js'
 
 const COLS =
   '"mode","rank","source","theme","ec_kind","ec_value","pos",' +
-  '"seed","speed","keys","mistakes","accuracy","correctCount","seconds","date"'
+  '"seed","speed","keys","mistakes","accuracy","correctCount","seconds","date","range"'
 
 // 1行 → record（NULL 列はプロパティ省略）。
 function rowToRecord(row) {
@@ -24,6 +24,7 @@ function rowToRecord(row) {
   assign(rec, 'correctCount', row.correctCount)
   assign(rec, 'seconds', row.seconds)
   assign(rec, 'date', row.date)
+  assign(rec, 'range', row.range)
   const ec = ecFromRow(row)
   if (ec) rec.endCondition = ec
   return rec
@@ -35,7 +36,7 @@ export function loadRecordsDb(db) {
   const out = {}
   for (const row of rows) {
     const rec = rowToRecord(row)
-    const key = recKey(rec.mode, rec.rank, rec.source, rec.theme, rec.endCondition)
+    const key = recKey(rec.mode, rec.rank, rec.source, rec.theme, rec.endCondition, rec.range)
     ;(out[key] ||= []).push(rec)
   }
   return out
@@ -44,7 +45,14 @@ export function loadRecordsDb(db) {
 // 記録を1件保存し、更新後の全マップを返す（該当グループを DELETE→pos 昇順 INSERT）。
 export function saveRecordDb(db, record) {
   db.transaction(() => {
-    const key = recKey(record.mode, record.rank, record.source, record.theme, record.endCondition)
+    const key = recKey(
+      record.mode,
+      record.rank,
+      record.source,
+      record.theme,
+      record.endCondition,
+      record.range
+    )
     const current = loadRecordsDb(db)[key] || []
     const board = makeRankingBoard({
       key,
@@ -56,7 +64,7 @@ export function saveRecordDb(db, record) {
     db.exec({
       sql:
         'DELETE FROM "records" WHERE "mode" IS ? AND "rank" IS ? AND "source" IS ? AND ' +
-        '"theme" IS ? AND "ec_kind" IS ? AND "ec_value" IS ?',
+        '"theme" IS ? AND "ec_kind" IS ? AND "ec_value" IS ? AND "range" IS ?',
       bind: [
         record.mode ?? null,
         record.rank ?? null,
@@ -64,12 +72,13 @@ export function saveRecordDb(db, record) {
         record.theme ?? null,
         ec.ec_kind,
         ec.ec_value,
+        record.range ?? null,
       ],
     })
     list.forEach((r, pos) => {
       const rec = ecToColumns(r.endCondition)
       db.exec({
-        sql: `INSERT INTO "records" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        sql: `INSERT INTO "records" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         bind: [
           r.mode ?? null,
           r.rank ?? null,
@@ -86,6 +95,7 @@ export function saveRecordDb(db, record) {
           r.correctCount ?? null,
           r.seconds ?? null,
           r.date ?? null,
+          r.range ?? null,
         ],
       })
     })

@@ -61,6 +61,37 @@ describe('useMarathon（単語例文・結合）', () => {
     expect(segStats[0]).toHaveProperty('speed')
   }, 20000)
 
+  it('range を渡すと record.range に載り、pool 順（ordered）で決定的に出題する（#364）', () => {
+    // App 側が range で freq 順スライス済みの pool を渡す前提。ここでは pool 順が seed 非依存で
+    // 固定される（ordered）ことと record.range の往復を確認する。
+    const pool = WORD_SENTENCES.filter((s) => s.level === 1).slice(0, 30)
+    const onFinish = vi.fn()
+    const a = renderHook(() => useMarathon({ active: true, onFinish: vi.fn() }))
+    act(() => a.result.current.start('en', 1, 'wsent', pool, 111, 'すべて', 2))
+    const b = renderHook(() => useMarathon({ active: true, onFinish: vi.fn() }))
+    act(() => b.result.current.start('en', 1, 'wsent', pool, 999, 'すべて', 2))
+    // seed が違っても range 出題は同一（rng シャッフルせず pool 順）。
+    expect(a.result.current.segments.map((s) => s.canonical)).toEqual(
+      b.result.current.segments.map((s) => s.canonical),
+    )
+
+    const { result } = renderHook(() => useMarathon({ active: true, onFinish }))
+    act(() => result.current.start('en', 1, 'wsent', pool, undefined, 'すべて', 2))
+    typeSome(result, 30)
+    runOutClock()
+    expect(onFinish.mock.calls[0][0].range).toBe(2)
+  }, 20000)
+
+  it('range 未指定なら record に range を載せない（後方互換・#364）', () => {
+    const pool = WORD_SENTENCES.filter((s) => s.level === 1)
+    const onFinish = vi.fn()
+    const { result } = renderHook(() => useMarathon({ active: true, onFinish }))
+    act(() => result.current.start('en', 1, 'wsent', pool))
+    typeSome(result, 30)
+    runOutClock()
+    expect(onFinish.mock.calls[0][0]).not.toHaveProperty('range')
+  }, 20000)
+
   it('seed を渡すと同じ問題列を再現し record に seed が入る（リプレイ）', () => {
     const pool = WORD_SENTENCES.filter((s) => s.level === 1)
     const seed = 424242

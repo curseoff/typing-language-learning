@@ -61,18 +61,23 @@ const enumParam = (key, keys, fallback) => ({
 })
 
 // --- ルート表：URL slug ⇄ 内部 gameType と、そのページの位置パラメータ順 ---
+// #362/#364 range: true のページのみ末尾に固定範囲セグメント r{n} を許す（words/dict/sentences）。
+// story/touch/romaji は range 非対応（付いても無視・付けない）。
 const PAGES = {
   sentences: {
     gameType: 'wsent',
     params: [levelParam(LEVEL_KEYS), themeParam, enumParam('mode', WSENT_MODE_KEYS, 'both')],
+    range: true,
   },
   words: {
     gameType: 'words',
     params: [levelParam(LEVEL_KEYS), themeParam, enumParam('mode', WORD_MODE_KEYS, 'en')],
+    range: true,
   },
   dict: {
     gameType: 'dict',
     params: [levelParam(DICT_AVAILABLE_LEVELS), themeParam, enumParam('mode', DICT_MODE_KEYS, 'quiz')],
+    range: true,
   },
   story: {
     gameType: 'story',
@@ -187,8 +192,9 @@ export function parseRoute(appPath) {
   page.params.forEach((p, i) => {
     state[p.key] = p.parse(rest[i]) // rest[i] が undefined＝欠落なら parse が既定へ丸める
   })
-  // #362 words は末尾セグメントを接頭辞で分類（`r`→range・他→ec）。他ページは従来どおり ec のみ。
-  if (page.gameType === 'words') {
+  // #362/#364 range 対応ページ（words/dict/sentences）は末尾セグメントを接頭辞で分類
+  // （`r`→range・他→ec）。他ページは従来どおり ec のみ。
+  if (page.range) {
     const tail = rest.slice(page.params.length)
     let ecSeg = null
     let range = null
@@ -210,8 +216,9 @@ function rawBuild(state) {
   const parts = PAGES[slug].params.map((p) => p.build(state[p.key]))
   const ecSeg = buildEndCondition(state.endCondition)
   if (ecSeg != null) parts.push(ecSeg)
-  // #362 words のみ range を末尾に付ける（ec セグメント→range セグメントの順）。range 無しは出さない。
-  if (state.gameType === 'words' && Number.isInteger(state.range) && state.range >= 1) {
+  // #362/#364 range 対応ページ（words/dict/sentences）のみ range を末尾に付ける
+  // （ec セグメント→range セグメントの順）。range 無しは出さない。
+  if (PAGES[slug].range && Number.isInteger(state.range) && state.range >= 1) {
     parts.push(`r${state.range}`)
   }
   return `/${[slug, ...parts].join('/')}`

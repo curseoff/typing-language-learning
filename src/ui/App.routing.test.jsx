@@ -112,6 +112,84 @@ describe('App 単語固定範囲 URL 配線 (#362)', () => {
   })
 })
 
+// #364 英英・単語例文の固定範囲（range）の App 配線テスト。#362 の単語ブロックを鏡に、dict/wsent でも
+// 「range URL からの cold 初期化・ステッパー操作での URL 反映・theme 変更での range 無効化（clamp）」を検証。
+describe('App 英英固定範囲 URL 配線 (#364)', () => {
+  beforeEach(() => {
+    cleanup()
+    localStorage.clear()
+    initMemoryPersistence()
+    setPath('/')
+  })
+  afterEach(() => setPath('/'))
+
+  it('cold /dict/1/日常/quiz/r2 で英英タブが選択され URL に r2 が残る', () => {
+    setPath('/dict/1/日常/quiz/r2')
+    const { container } = render(<App />)
+    expect(selectedTab(container, '英英辞典').className).toMatch(/sel/)
+    expect(location.pathname).toBe(canonical('/dict/1/日常/quiz/r2'))
+    expect(decodeURIComponent(location.pathname)).toContain('/r2')
+  })
+
+  it('範囲ステッパーで範囲を選ぶと URL に r1 が付き、範囲指定なしに戻すと従来 URL へ戻る', () => {
+    setPath('/dict/1/日常/quiz')
+    const { container } = render(<App />)
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+    act(() => fireEvent.click(within(container).getByLabelText('次の範囲'))) // 範囲1へ
+    expect(decodeURIComponent(location.pathname)).toContain('/r1')
+    act(() => fireEvent.click(within(container).getByLabelText('前の範囲'))) // 範囲指定なしへ
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+  })
+
+  it('テーマ変更で範囲数が減ると range が無効化され URL から消える（clamp）', () => {
+    setPath('/dict/1/日常/quiz/r3') // 日常=639語→7範囲（r3 有効）
+    const { container } = render(<App />)
+    expect(decodeURIComponent(location.pathname)).toContain('/r3')
+    // 旅行=66語→1範囲。r3 は範囲外＝未選択へ丸め、URL から range が消える。
+    act(() => fireEvent.click(within(container).getByText('旅行')))
+    expect(decodeURIComponent(location.pathname)).toContain('旅行')
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+  })
+})
+
+describe('App 単語例文固定範囲 URL 配線 (#364)', () => {
+  beforeEach(() => {
+    cleanup()
+    localStorage.clear()
+    initMemoryPersistence()
+    setPath('/')
+  })
+  afterEach(() => setPath('/'))
+
+  it('cold /sentences/1/日常/both/r2 で単語例文タブが選択され URL に r2 が残る', () => {
+    setPath('/sentences/1/日常/both/r2')
+    const { container } = render(<App />)
+    expect(selectedTab(container, '単語例文').className).toMatch(/sel/)
+    expect(location.pathname).toBe(canonical('/sentences/1/日常/both/r2'))
+    expect(decodeURIComponent(location.pathname)).toContain('/r2')
+  })
+
+  it('範囲ステッパーで範囲を選ぶと URL に r1 が付き、範囲指定なしに戻すと従来 URL へ戻る', () => {
+    setPath('/sentences/1/日常/both')
+    const { container } = render(<App />)
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+    act(() => fireEvent.click(within(container).getByLabelText('次の範囲'))) // 範囲1へ
+    expect(decodeURIComponent(location.pathname)).toContain('/r1')
+    act(() => fireEvent.click(within(container).getByLabelText('前の範囲'))) // 範囲指定なしへ
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+  })
+
+  it('テーマ変更で範囲数が減ると range が無効化され URL から消える（clamp）', () => {
+    setPath('/sentences/1/日常/both/r3') // 日常=220文→3範囲（r3 有効）
+    const { container } = render(<App />)
+    expect(decodeURIComponent(location.pathname)).toContain('/r3')
+    // ビジネス=40文→1範囲。r3 は範囲外＝未選択へ丸め、URL から range が消える。
+    act(() => fireEvent.click(within(container).getByText('ビジネス')))
+    expect(decodeURIComponent(location.pathname)).toContain('ビジネス')
+    expect(decodeURIComponent(location.pathname)).not.toContain('/r')
+  })
+})
+
 // #359 view ルート（about/records/result）の App 配線テスト（characterization / 回帰固定）。
 // 純 codec（parseRoute/buildRoute の view 分岐）は routing.policy.test.js が別途担保し、ここは
 // 「view URL からの cold 初期化・view への遷移で pushState・戻る（popstate）での復元・cold /result の

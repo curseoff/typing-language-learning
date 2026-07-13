@@ -11,16 +11,18 @@ import { endHudStat } from '../../content/endConditions.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
-export default function DictView({ dict, gloss, wordRuby, level, theme, mode, seed, levelLabel, modeLabel, endCondition, onExit }) {
+// 外部 API に #364 range/freqMap を追加（range 時のみ freqMap＝Map(en→freq) を注入）。
+export default function DictView({ dict, gloss, wordRuby, level, theme, mode, seed, range, freqMap, levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `英英 / ${modeLabel} / ${theme}`
-  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} wordRuby={wordRuby} level={level} theme={theme} seed={seed} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
-  if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
-  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
+  if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} wordRuby={wordRuby} level={level} theme={theme} seed={seed} range={range} freqMap={freqMap} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
+  if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} range={range} freqMap={freqMap} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
+  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} range={range} freqMap={freqMap} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
 }
 
 // 英英の記録ランキング（useRecordDetail フックを使うため container 側）。finished 時だけマウント。
+// #364 range モードの記録は範囲別キー（result.range）で引く＝一覧が範囲ごとに分かれる。
 function DictResult({ result, records, level, theme, mode, onRetry, onExit }) {
-  const list = records[dictRecKey(level, theme, mode, result.endCondition)] || []
+  const list = records[dictRecKey(level, theme, mode, result.endCondition, result.range)] || []
   // #360 App 配下では openDetail（URL 同期の単一オーバーレイ）・未配線ならローカルモーダルへ。
   const openDetail = useOpenDetail()
   const { open: localOpen, modal } = useRecordDetail()
@@ -48,8 +50,8 @@ function typeHint(mode, segType) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）。単語例文（マラソン）と同じ TopFlow で描画。
-function TypeView({ dict, gloss, level, theme, mode, seed, levelLabel, metaSub, endCondition, onExit }) {
-  const d = useDict({ dict, level, theme, mode, seed, endCondition, onExit })
+function TypeView({ dict, gloss, level, theme, mode, seed, range, freqMap, levelLabel, metaSub, endCondition, onExit }) {
+  const d = useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, onExit })
   // items 制の HUD 進捗＝完了語数（segIndex）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
 
@@ -79,8 +81,8 @@ function TypeView({ dict, gloss, level, theme, mode, seed, levelLabel, metaSub, 
 }
 
 // 4択（定義→英単語をタイプ/クリック）
-function QuizView({ dict, gloss, wordRuby, level, theme, seed, levelLabel, metaSub, endCondition, onExit }) {
-  const q = useDictQuiz({ dict, level, theme, seed, endCondition, onExit })
+function QuizView({ dict, gloss, wordRuby, level, theme, seed, range, freqMap, levelLabel, metaSub, endCondition, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, seed, endCondition, range, freqMap, onExit })
   // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
   // 回答後、選んだ語（型 or クリック）の和訳をグロッサリから引いて見出し下に出す
@@ -116,8 +118,8 @@ function QuizView({ dict, gloss, wordRuby, level, theme, seed, levelLabel, metaS
 }
 
 // 説明文4択：単語＋意味 → 合う説明文を「打って」選ぶ
-function PickView({ dict, gloss, level, theme, seed, levelLabel, metaSub, endCondition, onExit }) {
-  const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, endCondition, onExit })
+function PickView({ dict, gloss, level, theme, seed, range, freqMap, levelLabel, metaSub, endCondition, onExit }) {
+  const q = useDictQuiz({ dict, level, theme, kind: 'pick', seed, endCondition, range, freqMap, onExit })
   // items 制の HUD 進捗＝完答した設問数（index）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: q.elapsedSec, keys: q.typedKeys, items: q.index, missedItems: q.missedItems })
 

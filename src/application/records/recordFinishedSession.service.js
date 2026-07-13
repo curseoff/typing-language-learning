@@ -19,7 +19,7 @@ export function recordFinishedSession({ session, meta, repository, bus }) {
   // Domain Service：セッションの状態＋採点＋メタから記録オブジェクトを作る（純変換）。
   const record = sessionToRecord(session, meta)
   // Domain：記録の格納先ランキングキーを算出（終了条件別キー込み）。
-  const key = recKey(meta.mode, meta.rank, meta.source, meta.theme, session.endCondition)
+  const key = recKey(meta.mode, meta.rank, meta.source, meta.theme, session.endCondition, meta.range)
   // Repository：read-modify-write で永続化し、整列/上限済みの最新集約を得る。
   const board = repository.submitRecord(key, session.endCondition, record)
   // Domain Event：記録の後に「起きた事実」を発行（submit と同一 record 参照を渡す）。

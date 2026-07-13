@@ -9,6 +9,7 @@
 // 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
+import { wordsInRangeBy } from '../domain/words/wordRange.service.js'
 import { score } from '../domain/marathon/scoring.service.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
@@ -29,26 +30,46 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let dictSessionSeq = 0
 const nextDictId = () => `dict-${++dictSessionSeq}`
 
+// dict エントリを buildPassage の pool 形式 {word, en, ja, kana} に整える。
+const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana })
+
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
 function dictPool(dict, level, theme) {
   let p = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
   if (p.length === 0) p = dict.filter((d) => d.level === level)
   if (p.length === 0) p = dict
-  return p.map((e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana }))
+  return p.map(toDictSeg)
+}
+
+// #364 range 時：strict な level×theme（フォールバック無し）を freq 順で 100 件区切りにスライスした
+// 範囲プール（決定的）。dict は freq を持たないため freqMap から freqOf/keyOf を組む。空スライス（無効
+// range）は null＝呼び出し側で従来プールへフォールバック。
+function dictRangePool(dict, level, theme, range, freqMap) {
+  const freqOf = (e) => freqMap?.get(e.word) ?? null
+  const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
+  const sliced = wordsInRangeBy(strict, range, 100, freqOf, (e) => e.word)
+  return sliced.length > 0 ? sliced.map(toDictSeg) : null
 }
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
-export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }) {
+// #364 range 有り（英英固定範囲）＝範囲内を freq 順で決定的に流し record.range に往復させる。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, onExit }) {
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
   const limitMs = endLimitMs(ec)
   // 「今プレイ中の問題列」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
   // restart のたびに切り直し、record には必ずこの seed を保存して再現可能にする。
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
-  const pool = useMemo(() => dictPool(dict, level, theme), [dict, level, theme])
+  // range 時は範囲プール（freq 順・決定的）を優先。無効 range（空）は従来プールへフォールバック。
+  const rangePool = useMemo(
+    () => (range != null ? dictRangePool(dict, level, theme, range, freqMap) : null),
+    [dict, level, theme, range, freqMap],
+  )
+  const pool = useMemo(() => rangePool ?? dictPool(dict, level, theme), [rangePool, dict, level, theme])
+  const ordered = rangePool != null // 範囲プール適用時のみ pool 順で固定（毎回同じ並び）
   const buildSegments = useCallback(
-    (s) => buildPassage(mode, pool, { rng: mulberry32(s) }),
-    [mode, pool],
+    (s) => buildPassage(mode, pool, { rng: mulberry32(s), ordered }),
+    [mode, pool, ordered],
   )
   const [segments, setSegments] = useState(() => buildSegments(sessionSeed))
   const [segIndex, setSegIndex] = useState(0)
@@ -128,6 +149,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
         accuracy,
         correctCount,
         seconds,
+        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+        ...(range != null ? { range } : {}),
         segStats: list,
         date: new Date().toLocaleString('ja-JP'),
       }
@@ -135,7 +158,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, onExit }
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, sessionSeed, ec],
+    [level, theme, mode, range, sessionSeed, ec],
   )
 
   // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。

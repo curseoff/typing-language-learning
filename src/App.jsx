@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
-import { rangeCount } from './domain/words/wordRange.service.js'
-import { loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
-import { DICT_MODES, DICT_AVAILABLE_LEVELS, loadDict } from './content/dictionary.js'
+import { rangeCount, wordsInRangeBy } from './domain/words/wordRange.service.js'
+import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
+import { DICT_MODES, DICT_AVAILABLE_LEVELS, DICT_COUNTS, loadDict } from './content/dictionary.js'
 import { DEFAULT_STORY_ID, STORIES } from './content/stories/index.js'
 import { TOUCH_LEVELS, TOUCH_MODES } from './content/keyboard.js'
 import { ROMAJI_LEVELS, ROMAJI_MODE } from './content/romaji.js'
@@ -55,11 +55,12 @@ const STORY_IDS = STORIES.map((s) => s.id)
 const THEME_OPTIONS = ['すべて', ...WORD_THEMES]
 const LEVEL_VALUES = WORD_LEVELS.map((l) => l.level)
 
-// #362 単語の範囲数（レベル×テーマの収録語数を100語区切りにした数）。単語本体はロード不要（WORD_COUNTS）。
+// #362/#364 各種類の範囲数（レベル×テーマの収録数を100区切りにした数）。本体はロード不要（*_COUNTS）。
 const wordRangeCount = (level, theme) => rangeCount(WORD_COUNTS[level]?.[theme] ?? 0)
-// 範囲外・0以下の range は「未選択(null)」へ丸める（level/theme 変更で範囲数が減ったとき用）。
-const clampWordRange = (range, level, theme) =>
-  range != null && range >= 1 && range <= wordRangeCount(level, theme) ? range : null
+const dictRangeCount = (level, theme) => rangeCount(DICT_COUNTS[level]?.[theme] ?? 0)
+const wsentRangeCount = (level, theme) => rangeCount(WSENT_COUNTS[level]?.[theme] ?? 0)
+// 範囲外・0以下の range は「未選択(null)」へ丸める（level/theme 変更で範囲数が減ったとき用＝#359 の白画面回避）。
+const clampRange = (range, count) => (range != null && range >= 1 && range <= count ? range : null)
 
 // #357 パス型ルーティング：base（末尾スラッシュ付き。本番 '/typing-language-learning/'・dev '/'）。
 const BASE = import.meta.env.BASE_URL
@@ -110,6 +111,7 @@ export default function App() {
   const [mode, setMode] = useState(irIf('wsent', 'mode', 'both')) // 文章/物語: both | en | ja | en-tr | ja-tr
   const [wsentLevel, setWsentLevel] = useState(irIf('wsent', 'level', 1)) // 単語例文のレベル(1-4)
   const [wsentTheme, setWsentTheme] = useState(irIf('wsent', 'theme', 'すべて')) // 単語例文のテーマフィルタ
+  const [wsentRange, setWsentRange] = useState(() => clampRange(irIf('wsent', 'range', null), wsentRangeCount(irIf('wsent', 'level', 1), irIf('wsent', 'theme', 'すべて')))) // 単語例文の固定範囲(1始まり) or null
   const [wsentGloss, setWsentGloss] = useState(null) // 単語例文の英→和グロッサリ(プレイ中の和訳併記用)
   const [storyId, setStoryId] = useState(irIf('story', 'storyId', DEFAULT_STORY_ID)) // 選択中の物語(travel | climbing …)
   const [storyStart, setStoryStart] = useState(null) // 物語の開始状態(Devジャンプ用)
@@ -117,14 +119,16 @@ export default function App() {
   const [wordLevel, setWordLevel] = useState(irIf('words', 'level', 1)) // 単語のレベル(1-4)
   const [wordTheme, setWordTheme] = useState(irIf('words', 'theme', 'すべて')) // 単語のテーマフィルタ
   const [wordMode, setWordMode] = useState(irIf('words', 'mode', 'en')) // both | en | ja | quiz-en | quiz-ja
-  const [wordRange, setWordRange] = useState(() => clampWordRange(irIf('words', 'range', null), irIf('words', 'level', 1), irIf('words', 'theme', 'すべて'))) // 単語の固定範囲(1始まり) or null=範囲指定なし
+  const [wordRange, setWordRange] = useState(() => clampRange(irIf('words', 'range', null), wordRangeCount(irIf('words', 'level', 1), irIf('words', 'theme', 'すべて')))) // 単語の固定範囲(1始まり) or null=範囲指定なし
   const [wordSeed, setWordSeed] = useState(null) // 単語の問題列シード（リプレイ再現用）
   const [wordsData, setWordsData] = useState(null) // 単語データ（遅延読み込み）
   const [dictLevel, setDictLevel] = useState(irIf('dict', 'level', DICT_AVAILABLE_LEVELS[0] ?? 1)) // 英英のレベル
   const [dictTheme, setDictTheme] = useState(irIf('dict', 'theme', 'すべて')) // 英英のテーマ
   const [dictMode, setDictMode] = useState(irIf('dict', 'mode', 'quiz')) // quiz | en | ja
+  const [dictRange, setDictRange] = useState(() => clampRange(irIf('dict', 'range', null), dictRangeCount(irIf('dict', 'level', DICT_AVAILABLE_LEVELS[0] ?? 1), irIf('dict', 'theme', 'すべて')))) // 英英の固定範囲(1始まり) or null
   const [dictSeed, setDictSeed] = useState(null) // 英英の問題列シード（リプレイ再現用）
   const [dictData, setDictData] = useState(null) // 英英データ（遅延読み込み）
+  const [dictFreqMap, setDictFreqMap] = useState(null) // 英英の範囲出題用 Map(en→freq)（range 時のみ・単語データ由来）
   const [dictGloss, setDictGloss] = useState(null) // 英英の英→和グロッサリ(回答後の単語和訳表示用)
   const [dictWordRuby, setDictWordRuby] = useState(null) // 英英の英→{ja,kana}(単語4択の回答後にルビ表示用)
   const [touchLevel, setTouchLevel] = useState(irIf('touch', 'touchLevel', 'home')) // タッチタイピングのレベル
@@ -142,16 +146,32 @@ export default function App() {
   // cold ロードで URL が record-detail のときは初期復元し、以後は openDetail/popstate で更新する。
   const [detailRoute, setDetailRoute] = useState(IR.view === 'record-detail' ? IR : null)
 
-  // #362 単語のレベル/テーマ変更時は range を範囲内に丸める（範囲数が減って無効化されたら未選択へ）。
-  // rows（←→ナビ）と Ready の選択チップの両方から使う共通ハンドラ。
+  // #362/#364 レベル/テーマ変更時は range を範囲内に丸める（範囲数が減って無効化されたら未選択へ）。
+  // rows（←→ナビ）と Ready の選択チップの両方から使う共通ハンドラ（単語/英英/単語例文で同型）。
   const onWordLevelChange = useCallback((lv) => {
     setWordLevel(lv)
-    setWordRange((r) => clampWordRange(r, lv, wordTheme))
+    setWordRange((r) => clampRange(r, wordRangeCount(lv, wordTheme)))
   }, [wordTheme])
   const onWordThemeChange = useCallback((th) => {
     setWordTheme(th)
-    setWordRange((r) => clampWordRange(r, wordLevel, th))
+    setWordRange((r) => clampRange(r, wordRangeCount(wordLevel, th)))
   }, [wordLevel])
+  const onDictLevelChange = useCallback((lv) => {
+    setDictLevel(lv)
+    setDictRange((r) => clampRange(r, dictRangeCount(lv, dictTheme)))
+  }, [dictTheme])
+  const onDictThemeChange = useCallback((th) => {
+    setDictTheme(th)
+    setDictRange((r) => clampRange(r, dictRangeCount(dictLevel, th)))
+  }, [dictLevel])
+  const onWsentLevelChange = useCallback((lv) => {
+    setWsentLevel(lv)
+    setWsentRange((r) => clampRange(r, wsentRangeCount(lv, wsentTheme)))
+  }, [wsentTheme])
+  const onWsentThemeChange = useCallback((th) => {
+    setWsentTheme(th)
+    setWsentRange((r) => clampRange(r, wsentRangeCount(wsentLevel, th)))
+  }, [wsentLevel])
 
   // TOP画面の行（セクション）構成。↑↓で行移動、←→で行内の選択移動。種類によって行が変わる。
   const rows = useMemo(() => {
@@ -195,8 +215,8 @@ export default function App() {
       case 'dict':
         return [
           type,
-          { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: setDictLevel },
-          { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: setDictTheme },
+          { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: onDictLevelChange },
+          { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: onDictThemeChange },
           { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
           ...endRows,
           bottom,
@@ -215,14 +235,14 @@ export default function App() {
       default: // wsent
         return [
           type,
-          { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: setWsentLevel },
-          { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: setWsentTheme },
+          { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: onWsentLevelChange },
+          { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: onWsentThemeChange },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
           ...endRows,
           bottom,
         ]
     }
-  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, onWordLevelChange, onWordThemeChange, dictLevel, dictTheme, dictMode, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, bottomTab, endCondition])
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, onWordLevelChange, onWordThemeChange, dictLevel, dictTheme, dictMode, onDictLevelChange, onDictThemeChange, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, onWsentLevelChange, onWsentThemeChange, bottomTab, endCondition])
 
   // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
   const safeFocus = Math.min(focusRow, rows.length - 1)
@@ -239,13 +259,13 @@ export default function App() {
   const currentRouteState = useCallback(() => {
     switch (gameType) {
       case 'words': return { gameType, level: wordLevel, theme: wordTheme, mode: wordMode, endCondition, range: wordRange }
-      case 'dict': return { gameType, level: dictLevel, theme: dictTheme, mode: dictMode, endCondition }
+      case 'dict': return { gameType, level: dictLevel, theme: dictTheme, mode: dictMode, endCondition, range: dictRange }
       case 'story': return { gameType, storyId, endCondition }
       case 'touch': return { gameType, touchLevel, touchMode, endCondition }
       case 'romaji': return { gameType, romajiLevel, endCondition }
-      default: return { gameType: 'wsent', level: wsentLevel, theme: wsentTheme, mode, endCondition }
+      default: return { gameType: 'wsent', level: wsentLevel, theme: wsentTheme, mode, endCondition, range: wsentRange }
     }
-  }, [gameType, wordLevel, wordTheme, wordMode, wordRange, dictLevel, dictTheme, dictMode, storyId, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, mode, endCondition])
+  }, [gameType, wordLevel, wordTheme, wordMode, wordRange, dictLevel, dictTheme, dictMode, dictRange, storyId, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, wsentRange, mode, endCondition])
 
   // #357/#359 RouteState を phase＋各ページの state セッターへ写像する（popstate 復元で使う）。
   // 初回はこの写像を使わず useState 初期値で直接復元している（IR/irIf/初期 phase）。
@@ -269,12 +289,12 @@ export default function App() {
     }
     setGameType(state.gameType)
     switch (state.gameType) {
-      case 'words': setWordLevel(state.level); setWordTheme(state.theme); setWordMode(state.mode); setWordRange(clampWordRange(state.range ?? null, state.level, state.theme)); break
-      case 'dict': setDictLevel(state.level); setDictTheme(state.theme); setDictMode(state.mode); break
+      case 'words': setWordLevel(state.level); setWordTheme(state.theme); setWordMode(state.mode); setWordRange(clampRange(state.range ?? null, wordRangeCount(state.level, state.theme))); break
+      case 'dict': setDictLevel(state.level); setDictTheme(state.theme); setDictMode(state.mode); setDictRange(clampRange(state.range ?? null, dictRangeCount(state.level, state.theme))); break
       case 'story': setStoryId(state.storyId); break
       case 'touch': setTouchLevel(state.touchLevel); setTouchMode(state.touchMode); break
       case 'romaji': setRomajiLevel(state.romajiLevel); break
-      default: setWsentLevel(state.level); setWsentTheme(state.theme); setMode(state.mode)
+      default: setWsentLevel(state.level); setWsentTheme(state.theme); setMode(state.mode); setWsentRange(clampRange(state.range ?? null, wsentRangeCount(state.level, state.theme)))
     }
     setEndCondition(state.endCondition)
     setPhase('ready') // content ルートは常に ready（プレイ中に戻る→ready 復帰）
@@ -386,19 +406,26 @@ export default function App() {
   // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
   // リプレイは記録の値＋seed を直接渡すために必須。
   const startWsent = useCallback(
-    async (level, theme, modeKey, seed) => {
+    async (level, theme, modeKey, seed, range) => {
       // 対象レベルの例文だけ遅延読み込みしてから開始（初回バンドルに全例文を含めない）
       // グロッサリ（英→和）とテーママップも並行ロード（テーマで収録を絞る／プレイ中の和訳併記）
-      const [pool, gloss, themes] = await Promise.all([
-        loadWsentLevel(level),
-        loadWordGloss(),
-        loadWsentThemes(),
-      ])
+      // #364 range 選択時のみ単語(level 分)も並行ロードして freq 結合に使う（範囲外への丸めは clampRange）。
+      const clamped = clampRange(range ?? null, wsentRangeCount(level, theme))
+      const loads = [loadWsentLevel(level), loadWordGloss(), loadWsentThemes()]
+      if (clamped != null) loads.push(loadWords(level))
+      const [pool, gloss, themes, words] = await Promise.all(loads)
       setWsentGloss(gloss)
+      setWsentRange(clamped)
       // テーマ指定時は見出し語の theme が一致する例文だけに絞る（'すべて'は全件）
       const themeMap = themes[level] ?? {}
       const filtered = theme === 'すべて' ? pool : pool.filter((s) => themeMap[s.word] === theme)
-      startMarathon(modeKey, level, 'wsent', filtered, seed, theme)
+      // range 時は見出し語 freq 順に 100 文区切りへスライス（決定的）。freq は単語データ由来。
+      let sliced = filtered
+      if (clamped != null) {
+        const freqMap = new Map(words.map((w) => [w.en, w.freq]))
+        sliced = wordsInRangeBy(filtered, clamped, 100, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
+      }
+      startMarathon(modeKey, level, 'wsent', sliced, seed, theme, clamped)
       setPhase('playing')
     },
     [startMarathon],
@@ -406,8 +433,8 @@ export default function App() {
 
   // 通常プレイ／結果からの「もう一度」：現在の選択で新しい seed を切って開始
   const startGame = useCallback(() => {
-    return startWsent(wsentLevel, wsentTheme, mode, makeSeed())
-  }, [startWsent, wsentLevel, wsentTheme, mode])
+    return startWsent(wsentLevel, wsentTheme, mode, makeSeed(), wsentRange)
+  }, [startWsent, wsentLevel, wsentTheme, mode, wsentRange])
 
   // 明示引数で単語モードを開始する（seed を指定して同じ問題列を再現できる）。
   // WordsView 側のフックが seed を受け取り出題を決定する（key に seed を含めて再マウント）。
@@ -416,7 +443,7 @@ export default function App() {
     setWordTheme(theme)
     setWordMode(modeKey)
     setWordSeed(seed)
-    setWordRange(clampWordRange(range ?? null, level, theme)) // #362 範囲外なら未選択（従来の全体出題）へ
+    setWordRange(clampRange(range ?? null, wordRangeCount(level, theme))) // #362 範囲外なら未選択（従来の全体出題）へ
     // 対象レベルの単語だけ遅延読み込み（テーマ絞りは domain 側／4択の誤答は同レベル全テーマから）
     const w = await loadWords(level)
     setWordsData(w)
@@ -424,16 +451,22 @@ export default function App() {
   }, [])
 
   // 明示引数で英英モードを開始する（seed を指定して同じ問題列を再現できる）。
-  const startDict = useCallback(async (level, theme, modeKey, seed) => {
+  // #364 range 時は単語(level 分)も並行ロードして freqMap（Map(en→freq)）を作り、範囲出題の freq 結合に使う。
+  const startDict = useCallback(async (level, theme, modeKey, seed, range) => {
+    const clamped = clampRange(range ?? null, dictRangeCount(level, theme))
     setDictLevel(level)
     setDictTheme(theme)
     setDictMode(modeKey)
     setDictSeed(seed)
+    setDictRange(clamped)
     // 対象レベルの英英だけ＋英→和グロッサリを並行ロード（クイズ回答後に選んだ語の和訳を見出し下に出す）
-    const [d, gloss, wordRuby] = await Promise.all([loadDict(level), loadWordGloss(), loadWordRuby()])
+    const loads = [loadDict(level), loadWordGloss(), loadWordRuby()]
+    if (clamped != null) loads.push(loadWords(level))
+    const [d, gloss, wordRuby, words] = await Promise.all(loads)
     setDictData(d)
     setDictGloss(gloss)
     setDictWordRuby(wordRuby)
+    setDictFreqMap(clamped != null ? new Map(words.map((w) => [w.en, w.freq])) : null)
     setPhase('dict')
   }, [])
 
@@ -458,7 +491,7 @@ export default function App() {
           setMode(record.mode)
           setWsentLevel(record.rank)
           setWsentTheme(theme)
-          startWsent(record.rank, theme, record.mode, record.seed)
+          startWsent(record.rank, theme, record.mode, record.seed, record.range ?? null)
           return
         }
         case 'word':
@@ -469,7 +502,7 @@ export default function App() {
         case 'dict':
           if (record.seed == null) return
           setGameType('dict')
-          startDict(record.level, record.theme, record.mode, record.seed)
+          startDict(record.level, record.theme, record.mode, record.seed, record.range ?? null)
           return
         case 'story':
           setGameType('story')
@@ -490,7 +523,7 @@ export default function App() {
       startWords(wordLevel, wordTheme, wordMode, null, wordRange)
     } else if (gameType === 'dict') {
       // 英英データを遅延読み込みしてから英英モードへ（通常プレイは seed を渡さず、フックが内部生成）。
-      startDict(dictLevel, dictTheme, dictMode, null)
+      startDict(dictLevel, dictTheme, dictMode, null, dictRange)
     } else if (gameType === 'touch') {
       setPhase('touch')
     } else if (gameType === 'romaji') {
@@ -515,6 +548,7 @@ export default function App() {
     dictLevel,
     dictTheme,
     dictMode,
+    dictRange,
   ])
 
   // Tab=種類、↑↓=レベル、←→=モード、Enter=スタート/もう一度、Esc=トップへ戻る
@@ -655,9 +689,11 @@ export default function App() {
           storyId={storyId}
           onStoryIdChange={setStoryId}
           wsentLevel={wsentLevel}
-          onWsentLevelChange={setWsentLevel}
+          onWsentLevelChange={onWsentLevelChange}
           wsentTheme={wsentTheme}
-          onWsentThemeChange={setWsentTheme}
+          onWsentThemeChange={onWsentThemeChange}
+          wsentRange={wsentRange}
+          onWsentRangeChange={setWsentRange}
           wordLevel={wordLevel}
           wordTheme={wordTheme}
           wordMode={wordMode}
@@ -669,9 +705,11 @@ export default function App() {
           dictLevel={dictLevel}
           dictTheme={dictTheme}
           dictMode={dictMode}
-          onDictLevelChange={setDictLevel}
-          onDictThemeChange={setDictTheme}
+          dictRange={dictRange}
+          onDictLevelChange={onDictLevelChange}
+          onDictThemeChange={onDictThemeChange}
           onDictModeChange={setDictMode}
+          onDictRangeChange={setDictRange}
           touchLevel={touchLevel}
           onTouchLevelChange={setTouchLevel}
           touchMode={touchMode}
@@ -734,7 +772,7 @@ export default function App() {
 
       {phase === 'dict' && (
         <DictView
-          key={`${dictLevel}-${dictTheme}-${dictMode}-${dictSeed}`}
+          key={`${dictLevel}-${dictTheme}-${dictMode}-${dictRange}-${dictSeed}`}
           dict={dictData}
           gloss={dictGloss}
           wordRuby={dictWordRuby}
@@ -742,6 +780,8 @@ export default function App() {
           theme={dictTheme}
           mode={dictMode}
           seed={dictSeed}
+          range={dictRange}
+          freqMap={dictFreqMap}
           levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
           modeLabel={dictModeLabel(dictMode)}
           endCondition={endCondition}

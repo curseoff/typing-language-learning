@@ -28,7 +28,7 @@ export interface RankSectionViewProps {
   onModeChange: (key: string) => void
   focusSection: string
   onFocusSection: (section: string) => void
-  rangeNode?: ReactNode // container が描いた範囲セレクタ（単語のみ・#362。他タブは未指定＝非表示）
+  rangeNode?: ReactNode // container が描いた範囲セレクタ（単語/英英/単語例文で使用・#362/#364。未指定なら非表示）
   modeDesc: ReactNode
   poolCount: ReactNode
   endConditionNode?: ReactNode // container が描いた EndConditionSelect

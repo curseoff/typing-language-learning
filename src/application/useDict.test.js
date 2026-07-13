@@ -6,8 +6,12 @@ import { renderHook, act } from '@testing-library/react'
 import { useDict } from './useDict.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { DICT } from '../content/dictionaryAll.js'
+import { WORDS } from '../content/wordsAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
 import { loadDictRecords, dictRecKey, initMemoryPersistence } from './records.service.js'
+
+// #364 range 出題用の freqMap（見出し語 en→freq）。dict は freq を持たないため単語データから作る。
+const FREQ_MAP = new Map(WORDS.map((w) => [w.en, w.freq]))
 
 beforeEach(() => {
   localStorage.clear()
@@ -85,6 +89,29 @@ describe('useDict（英英入力・60秒・結合）', () => {
     const rec = loadDictRecords()[dictRecKey(1, 'すべて', 'ja')][0]
     expect(rec.seed).toEqual(expect.any(Number))
     expect(rec.source).toBe('dict')
+  }, 20000)
+
+  it('range 指定時は範囲別キー（__R{n}）に記録し record.range を載せる（#364）', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', range: 1, freqMap: FREQ_MAP, onExit: () => {} }),
+    )
+    typeSome(h, 40)
+    runOutClock()
+    const ranged = loadDictRecords()[dictRecKey(1, 'すべて', 'ja', undefined, 1)]
+    expect(ranged?.length).toBeGreaterThan(0)
+    expect(ranged[0].range).toBe(1)
+    // range 未指定は record に range を載せない（後方互換）。
+    expect(loadDictRecords()[dictRecKey(1, 'すべて', 'ja')]).toBeUndefined()
+  }, 20000)
+
+  it('range 指定は freq 順で決定的＝同 range なら seed 非依存で同じ出題列（#364）', () => {
+    const opts = { dict: DICT, level: 1, theme: 'すべて', mode: 'ja', range: 1, freqMap: FREQ_MAP, onExit: () => {} }
+    const a = renderHook(() => useDict({ ...opts, seed: 111 }))
+    const b = renderHook(() => useDict({ ...opts, seed: 999 }))
+    const labelsA = a.result.current.segments.map((s) => s.canonical)
+    const labelsB = b.result.current.segments.map((s) => s.canonical)
+    expect(labelsA.length).toBeGreaterThan(0)
+    expect(labelsA).toEqual(labelsB) // seed が違っても range 出題は同一（freq 順固定）
   }, 20000)
 
   it('restart は新しい seed を切り直して別の問題列にする', () => {

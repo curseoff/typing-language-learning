@@ -48,10 +48,31 @@ describe('dictRecKey', () => {
     expect(dictRecKey(3, 'ビジネス', 'ja', { kind: 'life', value: 3 })).toBe('L3__ビジネス__ja__L3')
   })
 
-  // #362: dict に範囲は無い＝第5引数 range を渡しても無視して従来キーと同一（後方互換の非回帰オラクル）。
-  it('第5引数 range を渡しても無視し従来キーと同一', () => {
-    expect(dictRecKey(1, 'すべて', 'quiz', undefined, 2)).toBe('L1__すべて__quiz')
-    expect(dictRecKey(3, 'ビジネス', 'ja', { kind: 'life', value: 3 }, 2)).toBe('L3__ビジネス__ja__L3')
+})
+
+// #364 dict/wsent 固定範囲：dictRecKey に第5引数 range を追加（英英辞典の固定範囲）。
+// #362 では dict に範囲が無く range を無視していたが、#364 で dict も範囲別ランキングを持つため
+// wordRecKey と同形にする（#362 の dict「range 無視」仕様はここで置き換わる）。
+// 後方互換＝range 省略/未指定（undefined/null）は従来と完全に同一のキー。range 有りは ec タグの後ろに __R{range}。
+describe('dictRecKey range（#364 英英固定範囲）', () => {
+  const time60 = { kind: 'time', value: 60 }
+  const items25 = { kind: 'items', value: 25 }
+
+  it('range 省略は従来と完全に同一のキー（後方互換）', () => {
+    expect(dictRecKey(1, '日常', 'en', time60)).toBe('L1__日常__en')
+  })
+
+  it('range が undefined/null なら range 未指定＝従来キーと同一', () => {
+    expect(dictRecKey(1, '日常', 'en', time60, undefined)).toBe('L1__日常__en')
+    expect(dictRecKey(1, '日常', 'en', time60, null)).toBe('L1__日常__en')
+  })
+
+  it('range 指定は末尾に __R{range} を付ける', () => {
+    expect(dictRecKey(1, '日常', 'en', time60, 2)).toBe('L1__日常__en__R2')
+  })
+
+  it('終了条件タグ→range の順で連結する（ec タグの後ろに __R{range}）', () => {
+    expect(dictRecKey(1, '日常', 'en', items25, 2)).toBe('L1__日常__en__I25__R2')
   })
 })
 

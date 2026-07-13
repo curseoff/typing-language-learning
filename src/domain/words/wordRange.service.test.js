@@ -20,6 +20,10 @@ import {
   rangeLabel,
   poolForRange,
 } from './wordRange.service.js'
+// #364 一般化 API（numberedBy/wordsInRangeBy/poolForRangeBy）は本体未実装のため、
+// 名前空間 import で参照する（未実装なら `WR.numberedBy is not a function` の TypeError＝正しい理由の Red。
+// 名前空間 import なら欠落メンバーでも link エラーにならず、既存 #362 テストを巻き添えにしない）。
+import * as WR from './wordRange.service.js'
 
 // freq を持つ/持たない語を作るヘルパー（freq は正の整数、省略で「freq 無し」）。
 const W = (en, freq) => {
@@ -182,5 +186,170 @@ describe('poolForRange（strict な level×theme に範囲を当てる）', () =
   it('strict：level×theme が空でも level 全体へフォールバックせず空配列を返す', () => {
     // level1 に語はあるが theme=ビジネスは無い → strict なので [] （levelThemePool と違い level 全体に落ちない）
     expect(poolForRange(words, 1, 'ビジネス', 1)).toEqual([])
+  })
+})
+
+// ==========================================================================
+// #364 段階A: freqOf/keyOf を注入する一般化 API（dict/wsent の固定範囲で再利用する）。
+//   words は `en` 一意でタイブレークできるが、dict/wsent は `en`（定義文/例文本文）が
+//   衝突しうるため `word` でタイブレークする。既存 words 版 API は byte 同一で温存（非回帰）し、
+//   一般化版が同じ順序性・範囲スライス・端ケースを keyOf 指定で満たすことを固定する。
+// 検証は外形（freq 昇順・keyOf タイブレーク・freq 無し末尾・[(i-1)*size,i*size) スライス・
+//   非破壊・決定性）に限定し、コンパレータ内部は写経しない。
+// ==========================================================================
+
+// dict 風エントリ（freq を持たず、外部 freqMap で freq を与える）。en は定義文の想定。
+const D = (word, en) => ({ word, en, ja: `${word}訳`, kana: 'あ', level: 1, theme: '日常' })
+
+describe('#364 numberedBy（freqOf/keyOf 注入の正準ソート）', () => {
+  it('freqOf 昇順（小=高頻度が先）に並ぶ（keyOf=word）', () => {
+    const dict = [D('take', 'a def'), D('make', 'a def'), D('come', 'a def')]
+    const freqMap = new Map([['take', 35], ['make', 30], ['come', 28]])
+    const out = WR.numberedBy(dict, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
+    expect(out.map((e) => e.word)).toEqual(['come', 'make', 'take'])
+  })
+
+  it('freq 同値は keyOf(word) 昇順でタイブレークする', () => {
+    const dict = [D('banana', 'x'), D('apple', 'x')]
+    const freqMap = new Map([['banana', 5], ['apple', 5]])
+    const out = WR.numberedBy(dict, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
+    expect(out.map((e) => e.word)).toEqual(['apple', 'banana'])
+  })
+
+  it('freqOf が null の語は末尾へ回し、末尾同士は keyOf(word) 昇順に並ぶ', () => {
+    const dict = [D('zebra', 'x'), D('ant', 'x'), D('bee', 'x')]
+    const freqMap = new Map([['bee', 3]]) // zebra/ant は freq 無し（null）
+    const out = WR.numberedBy(dict, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
+    expect(out.map((e) => e.word)).toEqual(['bee', 'ant', 'zebra'])
+  })
+
+  it('en（定義文）が全て同一でも word tiebreak で決定的に並ぶ', () => {
+    // dict/wsent は en が本文で衝突しうる。keyOf=word なので en 同一でも全順序になる。
+    const dict = [D('gamma', 'same def'), D('alpha', 'same def'), D('beta', 'same def')]
+    const freqMap = new Map([['gamma', 5], ['alpha', 5], ['beta', 5]]) // freq も同値
+    const out = WR.numberedBy(dict, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
+    expect(out.map((e) => e.word)).toEqual(['alpha', 'beta', 'gamma'])
+  })
+
+  it('入力配列を破壊せず、新配列を返す（非破壊）', () => {
+    const dict = [D('take', 'x'), D('make', 'x'), D('come', 'x')]
+    const before = dict.map((e) => e.word)
+    const freqMap = new Map([['take', 35], ['make', 30], ['come', 28]])
+    const out = WR.numberedBy(dict, (e) => freqMap.get(e.word) ?? null, (e) => e.word)
+    expect(dict.map((e) => e.word)).toEqual(before)
+    expect(out).not.toBe(dict)
+  })
+
+  it('同一入力で同一出力（決定的・rng 不使用）', () => {
+    const dict = [D('take', 'x'), D('make', 'x'), D('come', 'x'), D('zzz', 'x')]
+    const freqOf = (e) => new Map([['take', 35], ['make', 30], ['come', 28]]).get(e.word) ?? null
+    const keyOf = (e) => e.word
+    expect(WR.numberedBy(dict, freqOf, keyOf).map((e) => e.word)).toEqual(
+      WR.numberedBy(dict, freqOf, keyOf).map((e) => e.word),
+    )
+  })
+})
+
+describe('#364 wordsInRangeBy（freqOf/keyOf 注入の固定範囲スライス）', () => {
+  // freq を一意に振った 250 件（freq 昇順＝word000..word249 に安定化する）。
+  const many = Array.from({ length: 250 }, (_, i) =>
+    D(`word${String(i).padStart(3, '0')}`, 'a def'),
+  )
+  const freqMap = new Map(many.map((e, i) => [e.word, i + 1]))
+  const freqOf = (e) => freqMap.get(e.word) ?? null
+  const keyOf = (e) => e.word
+
+  it('rangeIndex=1 は先頭 100 件（word000..word099）', () => {
+    const r1 = WR.wordsInRangeBy(many, 1, 100, freqOf, keyOf)
+    expect(r1).toHaveLength(100)
+    expect(r1[0].word).toBe('word000')
+    expect(r1[99].word).toBe('word099')
+  })
+
+  it('rangeIndex=3 は端数の 50 件（word200..word249）', () => {
+    const r3 = WR.wordsInRangeBy(many, 3, 100, freqOf, keyOf)
+    expect(r3).toHaveLength(50)
+    expect(r3[0].word).toBe('word200')
+    expect(r3[49].word).toBe('word249')
+  })
+
+  it('範囲外(=4)・0・負値・非整数・空 pool は空配列（全域性）', () => {
+    expect(WR.wordsInRangeBy(many, 4, 100, freqOf, keyOf)).toEqual([])
+    expect(WR.wordsInRangeBy(many, 0, 100, freqOf, keyOf)).toEqual([])
+    expect(WR.wordsInRangeBy(many, -1, 100, freqOf, keyOf)).toEqual([])
+    expect(WR.wordsInRangeBy(many, 1.5, 100, freqOf, keyOf)).toEqual([])
+    expect(WR.wordsInRangeBy([], 1, 100, freqOf, keyOf)).toEqual([])
+  })
+
+  it('全 range を連結すると numberedBy 全体に一致する（網羅性・重複/欠落なし）', () => {
+    const cnt = rangeCount(many.length)
+    const concat = []
+    for (let i = 1; i <= cnt; i++) concat.push(...WR.wordsInRangeBy(many, i, 100, freqOf, keyOf))
+    expect(concat.map((e) => e.word)).toEqual(
+      WR.numberedBy(many, freqOf, keyOf).map((e) => e.word),
+    )
+  })
+})
+
+describe('#364 poolForRangeBy（strict level×theme + freqOf/keyOf）', () => {
+  // theme 列を持つ dict 風エントリ。freq は外部 freqMap から与える。
+  const entries = [
+    { word: 'aaa', en: 'x', level: 1, theme: '日常' },
+    { word: 'bbb', en: 'x', level: 1, theme: '日常' },
+    { word: 'ccc', en: 'x', level: 1, theme: '旅行' },
+    { word: 'ddd', en: 'x', level: 2, theme: '日常' },
+  ]
+  const freqMap = new Map([['aaa', 10], ['bbb', 5], ['ccc', 8], ['ddd', 3]])
+  const freqOf = (e) => freqMap.get(e.word) ?? null
+  const keyOf = (e) => e.word
+
+  it('level1/日常 の range1 が freq 昇順で切り出される（word tiebreak）', () => {
+    expect(WR.poolForRangeBy(entries, 1, '日常', 1, 100, freqOf, keyOf).map((e) => e.word)).toEqual([
+      'bbb',
+      'aaa',
+    ])
+  })
+
+  it("theme='すべて' は level 全体（全テーマ）を freq 昇順で切り出す", () => {
+    expect(
+      WR.poolForRangeBy(entries, 1, 'すべて', 1, 100, freqOf, keyOf).map((e) => e.word),
+    ).toEqual(['bbb', 'ccc', 'aaa'])
+  })
+
+  it('該当 0 件（level に無い）は空配列', () => {
+    expect(WR.poolForRangeBy(entries, 3, '日常', 1, 100, freqOf, keyOf)).toEqual([])
+  })
+
+  it('strict：level×theme が空でも level 全体へフォールバックせず空配列', () => {
+    expect(WR.poolForRangeBy(entries, 1, 'ビジネス', 1, 100, freqOf, keyOf)).toEqual([])
+  })
+})
+
+describe('#364 既存 words 版 API との等価（byte 同一の非回帰を担保）', () => {
+  // words 版（en tiebreak）は numberedBy/poolForRangeBy に freqOf=e=>e.freq・keyOf=e=>e.en を渡した
+  // ものと等価であること。既存 numberedWords/poolForRange の全テストが緑のまま＝実装は byte 同一を保つ。
+  const W = (en, freq) => {
+    const base = { en, ja: `${en}訳`, kana: 'あ', level: 1, theme: '日常' }
+    return freq == null ? base : { ...base, freq }
+  }
+  const words = [
+    { en: 'aaa', ja: 'a訳', kana: 'あ', level: 1, theme: '日常', freq: 10 },
+    { en: 'bbb', ja: 'b訳', kana: 'い', level: 1, theme: '日常', freq: 5 },
+    { en: 'ccc', ja: 'c訳', kana: 'う', level: 1, theme: '旅行', freq: 8 },
+    { en: 'ddd', ja: 'd訳', kana: 'え', level: 2, theme: '日常', freq: 3 },
+  ]
+
+  it('numberedWords(pool) === numberedBy(pool, e=>e.freq, e=>e.en)（freq 無しは undefined も末尾送り）', () => {
+    const pool = [W('take', 35), W('make', 30), W('come', 28), W('z', null)]
+    expect(WR.numberedBy(pool, (e) => e.freq, (e) => e.en)).toEqual(numberedWords(pool))
+  })
+
+  it('poolForRange(...) === poolForRangeBy(..., e=>e.freq, e=>e.en)', () => {
+    expect(WR.poolForRangeBy(words, 1, '日常', 1, 100, (e) => e.freq, (e) => e.en)).toEqual(
+      poolForRange(words, 1, '日常', 1),
+    )
+    expect(WR.poolForRangeBy(words, 1, 'すべて', 1, 100, (e) => e.freq, (e) => e.en)).toEqual(
+      poolForRange(words, 1, 'すべて', 1),
+    )
   })
 })
