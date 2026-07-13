@@ -35,7 +35,11 @@ export function routeFromRawRecord(record, position) {
     return { view: 'record-detail', kind: 'story', storyId: record.storyId, endCondition, position }
   }
   const level = kind === 'wsent' ? record.rank : record.level // wsent は rank が level 座標
-  return { view: 'record-detail', kind, level, theme: record.theme, mode: record.mode, endCondition, position }
+  const state = { view: 'record-detail', kind, level, theme: record.theme, mode: record.mode, endCondition, position }
+  // #366 固定範囲(#362/#364)の記録は record.range を座標へ通す（words/dict/wsent のみ・正整数）。
+  // range 無しの記録は range キーを付けない（従来 RouteState と等価＝#360 の非 range 契約を非回帰）。
+  if (Number.isInteger(record.range) && record.range >= 1) state.range = record.range
+  return state
 }
 
 // 正規化行（flattenRecords 出力）→ RecordDetail の open(record, position, ctx) に渡す ctx。
@@ -58,11 +62,15 @@ function rankTextOf(row) {
 }
 
 // record-detail RouteState → 一致判定キー（kind|座標|ecタグ|position）。record-detail 以外は null。
-// 座標は words/dict/wsent=level__theme__mode・story=storyId。ec の異なる同座標ランキングを区別する。
+// 座標は words/dict/wsent=level__theme__mode__R{range}・story=storyId。ec の異なる同座標ランキングを区別する。
+// #366 range 次元を座標へ含める（range 有無・別 range で別キー＝固定範囲の記録と非 range 記録が衝突しない）。
 function detailMatchKey(route) {
   if (route == null || route.view !== 'record-detail') return null
   const { kind } = route
-  const coord = kind === 'story' ? route.storyId : `${route.level}__${route.theme}__${route.mode}`
+  const coord =
+    kind === 'story'
+      ? route.storyId
+      : `${route.level}__${route.theme}__${route.mode}__R${route.range ?? ''}`
   return `${kind}|${coord}|${endConditionTag(route.endCondition)}|${route.position}`
 }
 
