@@ -146,3 +146,70 @@ describe('#265 infrastructure/db/repos/recordsDb（現行 localStorage 実装と
     )
   })
 })
+
+// #364 dict/wsent 固定範囲：records 表に range 列を追加（migration version 4）。
+// records 表は文章(sentence)・単語例文(wsent) を収容し、range を使うのは wsent のみ
+// （sentence/touch/romaji は range=null）。range を持つ wsent 記録はキーが __R{range} で分かれ range を往復する。
+// 非回帰オラクル（最重要）：range を持たない記録は従来キー・列像・range プロパティ無しで完全同値（byte 同一）。
+describe('#364 records range 列の round-trip（後方互換＋wsent 範囲別記録）', () => {
+  let db
+  beforeEach(() => {
+    db = freshDb()
+  })
+
+  // migration v4：applySchema（全 up 適用）後の records 表に range 列（INTEGER, nullable）がある。
+  it('applySchema 後の records 表に range 列がある（migration version 4）', () => {
+    const cols = db.selectObjects('PRAGMA table_info("records")').map((c) => c.name)
+    expect(cols).toContain('range')
+  })
+
+  // 非回帰オラクル：range を持たない sentence 記録は従来キー・range プロパティ無しで戻る。
+  // range 列（NULL）を足しても range 無し記録の像が不変であることを固定する。
+  it('range を持たない sentence 記録は従来キー・range プロパティ無しで round-trip する（後方互換）', () => {
+    const r = marathon({ keys: 70 })
+    saveRecordDb(db, r)
+    const key = recKey(r.mode, r.rank, r.source, r.theme, r.endCondition)
+    const rec = loadRecordsDb(db)[key][0]
+    expect('range' in rec).toBe(false)
+    expect(rec).toEqual(marathon({ keys: 70 }))
+  })
+
+  // wsent でも range 無し（sentence 同様の従来記録）はキー・像不変・range=NULL で無影響。
+  it('range を持たない wsent 記録も従来キー・range プロパティ無しで戻る', () => {
+    const r = marathon({ mode: 'q', source: 'wsent', theme: '日常', keys: 60 })
+    saveRecordDb(db, r)
+    const key = recKey(r.mode, r.rank, r.source, r.theme, r.endCondition)
+    expect(key).toBe('q__wsent1__日常')
+    const rec = loadRecordsDb(db)[key][0]
+    expect('range' in rec).toBe(false)
+    expect(rec).toEqual(marathon({ mode: 'q', source: 'wsent', theme: '日常', keys: 60 }))
+  })
+
+  it('range=2 の wsent 記録は __R2 キーで戻り range:2 を保持する', () => {
+    const r = marathon({ mode: 'q', source: 'wsent', theme: '日常', range: 2, keys: 50 })
+    saveRecordDb(db, r)
+    const all = loadRecordsDb(db)
+    const key = recKey(r.mode, r.rank, r.source, r.theme, r.endCondition, 2)
+    expect(key.endsWith('__R2')).toBe(true)
+    expect(Object.keys(all)).toContain(key)
+    expect(all[key][0].range).toBe(2)
+    expect(all[key][0]).toEqual(
+      marathon({ mode: 'q', source: 'wsent', theme: '日常', range: 2, keys: 50 }),
+    )
+  })
+
+  it('同 mode/source/theme/ec でも range 有り無しは別キーで共存する', () => {
+    const noRange = marathon({ mode: 'q', source: 'wsent', theme: '日常', keys: 40 })
+    const withRange = marathon({ mode: 'q', source: 'wsent', theme: '日常', range: 2, keys: 50 })
+    saveRecordDb(db, noRange)
+    saveRecordDb(db, withRange)
+    const all = loadRecordsDb(db)
+    const baseKey = recKey('q', 1, 'wsent', '日常', { kind: 'time', value: 60 })
+    const rangeKey = recKey('q', 1, 'wsent', '日常', { kind: 'time', value: 60 }, 2)
+    expect(rangeKey).not.toBe(baseKey)
+    expect(all[baseKey]).toEqual([marathon({ mode: 'q', source: 'wsent', theme: '日常', keys: 40 })])
+    expect(all[rangeKey]).toEqual([
+      marathon({ mode: 'q', source: 'wsent', theme: '日常', range: 2, keys: 50 }),
+    ])
+  })
+})
