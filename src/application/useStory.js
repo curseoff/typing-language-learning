@@ -10,6 +10,7 @@ import {
   saveFound,
   loadStoryRecords,
   saveStoryRecord,
+  recordItemStat,
 } from './records.service.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.policy.js'
@@ -56,7 +57,11 @@ export function useStory({ mode, storyId, start, onExit }) {
   }
 
   const restart = useCallback(() => {
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     segTrackerRef.current = newSegTracker()
     choicesRef.current = []
     setNodeId(story.start)
@@ -88,7 +93,12 @@ export function useStory({ mode, storyId, start, onExit }) {
   }, [now, started, startTime])
 
   const enterEnding = useCallback((n, keys, totalMistakes, endTime, startedAt) => {
-    flushTracker(trackerRef.current) // エンド到達時に現在の場面を確定
+    {
+      // エンド到達時に現在の場面を確定
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     setStage('ending')
     setFound((prev) => {
       if (prev.includes(n.ending)) return prev
@@ -122,7 +132,11 @@ export function useStory({ mode, storyId, start, onExit }) {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault()
-        flushTracker(trackerRef.current)
+        {
+          const { next, emit } = flushTracker(trackerRef.current)
+          trackerRef.current = next
+          if (emit) recordItemStat(emit.id, emit.delta)
+        }
         onExit()
         return
       }
@@ -141,7 +155,7 @@ export function useStory({ mode, storyId, start, onExit }) {
         const seg = units[unitIndex]
         if (!segMatches(seg, candidate)) {
           setMistakes((m) => m + 1)
-          trackMiss(trackerRef.current)
+          trackerRef.current = trackMiss(trackerRef.current).next
           segMiss(segTrackerRef.current)
           playMiss()
           setHasError(true)
@@ -152,7 +166,11 @@ export function useStory({ mode, storyId, start, onExit }) {
         setStartTime((p) => p ?? _t)
         setHasError(false)
         segMark(segTrackerRef.current, _t) // この行の最初の打鍵時刻
-        trackKey(trackerRef.current, itemId('story', mode, `${storyId}/${nodeId}`)) // 場面ごと×モード別
+        {
+          const { next, emit } = trackKey(trackerRef.current, itemId('story', mode, `${storyId}/${nodeId}`), performance.now()) // 場面ごと×モード別
+          trackerRef.current = next
+          if (emit) recordItemStat(emit.id, emit.delta)
+        }
         setTypedKeys((k) => k + 1)
         if (seg.variants.includes(candidate)) {
           // 行（ユニット）1件の完了を「問題ごとの記録」に積む
@@ -181,7 +199,7 @@ export function useStory({ mode, storyId, start, onExit }) {
         // choice
         if (!choiceSegs.some((s) => segMatches(s, candidate))) {
           setMistakes((m) => m + 1)
-          trackMiss(trackerRef.current)
+          trackerRef.current = trackMiss(trackerRef.current).next
           playMiss()
           setHasError(true)
           return
@@ -189,7 +207,11 @@ export function useStory({ mode, storyId, start, onExit }) {
         const _t = performance.now()
         setStartTime((p) => p ?? _t)
         setHasError(false)
-        trackKey(trackerRef.current, itemId('story', mode, `${storyId}/${nodeId}`)) // 選択肢も現在の場面に集約
+        {
+          const { next, emit } = trackKey(trackerRef.current, itemId('story', mode, `${storyId}/${nodeId}`), performance.now()) // 選択肢も現在の場面に集約
+          trackerRef.current = next
+          if (emit) recordItemStat(emit.id, emit.delta)
+        }
         setTypedKeys((k) => k + 1)
         const idx = choiceSegs.findIndex((s) => s.variants.includes(candidate))
         if (idx >= 0) {

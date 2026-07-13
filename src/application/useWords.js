@@ -14,7 +14,7 @@ import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
-import { loadWordRecords, saveWordRecord } from './records.service.js'
+import { loadWordRecords, saveWordRecord, recordItemStat } from './records.service.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
@@ -80,7 +80,11 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   const seg = segments[segIndex]
 
   const restart = useCallback(() => {
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     segTrackerRef.current = newSegTracker()
     // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
     const next = makeSeed()
@@ -158,7 +162,11 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
           partial: true,
         })
       }
-      flushTracker(trackerRef.current)
+      {
+        const { next, emit } = flushTracker(trackerRef.current)
+        trackerRef.current = next
+        if (emit) recordItemStat(emit.id, emit.delta)
+      }
       finish(keys, missCount, t, startedAt)
     }
     // エンドレスは ESC が唯一の終了手段。30秒以上プレイしていれば記録して結果へ、
@@ -180,7 +188,11 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
           partial: true,
         })
       }
-      flushTracker(trackerRef.current)
+      {
+        const { next, emit } = flushTracker(trackerRef.current)
+        trackerRef.current = next
+        if (emit) recordItemStat(emit.id, emit.delta)
+      }
       const p = sessionRef.current.progress()
       finish(p.keys, p.mistakes, t, startedAt)
       return true
@@ -209,7 +221,11 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         setStartTime((p) => p ?? t)
         setHasError(false)
         segMark(segTrackerRef.current, t) // この語の最初の打鍵時刻
-        trackKey(trackerRef.current, itemId('w', mode, seg.en)) // 単語ごと×モード別
+        {
+          const { next, emit } = trackKey(trackerRef.current, itemId('w', mode, seg.en), performance.now()) // 単語ごと×モード別
+          trackerRef.current = next
+          if (emit) recordItemStat(emit.id, emit.delta)
+        }
         sessionRef.current.registerHit() // keys++（Entity 保持）
         syncSession()
 
@@ -245,7 +261,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
       } else {
         sessionRef.current.registerMiss() // mistakes++（Entity 保持）
         syncSession()
-        trackMiss(trackerRef.current)
+        trackerRef.current = trackMiss(trackerRef.current).next
         segMiss(segTrackerRef.current)
         setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
@@ -274,7 +290,11 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         partial: true,
       })
     }
-    flushTracker(trackerRef.current)
+    {
+      const { next, emit } = flushTracker(trackerRef.current)
+      trackerRef.current = next
+      if (emit) recordItemStat(emit.id, emit.delta)
+    }
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, endTime, startedAt)
   }
