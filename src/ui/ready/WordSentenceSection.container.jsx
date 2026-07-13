@@ -8,7 +8,8 @@ import { MODES, modeDesc } from '../../content/modes.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from '../../content/wordSentences/index.js'
 import { WORD_LEVELS, loadWords } from '../../content/words.js'
 import { recKey } from '../../domain/records/ranking.service.js'
-import { rangeLabel, wordsInRangeBy, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { rangeLabel, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import RecordsTable from '../result/RecordsTable.container.jsx'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
@@ -41,7 +42,7 @@ function WsentList({ level, theme, mode, range }) {
   useEffect(() => {
     if (range == null) return
     let alive = true
-    loadWords(level).then((ws) => alive && setFreqMap(new Map(ws.map((w) => [w.en, w.freq]))))
+    loadWords(level).then((ws) => alive && setFreqMap(headwordFreqMap(ws)))
     return () => {
       alive = false
     }
@@ -50,10 +51,7 @@ function WsentList({ level, theme, mode, range }) {
     return <p className="pool-count">読み込み中…</p>
   const filtered =
     theme === 'すべて' ? loaded.items : loaded.items.filter((s) => loaded.themes[s.word] === theme)
-  const items =
-    range != null
-      ? wordsInRangeBy(filtered, range, RANGE_SIZE, (s) => freqMap.get(s.word) ?? null, (s) => s.word)
-      : filtered
+  const items = sliceByHeadwordFreq(filtered, range, freqMap)
   return <ItemList items={items} type="marathon" mode={mode} />
 }
 
