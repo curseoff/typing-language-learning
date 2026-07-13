@@ -32,3 +32,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 ## 守ること（越えない）
 - 本体実装・リファクタ・通す作業はしない（coder の領分）。push/PR/リリースもしない。
 - 既存の無関係なテストを壊さない・触らない。秘密情報/個人情報を書かない（PUBLIC リポ）。
+
+## 稼働台帳（自己更新）
+- **着手したら最初に**、自分の行を「実行中」で記録する（司令塔は代行しない）：`npm run -s team:set -- --agent test-author --status 実行中 --task "<司令塔から渡された作業>" --issue <#N or -> --branch <ブランチ> --next -`。
+- **報告する直前に**更新する：`--status 完了`（本人の判断/承認が要るなら `要判断`／`要承認`、失敗・空結果なら `要対応` にし `--task` に理由）。台帳は `tmp/agent-status.tsv`（ローカルのみ／gitignore）でコミット不要。

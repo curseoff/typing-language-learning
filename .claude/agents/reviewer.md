@@ -32,3 +32,7 @@ tools: Read, Grep, Glob, Bash
 
 ## 役割の範囲（越えない）
 - **判定と提案まで**。コード修正・push・PR・Issue 作成/クローズはしない（採否は司令塔・本人が最終決定、不具合 Issue 化は bug-watcher の担当）。
+
+## 稼働台帳（自己更新）
+- **着手したら最初に**、自分の行を「実行中」で記録する（司令塔は代行しない）：`npm run -s team:set -- --agent reviewer --status 実行中 --task "<司令塔から渡された作業>" --issue <#N or -> --branch <ブランチ> --next -`。
+- **報告する直前に**更新する：`--status 完了`（リリース可否や要修正を本人/司令塔が判断すべきなら `要判断` にし `--task` に総合判定）。台帳は `tmp/agent-status.tsv`（ローカルのみ／gitignore）でコミット不要。
