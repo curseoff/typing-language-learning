@@ -520,7 +520,6 @@ describe('routing.policy: record-detail に range セグメント（r{n}）#366'
   // - range を持つのは words/dict/wsent(sentences) の record-detail のみ（story は range 非対象）。
   // - #360 の非 range record-detail は byte 同一で非回帰（既存 R2〜R14 が緑のまま）。
   const enc日常 = enc('日常')
-  const encビジネス = enc('ビジネス')
   const encすべて = enc('すべて')
 
   it('r-d1. 非 range record-detail は従来と byte 同一・range を持たない（#360 後方互換）', () => {
