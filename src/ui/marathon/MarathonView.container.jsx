@@ -13,6 +13,7 @@ export default function MarathonView({
   segIndex,
   segInput,
   hasError,
+  clozeRevealed,
   typedKeys,
   mistakes,
   missedItems,
@@ -63,6 +64,7 @@ export default function MarathonView({
             segIndex={segIndex}
             segInput={segInput}
             hasError={hasError}
+            clozeRevealed={clozeRevealed}
             ticker
           />
         )

@@ -414,12 +414,19 @@ export default function App() {
     segInput,
     completed,
     hasError,
+    clozeRevealed,
     typedKeys,
     mistakes,
     missedItems,
     liveSpeed,
     elapsedSec,
-  } = useMarathon({ active: phase === 'playing', onFinish, endCondition })
+  } = useMarathon({
+    active: phase === 'playing',
+    onFinish,
+    endCondition,
+    // #402 単語例文の穴埋めは英語を打つモード（both/en）のみ。ja/翻訳は normal に落とす。
+    learningMode: mode === 'both' || mode === 'en' ? learningMode : 'normal',
+  })
 
   // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
   // リプレイは記録の値＋seed を直接渡すために必須。
@@ -802,6 +809,8 @@ export default function App() {
           seed={dictSeed}
           range={dictRange}
           freqMap={dictFreqMap}
+          // #402 英英の穴埋めは英語を打つモード（both/en）のみ。ja/4択は normal に落とす。
+          learningMode={dictMode === 'both' || dictMode === 'en' ? learningMode : 'normal'}
           levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
           modeLabel={dictModeLabel(dictMode)}
           endCondition={endCondition}
@@ -831,6 +840,7 @@ export default function App() {
           segInput={segInput}
           completed={completed}
           hasError={hasError}
+          clozeRevealed={clozeRevealed}
           typedKeys={typedKeys}
           mistakes={mistakes}
           missedItems={missedItems}

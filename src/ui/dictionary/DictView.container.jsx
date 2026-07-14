@@ -12,11 +12,11 @@ import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
 // 外部 API に #364 range/freqMap を追加（range 時のみ freqMap＝Map(en→freq) を注入）。
-export default function DictView({ dict, gloss, wordRuby, level, theme, mode, seed, range, freqMap, levelLabel, modeLabel, endCondition, onExit }) {
+export default function DictView({ dict, gloss, wordRuby, level, theme, mode, seed, range, freqMap, learningMode, levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `英英 / ${modeLabel} / ${theme}`
   if (mode === 'quiz') return <QuizView dict={dict} gloss={gloss} wordRuby={wordRuby} level={level} theme={theme} seed={seed} range={range} freqMap={freqMap} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
   if (mode === 'pick') return <PickView dict={dict} gloss={gloss} level={level} theme={theme} seed={seed} range={range} freqMap={freqMap} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
-  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} range={range} freqMap={freqMap} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
+  return <TypeView dict={dict} gloss={gloss} level={level} theme={theme} mode={mode} seed={seed} range={range} freqMap={freqMap} learningMode={learningMode} levelLabel={levelLabel} metaSub={metaSub} endCondition={endCondition} onExit={onExit} />
 }
 
 // 英英の記録ランキング（useRecordDetail フックを使うため container 側）。finished 時だけマウント。
@@ -50,8 +50,8 @@ function typeHint(mode, segType) {
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）。単語例文（マラソン）と同じ TopFlow で描画。
-function TypeView({ dict, gloss, level, theme, mode, seed, range, freqMap, levelLabel, metaSub, endCondition, onExit }) {
-  const d = useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, onExit })
+function TypeView({ dict, gloss, level, theme, mode, seed, range, freqMap, learningMode, levelLabel, metaSub, endCondition, onExit }) {
+  const d = useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode, onExit })
   // items 制の HUD 進捗＝完了語数（segIndex）。time/chars は不変。
   const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
 
@@ -76,6 +76,7 @@ function TypeView({ dict, gloss, level, theme, mode, seed, range, freqMap, level
       segIndex={d.segIndex}
       segInput={d.segInput}
       hasError={d.hasError}
+      clozeRevealed={d.clozeRevealed}
     />
   )
 }

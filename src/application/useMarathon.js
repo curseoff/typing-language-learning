@@ -11,6 +11,8 @@ import { buildPassage } from '../domain/marathon/passage.service.js'
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
+import { itemsTargetFor } from '../domain/session/learningSequence.service.js'
+import { isClozeRevealed } from '../domain/typing/cloze.service.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
@@ -28,10 +30,34 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let marathonSessionSeq = 0
 const nextMarathonId = () => `marathon-${++marathonSessionSeq}`
 
+// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の mask 選定 seed に使う（#402）。
+function fnv1a(str) {
+  let h = 0x811c9dc5
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
+// 文（item.en）ごとに決定的な mask 用 rng を返すファクトリ。seed と文キーを混ぜて再現可能にする。
+//   ・同じ seed・同じ文なら常に同じ語がマスクされる（リプレイ再現）。
+//   ・normal/cloze フェーズや継ぎ足しバッチに依らず、文が同じなら同じ mask。
+const maskRngFactory = (seed) => (item) => mulberry32((fnv1a(item.en) ^ (seed >>> 0)) >>> 0)
+
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
-export function useMarathon({ active, onFinish, endCondition }) {
+// #402 learningMode='cloze'（例文/英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、
+//   穴埋めフェーズは英文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。
+//   cloze は英語を打つモード（en/both）のみ（ja/翻訳は呼び出し側で normal に落とす）。
+export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal' }) {
+  const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
+  // 終了判定用の実効 endCondition。cloze かつ問題数制のみ目標を2倍（normal→穴埋めの2周ぶん）。
+  const finishEc = useMemo(
+    () => (isCloze && ec.kind === 'items' ? makeEndCondition('items', itemsTargetFor(ec, 'cloze')) : ec),
+    [ec, isCloze],
+  )
   const limitMs = endLimitMs(ec)
   const [segments, setSegments] = useState([])
   const [segIndex, setSegIndex] = useState(0)
@@ -39,6 +65,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
   const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
+  const [segMistaken, setSegMistaken] = useState(false) // 現在問題でミスがあったか（cloze の正解開示用）
   const [startTime, setStartTime] = useState(null)
 
   const segStartRef = useRef(null) // 現在の問題の開始時刻
@@ -68,10 +95,12 @@ export function useMarathon({ active, onFinish, endCondition }) {
   // #364 range 有り（単語例文 wsent の固定範囲）＝pool は呼び出し側で freq 順にスライス済み。
   // ここでは ordered:true で pool 順を崩さず流し（毎回同じ並び）、record.range に往復させる。
   const start = useCallback((mode, rank, source, pool, seed, theme, range) => {
-    ctxRef.current = { mode, rank, source, seed, theme, range }
+    ctxRef.current = { mode, rank, source, seed, theme, range, learning: learningMode }
     poolRef.current = pool // 問題数制などで出題を継ぎ足すため保持
     // range 時は pool 順で固定（ordered）。それ以外は seed があれば決定的再現・無ければ Math.random。
     const opts = range != null ? { ordered: true } : seed != null ? { rng: mulberry32(seed) } : {}
+    // cloze 時は 5問ブロック交互＋文中伏字（mask は seed＋文キーで決定的）。normal は素通り。
+    if (isCloze) opts.cloze = { maskRng: maskRngFactory(seed ?? 0) }
     setSegments(buildPassage(mode, pool, opts))
     setSegIndex(0)
     setSegInput('')
@@ -81,6 +110,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
     syncSession()
     setMissedItems(0)
     setHasError(false)
+    setSegMistaken(false)
     setStartTime(null)
     segStartRef.current = null
     segMistakesRef.current = 0
@@ -88,14 +118,14 @@ export function useMarathon({ active, onFinish, endCondition }) {
     trackerRef.current = newTracker()
     finishedRef.current = false
     startTimeRef.current = null
-  }, [factory, sessionEnd, syncSession])
+  }, [factory, sessionEnd, syncSession, isCloze, learningMode])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
       if (finishedRef.current) return
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
-      const { mode, rank, source, seed, theme, range } = ctxRef.current
+      const { mode, rank, source, seed, theme, range, learning } = ctxRef.current
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
       const correctCount = firstTryCorrectCount(segStatsRef.current)
       // 記録生成は domain の makeScoreRecord に集約（採点＝makeScore を内包）。#389
@@ -113,6 +143,8 @@ export function useMarathon({ active, onFinish, endCondition }) {
             theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
             // #364 range モード時のみ range を載せる（未選択は従来 record と byte 同一＝後方互換）。
             ...(range != null ? { range } : {}),
+            // #402 cloze 時のみ learning を載せる（normal は従来 record と byte 同一＝後方互換）。
+            ...(learning === 'cloze' ? { learning } : {}),
             seed, // 同じ問題列を再現するためのシード（リプレイ用）
             endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
             correctCount,
@@ -135,7 +167,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
       // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない・#208 段5）。
       // 確定問題(segStats)のミス>0件数＋進行中問題が既にミス済みなら+1（問題単位）。
       const missedItems = missedItemCount(segStatsRef.current, segMistakesRef.current)
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
+      if (!shouldFinish(finishEc, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0 && segStartRef.current !== null) {
         const ms = t - segStartRef.current
         segStatsRef.current = [
@@ -161,7 +193,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
       }
       finish(keys, missCount, t, startedAt)
     },
-    [ec, finish],
+    [finishEc, finish],
   )
 
   const handleKey = useCallback(
@@ -217,15 +249,20 @@ export function useMarathon({ active, onFinish, endCondition }) {
             setSegments((prev) => [
               ...prev,
               // range 時は継ぎ足しも pool 順（ordered）＝範囲内を毎回同じ並びでループ。
+              // cloze は継ぎ足しバッチ単位で 5問リズムをタグ付け（mask は文キー＋seed で決定的）。
               ...buildPassage(ctxRef.current.mode, poolRef.current, {
                 rng: mulberry32(makeSeed()),
                 ordered: ctxRef.current.range != null,
+                ...(ctxRef.current.learning === 'cloze'
+                  ? { cloze: { maskRng: maskRngFactory(ctxRef.current.seed ?? 0) } }
+                  : {}),
               }),
             ])
           }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
+          setSegMistaken(false) // 次の問題へ＝開示状態をリセット
           // 完了語は partial 不要（partialLen 0）。
           finishByProgress(t, ph.keys, completed.length + 1, ph.mistakes, seg, 0)
         } else {
@@ -239,6 +276,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
         trackerRef.current = trackMiss(trackerRef.current).next
         playMiss()
         setHasError(true)
+        setSegMistaken(true) // cloze: この問題は以後 正解を開示する
         // ミスした問題数（life 制HUD用）を live 更新＝確定問題のミス>0件数＋進行中問題が既ミスなら+1。
         setMissedItems(missedItemCount(segStatsRef.current, segMistakesRef.current))
         // ミス数（life 制）の到達を判定。
@@ -332,6 +370,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
     segInput,
     completed,
     hasError,
+    clozeRevealed: isClozeRevealed(learningMode, segMistaken ? 1 : 0), // cloze でこの問題にミスがあり開示中か
     typedKeys,
     mistakes,
     missedItems,
