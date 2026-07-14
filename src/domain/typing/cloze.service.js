@@ -118,14 +118,36 @@ export function computeClozeMask(text, tokenIndexes, tokenize) {
   return out
 }
 
-// 例文/英英の「文中 1〜3 語伏字」合成（#402 Task B）。打鍵対象の英文（item.en）の内容語を
-// char レンジでマスクする。pickClozeTokens（語 index 選定）と computeClozeMask（char レンジ化）を束ねる。
-//   ・target = item.en（照合は従来どおり文全体を打つ＝mask は表示用メタのみ）。
-//   ・tokenize は enWords を渡す（既定 \S+ だと末尾ピリオドが語に張り付き index がずれるため）。
-//     enWords は末尾句読点を独立トークンにするので defaultIsContent が記号を除外＝内容語だけ選ばれる。
-//   ・内容語 0 → ranges:[]（伏せない）。item 非破壊・rng 決定的。
-// ja/読み側の文中マスクは分割規則が複雑なため今回は対象外（mode に依らず en を対象にする）。
+// 和文（ja）マスク時の非内容語：助詞・句読点は伏字候補から外す。
+// jaWords は既に語分割済みなので、語そのものが助詞/記号かどうかで判定する。
+const JA_PARTICLES = new Set(['は', 'を', 'が', 'に', 'の', 'へ', 'と', 'も', 'や', 'で', 'から', 'まで', 'より'])
+
+function jaIsContent(token) {
+  if (typeof token !== 'string') return false
+  const w = token.trim()
+  if (!w) return false
+  if (JA_PARTICLES.has(w)) return false
+  if (/^[。、！？!?.,・…「」『』（）()\s]+$/.test(w)) return false // 句読点・記号のみは除外
+  return true
+}
+
+// 例文/英英の「文中 1〜3 語伏字」合成（#402）。打鍵対象文の内容語を char レンジでマスクする。
+// pickClozeTokens（語 index 選定）と computeClozeMask（char レンジ化）を束ねる。
+//   en   … target = item.en。tokenize は enWords（既定 \S+ だと末尾ピリオドが語に張り付き index が
+//          ずれるため）。enWords は末尾句読点を独立トークンにするので defaultIsContent が記号を除外。
+//   ja   … target = item.ja（表示する和文）。語分割ソースは item.jaWords（文字列配列）。
+//          jaIsContent で助詞（は/を/が/に…）・句読点（。、！？）を候補から外す。
+//          jaWords 未定義/空（dict 等）→ ranges:[]（マスクなし＝通常表示）。
+//   ・照合は従来どおり文全体を打つ＝ranges は表示用メタのみ。item 非破壊・rng 決定的。
 export function buildClozeSentence(item, mode, { rng = Math.random, min = 1, max = 3 } = {}) {
+  if (mode === 'ja') {
+    const target = item.ja
+    const jaWords = item.jaWords ?? []
+    const jaTokenize = () => jaWords
+    const picked = pickClozeTokens(jaWords, { rng, min, max, isContent: jaIsContent })
+    const ranges = computeClozeMask(target, picked, jaTokenize)
+    return { target, ranges }
+  }
   const target = item.en
   const tokens = enWords(target)
   const picked = pickClozeTokens(tokens, { rng, min, max })
