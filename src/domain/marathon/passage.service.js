@@ -1,5 +1,5 @@
 // マラソンの出題（パッセージ）生成。
-import { buildUnits } from '../typing/units.service.js'
+import { buildUnits, typingLang } from '../typing/units.service.js'
 import { tagLearningBlocks } from '../session/learningSequence.service.js'
 import { buildClozeSentence } from '../typing/cloze.service.js'
 
@@ -36,9 +36,11 @@ export function buildPassage(mode, pool, { rng = Math.random, target = PASSAGE_K
     const { item, phase } = problems[idx % problems.length]
     for (const seg of buildUnits(item, mode, { rng })) {
       const out = { ...seg, sentenceIndex: si }
-      // cloze フェーズの英語 seg にだけ内容語の char レンジを付ける（打鍵対象は文全体のまま）。
-      if (cloze && phase === 'cloze' && seg.type === 'en') {
-        const { ranges } = buildClozeSentence(item, 'en', { rng: cloze.maskRng(item) })
+      // cloze フェーズの「打鍵対象側」の seg にだけ内容語の char レンジを付ける（打鍵対象は文全体のまま＝伏字は表示だけ）。
+      // en/both は英語(en seg)、ja は和文(ja seg)を対象。both で ja(ヒント側)は伏せない＝従来どおり。
+      // en seg は item.en 上、ja seg は item.ja 上のレンジ。jaWords 無し（dict 等）は ranges 空でマスクなし。
+      if (cloze && phase === 'cloze' && seg.type === typingLang(mode)) {
+        const { ranges } = buildClozeSentence(item, seg.type, { rng: cloze.maskRng(item) })
         if (ranges.length) out.clozeRanges = ranges
       }
       segments.push(out)

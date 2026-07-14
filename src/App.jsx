@@ -424,8 +424,9 @@ export default function App() {
     active: phase === 'playing',
     onFinish,
     endCondition,
-    // #402 単語例文の穴埋めは英語を打つモード（both/en）のみ。ja/翻訳は normal に落とす。
-    learningMode: mode === 'both' || mode === 'en' ? learningMode : 'normal',
+    // #402 単語例文の穴埋めは通常入力（both/en/ja）で有効。翻訳(en-tr/ja-tr)は normal に落とす。
+    // ja は和文の内容語を jaWords 境界でマスク（読みを記憶から打つ）。
+    learningMode: supportsLearning(mode) ? learningMode : 'normal',
   })
 
   // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
@@ -809,8 +810,9 @@ export default function App() {
           seed={dictSeed}
           range={dictRange}
           freqMap={dictFreqMap}
-          // #402 英英の穴埋めは英語を打つモード（both/en）のみ。ja/4択は normal に落とす。
-          learningMode={dictMode === 'both' || dictMode === 'en' ? learningMode : 'normal'}
+          // #402 英英の穴埋めは通常入力（both/en/ja）で有効。翻訳・4択は normal に落とす。
+          // 英英に jaWords は無いので ja モードは ranges 空＝通常表示（実害なし）。
+          learningMode={supportsLearning(dictMode) ? learningMode : 'normal'}
           levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
           modeLabel={dictModeLabel(dictMode)}
           endCondition={endCondition}

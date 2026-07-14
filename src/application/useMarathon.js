@@ -47,8 +47,8 @@ const maskRngFactory = (seed) => (item) => mulberry32((fnv1a(item.en) ^ (seed >>
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 // #402 learningMode='cloze'（例文/英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、
-//   穴埋めフェーズは英文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。
-//   cloze は英語を打つモード（en/both）のみ（ja/翻訳は呼び出し側で normal に落とす）。
+//   穴埋めフェーズは打鍵対象文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。
+//   cloze は通常入力（en/both/ja）で有効。ja は和文の内容語を jaWords 境界でマスク。翻訳は normal。
 export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal' }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
