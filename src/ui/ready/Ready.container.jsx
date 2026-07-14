@@ -51,6 +51,8 @@ export default function Ready({
   onTouchModeChange,
   romajiLevel,
   onRomajiLevelChange,
+  learningMode,
+  onLearningModeChange,
   focusSection,
   onFocusSection,
   bottomTab,
@@ -90,6 +92,8 @@ export default function Ready({
         <WordSentenceSection
           mode={mode}
           onModeChange={onModeChange}
+          learningMode={learningMode}
+          onLearningModeChange={onLearningModeChange}
           wsentLevel={wsentLevel}
           onWsentLevelChange={onWsentLevelChange}
           wsentTheme={wsentTheme}
@@ -129,6 +133,8 @@ export default function Ready({
           wordTheme={wordTheme}
           wordMode={wordMode}
           wordRange={wordRange}
+          learningMode={learningMode}
+          onLearningModeChange={onLearningModeChange}
           onWordLevelChange={onWordLevelChange}
           onThemeChange={onThemeChange}
           onWordModeChange={onWordModeChange}
@@ -150,6 +156,8 @@ export default function Ready({
           dictTheme={dictTheme}
           dictMode={dictMode}
           dictRange={dictRange}
+          learningMode={learningMode}
+          onLearningModeChange={onLearningModeChange}
           onDictLevelChange={onDictLevelChange}
           onDictThemeChange={onDictThemeChange}
           onDictModeChange={onDictModeChange}

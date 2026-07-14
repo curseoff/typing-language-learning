@@ -9,6 +9,7 @@ import { wordRanking } from '../../application/records.service.js'
 import { rangeLabel, poolForRange, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
+import LearningSelect from './LearningSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
 import { WordRecords, RangeStepper, THEME_OPTIONS, dictLevelLabel } from './parts.container.jsx'
 
@@ -59,6 +60,8 @@ export default function WordsSection({
   wordTheme,
   wordMode,
   wordRange,
+  learningMode,
+  onLearningModeChange,
   onWordLevelChange,
   onThemeChange,
   onWordModeChange,
@@ -106,6 +109,15 @@ export default function WordsSection({
       }
       modeDesc={wordModeDesc(wordMode, endConditionSummary(endCondition))}
       poolCount={`この条件の収録: ${WORD_COUNTS[wordLevel]?.[wordTheme] ?? 0} 語`}
+      learningNode={
+        <LearningSelect
+          inputMode={wordMode}
+          learningMode={learningMode}
+          onChange={onLearningModeChange}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
+        />
+      }
       endConditionNode={
         <EndConditionSelect
           endCondition={endCondition}

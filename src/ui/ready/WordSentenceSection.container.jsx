@@ -14,6 +14,7 @@ import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headword
 import RecordsTable from '../result/RecordsTable.container.jsx'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
+import LearningSelect from './LearningSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
 import { RangeStepper, THEME_OPTIONS } from './parts.container.jsx'
 
@@ -58,6 +59,8 @@ function WsentList({ level, theme, mode, range }) {
 export default function WordSentenceSection({
   mode,
   onModeChange,
+  learningMode,
+  onLearningModeChange,
   wsentLevel,
   onWsentLevelChange,
   wsentTheme,
@@ -109,6 +112,15 @@ export default function WordSentenceSection({
       }
       modeDesc={`${modeDesc(mode)} 単語を使った例文を打ちます。${endConditionSummary(endCondition)}します。`}
       poolCount={`この条件の収録: ${WSENT_COUNTS[wsentLevel]?.[wsentTheme] ?? 0} 文`}
+      learningNode={
+        <LearningSelect
+          inputMode={mode}
+          learningMode={learningMode}
+          onChange={onLearningModeChange}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
+        />
+      }
       endConditionNode={
         <EndConditionSelect
           endCondition={endCondition}
