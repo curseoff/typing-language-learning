@@ -6,6 +6,12 @@
 .menu-bar {
   display: flex;
   align-items: stretch;
+  /* 帯は常に1行（〜41px）を保つ：折り返し禁止。固定幅の保存バッジ（右端）でトリガ群が
+     押し潰されて多段化＝帯が縦に膨張する回帰（#399）を防ぐ。
+     ここでは overflow を付けない：.menu-bar の子孫にドロップダウン（.menu-bar__dropdown＝top:100%+4px で
+     帯の下に出る）があり、overflow-x:auto を付けると overflow-y も auto に昇格してドロップダウンが
+     クリップされる（新たな回帰）ため。極狭時の横あふれは nowrap で単一行を保ったまま許容する。 */
+  flex-wrap: nowrap;
   gap: 2px;
   width: 100%;
   margin: 0;
@@ -23,6 +29,9 @@
 .menu-bar__trigger {
   display: inline-flex;
   align-items: center;
+  /* 日本語は任意位置で改行しうるので、ブランド「英文・和文タイピング」や「データ」が
+     1文字ずつ縦に割れないよう明示的に折り返しを止める（#399 狭幅回帰対策）。 */
+  white-space: nowrap;
   padding: 8px 12px;
   font-size: 14px;
   color: var(--text);

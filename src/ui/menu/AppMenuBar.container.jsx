@@ -204,7 +204,7 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
         aria-label={saveDetail}
       >
         <span className="menu-bar__save-badge-dot" aria-hidden="true" />
-        保存されません
+        <span className="menu-bar__save-badge-text">保存されません</span>
       </span>
     ) : null
 

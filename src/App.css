@@ -823,7 +823,8 @@ kbd {
   line-height: 1.2;
   white-space: nowrap;
   color: var(--red);
-  background: color-mix(in srgb, var(--red) 12%, transparent);
+  /* ティントを弱め（12%→8%）、ダーク（--panel）上で文字（--red）が AA 4.5:1 を満たすようにする（#399・実測 約4.75:1）。 */
+  background: color-mix(in srgb, var(--red) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
   border-radius: 999px;
 }
@@ -833,4 +834,15 @@ kbd {
   height: 7px;
   border-radius: 50%;
   background: var(--red);
+}
+/* スマホ幅ではラベルを畳んでドットのみのピルに縮退（意味は role=status＋aria-label/title で保持）。
+   gap もドットだけなら不要なので詰め、左右 padding を丸ピルに揃える。 */
+@media (max-width: 480px) {
+  .menu-bar__save-badge {
+    gap: 0;
+    padding: 4px 7px;
+  }
+  .menu-bar__save-badge-text {
+    display: none;
+  }
 }
