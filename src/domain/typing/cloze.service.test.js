@@ -431,4 +431,38 @@ describe('buildClozeSentence（ja モード：和文 item.ja の内容語を jaW
     const out = buildClozeSentence(jaA, 'en', { rng: mulberry32(1) })
     expect(out.target).toBe(jaA.en) // ja 拡張後も en は英文のまま
   })
+
+  // #404 dict 由来の item（def を持つ英英エントリ）でも ja マスクは item.ja/jaWords に依存し、
+  // def（英語定義）に引きずられないこと。useDict の toDictSeg が def→en に載せ替えるが、
+  // ja モードのマスク対象はあくまで和文（item.ja）＋語境界（jaWords）である。
+  const dictItem = {
+    word: 'water',
+    en: 'a clear liquid people drink', // dict の def（en に載る）
+    ja: '水を飲む',
+    kana: 'みずをのむ',
+    jaWords: ['水', 'を', '飲む'],
+  }
+
+  it('dict 由来 item（jaWords あり）でも target は和文で、内容語（水/飲む）を jaWords 境界で覆う', () => {
+    const target = dictItem.ja
+    const words = new Set(dictItem.jaWords)
+    for (const seed of [1, 2, 3, 7, 42]) {
+      const out = buildClozeSentence(dictItem, 'ja', { rng: mulberry32(seed) })
+      expect(out.target).toBe(target) // en(def) ではなく和文
+      expect(out.ranges.length).toBeGreaterThanOrEqual(1)
+      for (const r of out.ranges) {
+        const w = target.slice(r.start, r.end)
+        expect(words.has(w)).toBe(true)
+        expect(PARTICLES.has(w)).toBe(false) // 助詞「を」は伏せない
+        expect(inBounds(r, target)).toBe(true)
+      }
+    }
+  })
+
+  it('dict 由来 item に jaWords が無い（実 dict の一部）と ja でも ranges を空にする', () => {
+    const noWords = { word: 'run', en: 'to move fast', ja: '走る', kana: 'はしる' }
+    const out = buildClozeSentence(noWords, 'ja', { rng: mulberry32(1) })
+    expect(out.target).toBe(noWords.ja)
+    expect(out.ranges).toEqual([])
+  })
 })
