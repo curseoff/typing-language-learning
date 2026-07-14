@@ -20,6 +20,7 @@ import {
 import { ensureHealthyOrRestore, snapshotInternalBackup } from './application/recovery.service.js'
 import { scheduleExternalBackup } from './application/externalBackup.service.js'
 import { setPersistNotice } from './application/persist/persistNotice.store.js'
+import { setSaveStatus } from './application/persist/saveStatus.store.js'
 import { startContentFallbackPersistence } from './infrastructure/observability/contentFallbackStore.adapter.js'
 
 // 永続化バックエンドを解決し、sqlite なら Web Locks で主タブ1つを選出して多タブ協調を起動する
@@ -45,6 +46,8 @@ async function setupPersistence() {
     // ?persist=memory 等の意図的 memory（reason='forced-memory'）では告知しない（#274）。
     if (backend !== 'sqlite') {
       initMemoryPersistence()
+      // 保存状態バッジの真実源：非永続へ縮退した理由（forced-memory/no-opfs 等）をそのまま渡す（#399）。
+      setSaveStatus({ role: 'memory', reason })
       if (reason !== 'forced-memory') setPersistNotice('fallback')
       return // memory はここで何もしない（OPFS/多タブ処理はしない）
     }
@@ -72,6 +75,8 @@ async function setupPersistence() {
         replaceImage,
         getImage: getPersistImage,
       },
+      // 主タブ確定＝保存中／副タブ＝閲覧のみ、を保存状態バッジの真実源へ反映する（#399）。
+      onRole: (role) => setSaveStatus({ role }),
     })
     await whenReady // 初期ロールのデータ（主=hydrate / 副=初回 snapshot or 再送打切り）が整うまで待つ
 

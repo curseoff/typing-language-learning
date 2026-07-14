@@ -794,3 +794,33 @@ kbd {
     bottom: 130px;
   }
 }
+
+/* #399 保存状態バッジ: メニューバー帯の右端に、このタブが保存できていないとき（副タブ/非永続）だけ
+   控えめな警告ピルを常時表示する（保存中/確認中は非表示＝ノイズを避ける）。帯（.menu-bar・高さ〜41px）に
+   収まる小さめの体裁。警告色は既存トークン（--red）に合わせ、ライト/ダーク両対応。 */
+.menu-bar__right {
+  display: flex;
+  align-items: center;
+  margin-left: auto; /* 左のメニュー群と分けて右端へ寄せる */
+  padding-right: 4px;
+}
+.menu-bar__save-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+  border-radius: 999px;
+}
+.menu-bar__save-badge-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+}
