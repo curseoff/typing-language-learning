@@ -3,7 +3,7 @@
 // infra 非依存。項目の可否（enabled）と理由文言（reason＝表示済みの日本語）は props で受け取り、
 // disabled 項目は押下不可＋理由を title/補助テキストで示す（メニューは隠さず常に見せる方針）。
 // キーボード全経路（矢印移動/タイプアヘッド）は Phase3。ここでは button/aria-* だけ正しく付ける。
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 export interface MenuBarItem {
   id: string
@@ -27,6 +27,7 @@ export interface MenuBarViewProps {
   onToggle: (id: string) => void
   onSelect: (itemId: string) => void
   onClose: () => void
+  rightSlot?: ReactNode // メニュー帯の右端に置く任意の要素（保存状態バッジ等）。未指定なら何も出ない。
 }
 
 export default function MenuBarView({
@@ -36,6 +37,7 @@ export default function MenuBarView({
   onToggle,
   onSelect,
   onClose,
+  rightSlot,
 }: MenuBarViewProps) {
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -118,6 +120,7 @@ export default function MenuBarView({
           </div>
         )
       })}
+      {rightSlot && <div className="menu-bar__right">{rightSlot}</div>}
     </div>
   )
 }

@@ -24,6 +24,11 @@ import { getStorageHandle } from '../../infrastructure/db/initStorage.adapter.js
 import { supportsFsa } from '../../infrastructure/persist/externalBackupStore.adapter.js'
 import { useInstallPrompt } from '../pwa/useInstallPrompt.js'
 import { promptInstall } from '../../infrastructure/pwa/installPrompt.adapter.js'
+import {
+  getSaveStatus,
+  subscribeSaveStatus,
+} from '../../application/persist/saveStatus.store.js'
+import { deriveSaveStatusBadge } from '../../application/persist/saveStatusBadge.policy.js'
 
 // reason コード → 表示用の日本語文言（appMenu.js が返す安定コードを UI 側で写像する）。
 const REASON_TEXT = {
@@ -33,6 +38,16 @@ const REASON_TEXT = {
 }
 const reasonText = (code) => (code ? (REASON_TEXT[code] ?? null) : null)
 
+// 保存状態バッジの reasonCode → 詳細文言（title/aria-label 用）。安定コードを UI 側で日本語へ写像する（#399）。
+const SAVE_REASON_TEXT = {
+  secondary: '他のタブで記録中のため、このタブでは保存されません',
+  'no-opfs': 'この環境では保存できません（OPFS 非対応）',
+  'no-worker': 'この環境では保存できません（Worker 非対応）',
+  'no-locks': 'この環境では保存できません（Web Locks 非対応）',
+  'forced-memory': '非保存モードで起動しています',
+  'not-saved': 'このタブでは保存されません',
+}
+
 export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllRecords }) {
   const [openId, setOpenId] = useState(null)
   const [toast, setToast] = useState(null) // { msg, isError } | null
@@ -41,6 +56,10 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
   // 保存基盤の起動完了を購読して再評価する（sqlite handle 準備前に初描画されても、準備後に caps を更新）。
   // local/副タブは false のまま＝従来どおり（可否は下の getStorageHandle が handle で判断）。
   useSyncExternalStore(subscribeStorageReady, isStorageReady, () => false)
+
+  // 保存状態を購読し、警告時だけメニュー帯の右端にバッジを出す（保存中/確認中は非表示＝常時ノイズを避ける）。
+  const saveStatus = useSyncExternalStore(subscribeSaveStatus, getSaveStatus)
+  const saveBadge = deriveSaveStatusBadge(saveStatus)
 
   const installable = useInstallPrompt()
   const caps = {
@@ -172,6 +191,23 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
     },
   ]
 
+  // warn のときだけバッジを描画（保存できていない＝secondary/memory）。詳細は title/aria-label に載せる。
+  const saveDetail =
+    (saveBadge.reasonCode && SAVE_REASON_TEXT[saveBadge.reasonCode]) ||
+    'このタブでは保存されません'
+  const badge =
+    saveBadge.level === 'warn' ? (
+      <span
+        className="menu-bar__save-badge"
+        role="status"
+        title={saveDetail}
+        aria-label={saveDetail}
+      >
+        <span className="menu-bar__save-badge-dot" aria-hidden="true" />
+        <span className="menu-bar__save-badge-text">保存されません</span>
+      </span>
+    ) : null
+
   return (
     <>
       <MenuBarView
@@ -181,6 +217,7 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
         onToggle={onToggle}
         onSelect={onSelect}
         onClose={onClose}
+        rightSlot={badge}
       />
       <input
         ref={fileRef}

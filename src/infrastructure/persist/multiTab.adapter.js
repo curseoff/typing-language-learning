@@ -58,6 +58,9 @@ export function startMultiTabPersistence(deps) {
     snapshotTimeoutMs = SNAPSHOT_TIMEOUT_MS,
     maxSnapshotRetries = MAX_SNAPSHOT_RETRIES,
     newId = () => crypto.randomUUID(),
+    // このタブが担う役割（'primary'|'secondary'）を composition root へ通知する（保存状態バッジ用・#399）。
+    // 注入のみ（infra は application/UI を直 import しない）。既定 no-op で従来挙動を不変に保つ。
+    onRole = () => {},
   } = deps
 
   const tabId = newId()
@@ -130,6 +133,8 @@ export function startMultiTabPersistence(deps) {
 
     // 新主の告知（handoff で待っていた他の副へ／初回主でも遅参の副が拾えるよう送る）。
     broadcastPrimaryChanged()
+    // handle 取得に成功し主として書込み解禁済み＝保存中。役割を composition root へ通知（#399）。
+    onRole('primary')
     markReady()
   }
 
@@ -164,6 +169,8 @@ export function startMultiTabPersistence(deps) {
 
   function becomeSecondary() {
     election = electionTransition(election, { type: 'lock-unavailable' })
+    // 主は別タブ＝このタブは閲覧のみ（保存不可）。役割を composition root へ通知（#399）。
+    onRole('secondary')
     requestSnapshot()
     // 主が閉じたら昇格できるよう、ブロッキングでロック取得列に並ぶ（handoff の待ち受け）。
     queuePromotion()
