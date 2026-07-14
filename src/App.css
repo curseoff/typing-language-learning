@@ -794,3 +794,55 @@ kbd {
     bottom: 130px;
   }
 }
+
+/* #399 保存状態バッジ: メニューバー帯の右端に、このタブが保存できていないとき（副タブ/非永続）だけ
+   控えめな警告ピルを常時表示する（保存中/確認中は非表示＝ノイズを避ける）。帯（.menu-bar・高さ〜41px）に
+   収まる小さめの体裁。警告色は既存トークン（--red）に合わせ、ライト/ダーク両対応。 */
+/* #399 メニューバーをトップに貼り付ける（sticky）。スクロールしても帯が残り、右上に fixed で浮く
+   サウンドトグル（sound.css: top:3px/z-index:150）が常にこの帯の上に乗った状態を保つ。z-index は
+   本文（z なし）・dev-panel(100) より前面、サウンドトグル(150)・更新トースト(200) より後面。 */
+.menu-bar {
+  position: sticky;
+  top: 0;
+  z-index: 140;
+}
+.menu-bar__right {
+  display: flex;
+  align-items: center;
+  margin-left: auto; /* 左のメニュー群と分けて右端へ寄せる */
+  /* 右上に fixed で浮くサウンドトグル（sound.css: right:12px + width:36px）と重ならないよう
+     クリアランスを確保する（12 + 36 + 余白8 ≒ 56px）。 */
+  padding-right: 56px;
+}
+.menu-bar__save-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--red);
+  /* ティントを弱め（12%→8%）、ダーク（--panel）上で文字（--red）が AA 4.5:1 を満たすようにする（#399・実測 約4.75:1）。 */
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+  border-radius: 999px;
+}
+.menu-bar__save-badge-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+}
+/* スマホ幅ではラベルを畳んでドットのみのピルに縮退（意味は role=status＋aria-label/title で保持）。
+   gap もドットだけなら不要なので詰め、左右 padding を丸ピルに揃える。 */
+@media (max-width: 480px) {
+  .menu-bar__save-badge {
+    gap: 0;
+    padding: 4px 7px;
+  }
+  .menu-bar__save-badge-text {
+    display: none;
+  }
+}
