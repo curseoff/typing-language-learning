@@ -12,6 +12,7 @@ export interface FlowItem {
   kana?: string
   sentenceIndex?: number
   cloze?: boolean // #402 穴埋め対象語（この語の入力側を伏字にする）
+  clozeSide?: 'en' | 'ja' // #402 both で伏せる側（en=英語のみ / ja=読みのみ）。未指定は en 扱い
 }
 
 const ANCHOR_RATIO = 0.35 // PairFlow(both) 用：入力位置を画面のこの割合に保つ
@@ -195,7 +196,7 @@ interface PairFlowProps {
 }
 
 // both(英語・日本語)用：英語と和訳を1つの「ペア」にまとめ、横一列に交互に並べる。
-// #402 穴埋め：both は en/ja 両方が入力対象なので、cloze 語の current/future は両側とも伏字。
+// #402 穴埋め：both は語ごとに clozeSide で英語 or 読みの「片側だけ」を伏字にする（両側同時には伏せない）。
 function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow, frac, clozeRevealed }: PairFlowProps) {
   const { trackRef, stripRef, curRef } = useTickerScroll(frac, cur, items.length)
   const renderJa = (it: FlowItem, isCur: boolean) =>
@@ -245,7 +246,11 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
           {items.map((it, k) => {
             const isCur = k === cur
             const state = isCur ? 'current' : k < cur ? 'past' : 'future'
-            const masked = !!it.cloze && k >= cur // 現在＋これから打つ穴埋め語だけ伏字（past は表示）
+            // 現在＋これから打つ穴埋め語だけ伏字（past は表示）。片側（clozeSide）のみ伏せる。
+            const clozeHere = !!it.cloze && k >= cur
+            const side = it.clozeSide ?? 'en'
+            const maskEnHere = clozeHere && side === 'en'
+            const maskJaHere = clozeHere && side === 'ja'
             return (
               <span
                 key={it.sentenceIndex ?? k}
@@ -253,7 +258,7 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                 className={`flow-pair ${state}`}
               >
                 <span className={`pair-en ${isCur && activeRow === 'en' ? 'typing' : ''}`}>
-                  {masked ? (
+                  {maskEnHere ? (
                     maskEn(it, isCur)
                   ) : isCur ? (
                     <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
@@ -262,7 +267,7 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                   )}
                 </span>
                 <span className={`pair-ja ${isCur && activeRow === 'ja' ? 'typing' : ''}`}>
-                  {masked ? maskJa(it, isCur) : renderJa(it, isCur)}
+                  {maskJaHere ? maskJa(it, isCur) : renderJa(it, isCur)}
                 </span>
               </span>
             )

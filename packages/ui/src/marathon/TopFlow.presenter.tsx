@@ -30,10 +30,18 @@ export default function TopFlow({
   ticker = false,
   clozeRevealed = false,
 }: TopFlowProps) {
-  // 文ごとに1件(sentenceIndex で集約)
+  // 文ごとに1件(sentenceIndex で集約)。both は en/ja 2 seg あるので、
+  // #402 穴埋めではどちらの seg に cloze が付くかを両 seg 見て clozeSide に集約する。
   const sentences = useMemo(() => {
-    const map = new Map<number, TopSeg>()
-    for (const s of segments) if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, s)
+    const map = new Map<number, TopSeg & { clozeSide?: 'en' | 'ja' }>()
+    for (const s of segments) {
+      if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, { ...s })
+      if (s.cloze) {
+        const rep = map.get(s.sentenceIndex)!
+        rep.cloze = true
+        rep.clozeSide = s.type // cloze が付いた側（en=英語のみ / ja=読みのみ）を伏せる
+      }
+    }
     return [...map.values()]
   }, [segments])
   // 英→日の両方を打つモード（both）か。単一言語モードでは非入力側は参考表示。

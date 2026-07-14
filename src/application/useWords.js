@@ -32,6 +32,16 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let wordsSessionSeq = 0
 const nextWordsId = () => `words-${++wordsSessionSeq}`
 
+// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の伏字側選択の種に使う（#402）。
+function fnv1a(str) {
+  let h = 0x811c9dc5
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 // #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
 // #402 learningMode='cloze'＝5問ブロックで「通常→穴埋め」を交互に出す（問題数制は2倍が実効目標）。
@@ -45,10 +55,6 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     (items) => (isCloze ? tagLearningBlocks(items, { blockSize: 5 }) : items),
     [isCloze],
   )
-  const unitsOf = useCallback(
-    (p) => (isCloze ? (p.phase === 'cloze' ? buildClozeUnits(p.item, mode) : buildUnits(p.item, mode)) : buildUnits(p, mode)),
-    [isCloze, mode],
-  )
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
   // 終了判定用の実効 endCondition。cloze かつ問題数制のみ目標を2倍にする（記録キー用の ec は原値のまま）。
@@ -61,6 +67,28 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   // restart のたびに新しい seed を切り直す（＝View 内「もう一度」は別の問題列）。
   // この seed を record に必ず保存することで、通常プレイの記録も再現可能になる。
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
+  // both×cloze で「英語 or 読み」どちらを伏せるかを語ごとに seed 由来で決める（#402）。
+  // 語の同一性（words.js で一意な en）を FNV-1a で 32bit 化し sessionSeed と混ぜて mulberry32 に渡す。
+  //   ・同じ seed・同じ語なら常に同じ側＝リプレイ/「毎回同じ順で復習」で再現する。
+  //   ・normal フェーズ（伏せない）と cloze フェーズで同じ語なら同じ側判定になる（位置に依らない）。
+  // both 以外（en/ja 単一）は対象側が自明なので側選択は不要。
+  const clozeSideOf = useCallback(
+    (item) => {
+      if (mode !== 'both') return undefined
+      const h = fnv1a(item.en) ^ (sessionSeed >>> 0)
+      return mulberry32(h >>> 0)() < 0.5 ? 'en' : 'ja'
+    },
+    [mode, sessionSeed],
+  )
+  const unitsOf = useCallback(
+    (p) =>
+      isCloze
+        ? p.phase === 'cloze'
+          ? buildClozeUnits(p.item, mode, { clozeSide: clozeSideOf(p.item) })
+          : buildUnits(p.item, mode)
+        : buildUnits(p, mode),
+    [isCloze, mode, clozeSideOf],
+  )
   const buildPassage = useCallback(
     () => toProblems(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(sessionSeed), range })),
     [allWords, level, theme, mode, sessionSeed, range, toProblems],
