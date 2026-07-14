@@ -1,7 +1,7 @@
 // 穴埋め学習モードの純ロジック（#402）。純粋・React/DOM 非依存。
 // 入力対象の seg を「伏字(cloze)」にし、反対側の言語を hint として添える。
 // 照合（variants/canonical）は buildUnits と同一に保つ（正誤判定は通常と同じ）。
-import { buildUnits } from './units.service.js'
+import { buildUnits, enWords } from './units.service.js'
 
 // buildUnits を基に、入力対象 seg へ cloze:true と hint（反対側の表示文字列）を付与する。
 //   en   … 英語 seg を伏せ、hint は日本語(ja)
@@ -116,6 +116,21 @@ export function computeClozeMask(text, tokenIndexes, tokenize) {
     if (r && r.end > r.start && r.end <= text.length) out.push(r)
   }
   return out
+}
+
+// 例文/英英の「文中 1〜3 語伏字」合成（#402 Task B）。打鍵対象の英文（item.en）の内容語を
+// char レンジでマスクする。pickClozeTokens（語 index 選定）と computeClozeMask（char レンジ化）を束ねる。
+//   ・target = item.en（照合は従来どおり文全体を打つ＝mask は表示用メタのみ）。
+//   ・tokenize は enWords を渡す（既定 \S+ だと末尾ピリオドが語に張り付き index がずれるため）。
+//     enWords は末尾句読点を独立トークンにするので defaultIsContent が記号を除外＝内容語だけ選ばれる。
+//   ・内容語 0 → ranges:[]（伏せない）。item 非破壊・rng 決定的。
+// ja/読み側の文中マスクは分割規則が複雑なため今回は対象外（mode に依らず en を対象にする）。
+export function buildClozeSentence(item, mode, { rng = Math.random, min = 1, max = 3 } = {}) {
+  const target = item.en
+  const tokens = enWords(target)
+  const picked = pickClozeTokens(tokens, { rng, min, max })
+  const ranges = computeClozeMask(target, picked, enWords)
+  return { target, ranges }
 }
 
 // cloze モードでミスが出たら正体を開示する（伏字を解く）。
