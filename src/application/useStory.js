@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { storyById } from '../content/stories/index.js'
 import { buildUnits, choiceSeg, segMatches, typingLang } from '../domain/typing/units.service.js'
 import { firstChoiceNodeId } from '../domain/story/navigation.service.js'
-import { score } from '../domain/marathon/scoring.service.js'
+import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import {
   loadFound,
   saveFound,
@@ -108,21 +108,24 @@ export function useStory({ mode, storyId, start, onExit }) {
     })
     // 今回の記録を作成・保存（速い順ランキング）
     const elapsedMs = startedAt ? endTime - startedAt : 0
-    const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
+    // 記録生成は domain の makeScoreRecord に集約（採点＝makeScore を内包）。#389
+    // 物語は Session Entity を持たないため明示値を渡し、凍結は plain 展開して形状を保つ。
     const record = {
-      source: 'story', // リプレイの分岐用（App.replay）。物語は決定的なので seed は不要。
-      mode, // 再挑戦を同じ入力モードで始めるために保存
-      storyId, // どの物語の記録か（リプレイで同じ物語を復元するため）
-      ending: n.ending,
-      endLabel: n.endLabel,
-      speed,
-      keys,
-      mistakes: totalMistakes,
-      accuracy,
-      seconds,
-      segStats: segTrackerRef.current.list,
-      choices: choicesRef.current, // プレイ中に選んだ選択肢（選んだ順）
-      date: new Date().toLocaleString('ja-JP'),
+      ...makeScoreRecord({
+        keys,
+        mistakes: totalMistakes,
+        elapsedMs,
+        meta: {
+          source: 'story', // リプレイの分岐用（App.replay）。物語は決定的なので seed は不要。
+          mode, // 再挑戦を同じ入力モードで始めるために保存
+          storyId, // どの物語の記録か（リプレイで同じ物語を復元するため）
+          ending: n.ending,
+          endLabel: n.endLabel,
+          segStats: segTrackerRef.current.list,
+          choices: choicesRef.current, // プレイ中に選んだ選択肢（選んだ順）
+          date: new Date().toLocaleString('ja-JP'),
+        },
+      }),
     }
     setResult(record)
     setRecords(saveStoryRecord(storyId, record))

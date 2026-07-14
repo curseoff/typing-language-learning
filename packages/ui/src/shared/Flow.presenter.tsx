@@ -2,7 +2,7 @@
 // - 通常(wrap): 現在文＋先読みを折り返し（長文の例文・物語向け）。
 // - ticker: 入力位置を一定に保ち1文字ごとに左スクロール（単語モード向け）。
 // - ticker かつ both（英語・日本語）: 英語と和訳を「ペア」で交互に並べる。
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { Typed, RubyTyped, RubyText } from './Text.presenter'
 import { tickerMaskImage } from './tickerMask.util'
 
@@ -13,9 +13,13 @@ export interface FlowItem {
   sentenceIndex?: number
 }
 
-const ANCHOR_RATIO = 0.35 // 入力位置を画面のこの割合に保つ
+const ANCHOR_RATIO = 0.35 // PairFlow(both) 用：入力位置を画面のこの割合に保つ
+const CURSOR_MARGIN = 24 // 末尾カーソルを右端からこの px 内に必ず見せる（末尾優先クランプ用）
+// 打鍵ごとに transform を離散更新する（時間ベースのグライドは使わない）。
+// ごく短い固定トランジションで1打ぶんの移動を軽く均すだけ（0＝完全離散〜0.06s 目安・実機微調整前提）。
+const STEP_TRANSITION_SEC = 0.05
 
-// 入力位置(offsetLeft + 幅×frac)を ANCHOR に保つよう transform を ref で直接更新（1文字ごと左スクロール）。
+// PairFlow(both モード)用：入力位置(offsetLeft + 幅×frac)を ANCHOR に保つよう transform を ref で直接更新（1文字ごと左スクロール）。
 // あわせて右端フェードを「語境界」にスナップし、収まる語はくっきり／はみ出す語だけをゴースト化する（#108）。
 function useTickerScroll(frac: number, cur: number, len: number) {
   const trackRef = useRef<HTMLDivElement>(null)
@@ -43,6 +47,99 @@ function useTickerScroll(frac: number, cur: number, len: number) {
   return { trackRef, stripRef, curRef }
 }
 
+// 単一言語モードの1行ぶんのスクロール ref 束。親(Flow)が計測・transform を一括で行うため、
+// 各 FlowRow は DOM に ref を張るだけで、送り量の決定は親の useSingleLangTicker が担う。
+interface RowScroll {
+  trackRef: RefObject<HTMLDivElement | null>
+  stripRef: RefObject<HTMLDivElement | null>
+  curRef: RefObject<HTMLSpanElement | null>
+}
+
+interface RowMeasure {
+  strip: HTMLDivElement
+  track: HTMLDivElement
+  off: number // 現在文(現在語)の offsetLeft
+  prevOff: number | null // 前文(前語)の offsetLeft（cur=0 では null）
+  width: number // 現在文の offsetWidth
+  tw: number // track の可視幅
+}
+
+function measureRow(r: RowScroll): RowMeasure | null {
+  const strip = r.stripRef.current
+  const word = r.curRef.current
+  const track = r.trackRef.current
+  if (!strip || !word || !track) return null
+  const prevEl = word.previousElementSibling as HTMLElement | null
+  return {
+    strip,
+    track,
+    off: word.offsetLeft,
+    prevOff: prevEl ? prevEl.offsetLeft : null,
+    width: word.offsetWidth,
+    tw: track.clientWidth,
+  }
+}
+
+// 決まった shift を strip へ適用し、右端フェード(語境界スナップ)を再計算する。
+// 動きは transform の値そのものを打鍵ごとに離散更新。トランジションはごく短い固定のみ（グライドは使わない）。
+// transition-property/timing-function は CSS(.flow-strip: transform linear)のまま、duration だけ inline で短く上書き。
+function applyRow(m: RowMeasure, shift: number, cur: number) {
+  m.strip.style.transitionDuration = `${STEP_TRANSITION_SEC}s`
+  m.strip.style.transform = `translateX(${shift}px)`
+  const boxes = Array.from(m.strip.children).map((c) => ({
+    left: (c as HTMLElement).offsetLeft + shift,
+    width: (c as HTMLElement).offsetWidth,
+  }))
+  const mask = tickerMaskImage(boxes, m.tw, { curIndex: cur })
+  m.track.style.maskImage = mask
+  // webkitMaskImage は Safari 向けのベンダ接頭辞（型定義に無いこともあるので index 経由で設定）
+  m.track.style.setProperty('-webkit-mask-image', mask)
+}
+
+// 単一言語モード(FlowRow×2)の左スクロールを2行まとめて同期する（#394）。
+// 位置を (現在文 cur, 進捗 frac) の連続関数にし、境界で飛ばず・打鍵ごとに必要幅だけ動かす。
+// - shift(cur, frac) = −L_cur + prevAdvance·(1 − frac)。L_cur=現在文 offsetLeft, prevAdvance=L_cur−L_{cur-1}(前文の幅+gap)。
+//   frac=1 → shift=−L_cur（現在文の先頭が左端＝全文表示）。cur+1 の frac=0 → shift=−L_cur（前文終端と一致＝境界で飛ばない）。
+//   1打ぶんの移動 = prevAdvance / len_cur（乗換の大移動が現在文の打鍵に分散して入ってくる）。
+//   cur=0 は prevAdvance=0 → shift=−L_0=0（左端固定・開始空白なし）。
+// - クランプ：prevAdvance は tw−CURSOR_MARGIN で上限（次文が画面右外始まりにならない）。
+//   長文は末尾優先：カーソル(off+width·frac)が右端−margin を越えないよう shift を下限クランプ（shiftCursor）。
+// - 英日同期：アクティブ行の実効先頭 x(= L_cur + shift)を参考行にも共有（両行 abs スクリーン x 一致）。日本語入力時は対称。
+function useSingleLangTicker(activeRow: 'en' | 'ja' | null, cursorFrac: number, cur: number, len: number) {
+  const en: RowScroll = {
+    trackRef: useRef<HTMLDivElement>(null),
+    stripRef: useRef<HTMLDivElement>(null),
+    curRef: useRef<HTMLSpanElement>(null),
+  }
+  const ja: RowScroll = {
+    trackRef: useRef<HTMLDivElement>(null),
+    stripRef: useRef<HTMLDivElement>(null),
+    curRef: useRef<HTMLSpanElement>(null),
+  }
+  useLayoutEffect(() => {
+    const mEn = measureRow(en)
+    const mJa = measureRow(ja)
+    const any = mEn ?? mJa
+    if (!any) return // ticker 以外(wrap)や計測前は strip 未描画で何もしない
+    const active = activeRow === 'en' ? mEn : activeRow === 'ja' ? mJa : null
+    let effStartX = 0 // 実効の文頭 view-x（両行で共有）＝既定は左端(0)
+    if (active) {
+      // 前文からの前進量。frac=0 で先頭が画面右外へ出ないよう上限クランプ（次文は右端付近から入る）。
+      const prevAdvRaw = active.prevOff == null ? 0 : active.off - active.prevOff
+      const prevAdv = Math.min(prevAdvRaw, active.tw - CURSOR_MARGIN)
+      const baseShift = -active.off + prevAdv * (1 - cursorFrac) // 連続位置関数
+      // 末尾優先：長文はカーソルを右端−margin 内に保つよう下限（より左）へ寄せる。
+      const shiftCursor = active.tw - CURSOR_MARGIN - (active.off + active.width * cursorFrac)
+      const shift = Math.min(baseShift, shiftCursor)
+      effStartX = shift + active.off
+    }
+    if (mEn) applyRow(mEn, effStartX - mEn.off, cur)
+    if (mJa) applyRow(mJa, effStartX - mJa.off, cur)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref 束(en/ja)は不変。計測トリガは cursorFrac/cur/len で十分。
+  }, [activeRow, cursorFrac, cur, len])
+  return { en, ja }
+}
+
 interface FlowRowProps {
   tag: string
   tagClass: string
@@ -51,12 +148,12 @@ interface FlowRowProps {
   active: boolean
   render: (it: FlowItem, isCur: boolean) => ReactNode
   ticker: boolean
-  frac?: number
+  scroll: RowScroll
 }
 
-// 1行ぶん。現在文を明るく＋進捗、先の文は薄く。ticker=true で1文字ごとの左スクロール。
-function FlowRow({ tag, tagClass, items, cur, active, render, ticker, frac = 0 }: FlowRowProps) {
-  const { trackRef, stripRef, curRef } = useTickerScroll(frac, cur, items.length)
+// 1行ぶん。現在文を明るく＋進捗、先の文は薄く。ticker=true で1文字ごとの左スクロール（送り量は親が同期）。
+function FlowRow({ tag, tagClass, items, cur, active, render, ticker, scroll }: FlowRowProps) {
+  const { trackRef, stripRef, curRef } = scroll
   const cells = items.map((it, k) => (
     <span
       key={it.sentenceIndex ?? k}
@@ -189,6 +286,16 @@ export function Flow({
     jaFrac = unit ? Math.min(1, doneU / unit) : 0
   }
 
+  // 単一言語モードは2行の左スクロールを親で同期。アクティブ言語の実カーソル位置(cursorFrac)で
+  // 左端ピン＋末尾優先クランプを決め、実効先頭 x を両行が共有＝文頭 x が一致。
+  const cursorFrac = activeRow === 'en' ? enFrac : activeRow === 'ja' ? jaFrac : 0
+  const { en: enScroll, ja: jaScroll } = useSingleLangTicker(
+    activeRow,
+    cursorFrac,
+    cur,
+    items.length,
+  )
+
   // 英語・日本語モードはペア表示（英語→和訳の順で1ペアぶん進捗）。
   if (ticker && isBoth) {
     const pairFrac =
@@ -216,7 +323,7 @@ export function Flow({
           items={items}
           cur={cur}
           ticker={ticker}
-          frac={enFrac}
+          scroll={enScroll}
           active={activeRow === 'en'}
           render={(it, isCur) =>
             isCur ? (
@@ -234,7 +341,7 @@ export function Flow({
           items={items}
           cur={cur}
           ticker={ticker}
-          frac={jaFrac}
+          scroll={jaScroll}
           active={activeRow === 'ja'}
           render={(it, isCur) => (
             <span className="flow-ja">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
 import { rangeCount } from './domain/words/wordRange.service.js'
+import { filterWsentByTheme } from './domain/words/wsentSet.service.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from './application/headwordFreqSlice.policy.js'
 import { WSENT_COUNTS, loadWsentLevel, loadWsentThemes } from './content/wordSentences/index.js'
 import { DICT_MODES, DICT_AVAILABLE_LEVELS, DICT_COUNTS, loadDict } from './content/dictionary.js'
@@ -419,7 +420,7 @@ export default function App() {
       setWsentRange(clamped)
       // テーマ指定時は見出し語の theme が一致する例文だけに絞る（'すべて'は全件）
       const themeMap = themes[level] ?? {}
-      const filtered = theme === 'すべて' ? pool : pool.filter((s) => themeMap[s.word] === theme)
+      const filtered = filterWsentByTheme(pool, theme, themeMap)
       // range 時は見出し語 freq 順に 100 文区切りへスライス（決定的）。freq は単語データ由来。
       // clamped==null は素通り＝ヘルパ内でガードするため freqMap は range 時のみ構築する。
       const freqMap = clamped != null ? headwordFreqMap(words) : null

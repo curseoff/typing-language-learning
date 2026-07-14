@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
 import { wordsInRangeBy, RANGE_SIZE } from '../domain/words/wordRange.service.js'
-import { score } from '../domain/marathon/scoring.service.js'
+import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
@@ -19,6 +19,7 @@ import { loadDictRecords, saveDictRecord, recordItemStat } from './records.servi
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
+import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -132,30 +133,33 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       if (finishedRef.current) return
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
-      const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const list = segTrackerRef.current.list
       // 打ち終えた「文の数」。both は1文=en+ja の2セグなので、sentenceIndex のユニーク数で数える。
       const words = new Set(list.map((s) => s.sentenceIndex)).size
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
-      const correctCount = list.filter((s) => !s.partial && (s.mistakes ?? 0) === 0).length
+      const correctCount = firstTryCorrectCount(list)
+      // 記録生成は domain の makeScoreRecord に集約（採点＝makeScore を内包）。#389
+      // session Entity は elapsedMs を保持しないため明示値を渡し、凍結は plain 展開して形状を保つ。
       const record = {
-        source: 'dict', // リプレイの分岐用（App.replay）
-        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
-        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
-        level,
-        theme,
-        mode,
-        speed,
-        keys,
-        words,
-        mistakes: totalMistakes,
-        accuracy,
-        correctCount,
-        seconds,
-        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
-        ...(range != null ? { range } : {}),
-        segStats: list,
-        date: new Date().toLocaleString('ja-JP'),
+        ...makeScoreRecord({
+          keys,
+          mistakes: totalMistakes,
+          elapsedMs,
+          meta: {
+            source: 'dict', // リプレイの分岐用（App.replay）
+            seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
+            endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
+            level,
+            theme,
+            mode,
+            words,
+            correctCount,
+            // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+            ...(range != null ? { range } : {}),
+            segStats: list,
+            date: new Date().toLocaleString('ja-JP'),
+          },
+        }),
       }
       setRecords(saveDictRecord(record))
       setResult(record)

@@ -8,6 +8,8 @@ import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/sessi
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.service.js'
 import { buildQuizSegStat } from './quizSegStat.policy.js'
+import { firstTryCorrectCountQuiz, missedItemCount } from '../domain/records/segmentStats.service.js'
+import { quizToRecord } from '../domain/records/sessionResult.service.js'
 import { makeSeed } from './seed.policy.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -83,35 +85,26 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
     (keys, correctCount, totalMistakes, endTime, startedAt) => {
       if (finishedRef.current) return
       finishedRef.current = true
-      const seconds = Math.round((endTime - startedAt) / 100) / 10
       const total = segStatsRef.current.length // 60秒で完答した設問数
-      const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0
-      const minutes = (endTime - startedAt) / 60000
-      const speed = minutes > 0 ? Math.round(keys / minutes) : 0
       // 一発正解数（items 制の主指標）＝正答かつミス0の設問数。#208 段3a
-      const noMissCorrect = segStatsRef.current.filter(
-        (s) => s.correct && (s.mistakes ?? 0) === 0,
-      ).length
-      const record = {
-        source: 'word', // リプレイの分岐用（App.replay）
-        seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
-        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
-        level,
-        theme,
-        mode,
-        keys, // タイピング数（主指標）
-        speed,
-        correct: correctCount,
-        correctCount: noMissCorrect,
-        words: total,
-        mistakes: totalMistakes,
-        accuracy,
-        seconds,
-        // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
-        ...(range != null ? { range } : {}),
-        segStats: segStatsRef.current,
-        date: new Date().toLocaleString('ja-JP'),
-      }
+      const noMissCorrect = firstTryCorrectCountQuiz(segStatsRef.current)
+      // 記録生成は domain の quizToRecord に集約（採点＝quizScore を内包）。#389
+      const record = quizToRecord(
+        { keys, mistakes: totalMistakes, correct: correctCount, total, elapsedMs: endTime - startedAt },
+        {
+          source: 'word', // リプレイの分岐用（App.replay）
+          seed: sessionSeed, // この記録の問題列を再現するためのシード（通常プレイでも必ず入る）
+          endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
+          level,
+          theme,
+          mode,
+          correctCount: noMissCorrect, // 一発正解数（segStats 由来）＝meta 経由
+          // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
+          ...(range != null ? { range } : {}),
+          segStats: segStatsRef.current,
+          date: new Date().toLocaleString('ja-JP'),
+        },
+      )
       setRecords(saveWordRecord(record))
       setResult(record)
       setFinished(true)
@@ -129,9 +122,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
       const items = segStatsRef.current.length
       // life は「ミスした設問数」で判定（打鍵ミス総数ではない・#208 段5）。
       // 確定設問のミス>0件数＋現在設問が既にミス済みなら+1（設問単位）。
-      const missedItems =
-        segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-        (perQMissRef.current > 0 ? 1 : 0)
+      const missedItems = missedItemCount(segStatsRef.current, perQMissRef.current)
       if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys: keysRef.current, items, missedItems })) return
       finish(keysRef.current, correctRef.current, mistakesRef.current, t, startedAt)
     },
@@ -243,10 +234,7 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
         setMistakes((m) => (mistakesRef.current = m + 1))
         perQMissRef.current += 1
         // ミスした設問数を live 更新（life 制HUD用）＝確定設問のミス>0件数＋現在設問が既ミスなら+1。
-        setMissedItems(
-          segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-            (perQMissRef.current > 0 ? 1 : 0),
-        )
+        setMissedItems(missedItemCount(segStatsRef.current, perQMissRef.current))
         playMiss()
         setHasError(true)
         // ミス数（life 制）の到達を判定。

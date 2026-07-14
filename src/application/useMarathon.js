@@ -8,7 +8,7 @@
 // 従来どおり（Entity の endCondition は器のダミーで、finish 判定には一切使わない）。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
-import { score } from '../domain/marathon/scoring.service.js'
+import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
@@ -16,6 +16,7 @@ import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { recordItemStat } from './records.service.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
+import { firstTryCorrectCount, segmentScore, missedItemCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -94,28 +95,30 @@ export function useMarathon({ active, onFinish, endCondition }) {
       if (finishedRef.current) return
       finishedRef.current = true
       const elapsedMs = endTime - startedAt
-      const { speed, accuracy, seconds } = score({ keys, mistakes: totalMistakes, elapsedMs })
       const { mode, rank, source, seed, theme, range } = ctxRef.current
       // 一発正解数（items 制の主指標）＝完了(非partial)かつミス0の問題数。#208 段3a
-      const correctCount = segStatsRef.current.filter(
-        (s) => !s.partial && (s.mistakes ?? 0) === 0,
-      ).length
+      const correctCount = firstTryCorrectCount(segStatsRef.current)
+      // 記録生成は domain の makeScoreRecord に集約（採点＝makeScore を内包）。#389
+      // session Entity は elapsedMs を保持しないため sessionToRecord ではなく明示値を渡す。
+      // 現行 record は plain（下流が触れる）なので凍結を plain 展開して形状を保つ。
       const record = {
-        mode,
-        rank,
-        source,
-        theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
-        // #364 range モード時のみ range を載せる（未選択は従来 record と byte 同一＝後方互換）。
-        ...(range != null ? { range } : {}),
-        seed, // 同じ問題列を再現するためのシード（リプレイ用）
-        endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
-        speed,
-        keys,
-        mistakes: totalMistakes,
-        accuracy,
-        correctCount,
-        seconds,
-        date: new Date().toLocaleString('ja-JP'),
+        ...makeScoreRecord({
+          keys,
+          mistakes: totalMistakes,
+          elapsedMs,
+          meta: {
+            mode,
+            rank,
+            source,
+            theme, // テーマ別ランキング用（単語例文）。未指定モードは undefined のまま
+            // #364 range モード時のみ range を載せる（未選択は従来 record と byte 同一＝後方互換）。
+            ...(range != null ? { range } : {}),
+            seed, // 同じ問題列を再現するためのシード（リプレイ用）
+            endCondition: ec, // 終了条件（正規化済み・記録キーの分岐用。#208 段1a）
+            correctCount,
+            date: new Date().toLocaleString('ja-JP'),
+          },
+        }),
       }
       onFinish(record, segStatsRef.current)
     },
@@ -131,9 +134,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
       const startedAt = startTimeRef.current ?? t
       // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない・#208 段5）。
       // 確定問題(segStats)のミス>0件数＋進行中問題が既にミス済みなら+1（問題単位）。
-      const missedItems =
-        segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-        (segMistakesRef.current > 0 ? 1 : 0)
+      const missedItems = missedItemCount(segStatsRef.current, segMistakesRef.current)
       if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0 && segStartRef.current !== null) {
         const ms = t - segStartRef.current
@@ -148,8 +149,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
             kana: seg.kana,
             keys: partialLen,
             mistakes: segMistakesRef.current,
-            seconds: Math.round(ms / 100) / 10,
-            speed: ms > 0 ? Math.round(partialLen / (ms / 60000)) : 0,
+            ...segmentScore({ keys: partialLen, ms }),
             partial: true,
           },
         ]
@@ -206,8 +206,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
               kana: seg.kana,
               keys: segKeys,
               mistakes: segMistakesRef.current,
-              seconds: Math.round(ms / 100) / 10,
-              speed: ms > 0 ? Math.round(segKeys / (ms / 60000)) : 0,
+              ...segmentScore({ keys: segKeys, ms }),
               partial: false,
             },
           ]
@@ -241,10 +240,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
         playMiss()
         setHasError(true)
         // ミスした問題数（life 制HUD用）を live 更新＝確定問題のミス>0件数＋進行中問題が既ミスなら+1。
-        setMissedItems(
-          segStatsRef.current.filter((s) => (s.mistakes ?? 0) > 0).length +
-            (segMistakesRef.current > 0 ? 1 : 0),
-        )
+        setMissedItems(missedItemCount(segStatsRef.current, segMistakesRef.current))
         // ミス数（life 制）の到達を判定。
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
@@ -277,8 +273,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
           kana: seg.kana,
           keys: segInput.length,
           mistakes: segMistakesRef.current,
-          seconds: Math.round(ms / 100) / 10,
-          speed: ms > 0 ? Math.round(segInput.length / (ms / 60000)) : 0,
+          ...segmentScore({ keys: segInput.length, ms }),
           partial: true,
         },
       ]
@@ -312,8 +307,7 @@ export function useMarathon({ active, onFinish, endCondition }) {
           kana: seg.kana,
           keys: segInput.length,
           mistakes: segMistakesRef.current,
-          seconds: Math.round(ms / 100) / 10,
-          speed: ms > 0 ? Math.round(segInput.length / (ms / 60000)) : 0,
+          ...segmentScore({ keys: segInput.length, ms }),
           partial: true,
         },
       ]
