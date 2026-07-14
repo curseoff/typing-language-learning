@@ -802,7 +802,9 @@ kbd {
   display: flex;
   align-items: center;
   margin-left: auto; /* 左のメニュー群と分けて右端へ寄せる */
-  padding-right: 4px;
+  /* 右上に fixed で浮くサウンドトグル（sound.css: right:12px + width:36px）と重ならないよう
+     クリアランスを確保する（12 + 36 + 余白8 ≒ 56px）。 */
+  padding-right: 56px;
 }
 .menu-bar__save-badge {
   display: inline-flex;
