@@ -6,6 +6,7 @@ import {
   pickClozeTokens,
   computeClozeMask,
   isClozeRevealed,
+  buildClozeSentence,
 } from './cloze.service.js'
 import { buildUnits, segMatches } from './units.service.js'
 import { mulberry32 } from '../rng.service.js'
@@ -222,5 +223,95 @@ describe('isClozeRevealed（cloze かつミスありで正体を開示）', () =
   it('cloze 以外は segMistakes に関わらず false', () => {
     expect(isClozeRevealed('normal', 3)).toBe(false)
     expect(isClozeRevealed(undefined, 3)).toBe(false)
+  })
+})
+
+// #402 例文/英英の「文中 1〜3 語伏字」の合成関数。pickClozeTokens + computeClozeMask を束ね、
+// 打鍵対象文（en＝英文／dict も toDictSeg で def を item.en に載せる）の内容語を char レンジでマスクする。
+// 今回の必須仕様は「en 対象のみ」＝ target は item.en に確定する。
+// ja/読み側のマスクは分割規則が複雑なため今回は対象外（別途拡張・ranges:[] 許容）。
+describe('buildClozeSentence（打鍵対象の英文から内容語 1〜3 語を char レンジでマスクする合成）', () => {
+  // 内容語＝drink / cold / water（'I' は機能語で除外）。末尾句読点なし。
+  const sentA = { en: 'I drink cold water', ja: '私は冷たい水を飲む', kana: 'わたしはつめたいみずをのむ' }
+  // 内容語＝cat / sat / mat（the/on/末尾ピリオドは除外）。
+  const sentB = { en: 'The cat sat on the mat.', ja: '猫がマットに座った。', kana: 'ねこがまっとにすわった' }
+
+  const inBounds = (r, target) => r.start >= 0 && r.end <= target.length && r.end > r.start
+
+  it('target は打鍵対象の英文（item.en）と一致する', () => {
+    const out = buildClozeSentence(sentA, 'en', { rng: mulberry32(1) })
+    expect(out.target).toBe(sentA.en)
+  })
+
+  it('ranges は既定（min=1,max=3）で 1〜3 個に収まる', () => {
+    for (const seed of [1, 2, 3, 42]) {
+      const out = buildClozeSentence(sentA, 'en', { rng: mulberry32(seed) })
+      expect(out.ranges.length).toBeGreaterThanOrEqual(1)
+      expect(out.ranges.length).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('決定的：同じ item・同じ rng seed なら同じ ranges', () => {
+    const a = buildClozeSentence(sentA, 'en', { rng: mulberry32(9) })
+    const b = buildClozeSentence(sentA, 'en', { rng: mulberry32(9) })
+    expect(a.ranges).toEqual(b.ranges)
+  })
+
+  it('min===max のとき、ちょうどその数の内容語をマスクする', () => {
+    const out2 = buildClozeSentence(sentA, 'en', { rng: mulberry32(2), min: 2, max: 2 })
+    expect(out2.ranges).toHaveLength(2)
+    const out1 = buildClozeSentence(sentA, 'en', { rng: mulberry32(2), min: 1, max: 1 })
+    expect(out1.ranges).toHaveLength(1)
+  })
+
+  it('各 range は語境界に一致し、内容語そのものを覆う（語の途中で切れない・end 排他・target 長内）', () => {
+    const target = sentA.en
+    const content = new Set(['drink', 'cold', 'water'])
+    const out = buildClozeSentence(sentA, 'en', { rng: mulberry32(7), min: 3, max: 3 })
+    expect(out.ranges).toHaveLength(3)
+    for (const r of out.ranges) {
+      expect(inBounds(r, target)).toBe(true)
+      const word = target.slice(r.start, r.end)
+      expect(content.has(word)).toBe(true) // 前後に空白/句読点を含まず、内容語ちょうど
+      if (r.start > 0) expect(target[r.start - 1]).toBe(' ') // 語頭境界
+      if (r.end < target.length) expect(target[r.end]).toBe(' ') // 語末境界
+    }
+  })
+
+  it('ranges は昇順（非重複・start が単調増加）で返る', () => {
+    const out = buildClozeSentence(sentA, 'en', { rng: mulberry32(7), min: 3, max: 3 })
+    for (let i = 1; i < out.ranges.length; i++) {
+      expect(out.ranges[i].start).toBeGreaterThanOrEqual(out.ranges[i - 1].end)
+    }
+  })
+
+  it('機能語・句読点はマスクしない（末尾ピリオドを含む文でも内容語だけを覆う）', () => {
+    const target = sentB.en
+    const content = new Set(['cat', 'sat', 'mat'])
+    const out = buildClozeSentence(sentB, 'en', { rng: mulberry32(5), min: 3, max: 3 })
+    expect(out.ranges).toHaveLength(3)
+    for (const r of out.ranges) {
+      const word = target.slice(r.start, r.end)
+      expect(/^[A-Za-z]+$/.test(word)).toBe(true) // 句読点を含まない（"mat." にならない）
+      expect(content.has(word)).toBe(true)
+    }
+  })
+
+  it('内容語が1語だけの文はその1語をマスクする', () => {
+    const one = { en: 'run', ja: '走る', kana: 'はしる' }
+    const out = buildClozeSentence(one, 'en', { rng: mulberry32(1) })
+    expect(out.ranges).toEqual([{ start: 0, end: 3 }])
+  })
+
+  it('内容語が無い文（機能語のみ）は ranges を空にする', () => {
+    const none = { en: 'the a of', ja: '—', kana: '' }
+    const out = buildClozeSentence(none, 'en', { rng: mulberry32(1) })
+    expect(out.ranges).toEqual([])
+  })
+
+  it('純粋：item を破壊しない', () => {
+    const snapshot = JSON.parse(JSON.stringify(sentB))
+    buildClozeSentence(sentB, 'en', { rng: mulberry32(3) })
+    expect(sentB).toEqual(snapshot)
   })
 })
