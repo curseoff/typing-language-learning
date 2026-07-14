@@ -254,6 +254,71 @@ export function MaskedSentence({ text, ranges, done, hasError = false, reveal = 
   })
 }
 
+export interface MaskedRubySentenceProps {
+  ja: string
+  kana: string
+  ranges: MaskRange[]
+  done: number // この文で打鍵済みの ja char 数（jaDone）
+  kanaDone?: number // 読み(かな)の打鍵済み数（jaKanaDone・ふりがな着色/開示用）
+  hasError?: boolean
+  reveal?: boolean // ミス開示：カーソル位置の語（レンジ）を丸ごと現す
+}
+
+// #402 例文（ja/読みモード）の「文中 1〜3 語伏字」。MaskedSentence のルビ版。
+// 指定レンジ（jaWords 境界の内容語＝item.ja の char レンジ）だけ伏字にし、レンジ外は文脈として常に表示。
+// 本体(漢字/かな)は done 位置まで、ふりがな(rt)は kanaDone 位置まで通過分を現す（RubyTyped と同じ着色）。
+// マスク語はふりがなごと隠す（漢字も rt も '·'）。reveal（ミス）時はカーソルを含む語を丸ごと現し、
+// 通常の RubyTyped と同一の見た目にする（表示方式を変えない）。
+export function MaskedRubySentence({ ja, kana, ranges, done, kanaDone = 0, hasError = false, reveal = false }: MaskedRubySentenceProps) {
+  const inMask = (i: number) => ranges.some((r) => i >= r.start && i < r.end)
+  // ミス時に現す語＝カーソル位置(done)を含むレンジ（無ければ現さない）。
+  const curRange = reveal ? ranges.find((r) => done >= r.start && done < r.end) : undefined
+  const revealed = (i: number) => !!curRange && i >= curRange.start && i < curRange.end
+  // 本体文字（ja char index gi）。MaskedSentence と同一の体裁。
+  const bodyChar = (ch: string, gi: number) => {
+    const typed = gi < done
+    const masked = inMask(gi) && !typed && !revealed(gi)
+    let cls = 'rch'
+    let disp = ch
+    if (typed) {
+      cls += ' rdone'
+    } else if (masked) {
+      cls = gi === done ? `mch ${hasError ? 'mcur err' : 'mcur'}` : 'mch hidden'
+      disp = ch === ' ' ? ' ' : '·'
+    } else if (gi === done && hasError) {
+      cls += ' rerr'
+    }
+    return (
+      <span key={gi} className={cls}>
+        {disp}
+      </span>
+    )
+  }
+  // ふりがな文字（かな index ki）。所属パートが伏字なら（未通過・未開示のかなは）隠す。
+  const rtChar = (rc: string, ki: number, partMasked: boolean) => {
+    const typed = ki < kanaDone
+    if (partMasked && !typed) return <span key={ki} className="mch hidden">·</span>
+    const cls = typed ? 'rdone' : ki === kanaDone && hasError ? 'rerr' : ''
+    return (
+      <span key={ki} className={cls}>
+        {rc}
+      </span>
+    )
+  }
+  return rubyParts(ja, kana).map((p, pi) => {
+    // パートが伏字か（先頭 ja char がマスク内かつ未開示）。語境界＝jaWords 境界なので語単位で一致。
+    const partMasked = inMask(p.from) && !revealed(p.from)
+    return p.ruby ? (
+      <ruby key={pi}>
+        {p.chars.map((ch, j) => bodyChar(ch, p.from + j))}
+        <rt>{[...p.ruby].map((rc, j) => rtChar(rc, p.kanaFrom + j, partMasked))}</rt>
+      </ruby>
+    ) : (
+      <Fragment key={pi}>{p.chars.map((ch, j) => bodyChar(ch, p.from + j))}</Fragment>
+    )
+  })
+}
+
 export interface MaskedRubyProps {
   ja: string
   kana: string

@@ -3,7 +3,7 @@
 // - ticker: 入力位置を一定に保ち1文字ごとに左スクロール（単語モード向け）。
 // - ticker かつ both（英語・日本語）: 英語と和訳を「ペア」で交互に並べる。
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react'
-import { Typed, RubyTyped, RubyText, MaskedText, MaskedRuby, MaskedSentence, type MaskRange } from './Text.presenter'
+import { Typed, RubyTyped, RubyText, MaskedText, MaskedRuby, MaskedSentence, MaskedRubySentence, type MaskRange } from './Text.presenter'
 import { tickerMaskImage } from './tickerMask.util'
 
 export interface FlowItem {
@@ -13,7 +13,7 @@ export interface FlowItem {
   sentenceIndex?: number
   cloze?: boolean // #402 穴埋め対象語（この語の入力側を伏字にする＝単語モード。en/ja 全体を伏字）
   clozeSide?: 'en' | 'ja' // #402 both で伏せる側（en=英語のみ / ja=読みのみ）。未指定は en 扱い
-  clozeRanges?: MaskRange[] // #402 例文/英英の文中伏字（英文 en 内の内容語 char レンジ）
+  clozeRanges?: MaskRange[] // #402 例文/英英の文中伏字（英文 en もしくは和文 ja 内の内容語 char レンジ）
 }
 
 const ANCHOR_RATIO = 0.35 // PairFlow(both) 用：入力位置を画面のこの割合に保つ
@@ -410,7 +410,29 @@ export function Flow({
           active={activeRow === 'ja'}
           render={(it, isCur, isFuture) => (
             <span className="flow-ja">
-              {it.cloze && activeRow === 'ja' && (isCur || isFuture) ? (
+              {it.clozeRanges && activeRow === 'ja' && (isCur || isFuture) ? (
+                // #402 例文（ja/読みモード）の文中伏字：和文の内容語 char レンジだけ伏字（ふりがなごと）。
+                // 通過分は開示、ミス時はその語を通常表示（RubyTyped）と同一に開示。past・非対象は従来表示。
+                it.kana ? (
+                  <MaskedRubySentence
+                    ja={it.ja}
+                    kana={it.kana}
+                    ranges={it.clozeRanges}
+                    done={isCur ? jaDone : 0}
+                    kanaDone={isCur ? jaKanaDone : 0}
+                    hasError={isCur && hasError}
+                    reveal={isCur && clozeRevealed}
+                  />
+                ) : (
+                  <MaskedSentence
+                    text={it.ja}
+                    ranges={it.clozeRanges}
+                    done={isCur ? jaDone : 0}
+                    hasError={isCur && hasError}
+                    reveal={isCur && clozeRevealed}
+                  />
+                )
+              ) : it.cloze && activeRow === 'ja' && (isCur || isFuture) ? (
                 // #402 穴埋め：日本語入力側の cloze 語(現在/これから)は伏字。past・非対象は従来表示。
                 // 開示（ミス）時は通常の現在語表示（RubyTyped/Typed）と同一にする＝表示方式を変えない。
                 isCur && clozeRevealed ? (
