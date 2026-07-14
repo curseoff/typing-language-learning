@@ -6,8 +6,10 @@ import { buildUnits } from './units.service.js'
 // buildUnits を基に、入力対象 seg へ cloze:true と hint（反対側の表示文字列）を付与する。
 //   en   … 英語 seg を伏せ、hint は日本語(ja)
 //   ja   … 読み seg を伏せ、hint は英語(en)
-//   both … 英語 seg(hint=ja)・読み seg(hint=en) の両方を伏せる。ただし kana が無い
-//          （読みが作れない）item では読み seg を作れないので英語 seg のみ返す。
+//   both … clozeSide（既定 'en'）で指定した片側だけを伏せ、hint に反対側を添える。
+//          もう一方は通常表示（cloze/hint を付けない）。読みが作れない（kana 無し）
+//          item では読み seg を作れないので英語 seg のみ返す（clozeSide='ja' でも en を伏せる）。
+//          clozeSide は seed 由来で語ごとに決めて渡す（application 層で選択）。
 //   en-tr/ja-tr … cloze を付けず通常 buildUnits と同等。
 // item は非破壊（seg は新しいオブジェクトに複製して属性を足す）。
 // 照合（variants/canonical）は buildUnits と同一（seg を複製して cloze/hint を足すだけ）。
@@ -20,10 +22,14 @@ export function buildClozeUnits(item, mode, opts = {}) {
   }
   if (mode === 'both') {
     // both は buildUnits を直接呼ばず en/ja に分解（読みが作れない item でクラッシュさせない）。
-    const en = { ...buildUnits(item, 'en', opts)[0], cloze: true, hint: item.ja }
-    if (!item.kana) return [en]
-    const ja = { ...buildUnits(item, 'ja', opts)[0], cloze: true, hint: item.en }
-    return [en, ja]
+    const enBase = { ...buildUnits(item, 'en', opts)[0] }
+    if (!item.kana) return [{ ...enBase, cloze: true, hint: item.ja }]
+    const jaBase = { ...buildUnits(item, 'ja', opts)[0] }
+    // clozeSide の側だけ cloze+hint、反対側は通常 seg（cloze/hint 無し）。既定は 'en'。
+    if (opts.clozeSide === 'ja') {
+      return [enBase, { ...jaBase, cloze: true, hint: item.en }]
+    }
+    return [{ ...enBase, cloze: true, hint: item.ja }, jaBase]
   }
   // 翻訳モード（en-tr/ja-tr）等は通常構造のまま（cloze を付けない）。
   return buildUnits(item, mode, opts)
