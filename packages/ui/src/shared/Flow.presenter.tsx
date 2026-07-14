@@ -3,7 +3,7 @@
 // - ticker: 入力位置を一定に保ち1文字ごとに左スクロール（単語モード向け）。
 // - ticker かつ both（英語・日本語）: 英語と和訳を「ペア」で交互に並べる。
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from 'react'
-import { Typed, RubyTyped, RubyText } from './Text.presenter'
+import { Typed, RubyTyped, RubyText, MaskedText, MaskedRuby, MaskedSentence, MaskedRubySentence, type MaskRange } from './Text.presenter'
 import { tickerMaskImage } from './tickerMask.util'
 
 export interface FlowItem {
@@ -11,6 +11,9 @@ export interface FlowItem {
   ja: string
   kana?: string
   sentenceIndex?: number
+  cloze?: boolean // #402 穴埋め対象語（この語の入力側を伏字にする＝単語モード。en/ja 全体を伏字）
+  clozeSide?: 'en' | 'ja' // #402 both で伏せる側（en=英語のみ / ja=読みのみ）。未指定は en 扱い
+  clozeRanges?: MaskRange[] // #402 例文/英英の文中伏字（英文 en もしくは和文 ja 内の内容語 char レンジ）
 }
 
 const ANCHOR_RATIO = 0.35 // PairFlow(both) 用：入力位置を画面のこの割合に保つ
@@ -146,7 +149,7 @@ interface FlowRowProps {
   items: FlowItem[]
   cur: number
   active: boolean
-  render: (it: FlowItem, isCur: boolean) => ReactNode
+  render: (it: FlowItem, isCur: boolean, isFuture: boolean) => ReactNode
   ticker: boolean
   scroll: RowScroll
 }
@@ -162,7 +165,7 @@ function FlowRow({ tag, tagClass, items, cur, active, render, ticker, scroll }: 
         k === cur && active ? 'typing' : ''
       }`}
     >
-      {render(it, k === cur)}
+      {render(it, k === cur, k > cur)}
     </span>
   ))
   return (
@@ -190,10 +193,12 @@ interface PairFlowProps {
   hasError: boolean
   activeRow: 'en' | 'ja' | null
   frac: number
+  clozeRevealed: boolean
 }
 
 // both(英語・日本語)用：英語と和訳を1つの「ペア」にまとめ、横一列に交互に並べる。
-function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow, frac }: PairFlowProps) {
+// #402 穴埋め：both は語ごとに clozeSide で英語 or 読みの「片側だけ」を伏字にする（両側同時には伏せない）。
+function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow, frac, clozeRevealed }: PairFlowProps) {
   const { trackRef, stripRef, curRef } = useTickerScroll(frac, cur, items.length)
   const renderJa = (it: FlowItem, isCur: boolean) =>
     it.kana ? (
@@ -213,6 +218,28 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
     ) : (
       it.ja
     )
+  // 穴埋め伏字（en/ja）。current は打った分を現し、future は全伏字。revealed で正解を露出。
+  // 開示（ミス）時は通常の現在語表示（Typed/renderJa）と同一の見た目にする＝表示方式を変えない(#402)。
+  const maskEn = (it: FlowItem, isCur: boolean) =>
+    isCur && clozeRevealed ? (
+      <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
+    ) : (
+      <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && activeRow === 'en' && hasError} />
+    )
+  const maskJa = (it: FlowItem, isCur: boolean) => {
+    if (isCur && clozeRevealed) return renderJa(it, true)
+    return it.kana ? (
+      <MaskedRuby
+        ja={it.ja}
+        kana={it.kana}
+        done={isCur ? jaDone : 0}
+        kanaDone={isCur ? jaKanaDone : 0}
+        hasError={isCur && activeRow === 'ja' && hasError}
+      />
+    ) : (
+      <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && activeRow === 'ja' && hasError} />
+    )
+  }
   return (
     <div className="flow ticker pairs">
       <div className="flow-track" ref={trackRef}>
@@ -220,6 +247,13 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
           {items.map((it, k) => {
             const isCur = k === cur
             const state = isCur ? 'current' : k < cur ? 'past' : 'future'
+            // 現在＋これから打つ穴埋め語だけ伏字（past は表示）。片側（clozeSide）のみ伏せる。
+            const clozeHere = !!it.cloze && k >= cur
+            const side = it.clozeSide ?? 'en'
+            const maskEnHere = clozeHere && side === 'en'
+            const maskJaHere = clozeHere && side === 'ja'
+            // 例文/英英の文中伏字（英文の内容語 char レンジ）。現在＋これからのみ。
+            const rangesHere = it.clozeRanges && k >= cur ? it.clozeRanges : null
             return (
               <span
                 key={it.sentenceIndex ?? k}
@@ -227,14 +261,24 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                 className={`flow-pair ${state}`}
               >
                 <span className={`pair-en ${isCur && activeRow === 'en' ? 'typing' : ''}`}>
-                  {isCur ? (
+                  {rangesHere ? (
+                    <MaskedSentence
+                      text={it.en}
+                      ranges={rangesHere}
+                      done={isCur ? enDone : 0}
+                      hasError={isCur && activeRow === 'en' && hasError}
+                      reveal={isCur && clozeRevealed}
+                    />
+                  ) : maskEnHere ? (
+                    maskEn(it, isCur)
+                  ) : isCur ? (
                     <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
                   ) : (
                     it.en
                   )}
                 </span>
                 <span className={`pair-ja ${isCur && activeRow === 'ja' ? 'typing' : ''}`}>
-                  {renderJa(it, isCur)}
+                  {maskJaHere ? maskJa(it, isCur) : renderJa(it, isCur)}
                 </span>
               </span>
             )
@@ -258,6 +302,7 @@ export interface FlowProps {
   wrap?: boolean
   ticker?: boolean
   isBoth?: boolean
+  clozeRevealed?: boolean // #402 現在語(cloze)でミスがあり正解を開示中か
 }
 
 // items=[{en,ja}], cur=現在index, enDone/jaDone=現在文の進捗, jaKanaDone=読み(かな)の進捗, activeRow='en'|'ja'|null
@@ -274,6 +319,7 @@ export function Flow({
   wrap = false,
   ticker = false,
   isBoth = false,
+  clozeRevealed = false,
 }: FlowProps) {
   // 1文字ごとスクロール用の進捗(0..1)。en=入力文字/語長、ja=かな進捗/かな長。
   const current = items[cur]
@@ -310,6 +356,7 @@ export function Flow({
         hasError={hasError}
         activeRow={activeRow}
         frac={pairFrac}
+        clozeRevealed={clozeRevealed}
       />
     )
   }
@@ -325,13 +372,31 @@ export function Flow({
           ticker={ticker}
           scroll={enScroll}
           active={activeRow === 'en'}
-          render={(it, isCur) =>
-            isCur ? (
+          render={(it, isCur, isFuture) => {
+            // #402 例文/英英の文中伏字：英文の内容語 char レンジだけ伏字（現在/これから）。past・非対象は従来表示。
+            if (it.clozeRanges && activeRow === 'en' && (isCur || isFuture)) {
+              return (
+                <MaskedSentence
+                  text={it.en}
+                  ranges={it.clozeRanges}
+                  done={isCur ? enDone : 0}
+                  hasError={isCur && hasError}
+                  reveal={isCur && clozeRevealed}
+                />
+              )
+            }
+            // #402 穴埋め（単語モード）：英語入力側の cloze 語(現在/これから)は語全体を伏字。past・非対象は従来表示。
+            if (it.cloze && activeRow === 'en' && (isCur || isFuture)) {
+              // 開示（ミス）時は通常の現在語表示と同一にする＝表示方式を変えない(#402)。
+              if (isCur && clozeRevealed) return <Typed text={it.en} done={enDone} hasError={hasError} />
+              return <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && hasError} />
+            }
+            return isCur ? (
               <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
             ) : (
               it.en
             )
-          }
+          }}
         />
       )}
       {showJa && (
@@ -343,9 +408,57 @@ export function Flow({
           ticker={ticker}
           scroll={jaScroll}
           active={activeRow === 'ja'}
-          render={(it, isCur) => (
+          render={(it, isCur, isFuture) => (
             <span className="flow-ja">
-              {it.kana ? (
+              {it.clozeRanges && activeRow === 'ja' && (isCur || isFuture) ? (
+                // #402 例文（ja/読みモード）の文中伏字：和文の内容語 char レンジだけ伏字（ふりがなごと）。
+                // 通過分は開示、ミス時はその語を通常表示（RubyTyped）と同一に開示。past・非対象は従来表示。
+                it.kana ? (
+                  <MaskedRubySentence
+                    ja={it.ja}
+                    kana={it.kana}
+                    ranges={it.clozeRanges}
+                    done={isCur ? jaDone : 0}
+                    kanaDone={isCur ? jaKanaDone : 0}
+                    hasError={isCur && hasError}
+                    reveal={isCur && clozeRevealed}
+                  />
+                ) : (
+                  <MaskedSentence
+                    text={it.ja}
+                    ranges={it.clozeRanges}
+                    done={isCur ? jaDone : 0}
+                    hasError={isCur && hasError}
+                    reveal={isCur && clozeRevealed}
+                  />
+                )
+              ) : it.cloze && activeRow === 'ja' && (isCur || isFuture) ? (
+                // #402 穴埋め：日本語入力側の cloze 語(現在/これから)は伏字。past・非対象は従来表示。
+                // 開示（ミス）時は通常の現在語表示（RubyTyped/Typed）と同一にする＝表示方式を変えない。
+                isCur && clozeRevealed ? (
+                  it.kana ? (
+                    <RubyTyped
+                      ja={it.ja}
+                      kana={it.kana}
+                      done={jaDone}
+                      kanaDone={jaKanaDone}
+                      hasError={hasError}
+                    />
+                  ) : (
+                    <Typed text={it.ja} done={jaDone} hasError={hasError} />
+                  )
+                ) : it.kana ? (
+                  <MaskedRuby
+                    ja={it.ja}
+                    kana={it.kana}
+                    done={isCur ? jaDone : 0}
+                    kanaDone={isCur ? jaKanaDone : 0}
+                    hasError={isCur && hasError}
+                  />
+                ) : (
+                  <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && hasError} />
+                )
+              ) : it.kana ? (
                 isCur ? (
                   <RubyTyped
                     ja={it.ja}

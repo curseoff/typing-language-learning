@@ -48,6 +48,7 @@ export interface DictTypeViewProps {
   segIndex: number
   segInput: string
   hasError: boolean
+  clozeRevealed?: boolean // #402 現在問題(cloze)でミスがあり正解を開示中か
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）。TopFlow（ティッカー表示）で描画。
@@ -69,6 +70,7 @@ export function DictTypeView({
   segIndex,
   segInput,
   hasError,
+  clozeRevealed = false,
 }: DictTypeViewProps) {
   return (
     <div className="game">
@@ -92,7 +94,7 @@ export function DictTypeView({
               {wordJa && <span className="seg-word-ja">（{wordJa}）</span>}
             </p>
           )}
-          <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} hasError={hasError} ticker />
+          <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} hasError={hasError} clozeRevealed={clozeRevealed} ticker />
           <p className="hint">
             {hintLead}正しく打つまで次に進めません。
             <kbd>Esc</kbd> で中断。

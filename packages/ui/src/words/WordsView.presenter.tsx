@@ -33,6 +33,7 @@ export interface WordTypeViewProps {
   segIndex: number
   segInput: string
   hasError: boolean
+  clozeRevealed?: boolean // #402 現在語でミスがあり正解を開示中か
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
@@ -51,7 +52,11 @@ export function WordTypeView({
   segIndex,
   segInput,
   hasError,
+  clozeRevealed = false,
 }: WordTypeViewProps) {
+  // #402 穴埋め（cloze）でも通常プレイ画面（ティッカー）のまま。対象語だけを Flow 内で伏字にする。
+  const cur = segments[segIndex] as (TopSeg & { cloze?: boolean }) | undefined
+  const isCloze = !!cur?.cloze
   return (
     <div className="game">
       <PlayMeta levelLabel={levelLabel} sub={metaSub} />
@@ -68,9 +73,18 @@ export function WordTypeView({
             ]}
             progress={progress}
           />
-          <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} hasError={hasError} ticker />
+          <TopFlow
+            segments={segments}
+            segIndex={segIndex}
+            segInput={segInput}
+            hasError={hasError}
+            ticker
+            clozeRevealed={clozeRevealed}
+          />
           <p className="hint">
-            英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。
+            {isCloze
+              ? '伏字（····）の語を入力。もう一方の言語がヒントです。ミスすると正解が現れます。'
+              : '英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。'}{' '}
             <kbd>Esc</kbd> で中断してトップへ。
           </p>
         </>

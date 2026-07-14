@@ -209,12 +209,15 @@ export function parseRoute(appPath) {
     const tail = rest.slice(page.params.length)
     let ecSeg = null
     let range = null
+    let learningMode = null
     for (const s of tail) {
       if (s[0] === 'r') range ??= parseRange(s)
+      else if (s === 'z') learningMode ??= 'cloze' // #402 学習モード（穴埋め）。既定 normal は URL 省略。
       else ecSeg ??= s
     }
     state.endCondition = parseEndCondition(ecSeg)
     if (range != null) state.range = range // 不正 range は付けない（省略時 undefined）
+    if (learningMode != null) state.learningMode = learningMode // 既定 normal は付けない
   } else {
     state.endCondition = parseEndCondition(rest[page.params.length]) // 位置パラメータ直後が ec
   }
@@ -231,6 +234,10 @@ function rawBuild(state) {
   // （ec セグメント→range セグメントの順）。range 無しは出さない。
   if (PAGES[slug].range && Number.isInteger(state.range) && state.range >= 1) {
     parts.push(`r${state.range}`)
+  }
+  // #402 学習モード（穴埋め）は範囲対応ページのみ末尾に 'z'（既定 normal は出さない）。
+  if (PAGES[slug].range && state.learningMode === 'cloze') {
+    parts.push('z')
   }
   return `/${[slug, ...parts].join('/')}`
 }
