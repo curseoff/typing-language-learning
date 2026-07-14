@@ -29,14 +29,38 @@ describe('buildClozeUnits（入力対象 seg を伏字にし、反対側を hint
     expect(segs[0].hint).toContain(item.en)
   })
 
-  it("mode='both'：en/ja 両方の seg が cloze で、各 hint は反対側", () => {
-    const segs = buildClozeUnits(item, 'both')
+  // #402 仕様変更：both は en/ja のうち clozeSide で指定した「片側だけ」を伏字にする。
+  // 反対側は通常表示（cloze フラグ・hint 無し）＝ヒント/コピーとして見せる。
+  it("mode='both' × clozeSide='en'：en seg のみ cloze(hint=ja)、ja seg は非 cloze", () => {
+    const segs = buildClozeUnits(item, 'both', { clozeSide: 'en' })
     expect(segs.map((s) => s.type)).toEqual(['en', 'ja'])
-    expect(segs.every((s) => s.cloze === true)).toBe(true)
     const en = segs.find((s) => s.type === 'en')
     const ja = segs.find((s) => s.type === 'ja')
+    expect(en.cloze).toBe(true)
     expect(en.hint).toContain(item.ja) // 英語入力の hint は日本語
+    expect(ja.cloze).not.toBe(true) // 反対側（読み）は伏せない
+    expect(ja.hint).toBeUndefined() // 通常表示なので hint も付けない
+  })
+
+  it("mode='both' × clozeSide='ja'：ja seg のみ cloze(hint=en)、en seg は非 cloze", () => {
+    const segs = buildClozeUnits(item, 'both', { clozeSide: 'ja' })
+    expect(segs.map((s) => s.type)).toEqual(['en', 'ja'])
+    const en = segs.find((s) => s.type === 'en')
+    const ja = segs.find((s) => s.type === 'ja')
+    expect(ja.cloze).toBe(true)
     expect(ja.hint).toContain(item.en) // 日本語入力の hint は英語
+    expect(en.cloze).not.toBe(true) // 反対側（英語）は伏せない
+    expect(en.hint).toBeUndefined()
+  })
+
+  it("mode='both' × clozeSide 省略：既定側（en）だけ cloze、他方は非 cloze で決定的", () => {
+    const segs = buildClozeUnits(item, 'both')
+    expect(segs.map((s) => s.type)).toEqual(['en', 'ja'])
+    const en = segs.find((s) => s.type === 'en')
+    const ja = segs.find((s) => s.type === 'ja')
+    expect(en.cloze).toBe(true) // 既定は en 側を伏せる
+    expect(en.hint).toContain(item.ja)
+    expect(ja.cloze).not.toBe(true)
   })
 
   it('照合互換：cloze seg でも segMatches は通常 buildUnits と同じ正誤を返す', () => {
