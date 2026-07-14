@@ -10,6 +10,7 @@ export interface TopSeg {
   en: string
   kana?: string
   sentenceIndex: number
+  cloze?: boolean // #402 穴埋め対象語（入力側を伏字にする）
 }
 
 export interface TopFlowProps {
@@ -18,6 +19,7 @@ export interface TopFlowProps {
   segInput: string
   hasError?: boolean
   ticker?: boolean
+  clozeRevealed?: boolean // #402 現在語(cloze)でミスがあり正解を開示中か
 }
 
 export default function TopFlow({
@@ -26,6 +28,7 @@ export default function TopFlow({
   segInput,
   hasError = false,
   ticker = false,
+  clozeRevealed = false,
 }: TopFlowProps) {
   // 文ごとに1件(sentenceIndex で集約)
   const sentences = useMemo(() => {
@@ -80,6 +83,7 @@ export default function TopFlow({
       wrap={!ticker}
       ticker={ticker}
       isBoth={isBoth}
+      clozeRevealed={clozeRevealed}
     />
   )
 }

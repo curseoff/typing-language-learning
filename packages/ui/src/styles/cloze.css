@@ -1,41 +1,8 @@
-/* 穴埋め学習モードのカード（#402）。翻訳モード（translate.css の MaskedText）と同系の伏字表示。 */
-.word-cloze {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 1.5rem 0;
-  padding: 1.5rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-}
+/* 穴埋め学習モード（#402）。通常プレイ画面（Flow ティッカー）内で対象語だけを伏字にし、
+   ミスした語は正解を開示（cloze-reveal）する。伏字自体は text.css の .mch 系を再利用。 */
 
-.cloze-hint-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  color: var(--muted, #8a93a6);
-}
-
-.cloze-hint {
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 600;
-  text-align: center;
-}
-
-.cloze-answer {
-  font-size: 2rem;
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  letter-spacing: 0.04em;
-  min-height: 2.4rem;
-}
-
-.cloze-answer.revealed {
+/* ミスで開示した正解語（伏字を解いてアクセント色で見せる）。 */
+.cloze-reveal {
   color: var(--accent, #4da3ff);
-  font-family: inherit;
-}
-
-.cloze-answer.error {
-  color: var(--danger, #ff6b6b);
+  font-weight: 600;
 }

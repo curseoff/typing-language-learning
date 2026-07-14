@@ -211,6 +211,56 @@ export function MaskedText({ text, pos, hasError }: MaskedTextProps) {
   })
 }
 
+export interface MaskedRubyProps {
+  ja: string
+  kana: string
+  done: number
+  kanaDone?: number
+  hasError?: boolean
+}
+
+// ルビ付きの伏せ字（#402 穴埋めをフロー内で in-place 表示）。MaskedText と同じ mch 体裁で、
+// 本体(漢字/かな)は done 位置までを現し、ふりがな(rt)は kanaDone 位置までを現す。
+// done=0/kanaDone=0 なら全て伏字（future 語向け）。hasError で今打つ本体文字をカーソル赤に。
+export function MaskedRuby({ ja, kana, done, kanaDone = 0, hasError = false }: MaskedRubyProps) {
+  const bodyChar = (ch: string, gi: number) => {
+    const typed = gi < done
+    const isCursor = gi === done
+    let cls = 'mch'
+    let disp: string
+    if (typed) {
+      cls += ' typed'
+      disp = ch
+    } else {
+      cls += isCursor ? (hasError ? ' mcur err' : ' mcur') : ' hidden'
+      disp = ch === ' ' ? ' ' : '·'
+    }
+    return (
+      <span key={gi} className={cls}>
+        {disp}
+      </span>
+    )
+  }
+  const rtChar = (rc: string, ki: number) => {
+    const typed = ki < kanaDone
+    return (
+      <span key={ki} className={`mch ${typed ? 'typed' : 'hidden'}`}>
+        {typed ? rc : '·'}
+      </span>
+    )
+  }
+  return rubyParts(ja, kana).map((p, pi) =>
+    p.ruby ? (
+      <ruby key={pi}>
+        {p.chars.map((ch, j) => bodyChar(ch, p.from + j))}
+        <rt>{[...p.ruby].map((rc, j) => rtChar(rc, p.kanaFrom + j))}</rt>
+      </ruby>
+    ) : (
+      <Fragment key={pi}>{p.chars.map((ch, j) => bodyChar(ch, p.from + j))}</Fragment>
+    ),
+  )
+}
+
 export interface Chip {
   text: string
   i: number

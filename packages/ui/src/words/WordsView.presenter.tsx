@@ -2,9 +2,8 @@
 // それぞれ描くだけ。useWords/useWordQuiz の state・ハンドラと、container が算出した HUD 値・
 // 記録ノード（resultNode）を props で受ける。フック・content・application には依存しない。
 import type { ReactNode } from 'react'
-import { guideText } from '@tll/core'
 import { StatsRow } from '../shared/Stats.presenter'
-import { RubyText, MaskedText } from '../shared/Text.presenter'
+import { RubyText } from '../shared/Text.presenter'
 import OptionJa from '../shared/OptionJa.presenter'
 import QuizOptionLabel from '../shared/QuizOptionLabel.presenter'
 import TopFlow, { type TopSeg } from '../marathon/TopFlow.presenter'
@@ -15,50 +14,6 @@ function PlayMeta({ levelLabel, sub }: { levelLabel: string; sub: string }) {
     <div className="play-meta">
       <span className="meta-badge rank">{levelLabel}</span>
       <span className="meta-badge mode">{sub}</span>
-    </div>
-  )
-}
-
-// #402 穴埋め用のセグメント。TopSeg に伏字（cloze）とヒント（反対側の言語）を足す。
-export interface ClozeSeg extends TopSeg {
-  cloze?: boolean
-  hint?: string
-  variants: string[]
-  canonical: string
-}
-
-// 穴埋めカード（#402）：反対側の言語をヒントに、入力対象を ____ で伏せて打つと現れる。
-// ミスで正解を開示（revealed）＝伏字を解いてそのまま答えを見せる。
-function ClozeCard({
-  seg,
-  segInput,
-  hasError,
-  revealed,
-}: {
-  seg: ClozeSeg
-  segInput: string
-  hasError: boolean
-  revealed: boolean
-}) {
-  const isJa = seg.type === 'ja'
-  const target = guideText(seg, segInput) // 打つべき文字列（英字 or ローマ字）
-  return (
-    <div className="word-cloze">
-      <div className="cloze-hint-label">ヒント</div>
-      <p className="cloze-hint">
-        {seg.hint ?? (isJa ? seg.en : <RubyText ja={seg.ja} kana={seg.kana ?? ''} />)}
-      </p>
-      <div className={`cloze-answer ${hasError ? 'error' : ''} ${revealed ? 'revealed' : ''}`}>
-        {revealed ? (
-          isJa ? (
-            <RubyText ja={seg.ja} kana={seg.kana ?? ''} />
-          ) : (
-            seg.en
-          )
-        ) : (
-          <MaskedText text={target} pos={segInput.length} hasError={hasError} />
-        )}
-      </div>
     </div>
   )
 }
@@ -99,8 +54,8 @@ export function WordTypeView({
   hasError,
   clozeRevealed = false,
 }: WordTypeViewProps) {
-  // #402 現在語が穴埋め（cloze）ならティッカーの代わりに穴埋めカードを出す（答えを露出しない）。
-  const cur = segments[segIndex] as ClozeSeg | undefined
+  // #402 穴埋め（cloze）でも通常プレイ画面（ティッカー）のまま。対象語だけを Flow 内で伏字にする。
+  const cur = segments[segIndex] as (TopSeg & { cloze?: boolean }) | undefined
   const isCloze = !!cur?.cloze
   return (
     <div className="game">
@@ -118,14 +73,17 @@ export function WordTypeView({
             ]}
             progress={progress}
           />
-          {isCloze && cur ? (
-            <ClozeCard seg={cur} segInput={segInput} hasError={hasError} revealed={clozeRevealed} />
-          ) : (
-            <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} hasError={hasError} ticker />
-          )}
+          <TopFlow
+            segments={segments}
+            segIndex={segIndex}
+            segInput={segInput}
+            hasError={hasError}
+            ticker
+            clozeRevealed={clozeRevealed}
+          />
           <p className="hint">
             {isCloze
-              ? 'ヒント（反対の言語）を見て伏字（____）を入力。ミスすると正解が現れます。'
+              ? '伏字（····）の語を入力。もう一方の言語がヒントです。ミスすると正解が現れます。'
               : '英単語はそのまま、和文はローマ字で（shi/si など自由）。正しく打つまで次に進めません。'}{' '}
             <kbd>Esc</kbd> で中断してトップへ。
           </p>
