@@ -46,8 +46,9 @@ function fnv1a(str) {
 // 定義文（item.en＝def）ごとに決定的な mask 用 rng を返す。seed と文キーを混ぜて再現可能にする。
 const maskRngFactory = (seed) => (item) => mulberry32((fnv1a(item.en) ^ (seed >>> 0)) >>> 0)
 
-// dict エントリを buildPassage の pool 形式 {word, en, ja, kana} に整える。
-const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana })
+// dict エントリを buildPassage の pool 形式 {word, en, ja, kana, jaWords} に整える。
+// jaWords は日本語モードの穴埋め（buildClozeSentence(item,'ja')）で1〜3語を伏字にするのに使う。
+const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana, jaWords: e.jaWords })
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
 function dictPool(dict, level, theme) {

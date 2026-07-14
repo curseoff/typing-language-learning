@@ -22,7 +22,7 @@ db.exec(`
   PRAGMA journal_mode = OFF;
   CREATE TABLE words(en TEXT PRIMARY KEY, ja TEXT NOT NULL, kana TEXT NOT NULL, freq INTEGER, level INTEGER NOT NULL, theme TEXT);
   CREATE INDEX idx_words_level_theme ON words(level, theme);
-  CREATE TABLE dict(word TEXT PRIMARY KEY, def TEXT NOT NULL, ja TEXT NOT NULL, kana TEXT NOT NULL, level INTEGER NOT NULL, theme TEXT);
+  CREATE TABLE dict(word TEXT PRIMARY KEY, def TEXT NOT NULL, ja TEXT NOT NULL, kana TEXT NOT NULL, level INTEGER NOT NULL, theme TEXT, jaWords TEXT NOT NULL);
   CREATE INDEX idx_dict_level_theme ON dict(level, theme);
   CREATE TABLE sentences(word TEXT PRIMARY KEY, level INTEGER NOT NULL, en TEXT NOT NULL, ja TEXT NOT NULL, kana TEXT NOT NULL, jaWords TEXT NOT NULL);
   CREATE INDEX idx_sentences_level ON sentences(level);
@@ -54,9 +54,9 @@ const nWords = bulkInsert(
   (w) => [w.en, w.ja, w.kana, w.freq ?? null, w.level, w.theme ?? null],
 )
 const nDict = bulkInsert(
-  'INSERT INTO dict(word, def, ja, kana, level, theme) VALUES(?,?,?,?,?,?)',
+  'INSERT INTO dict(word, def, ja, kana, level, theme, jaWords) VALUES(?,?,?,?,?,?,?)',
   readNdjson(u('../content/dict.ndjson')),
-  (d) => [d.word, d.def, d.ja, d.kana, d.level, d.theme ?? null],
+  (d) => [d.word, d.def, d.ja, d.kana, d.level, d.theme ?? null, JSON.stringify(d.jaWords)],
 )
 const nSent = bulkInsert(
   'INSERT INTO sentences(word, level, en, ja, kana, jaWords) VALUES(?,?,?,?,?,?)',
