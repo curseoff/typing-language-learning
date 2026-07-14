@@ -315,3 +315,120 @@ describe('buildClozeSentence（打鍵対象の英文から内容語 1〜3 語を
     expect(sentB).toEqual(snapshot)
   })
 })
+
+// #402 ja（読み）モードの文中マスク拡張。en では item.en を対象にするが、ja では和文（item.ja）を
+// 表示対象にし、語分割ソースは item.jaWords（文字列配列。連結すると item.ja を末尾句読点を除いて再構成）。
+// 打鍵照合は不変（読みを打つ）＝ranges は表示マスク用メタ。実データ形は wordSentences（L*.js）/stories に準拠：
+//   { en, word, ja, kana, jaWords: ['私','は','毎朝','水','を','飲み','ます'] } のように jaWords は string[]。
+describe('buildClozeSentence（ja モード：和文 item.ja の内容語を jaWords 境界で char マスクする）', () => {
+  // 内容語候補＝私 / 毎朝 / 水 / 飲み（は・を は助詞で除外・末尾「。」も除外）。ます は補助的なので不問。
+  const jaA = {
+    en: 'I drink water every morning.',
+    ja: '私は毎朝水を飲みます。',
+    kana: 'わたしはまいあさみずをのみます。',
+    jaWords: ['私', 'は', '毎朝', '水', 'を', '飲み', 'ます'],
+  }
+  // 内容語候補＝彼女 / 良い / 友達（は・です を除外）。
+  const jaB = {
+    en: 'She is a good friend.',
+    ja: '彼女は良い友達です。',
+    kana: 'かのじょはよいともだちです。',
+    jaWords: ['彼女', 'は', '良い', '友達', 'です'],
+  }
+
+  const PARTICLES = new Set(['は', 'を', 'が', 'に', 'の'])
+  const inBounds = (r, target) => r.start >= 0 && r.end <= target.length && r.end > r.start
+
+  it('target は表示する和文（item.ja）と一致する', () => {
+    const out = buildClozeSentence(jaA, 'ja', { rng: mulberry32(1) })
+    expect(out.target).toBe(jaA.ja)
+  })
+
+  it('ranges は既定（min=1,max=3）で 1〜3 個に収まる', () => {
+    for (const seed of [1, 2, 3, 42]) {
+      const out = buildClozeSentence(jaA, 'ja', { rng: mulberry32(seed) })
+      expect(out.ranges.length).toBeGreaterThanOrEqual(1)
+      expect(out.ranges.length).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('決定的：同じ item・同じ rng seed なら同じ ranges', () => {
+    const a = buildClozeSentence(jaA, 'ja', { rng: mulberry32(9) })
+    const b = buildClozeSentence(jaA, 'ja', { rng: mulberry32(9) })
+    expect(a.ranges).toEqual(b.ranges)
+  })
+
+  it('min===max のとき、ちょうどその数の語をマスクする', () => {
+    const out3 = buildClozeSentence(jaA, 'ja', { rng: mulberry32(2), min: 3, max: 3 })
+    expect(out3.ranges).toHaveLength(3)
+    const out1 = buildClozeSentence(jaA, 'ja', { rng: mulberry32(2), min: 1, max: 1 })
+    expect(out1.ranges).toHaveLength(1)
+  })
+
+  it('各 range は jaWords の語境界に一致し、その語ちょうどを覆う（語の途中で切れない・end 排他・target 長内）', () => {
+    const target = jaA.ja
+    const words = new Set(jaA.jaWords)
+    const out = buildClozeSentence(jaA, 'ja', { rng: mulberry32(7), min: 3, max: 3 })
+    expect(out.ranges).toHaveLength(3)
+    for (const r of out.ranges) {
+      expect(inBounds(r, target)).toBe(true)
+      const w = target.slice(r.start, r.end)
+      expect(words.has(w)).toBe(true) // jaWords のいずれかの語ちょうど（境界一致）
+    }
+  })
+
+  it('ranges は昇順（非重複・start が単調増加）で返る', () => {
+    const out = buildClozeSentence(jaA, 'ja', { rng: mulberry32(7), min: 3, max: 3 })
+    for (let i = 1; i < out.ranges.length; i++) {
+      expect(out.ranges[i].start).toBeGreaterThanOrEqual(out.ranges[i - 1].end)
+    }
+  })
+
+  it('助詞・句読点はマスクしない（は/を/が/に/の と「。」を覆わない）', () => {
+    const target = jaA.ja
+    for (const seed of [1, 2, 3, 5, 7, 42]) {
+      const out = buildClozeSentence(jaA, 'ja', { rng: mulberry32(seed) })
+      for (const r of out.ranges) {
+        const w = target.slice(r.start, r.end)
+        expect(PARTICLES.has(w)).toBe(false) // 助詞は伏せない
+        expect(/[。、！？]/.test(w)).toBe(false) // 句読点を含まない
+      }
+    }
+  })
+
+  it('別の和文でも内容語のみを jaWords 境界で覆う', () => {
+    const target = jaB.ja
+    const words = new Set(jaB.jaWords)
+    const out = buildClozeSentence(jaB, 'ja', { rng: mulberry32(5), min: 2, max: 2 })
+    expect(out.ranges).toHaveLength(2)
+    for (const r of out.ranges) {
+      const w = target.slice(r.start, r.end)
+      expect(words.has(w)).toBe(true)
+      expect(PARTICLES.has(w)).toBe(false)
+    }
+  })
+
+  it('jaWords が無い item（dict 等）では ranges を空にする', () => {
+    const noWords = { en: 'run', ja: '走る', kana: 'はしる' } // jaWords 無し
+    const out = buildClozeSentence(noWords, 'ja', { rng: mulberry32(1) })
+    expect(out.target).toBe(noWords.ja)
+    expect(out.ranges).toEqual([])
+  })
+
+  it('jaWords が空配列でも ranges を空にする', () => {
+    const emptyWords = { en: 'run', ja: '走る', kana: 'はしる', jaWords: [] }
+    const out = buildClozeSentence(emptyWords, 'ja', { rng: mulberry32(1) })
+    expect(out.ranges).toEqual([])
+  })
+
+  it('純粋：item を破壊しない（jaWords も含め）', () => {
+    const snapshot = JSON.parse(JSON.stringify(jaA))
+    buildClozeSentence(jaA, 'ja', { rng: mulberry32(3) })
+    expect(jaA).toEqual(snapshot)
+  })
+
+  it('回帰：en モードは従来どおり item.en を対象にする（ja 拡張で壊さない）', () => {
+    const out = buildClozeSentence(jaA, 'en', { rng: mulberry32(1) })
+    expect(out.target).toBe(jaA.en) // ja 拡張後も en は英文のまま
+  })
+})
