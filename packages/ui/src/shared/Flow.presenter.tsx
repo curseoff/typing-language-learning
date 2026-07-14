@@ -217,15 +217,15 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
       it.ja
     )
   // 穴埋め伏字（en/ja）。current は打った分を現し、future は全伏字。revealed で正解を露出。
+  // 開示（ミス）時は通常の現在語表示（Typed/renderJa）と同一の見た目にする＝表示方式を変えない(#402)。
   const maskEn = (it: FlowItem, isCur: boolean) =>
     isCur && clozeRevealed ? (
-      <span className="cloze-reveal">{it.en}</span>
+      <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
     ) : (
       <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && activeRow === 'en' && hasError} />
     )
   const maskJa = (it: FlowItem, isCur: boolean) => {
-    if (isCur && clozeRevealed)
-      return it.kana ? <RubyText ja={it.ja} kana={it.kana} /> : <span className="cloze-reveal">{it.ja}</span>
+    if (isCur && clozeRevealed) return renderJa(it, true)
     return it.kana ? (
       <MaskedRuby
         ja={it.ja}
@@ -359,7 +359,8 @@ export function Flow({
           render={(it, isCur, isFuture) => {
             // #402 穴埋め：英語入力側の cloze 語(現在/これから)は伏字。past・非対象は従来表示。
             if (it.cloze && activeRow === 'en' && (isCur || isFuture)) {
-              if (isCur && clozeRevealed) return <span className="cloze-reveal">{it.en}</span>
+              // 開示（ミス）時は通常の現在語表示と同一にする＝表示方式を変えない(#402)。
+              if (isCur && clozeRevealed) return <Typed text={it.en} done={enDone} hasError={hasError} />
               return <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && hasError} />
             }
             return isCur ? (
@@ -383,11 +384,18 @@ export function Flow({
             <span className="flow-ja">
               {it.cloze && activeRow === 'ja' && (isCur || isFuture) ? (
                 // #402 穴埋め：日本語入力側の cloze 語(現在/これから)は伏字。past・非対象は従来表示。
+                // 開示（ミス）時は通常の現在語表示（RubyTyped/Typed）と同一にする＝表示方式を変えない。
                 isCur && clozeRevealed ? (
                   it.kana ? (
-                    <RubyText ja={it.ja} kana={it.kana} />
+                    <RubyTyped
+                      ja={it.ja}
+                      kana={it.kana}
+                      done={jaDone}
+                      kanaDone={jaKanaDone}
+                      hasError={hasError}
+                    />
                   ) : (
-                    <span className="cloze-reveal">{it.ja}</span>
+                    <Typed text={it.ja} done={jaDone} hasError={hasError} />
                   )
                 ) : it.kana ? (
                   <MaskedRuby
