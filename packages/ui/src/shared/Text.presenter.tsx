@@ -211,6 +211,49 @@ export function MaskedText({ text, pos, hasError }: MaskedTextProps) {
   })
 }
 
+export interface MaskRange {
+  start: number
+  end: number
+}
+
+export interface MaskedSentenceProps {
+  text: string
+  ranges: MaskRange[]
+  done: number // この文で打鍵済みの char 数（enDone）
+  hasError?: boolean
+  reveal?: boolean // ミス開示：カーソル位置の語（レンジ）を丸ごと現す
+}
+
+// #402 例文/英英の「文中 1〜3 語伏字」。指定レンジ（内容語）だけ伏字にし、レンジ外は常に表示（文脈）。
+// レンジ内は打鍵で通過した分（i<done）＝表示、未通過＝'·'。カーソル位置(i===done)は今打つ位置。
+// reveal（ミス）時はカーソルを含む語を丸ごと現す＝通常の打鍵表示と同一の見た目（表示方式を変えない）。
+export function MaskedSentence({ text, ranges, done, hasError = false, reveal = false }: MaskedSentenceProps) {
+  const inMask = (i: number) => ranges.some((r) => i >= r.start && i < r.end)
+  // ミス時に現す語＝カーソル位置(done)を含むレンジ（無ければ現さない）。
+  const curRange = reveal ? ranges.find((r) => done >= r.start && done < r.end) : undefined
+  const revealed = (i: number) => !!curRange && i >= curRange.start && i < curRange.end
+  return [...text].map((ch, i) => {
+    const typed = i < done
+    const masked = inMask(i) && !typed && !revealed(i)
+    let cls = 'rch'
+    let disp = ch
+    if (typed) {
+      cls += ' rdone' // 打った分は緑（Typed と同一）
+    } else if (masked) {
+      // 伏字：カーソル位置は今打つ位置(mcur)、それ以外は hidden（'·'）。
+      cls = i === done ? `mch ${hasError ? 'mcur err' : 'mcur'}` : 'mch hidden'
+      disp = ch === ' ' ? ' ' : '·'
+    } else if (i === done && hasError) {
+      cls += ' rerr' // 文脈文字の今打つ位置でミス
+    }
+    return (
+      <span key={i} className={cls}>
+        {disp}
+      </span>
+    )
+  })
+}
+
 export interface MaskedRubyProps {
   ja: string
   kana: string

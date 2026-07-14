@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '@tll/core'
 import { Flow } from '../shared/Flow.presenter'
+import type { MaskRange } from '../shared/Text.presenter'
 
 export interface TopSeg {
   type: 'ja' | 'en'
@@ -10,7 +11,8 @@ export interface TopSeg {
   en: string
   kana?: string
   sentenceIndex: number
-  cloze?: boolean // #402 穴埋め対象語（入力側を伏字にする）
+  cloze?: boolean // #402 穴埋め対象語（入力側を伏字にする＝単語モード）
+  clozeRanges?: MaskRange[] // #402 例文/英英の文中伏字（英文 en 内の内容語 char レンジ）
 }
 
 export interface TopFlowProps {
@@ -36,11 +38,12 @@ export default function TopFlow({
     const map = new Map<number, TopSeg & { clozeSide?: 'en' | 'ja' }>()
     for (const s of segments) {
       if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, { ...s })
+      const rep = map.get(s.sentenceIndex)!
       if (s.cloze) {
-        const rep = map.get(s.sentenceIndex)!
         rep.cloze = true
         rep.clozeSide = s.type // cloze が付いた側（en=英語のみ / ja=読みのみ）を伏せる
       }
+      if (s.clozeRanges) rep.clozeRanges = s.clozeRanges // 例文/英英の文中伏字（英文 en）
     }
     return [...map.values()]
   }, [segments])
