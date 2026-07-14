@@ -15,11 +15,9 @@ export interface FlowItem {
 
 const ANCHOR_RATIO = 0.35 // PairFlow(both) 用：入力位置を画面のこの割合に保つ
 const CURSOR_MARGIN = 24 // 末尾カーソルを右端からこの px 内に必ず見せる（末尾優先クランプ用）
-// 乗り換え(文A→B)の大移動を「距離比例の一定速度アニメ」にするためのパラメータ（#394）。
-// 固定 duration だと1文ぶんの大移動が一瞬＝ワープに見える。移動距離÷速度で時間を決め等速グライドにする。
-const GLIDE_VELOCITY = 850 // px/s（乗換が速すぎずワープに見えない速さ・実機微調整前提）
-const GLIDE_MIN_DUR = 0.06 // s（打鍵中の小移動は短く即応）
-const GLIDE_MAX_DUR = 0.35 // s（大きい乗換でも間延びしすぎない上限）
+// 打鍵ごとに transform を離散更新する（時間ベースのグライドは使わない）。
+// ごく短い固定トランジションで1打ぶんの移動を軽く均すだけ（0＝完全離散〜0.06s 目安・実機微調整前提）。
+const STEP_TRANSITION_SEC = 0.05
 
 // PairFlow(both モード)用：入力位置(offsetLeft + 幅×frac)を ANCHOR に保つよう transform を ref で直接更新（1文字ごと左スクロール）。
 // あわせて右端フェードを「語境界」にスナップし、収まる語はくっきり／はみ出す語だけをゴースト化する（#108）。
@@ -61,6 +59,7 @@ interface RowMeasure {
   strip: HTMLDivElement
   track: HTMLDivElement
   off: number // 現在文(現在語)の offsetLeft
+  prevOff: number | null // 前文(前語)の offsetLeft（cur=0 では null）
   width: number // 現在文の offsetWidth
   tw: number // track の可視幅
 }
@@ -70,21 +69,22 @@ function measureRow(r: RowScroll): RowMeasure | null {
   const word = r.curRef.current
   const track = r.trackRef.current
   if (!strip || !word || !track) return null
-  return { strip, track, off: word.offsetLeft, width: word.offsetWidth, tw: track.clientWidth }
+  const prevEl = word.previousElementSibling as HTMLElement | null
+  return {
+    strip,
+    track,
+    off: word.offsetLeft,
+    prevOff: prevEl ? prevEl.offsetLeft : null,
+    width: word.offsetWidth,
+    tw: track.clientWidth,
+  }
 }
 
 // 決まった shift を strip へ適用し、右端フェード(語境界スナップ)を再計算する。
-// prevRef に前回 shift を保持し、移動距離に比例した transition-duration（等速グライド）を毎回設定する。
-// transition-property/timing-function は CSS(.flow-strip: transform linear)のまま、duration だけ inline で上書き。
-function applyRow(m: RowMeasure, shift: number, cur: number, prevRef: { current: number | null }) {
-  const prev = prevRef.current
-  // 初回(prev=null)は 0s で即置（translateX 未設定からのアニメを避ける）。以降は距離÷速度でクランプ。
-  const dur =
-    prev == null
-      ? 0
-      : Math.min(GLIDE_MAX_DUR, Math.max(GLIDE_MIN_DUR, Math.abs(shift - prev) / GLIDE_VELOCITY))
-  prevRef.current = shift
-  m.strip.style.transitionDuration = `${dur}s`
+// 動きは transform の値そのものを打鍵ごとに離散更新。トランジションはごく短い固定のみ（グライドは使わない）。
+// transition-property/timing-function は CSS(.flow-strip: transform linear)のまま、duration だけ inline で短く上書き。
+function applyRow(m: RowMeasure, shift: number, cur: number) {
+  m.strip.style.transitionDuration = `${STEP_TRANSITION_SEC}s`
   m.strip.style.transform = `translateX(${shift}px)`
   const boxes = Array.from(m.strip.children).map((c) => ({
     left: (c as HTMLElement).offsetLeft + shift,
@@ -97,11 +97,14 @@ function applyRow(m: RowMeasure, shift: number, cur: number, prevRef: { current:
 }
 
 // 単一言語モード(FlowRow×2)の左スクロールを2行まとめて同期する（#394）。
-// - 現在文の先頭を左端(x=0)にピン留め（shiftPin = −offsetLeft）＝開始時の左空白なし・収まる文は左端固定で全文表示。
-// - カーソル(off + width*cursorFrac)が右端手前(tw − margin)を越える長文だけ、末尾優先で左送り
-//   （shiftCursor = (tw − margin) − (off + width*cursorFrac)）。shift = min(shiftPin, shiftCursor)＝より左を採用。
-// - 英日同期：アクティブ行の実効先頭 x(= off_active + shift_active)を参考行にも共有（両行 abs スクリーン x 一致）。日本語入力時は対称。
-// - 乗り換えの大移動は applyRow が距離比例の等速グライド duration で滑らせる（ワープ回避）。
+// 位置を (現在文 cur, 進捗 frac) の連続関数にし、境界で飛ばず・打鍵ごとに必要幅だけ動かす。
+// - shift(cur, frac) = −L_cur + prevAdvance·(1 − frac)。L_cur=現在文 offsetLeft, prevAdvance=L_cur−L_{cur-1}(前文の幅+gap)。
+//   frac=1 → shift=−L_cur（現在文の先頭が左端＝全文表示）。cur+1 の frac=0 → shift=−L_cur（前文終端と一致＝境界で飛ばない）。
+//   1打ぶんの移動 = prevAdvance / len_cur（乗換の大移動が現在文の打鍵に分散して入ってくる）。
+//   cur=0 は prevAdvance=0 → shift=−L_0=0（左端固定・開始空白なし）。
+// - クランプ：prevAdvance は tw−CURSOR_MARGIN で上限（次文が画面右外始まりにならない）。
+//   長文は末尾優先：カーソル(off+width·frac)が右端−margin を越えないよう shift を下限クランプ（shiftCursor）。
+// - 英日同期：アクティブ行の実効先頭 x(= L_cur + shift)を参考行にも共有（両行 abs スクリーン x 一致）。日本語入力時は対称。
 function useSingleLangTicker(activeRow: 'en' | 'ja' | null, cursorFrac: number, cur: number, len: number) {
   const en: RowScroll = {
     trackRef: useRef<HTMLDivElement>(null),
@@ -113,25 +116,26 @@ function useSingleLangTicker(activeRow: 'en' | 'ja' | null, cursorFrac: number, 
     stripRef: useRef<HTMLDivElement>(null),
     curRef: useRef<HTMLSpanElement>(null),
   }
-  const enPrev = useRef<number | null>(null) // 前回 shift（グライド duration 計算用）
-  const jaPrev = useRef<number | null>(null)
   useLayoutEffect(() => {
     const mEn = measureRow(en)
     const mJa = measureRow(ja)
     const any = mEn ?? mJa
     if (!any) return // ticker 以外(wrap)や計測前は strip 未描画で何もしない
     const active = activeRow === 'en' ? mEn : activeRow === 'ja' ? mJa : null
-    // 左端ピン ＋ 末尾優先カーソルクランプ。より左（より負）の shift を採用。
-    let effStartX = 0 // 実効の文頭 view-x（両行で共有）＝既定は左端(0)ピン
+    let effStartX = 0 // 実効の文頭 view-x（両行で共有）＝既定は左端(0)
     if (active) {
-      const shiftPin = -active.off // 現在文の先頭を x=0 へ
+      // 前文からの前進量。frac=0 で先頭が画面右外へ出ないよう上限クランプ（次文は右端付近から入る）。
+      const prevAdvRaw = active.prevOff == null ? 0 : active.off - active.prevOff
+      const prevAdv = Math.min(prevAdvRaw, active.tw - CURSOR_MARGIN)
+      const baseShift = -active.off + prevAdv * (1 - cursorFrac) // 連続位置関数
+      // 末尾優先：長文はカーソルを右端−margin 内に保つよう下限（より左）へ寄せる。
       const shiftCursor = active.tw - CURSOR_MARGIN - (active.off + active.width * cursorFrac)
-      const shift = Math.min(shiftPin, shiftCursor)
+      const shift = Math.min(baseShift, shiftCursor)
       effStartX = shift + active.off
     }
-    if (mEn) applyRow(mEn, effStartX - mEn.off, cur, enPrev)
-    if (mJa) applyRow(mJa, effStartX - mJa.off, cur, jaPrev)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref 束(en/ja/prev)は不変。計測トリガは cursorFrac/cur/len で十分。
+    if (mEn) applyRow(mEn, effStartX - mEn.off, cur)
+    if (mJa) applyRow(mJa, effStartX - mJa.off, cur)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref 束(en/ja)は不変。計測トリガは cursorFrac/cur/len で十分。
   }, [activeRow, cursorFrac, cur, len])
   return { en, ja }
 }
