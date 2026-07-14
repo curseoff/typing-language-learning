@@ -7,10 +7,20 @@ import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
+import { itemsTargetFor } from '../../domain/session/learningSequence.service.js'
+import { makeEndCondition } from '../../domain/session/endCondition.vo.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
-export default function WordsView({ words, level, theme, mode, seed, range, levelLabel, modeLabel, endCondition, onExit }) {
+// #402 cloze かつ問題数制のとき、HUD の分母（実効目標）を2倍にする（finish 側 useWords と一致）。
+function hudEndFor(endCondition, learningMode) {
+  if (learningMode === 'cloze' && endCondition?.kind === 'items') {
+    return makeEndCondition('items', itemsTargetFor(endCondition, 'cloze'))
+  }
+  return endCondition
+}
+
+export default function WordsView({ words, level, theme, mode, seed, range, learningMode = 'normal', levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `${modeLabel} / ${theme}`
   return mode.startsWith('quiz') ? (
     <QuizView
@@ -34,6 +44,7 @@ export default function WordsView({ words, level, theme, mode, seed, range, leve
       mode={mode}
       seed={seed}
       range={range}
+      learningMode={learningMode}
       levelLabel={levelLabel}
       metaSub={metaSub}
       endCondition={endCondition}
@@ -65,10 +76,12 @@ function WordResult({ result, records, level, theme, mode, onRetry, onExit }) {
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
-function TypeView({ words, level, theme, mode, seed, range, levelLabel, metaSub, endCondition, onExit }) {
-  const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, range, onExit })
+function TypeView({ words, level, theme, mode, seed, range, learningMode, levelLabel, metaSub, endCondition, onExit }) {
+  const w = useWords({ allWords: words, level, theme, mode, seed, endCondition, range, learningMode, onExit })
+  // #402 cloze かつ問題数制は目標2倍＝HUD の分母も2倍にして finish と一致させる。
+  const hudEnd = hudEndFor(endCondition, learningMode)
   // items 制の HUD 進捗＝完了語数（segIndex）、life 制は残りライフ（missedItems）。time/chars は不変。
-  const endStat = endHudStat(endCondition, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex, missedItems: w.missedItems })
+  const endStat = endHudStat(hudEnd, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex, missedItems: w.missedItems })
   // 時間制はフックの滑らかな progress を維持し、文字数制/問題数制は endStat 側（打鍵/問題基準）へ切替える。
   const progress = (endCondition?.kind ?? 'time') === 'time' ? w.progress : endStat.progress
 
@@ -98,6 +111,7 @@ function TypeView({ words, level, theme, mode, seed, range, levelLabel, metaSub,
       segIndex={w.segIndex}
       segInput={w.segInput}
       hasError={w.hasError}
+      clozeRevealed={w.clozeRevealed}
     />
   )
 }
