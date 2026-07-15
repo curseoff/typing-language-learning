@@ -24,7 +24,7 @@
 ### 終了条件（EndCondition）
 | 用語 | 意味 | 代表 |
 |---|---|---|
-| **終了条件（endCondition）** | プレイの終わり方。`{kind, value}`（kind＝time/chars/endless、value＝60秒 等）。 | `domain/session/endCondition.js` |
+| **終了条件（endCondition）** | プレイの終わり方。`{kind, value}`（kind＝time/chars/items/life/endless、value＝60秒 等）。 | `domain/session/endCondition.js` |
 | **終了判定（shouldFinish）** | 現在の進捗が終了条件を満たしたか。 | `endCondition.js: shouldFinish` |
 | **進捗率（progressRatio）／制限（endLimitMs）** | 進捗の割合／時間制の上限 ms。 | `endCondition.js` |
 | **終了条件タグ（endConditionTag）** | 記録キーに載せる終了条件の短縮表記（time60 等）。 | `ranking.js: endConditionTag` |
