@@ -77,6 +77,12 @@ export default defineConfig(({ command }) => ({
         // 実挙動（実許可・無言 write・消去→復元）は pwa-verifier の実ブラウザ検証と手動実機に委ねる。
         'src/infrastructure/persist/externalBackupStore.adapter.js',
         'src/application/externalBackup.service.js',
+        // #426 対戦基盤スライス2：RTCPeerConnection + RTCDataChannel の薄い配線（non-trickle の
+        // offer/answer 交換・DataChannel 送受信）。RTCPeerConnection は jsdom/node に無く実挙動を
+        // 単体計測できない＝上記 db/* と同種のブラウザ API エントリ配線として計測除外。純コーデック
+        // （manualSignaling.adapter）と設定（iceConfig.repository）は計測対象（各 spec で被覆）。
+        // 実挙動（実接続・open・送受信・切断）は pwa-verifier の実ブラウザ検証で担保する。
+        'src/infrastructure/p2p/webrtcPeer.adapter.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
@@ -128,7 +134,10 @@ export default defineConfig(({ command }) => ({
       // S88.17/B80.70/F89.74/L89.36）→ 実測直下へラチェット（v8 の数行揺れ分のマージンは残す）。
       // #412 貧血ドメイン整理（fnv1a/cloze seed導出/keysPerMinute/selectPool を domain へ抽出し重複除去）＋
       // 抽出後の pin テストで各指標が上振れ（実測 S89.07/B82.62/F90.4/L90.35）→ 実測直下へラチェット（up-only）。
-      thresholds: { statements: 88.9, branches: 82.3, functions: 90.2, lines: 90.2 },
+      // #426 対戦基盤スライス2（infrastructure/p2p の iceConfig.repository/manualSignaling.adapter に単体テスト。
+      // webrtcPeer.adapter は RTCPeerConnection 配線で計測除外）で各指標が上振れ（実測 S89.31/B82.98/F90.64/L90.56）
+      // → 実測から ≈0.2〜0.3 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
+      thresholds: { statements: 89.0, branches: 82.7, functions: 90.4, lines: 90.3 },
     },
   },
 }))
