@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
+import { LEARNING_MODES, supportsLearning } from './content/learningModes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
 import { rangeCount } from './domain/words/wordRange.service.js'
 import { filterWsentByTheme } from './domain/words/wsentSet.service.js'
@@ -40,6 +41,7 @@ import { routeFromRawRecord, resolveColdDetail } from './application/recordDetai
 
 const TYPE_KEYS = ['story', 'words', 'wsent', 'dict', 'touch', 'romaji']
 const MODE_KEYS = MODES.map((m) => m.key)
+const LEARNING_MODE_KEYS = LEARNING_MODES
 const WORD_MODE_KEYS = WORD_MODES.map((m) => m.key)
 const DICT_MODE_KEYS = DICT_MODES.map((m) => m.key)
 const TOUCH_LEVEL_KEYS = TOUCH_LEVELS.map((l) => l.key)
@@ -136,6 +138,7 @@ export default function App() {
   const [touchLevel, setTouchLevel] = useState(irIf('touch', 'touchLevel', 'home')) // タッチタイピングのレベル
   const [touchMode, setTouchMode] = useState(irIf('touch', 'touchMode', 'easy')) // タッチタイピングのモード(easy|hard)
   const [romajiLevel, setRomajiLevel] = useState(irIf('romaji', 'romajiLevel', 'a')) // ローマ字入力練習のレベル(行グループ)
+  const [learningMode, setLearningMode] = useState(IR.learningMode ?? 'normal') // #402 学習モード(normal|cloze)。単語/単語例文/英英の通常入力で使う
   const [focusRow, setFocusRow] = useState(0) // TOP画面でフォーカス中の行（0=種類, 以降は種類ごとのセクション）
   const [bottomTab, setBottomTab] = useState('records') // 下部トグル（記録ランキング/収録一覧）
   // 終了条件（URL の ec から復元・既定60秒）。view IR（{view}のみ）は endCondition を持たない＝
@@ -197,6 +200,10 @@ export default function App() {
       set: (v) => setEndCondition(makeEndCondition(endCondition.kind, v)),
     }
     const endRows = endValues.length > 0 ? [endKindRow, end] : [endKindRow]
+    // #402 学習モード（通常/穴埋め）行。単語/単語例文/英英で、かつ通常入力（both/en/ja）のときだけ出す
+    // （翻訳 en-tr/ja-tr・4択 quiz/pick では出さない）。行内で入力モードが翻訳/4択に変わると次回描画で消える。
+    const learningRow = { id: 'learning', options: LEARNING_MODE_KEYS, value: learningMode, set: setLearningMode }
+    const learnRows = (inputMode) => (supportsLearning(inputMode) ? [learningRow] : [])
     switch (gameType) {
       case 'story':
         return [
@@ -211,6 +218,7 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wordLevel, set: onWordLevelChange },
           { id: 'theme', options: THEME_OPTIONS, value: wordTheme, set: onWordThemeChange },
           { id: 'mode', options: WORD_MODE_KEYS, value: wordMode, set: setWordMode },
+          ...learnRows(wordMode),
           ...endRows,
           bottom,
         ]
@@ -220,6 +228,7 @@ export default function App() {
           { id: 'level', options: DICT_AVAILABLE_LEVELS, value: dictLevel, set: onDictLevelChange },
           { id: 'theme', options: THEME_OPTIONS, value: dictTheme, set: onDictThemeChange },
           { id: 'mode', options: DICT_MODE_KEYS, value: dictMode, set: setDictMode },
+          ...learnRows(dictMode),
           ...endRows,
           bottom,
         ]
@@ -240,11 +249,12 @@ export default function App() {
           { id: 'level', options: LEVEL_VALUES, value: wsentLevel, set: onWsentLevelChange },
           { id: 'theme', options: THEME_OPTIONS, value: wsentTheme, set: onWsentThemeChange },
           { id: 'mode', options: MODE_KEYS, value: mode, set: setMode },
+          ...learnRows(mode),
           ...endRows,
           bottom,
         ]
     }
-  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, onWordLevelChange, onWordThemeChange, dictLevel, dictTheme, dictMode, onDictLevelChange, onDictThemeChange, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, onWsentLevelChange, onWsentThemeChange, bottomTab, endCondition])
+  }, [gameType, storyId, mode, wordLevel, wordTheme, wordMode, onWordLevelChange, onWordThemeChange, dictLevel, dictTheme, dictMode, onDictLevelChange, onDictThemeChange, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, onWsentLevelChange, onWsentThemeChange, bottomTab, endCondition, learningMode])
 
   // フォーカス行は範囲内に丸めて使う（種類変更で行数が減っても安全）
   const safeFocus = Math.min(focusRow, rows.length - 1)
@@ -259,15 +269,17 @@ export default function App() {
   // #357 現在の選択（gameType＋そのページの param＋endCondition）から最小 RouteState を組む。
   // codec（buildRoute）が期待する「当該ページの param のみ」の形にする。
   const currentRouteState = useCallback(() => {
+    // #402 通常入力（both/en/ja）の種類だけ learningMode を URL に往復させる（既定 normal は省略）。
+    const lm = (inputMode) => (supportsLearning(inputMode) ? { learningMode } : {})
     switch (gameType) {
-      case 'words': return { gameType, level: wordLevel, theme: wordTheme, mode: wordMode, endCondition, range: wordRange }
-      case 'dict': return { gameType, level: dictLevel, theme: dictTheme, mode: dictMode, endCondition, range: dictRange }
+      case 'words': return { gameType, level: wordLevel, theme: wordTheme, mode: wordMode, endCondition, range: wordRange, ...lm(wordMode) }
+      case 'dict': return { gameType, level: dictLevel, theme: dictTheme, mode: dictMode, endCondition, range: dictRange, ...lm(dictMode) }
       case 'story': return { gameType, storyId, endCondition }
       case 'touch': return { gameType, touchLevel, touchMode, endCondition }
       case 'romaji': return { gameType, romajiLevel, endCondition }
-      default: return { gameType: 'wsent', level: wsentLevel, theme: wsentTheme, mode, endCondition, range: wsentRange }
+      default: return { gameType: 'wsent', level: wsentLevel, theme: wsentTheme, mode, endCondition, range: wsentRange, ...lm(mode) }
     }
-  }, [gameType, wordLevel, wordTheme, wordMode, wordRange, dictLevel, dictTheme, dictMode, dictRange, storyId, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, wsentRange, mode, endCondition])
+  }, [gameType, wordLevel, wordTheme, wordMode, wordRange, dictLevel, dictTheme, dictMode, dictRange, storyId, touchLevel, touchMode, romajiLevel, wsentLevel, wsentTheme, wsentRange, mode, endCondition, learningMode])
 
   // #357/#359 RouteState を phase＋各ページの state セッターへ写像する（popstate 復元で使う）。
   // 初回はこの写像を使わず useState 初期値で直接復元している（IR/irIf/初期 phase）。
@@ -290,6 +302,10 @@ export default function App() {
       return
     }
     setGameType(state.gameType)
+    // #402 words/dict/wsent は learningMode を復元（無ければ normal）。他ページは触らない。
+    if (state.gameType === 'words' || state.gameType === 'dict' || state.gameType === 'wsent') {
+      setLearningMode(state.learningMode ?? 'normal')
+    }
     switch (state.gameType) {
       case 'words': setWordLevel(state.level); setWordTheme(state.theme); setWordMode(state.mode); setWordRange(clampRange(state.range ?? null, wordRangeCount(state.level, state.theme))); break
       case 'dict': setDictLevel(state.level); setDictTheme(state.theme); setDictMode(state.mode); setDictRange(clampRange(state.range ?? null, dictRangeCount(state.level, state.theme))); break
@@ -398,12 +414,20 @@ export default function App() {
     segInput,
     completed,
     hasError,
+    clozeRevealed,
     typedKeys,
     mistakes,
     missedItems,
     liveSpeed,
     elapsedSec,
-  } = useMarathon({ active: phase === 'playing', onFinish, endCondition })
+  } = useMarathon({
+    active: phase === 'playing',
+    onFinish,
+    endCondition,
+    // #402 単語例文の穴埋めは通常入力（both/en/ja）で有効。翻訳(en-tr/ja-tr)は normal に落とす。
+    // ja は和文の内容語を jaWords 境界でマスク（読みを記憶から打つ）。
+    learningMode: supportsLearning(mode) ? learningMode : 'normal',
+  })
 
   // 明示引数で単語例文を開始する（state を読まないので stale state を避けられる）。
   // リプレイは記録の値＋seed を直接渡すために必須。
@@ -497,6 +521,7 @@ export default function App() {
         case 'word':
           if (record.seed == null) return
           setGameType('words')
+          setLearningMode(record.learning ?? 'normal') // #402 記録の学習モードで再現
           startWords(record.level, record.theme, record.mode, record.seed, record.range ?? null)
           return
         case 'dict':
@@ -716,6 +741,8 @@ export default function App() {
           onTouchModeChange={setTouchMode}
           romajiLevel={romajiLevel}
           onRomajiLevelChange={setRomajiLevel}
+          learningMode={learningMode}
+          onLearningModeChange={setLearningMode}
           focusSection={focusSection}
           onFocusSection={focusSectionById}
           bottomTab={bottomTab}
@@ -756,13 +783,14 @@ export default function App() {
 
       {phase === 'words' && (
         <WordsView
-          key={`${wordLevel}-${wordTheme}-${wordMode}-${wordRange}-${wordSeed}`}
+          key={`${wordLevel}-${wordTheme}-${wordMode}-${wordRange}-${learningMode}-${wordSeed}`}
           words={wordsData}
           level={wordLevel}
           theme={wordTheme}
           mode={wordMode}
           seed={wordSeed}
           range={wordRange}
+          learningMode={learningMode}
           levelLabel={`W${wordLevel} ${WORD_LEVELS.find((l) => l.level === wordLevel)?.label ?? ''}`}
           modeLabel={wordModeLabel(wordMode)}
           endCondition={endCondition}
@@ -782,6 +810,9 @@ export default function App() {
           seed={dictSeed}
           range={dictRange}
           freqMap={dictFreqMap}
+          // #402 英英の穴埋めは通常入力（both/en/ja）で有効。翻訳・4択は normal に落とす。
+          // 英英に jaWords は無いので ja モードは ranges 空＝通常表示（実害なし）。
+          learningMode={supportsLearning(dictMode) ? learningMode : 'normal'}
           levelLabel={`L${dictLevel} ${WORD_LEVELS.find((l) => l.level === dictLevel)?.label ?? ''}`}
           modeLabel={dictModeLabel(dictMode)}
           endCondition={endCondition}
@@ -804,6 +835,8 @@ export default function App() {
         <MarathonView
           mode={mode}
           endCondition={endCondition}
+          // #406 HUD 分母の2倍補正に必要（useMarathon に渡すのと同じ値）。
+          learningMode={supportsLearning(mode) ? learningMode : 'normal'}
           rankText={`単語例文 L${wsentLevel}`}
           gloss={wsentGloss}
           segments={segments}
@@ -811,6 +844,7 @@ export default function App() {
           segInput={segInput}
           completed={completed}
           hasError={hasError}
+          clozeRevealed={clozeRevealed}
           typedKeys={typedKeys}
           mistakes={mistakes}
           missedItems={missedItems}

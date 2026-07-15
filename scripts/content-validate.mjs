@@ -58,7 +58,8 @@ const isLevel = (v) => Number.isInteger(v) && v >= 1 && v <= 4
   })
 }
 
-// ---- dict（英英）：構造＋def は英小文字＋空白のみ ----
+// ---- dict（英英）：構造＋def は英小文字＋空白のみ＋jaWords 連結=ja（末尾句読点除く）----
+const TRAILING_PUNCT = /[。、？！]$/
 forEachRecord('content/dict.ndjson', (d, err) => {
   if (!isStr(d.word)) err('word が空')
   if (!isStr(d.def)) err('def が空')
@@ -67,6 +68,11 @@ forEachRecord('content/dict.ndjson', (d, err) => {
   if (!isStr(d.kana)) err('kana が空')
   if (!isLevel(d.level)) err(`level 不正: ${d.level}`)
   if (d.theme != null && !WORD_THEMES.includes(d.theme)) err(`theme 不正: ${d.theme}`)
+  if (!Array.isArray(d.jaWords) || !d.jaWords.every((w) => typeof w === 'string')) {
+    err('jaWords が文字列配列でない')
+  } else if (isStr(d.ja) && d.jaWords.join('') !== d.ja.replace(TRAILING_PUNCT, '')) {
+    err(`jaWords の連結が ja と不一致: "${d.jaWords.join('')}" ≠ "${d.ja.replace(TRAILING_PUNCT, '')}"`)
+  }
 })
 
 // ---- gloss（en→ja）：構造＋en 一意 ----

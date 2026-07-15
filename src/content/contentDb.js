@@ -78,11 +78,14 @@ export async function queryWords(level) {
 }
 
 // 英英（dictionaryData.js の default 相当）。level 指定でそのレベルだけ取得。theme は null 可（従来通り保持）。
+// jaWords は JSON 文字列なので配列へ戻す（日本語モードの穴埋め用＝例文と同型）。
 export async function queryDict(level) {
   const d = await db()
   const where = level != null ? ' WHERE level = ?' : ''
   const bind = level != null ? [level] : []
-  return d.selectObjects('SELECT word, def, ja, kana, level, theme FROM dict' + where, bind)
+  const rows = d.selectObjects('SELECT word, def, ja, kana, level, theme, jaWords FROM dict' + where, bind)
+  for (const r of rows) r.jaWords = JSON.parse(r.jaWords)
+  return rows
 }
 
 // 例文（wordSentences/L{level}.js の default 相当）。jaWords は JSON 文字列なので配列へ戻す。

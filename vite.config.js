@@ -124,7 +124,9 @@ export default defineConfig(({ command }) => ({
       // #362: 単語固定範囲（range）の出題配線＋範囲ステッパー UI に対し wordset の range 分岐・
       // useWords/useWordQuiz の range 記録往復・WordsSection ステッパー・App の range URL 配線テストを
       // 追加し実測が上振れ（S87.04/B79.67/F88.11/L88.18）→ 実測直下へラチェット（up-only）。
-      thresholds: { statements: 87.9, branches: 80.2, functions: 89.3, lines: 89.0 },
+      // #402 穴埋め学習モード（useWords cloze 配線＋結合テスト）で各指標が上振れ（実測
+      // S88.17/B80.70/F89.74/L89.36）→ 実測直下へラチェット（v8 の数行揺れ分のマージンは残す）。
+      thresholds: { statements: 88.0, branches: 80.4, functions: 89.5, lines: 89.2 },
     },
   },
 }))

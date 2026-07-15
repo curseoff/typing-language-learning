@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { alignJaToKana, kanaConsumed } from '@tll/core'
 import { Flow } from '../shared/Flow.presenter'
+import type { MaskRange } from '../shared/Text.presenter'
 
 export interface TopSeg {
   type: 'ja' | 'en'
@@ -10,6 +11,8 @@ export interface TopSeg {
   en: string
   kana?: string
   sentenceIndex: number
+  cloze?: boolean // #402 穴埋め対象語（入力側を伏字にする＝単語モード）
+  clozeRanges?: MaskRange[] // #402 例文/英英の文中伏字（英文 en 内の内容語 char レンジ）
 }
 
 export interface TopFlowProps {
@@ -18,6 +21,7 @@ export interface TopFlowProps {
   segInput: string
   hasError?: boolean
   ticker?: boolean
+  clozeRevealed?: boolean // #402 現在語(cloze)でミスがあり正解を開示中か
 }
 
 export default function TopFlow({
@@ -26,11 +30,21 @@ export default function TopFlow({
   segInput,
   hasError = false,
   ticker = false,
+  clozeRevealed = false,
 }: TopFlowProps) {
-  // 文ごとに1件(sentenceIndex で集約)
+  // 文ごとに1件(sentenceIndex で集約)。both は en/ja 2 seg あるので、
+  // #402 穴埋めではどちらの seg に cloze が付くかを両 seg 見て clozeSide に集約する。
   const sentences = useMemo(() => {
-    const map = new Map<number, TopSeg>()
-    for (const s of segments) if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, s)
+    const map = new Map<number, TopSeg & { clozeSide?: 'en' | 'ja' }>()
+    for (const s of segments) {
+      if (!map.has(s.sentenceIndex)) map.set(s.sentenceIndex, { ...s })
+      const rep = map.get(s.sentenceIndex)!
+      if (s.cloze) {
+        rep.cloze = true
+        rep.clozeSide = s.type // cloze が付いた側（en=英語のみ / ja=読みのみ）を伏せる
+      }
+      if (s.clozeRanges) rep.clozeRanges = s.clozeRanges // 例文/英英の文中伏字（英文 en）
+    }
     return [...map.values()]
   }, [segments])
   // 英→日の両方を打つモード（both）か。単一言語モードでは非入力側は参考表示。
@@ -80,6 +94,7 @@ export default function TopFlow({
       wrap={!ticker}
       ticker={ticker}
       isBoth={isBoth}
+      clozeRevealed={clozeRevealed}
     />
   )
 }

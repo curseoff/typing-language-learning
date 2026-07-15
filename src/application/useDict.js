@@ -13,6 +13,8 @@ import { wordsInRangeBy, RANGE_SIZE } from '../domain/words/wordRange.service.js
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
+import { itemsTargetFor } from '../domain/session/learningSequence.service.js'
+import { isClozeRevealed } from '../domain/typing/cloze.service.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord, recordItemStat } from './records.service.js'
@@ -31,8 +33,22 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let dictSessionSeq = 0
 const nextDictId = () => `dict-${++dictSessionSeq}`
 
-// dict エントリを buildPassage の pool 形式 {word, en, ja, kana} に整える。
-const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana })
+// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の mask 選定 seed に使う（#402）。
+function fnv1a(str) {
+  let h = 0x811c9dc5
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
+// 定義文（item.en＝def）ごとに決定的な mask 用 rng を返す。seed と文キーを混ぜて再現可能にする。
+const maskRngFactory = (seed) => (item) => mulberry32((fnv1a(item.en) ^ (seed >>> 0)) >>> 0)
+
+// dict エントリを buildPassage の pool 形式 {word, en, ja, kana, jaWords} に整える。
+// jaWords は日本語モードの穴埋め（buildClozeSentence(item,'ja')）で1〜3語を伏字にするのに使う。
+const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana, jaWords: e.jaWords })
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
 function dictPool(dict, level, theme) {
@@ -54,9 +70,17 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 // #364 range 有り（英英固定範囲）＝範囲内を freq 順で決定的に流し record.range に往復させる。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, onExit }) {
+// #402 learningMode='cloze'（英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、穴埋めフェーズは
+//   定義文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。英語を打つモード（en/both）のみ。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit }) {
+  const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
+  // 終了判定用の実効 endCondition。cloze かつ問題数制のみ目標を2倍（normal→穴埋めの2周ぶん）。
+  const finishEc = useMemo(
+    () => (isCloze && ec.kind === 'items' ? makeEndCondition('items', itemsTargetFor(ec, 'cloze')) : ec),
+    [ec, isCloze],
+  )
   const limitMs = endLimitMs(ec)
   // 「今プレイ中の問題列」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
   // restart のたびに切り直し、record には必ずこの seed を保存して再現可能にする。
@@ -69,8 +93,14 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const pool = useMemo(() => rangePool ?? dictPool(dict, level, theme), [rangePool, dict, level, theme])
   const ordered = rangePool != null // 範囲プール適用時のみ pool 順で固定（毎回同じ並び）
   const buildSegments = useCallback(
-    (s) => buildPassage(mode, pool, { rng: mulberry32(s), ordered }),
-    [mode, pool, ordered],
+    (s) =>
+      buildPassage(mode, pool, {
+        rng: mulberry32(s),
+        ordered,
+        // cloze 時は 5問ブロック交互＋文中伏字（mask はビルド seed＋文キーで決定的）。normal は素通り。
+        ...(isCloze ? { cloze: { maskRng: maskRngFactory(s) } } : {}),
+      }),
+    [mode, pool, ordered, isCloze],
   )
   const [segments, setSegments] = useState(() => buildSegments(sessionSeed))
   const [segIndex, setSegIndex] = useState(0)
@@ -78,6 +108,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const [completed, setCompleted] = useState([]) // 確定したセグメントの入力文字列
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
+  const [segMistaken, setSegMistaken] = useState(false) // 現在問題でミスがあったか（cloze の正解開示用）
   const [startTime, setStartTime] = useState(null)
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
@@ -121,6 +152,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
     syncSession()
     setMissedItems(0)
     setHasError(false)
+    setSegMistaken(false)
     setStartTime(null)
     setFinished(false)
     setResult(null)
@@ -156,6 +188,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
             correctCount,
             // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
             ...(range != null ? { range } : {}),
+            // #402 cloze 時のみ learning を載せる（normal は従来 record と byte 同一＝後方互換）。
+            ...(isCloze ? { learning: learningMode } : {}),
             segStats: list,
             date: new Date().toLocaleString('ja-JP'),
           },
@@ -165,7 +199,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, range, sessionSeed, ec],
+    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode],
   )
 
   // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
@@ -177,7 +211,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       const startedAt = startTimeRef.current ?? t
       // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない・#208 段5）。
       const missedItems = segMissedItems(segTrackerRef.current)
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
+      if (!shouldFinish(finishEc, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0) {
         segPush(segTrackerRef.current, {
           type: seg.type,
@@ -195,7 +229,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       }
       finish(keys, missCount, t, startedAt)
     },
-    [ec, finish],
+    [finishEc, finish],
   )
 
   // エンドレスは ESC が唯一の終了手段。30秒以上プレイしていれば記録して結果へ、
@@ -290,6 +324,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setSegInput('')
+          setSegMistaken(false) // 次の問題へ＝開示状態をリセット
           finishByProgress(t, ph.keys, completed.length + 1, ph.mistakes, seg, 0)
         } else {
           setSegInput(candidate)
@@ -303,6 +338,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
         setHasError(true)
+        setSegMistaken(true) // cloze: この問題は以後 正解を開示する
         // ミス数（life 制）の到達を判定。
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
@@ -352,6 +388,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
     segInput,
     completed,
     hasError,
+    clozeRevealed: isClozeRevealed(learningMode, segMistaken ? 1 : 0), // cloze でこの問題にミスがあり開示中か
     typedKeys,
     mistakes,
     missedItems,

@@ -11,6 +11,7 @@ import { rangeLabel, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
+import LearningSelect from './LearningSelect.container.jsx'
 import { endConditionSummary } from '../../content/endConditions.js'
 import { WordRecords, RangeStepper, THEME_OPTIONS, dictLevelLabel } from './parts.container.jsx'
 
@@ -73,6 +74,8 @@ export default function DictSection({
   dictTheme,
   dictMode,
   dictRange,
+  learningMode,
+  onLearningModeChange,
   onDictLevelChange,
   onDictThemeChange,
   onDictModeChange,
@@ -120,6 +123,15 @@ export default function DictSection({
       }
       modeDesc={dictModeDesc(dictMode, endConditionSummary(endCondition))}
       poolCount={`この条件の収録: ${DICT_COUNTS[dictLevel]?.[dictTheme] ?? 0} 語`}
+      learningNode={
+        <LearningSelect
+          inputMode={dictMode}
+          learningMode={learningMode}
+          onChange={onLearningModeChange}
+          focusSection={focusSection}
+          onFocusSection={onFocusSection}
+        />
+      }
       endConditionNode={
         <EndConditionSelect
           endCondition={endCondition}

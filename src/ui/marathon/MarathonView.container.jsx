@@ -1,6 +1,7 @@
 // マラソンのプレイ画面（バッジ・ステータス・本文・ヒントを合成）。
 import { modeLabel } from '../../content/modes.js'
 import { endHudStat } from '../../content/endConditions.js'
+import { hudEndFor } from '../../domain/session/learningSequence.service.js'
 import { StatsRow } from '../shared/index.js'
 import TopFlow from './TopFlow.presenter.jsx'
 import TranslateView from './TranslateView.presenter.jsx'
@@ -13,16 +14,20 @@ export default function MarathonView({
   segIndex,
   segInput,
   hasError,
+  clozeRevealed,
   typedKeys,
   mistakes,
   missedItems,
   liveSpeed,
   elapsedSec,
   endCondition,
+  learningMode = 'normal',
 }) {
   const currentSeg = segments[segIndex]
+  // #406 cloze かつ問題数制は目標2倍＝HUD の分母も2倍にして finish（useMarathon）と一致させる。
+  const hudEnd = hudEndFor(endCondition, learningMode)
   // items 制の HUD 進捗＝完了問題数（segIndex＝確定済みセグ数）、life 制は残りライフ（missedItems）。time/chars は不変。
-  const endStat = endHudStat(endCondition, { elapsedSec, keys: typedKeys, items: segIndex, missedItems })
+  const endStat = endHudStat(hudEnd, { elapsedSec, keys: typedKeys, items: segIndex, missedItems })
   return (
     <div className="game">
       <div className="play-meta">
@@ -63,6 +68,7 @@ export default function MarathonView({
             segIndex={segIndex}
             segInput={segInput}
             hasError={hasError}
+            clozeRevealed={clozeRevealed}
             ticker
           />
         )

@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildWordPassage } from '../domain/words/wordset.service.js'
 import { buildUnits, segMatches } from '../domain/typing/units.service.js'
+import { buildClozeUnits, isClozeRevealed } from '../domain/typing/cloze.service.js'
+import { tagLearningBlocks, itemsTargetFor } from '../domain/session/learningSequence.service.js'
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
@@ -30,25 +32,73 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let wordsSessionSeq = 0
 const nextWordsId = () => `words-${++wordsSessionSeq}`
 
+// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の伏字側選択の種に使う（#402）。
+function fnv1a(str) {
+  let h = 0x811c9dc5
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 // #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, onExit }) {
+// #402 learningMode='cloze'＝5問ブロックで「通常→穴埋め」を交互に出す（問題数制は2倍が実効目標）。
+//   normal（既定）は従来と完全に同一挙動（tag も cloze も掛けない）。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit }) {
+  const isCloze = learningMode === 'cloze'
+  // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
+  //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
+  //   normal … 単語 item をそのまま（buildUnits で従来どおりセグメント化）。
+  const toProblems = useCallback(
+    (items) => (isCloze ? tagLearningBlocks(items, { blockSize: 5 }) : items),
+    [isCloze],
+  )
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
+  // 終了判定用の実効 endCondition。cloze かつ問題数制のみ目標を2倍にする（記録キー用の ec は原値のまま）。
+  const finishEc = useMemo(
+    () => (isCloze && ec.kind === 'items' ? makeEndCondition('items', itemsTargetFor(ec, 'cloze')) : ec),
+    [ec, isCloze],
+  )
   const limitMs = endLimitMs(ec)
   // 「今プレイ中の問題列」を決める seed。初回はリプレイなら渡された seed、通常プレイなら新規生成。
   // restart のたびに新しい seed を切り直す（＝View 内「もう一度」は別の問題列）。
   // この seed を record に必ず保存することで、通常プレイの記録も再現可能になる。
   const [sessionSeed, setSessionSeed] = useState(() => (seed != null ? seed : makeSeed()))
+  // both×cloze で「英語 or 読み」どちらを伏せるかを語ごとに seed 由来で決める（#402）。
+  // 語の同一性（words.js で一意な en）を FNV-1a で 32bit 化し sessionSeed と混ぜて mulberry32 に渡す。
+  //   ・同じ seed・同じ語なら常に同じ側＝リプレイ/「毎回同じ順で復習」で再現する。
+  //   ・normal フェーズ（伏せない）と cloze フェーズで同じ語なら同じ側判定になる（位置に依らない）。
+  // both 以外（en/ja 単一）は対象側が自明なので側選択は不要。
+  const clozeSideOf = useCallback(
+    (item) => {
+      if (mode !== 'both') return undefined
+      const h = fnv1a(item.en) ^ (sessionSeed >>> 0)
+      return mulberry32(h >>> 0)() < 0.5 ? 'en' : 'ja'
+    },
+    [mode, sessionSeed],
+  )
+  const unitsOf = useCallback(
+    (p) =>
+      isCloze
+        ? p.phase === 'cloze'
+          ? buildClozeUnits(p.item, mode, { clozeSide: clozeSideOf(p.item) })
+          : buildUnits(p.item, mode)
+        : buildUnits(p, mode),
+    [isCloze, mode, clozeSideOf],
+  )
   const buildPassage = useCallback(
-    () => buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(sessionSeed), range }),
-    [allWords, level, theme, mode, sessionSeed, range],
+    () => toProblems(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(sessionSeed), range })),
+    [allWords, level, theme, mode, sessionSeed, range, toProblems],
   )
   const [words, setWords] = useState(buildPassage)
   const [segIndex, setSegIndex] = useState(0)
   const [input, setInput] = useState('')
   const [completed, setCompleted] = useState([])
   const [hasError, setHasError] = useState(false)
+  const [segMistaken, setSegMistaken] = useState(false) // 現在語でミスがあったか（cloze の正解開示用）
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
@@ -74,11 +124,14 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   const mistakes = snap.mistakes // ミス総数（session 像由来）
 
   // 文章と同じUI(TopFlow/Passage)で使うため sentenceIndex(=語のindex) を付与。
+  // cloze フェーズの語は buildClozeUnits で seg に cloze/hint が付く（normal は従来どおり）。
   const segments = useMemo(
-    () => words.flatMap((w, wi) => buildUnits(w, mode).map((s) => ({ ...s, sentenceIndex: wi }))),
-    [words, mode],
+    () => words.flatMap((w, wi) => unitsOf(w).map((s) => ({ ...s, sentenceIndex: wi }))),
+    [words, unitsOf],
   )
   const seg = segments[segIndex]
+  // cloze でこの語にミスがあれば正解を開示する（seg 完了でリセット）。
+  const clozeRevealed = isClozeRevealed(learningMode, segMistaken ? 1 : 0)
 
   const restart = useCallback(() => {
     {
@@ -90,11 +143,12 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     // 「もう一度」は毎回新しい問題列にする＝新しい seed を切り直して record にも反映。
     const next = makeSeed()
     setSessionSeed(next)
-    setWords(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(next), range }))
+    setWords(toProblems(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(next), range })))
     setSegIndex(0)
     setInput('')
     setCompleted([])
     setHasError(false)
+    setSegMistaken(false)
     // 新 session（keys/mistakes を 0 にリセット）。像も 0 へ同期する。
     sessionRef.current = factory.start(sessionEnd)
     syncSession()
@@ -103,7 +157,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     setResult(null)
     setStartTime(null)
     finishedRef.current = false
-  }, [allWords, level, theme, mode, range, factory, sessionEnd, syncSession])
+  }, [allWords, level, theme, mode, range, factory, sessionEnd, syncSession, toProblems])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -129,6 +183,8 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
             correctCount,
             // range モード時のみ range を載せる（未選択は従来キー＝後方互換のため付けない）。
             ...(range != null ? { range } : {}),
+            // #402 cloze 時のみ learning を載せる（normal は従来 record と byte 同一＝後方互換）。
+            ...(isCloze ? { learning: learningMode } : {}),
             segStats: segTrackerRef.current.list,
             date: new Date().toLocaleString('ja-JP'),
           },
@@ -138,7 +194,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, range, sessionSeed, ec],
+    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode],
   )
 
   useEffect(() => {
@@ -151,7 +207,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
       // life は「ミスした問題数」で判定（打鍵ミス総数 missCount ではない）。ミス処理後に呼ばれるので
       // 現在問題のミスも segTracker に反映済み＝判定時点の確定値で数える（off-by-one 回避）。
       const missedItems = segMissedItems(segTrackerRef.current)
-      if (!shouldFinish(ec, { elapsedMs: t - startedAt, keys, items, missedItems })) return
+      if (!shouldFinish(finishEc, { elapsedMs: t - startedAt, keys, items, missedItems })) return
       if (seg && partialLen > 0) {
         segPush(segTrackerRef.current, {
           type: seg.type,
@@ -245,15 +301,17 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
             partial: false,
           })
           // 語を打ち尽くしたら同じ seed で継ぎ足してループ（時間制の間ずっと続ける）。
+          // cloze は継ぎ足しバッチ単位でタグ付け＝5問リズムをバッチ境界で保つ。
           if (segIndex + 1 >= segments.length) {
             setWords((prev) => [
               ...prev,
-              ...buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(makeSeed()), range }),
+              ...toProblems(buildWordPassage(allWords, level, theme, mode, { rng: mulberry32(makeSeed()), range })),
             ])
           }
           setCompleted((c) => [...c, candidate])
           setSegIndex((i) => i + 1)
           setInput('')
+          setSegMistaken(false) // 次の語へ＝開示状態をリセット
         } else {
           setInput(candidate)
         }
@@ -268,6 +326,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         setMissedItems(segMissedItems(segTrackerRef.current)) // ミスした問題数を live 更新（life 制HUD用）
         playMiss()
         setHasError(true)
+        setSegMistaken(true) // cloze: この語は以後 正解を開示する
         // ミス数（life 制）の到達を判定。
         const pm = sessionRef.current.progress()
         finishByProgress(t, pm.keys, completed.length, pm.mistakes, input.length)
@@ -275,7 +334,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, mode, allWords, level, theme, range, onExit, restart, finish, syncSession])
+  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。
@@ -316,6 +375,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     segInput: input,
     completed,
     hasError,
+    clozeRevealed, // cloze でこの語にミスがあり正解を開示中か
     typedKeys,
     mistakes,
     missedItems,
