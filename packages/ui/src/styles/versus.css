@@ -1,0 +1,220 @@
+/* 対戦の接続コード交換（SignalingExchangeView presenter）の専用スタイル。既存トークンを流用し、
+   独自のハードコード色は足さない。狭幅でも横あふれしないよう code 欄は折り返し可。 */
+.vs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 640px;
+  margin: 0 auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.vs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vs-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+/* 接続状態バッジ */
+.vs-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted-fn);
+  background: var(--panel-2);
+}
+.vs-badge.vs-connecting {
+  color: var(--text);
+}
+.vs-badge.vs-connected {
+  color: var(--green);
+  border-color: currentColor;
+}
+.vs-badge.vs-disconnected {
+  color: var(--red);
+  border-color: currentColor;
+}
+
+.vs-lead,
+.vs-pending {
+  color: var(--muted-fn);
+  font-size: 14px;
+  margin: 0;
+}
+
+.vs-error {
+  color: var(--red);
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* versus 専用ボタン（TOP 単独 CTA の .btn-primary/.btn-secondary は流用しない＝ここで完結）。
+   役割選択の primary/secondary は同サイズ・同高さ。submit は左揃え（align-self は各所で指定）。 */
+.vs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+.vs-btn:active {
+  transform: scale(0.98);
+}
+.vs-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.vs-btn-primary {
+  color: #06283d;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.vs-btn-primary:hover {
+  filter: brightness(1.08);
+}
+.vs-btn-secondary {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+.vs-btn-secondary:hover {
+  background: var(--panel);
+}
+/* 無効化 submit（空欄）は活性色を落とす。 */
+.vs-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--panel-2);
+  color: var(--muted-fn);
+  border-color: var(--border);
+  filter: none;
+  transform: none;
+}
+
+/* 役割選択 */
+.vs-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.vs-role-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 手順（ホストは番号付き、ゲストは単一ステップ） */
+.vs-steps {
+  list-style: none;
+  counter-reset: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.vs-step,
+.vs-steps > li {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vs-step-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.vs-codeblock,
+.vs-pasteblock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vs-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-code {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.vs-copy,
+.vs-share,
+.vs-submit {
+  align-self: flex-start;
+}
+
+/* 参加者一覧（接続済み） */
+.vs-connected-msg {
+  font-weight: 700;
+  margin: 0;
+}
+.vs-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.vs-roster-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-roster-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vs-roster-list .vs-self {
+  font-weight: 700;
+}
+
+.vs-back {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.vs-back:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
