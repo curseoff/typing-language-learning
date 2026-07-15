@@ -54,14 +54,18 @@ export const GuestAnswer: Story = {
   ),
 };
 
-// 接続済み（参加者一覧）
+// 接続済み（参加者一覧）：selfId と異なる相手 id を渡し、別の短縮 ID で並ぶ見た目にする
 export const Connected: Story = {
   render: () => (
     <SignalingExchangeView
       {...common}
+      selfId="03ecf8d2-1111-4a2b-9c3d-aaaaaaaaaaaa"
       role="host"
       connection="connected"
-      activeIds={['me-1234', 'peer-abcd']}
+      activeIds={[
+        '03ecf8d2-1111-4a2b-9c3d-aaaaaaaaaaaa',
+        '77bd90ac-2222-4f5e-8d6c-bbbbbbbbbbbb',
+      ]}
     />
   ),
 };

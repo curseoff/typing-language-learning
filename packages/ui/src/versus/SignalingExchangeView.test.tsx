@@ -75,13 +75,21 @@ describe('SignalingExchangeView smoke', () => {
     expect(container.textContent).toContain('ホストに返す')
   })
 
-  it('接続済み：参加者一覧と相手を表示（カウントダウンは出さない）', () => {
+  it('接続済み：自分/相手を短縮ID付きラベルで描き分け（生UUIDや要約行は出さない）', () => {
+    const selfId = '03ecf8d2-1111-4a2b-9c3d-aaaaaaaaaaaa'
+    const peerId = '77bd90ac-2222-4f5e-8d6c-bbbbbbbbbbbb'
     const { container } = render(
-      <SignalingExchangeView {...base} role="host" connection="connected" activeIds={['me-1234', 'peer-abcd']} />,
+      <SignalingExchangeView {...base} selfId={selfId} role="host" connection="connected" activeIds={[selfId, peerId]} />,
     )
     expect(container.textContent).toContain('接続しました')
-    expect(container.textContent).toContain('あなた')
-    expect(container.textContent).toContain('peer-abcd')
+    // 自分は「あなた（<短縮ID>）」、相手は「相手（<短縮ID>）」で、それぞれ別の短縮 ID が並ぶ。
+    expect(container.textContent).toContain('あなた（03ecf8d2）')
+    expect(container.textContent).toContain('相手（77bd90ac）')
+    // 生 UUID（full）は冗長なので出さない。
+    expect(container.textContent).not.toContain(selfId)
+    expect(container.textContent).not.toContain(peerId)
+    // 「相手: …」の要約行は削除済み。
+    expect(container.textContent).not.toContain('相手:')
   })
 
   it('エラー文と切断バッジを表示', () => {

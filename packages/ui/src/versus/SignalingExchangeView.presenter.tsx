@@ -32,6 +32,11 @@ const CONNECTION_LABEL: Record<VersusConnection, string> = {
   disconnected: '切断されました',
 }
 
+// peerId（生 UUID）は意味を持たないので、参加者一覧では先頭 8 文字だけを表示して見分けの手掛かりにする。
+function shortId(id: string): string {
+  return id.slice(0, 8)
+}
+
 // コピー可能なコード欄（読み取り専用のテキスト＋コピーボタン）。onCopy 未配線ならボタンは省く。
 function CodeBlock({
   label,
@@ -112,7 +117,6 @@ export default function SignalingExchangeView({
   // 接続済み：カウントダウン/対戦画面は出さず（#425）、成立の確認と参加者一覧だけを見せる。
   if (connection === 'connected') {
     const ids = activeIds ?? []
-    const others = ids.filter((id) => id !== selfId)
     return (
       <div className="vs">
         <header className="vs-header">
@@ -122,16 +126,17 @@ export default function SignalingExchangeView({
         <p className="vs-connected-msg">接続しました。</p>
         <div className="vs-roster">
           <div className="vs-roster-head">参加者（{ids.length}）</div>
+          {/* 各参加者を 1 行「ラベル（短縮ID）」で並べ、自分（あなた）と相手を短縮 ID で見分けられるようにする。 */}
           <ul className="vs-roster-list">
-            {ids.map((id) => (
-              <li key={id} className={id === selfId ? 'vs-self' : ''}>
-                {id === selfId ? 'あなた' : id}
-              </li>
-            ))}
+            {ids.map((id) => {
+              const isSelf = id === selfId
+              return (
+                <li key={id} className={isSelf ? 'vs-self' : ''}>
+                  {isSelf ? 'あなた' : '相手'}（{shortId(id)}）
+                </li>
+              )
+            })}
           </ul>
-          {others.length > 0 && (
-            <p className="vs-partner">相手: {others.join('、')}</p>
-          )}
         </div>
       </div>
     )
