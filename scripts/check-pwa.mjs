@@ -103,8 +103,9 @@ async function inspectCaches(page) {
       missing.push('shell:manifest.webmanifest')
     if (!(await hasUrl(shell, `${root}icon.svg`))) missing.push('shell:icon.svg')
 
-    // data: 大物
-    if (!(await hasUrl(data, `${root}content.sqlite3`))) missing.push('data:content.sqlite3')
+    // data: 大物（#414：sqlite は Vite の `?url` import で hash 付き asset に）
+    if (!(await hasPattern(data, /\/content-[^/]*\.sqlite3$/)))
+      missing.push('data:content-*.sqlite3')
     if (!(await hasPattern(data, /sqlite3-[^/]*\.wasm$/))) missing.push('data:sqlite3-*.wasm')
 
     // #173: fallback チャンク（L1〜L4/wordsData/dictionaryData/wordGlossData）は

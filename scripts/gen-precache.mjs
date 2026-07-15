@@ -42,8 +42,10 @@ export function isExcluded(rel) {
 // 大物（背景先読み）判定。content.sqlite3 と wasm のみ（#173）。
 // これに一致する資産だけが manifest.data に載り、sw.js の DATA ルーティング対象になる。
 // rel（先頭スラッシュ無しの相対パス）で判定するため、パス先頭の資産にも当たるよう (^|/) で錨止めする。
+// #414：sqlite は Vite の `?url` import で hash 付き（assets/content-<hash>.sqlite3）になったため
+// hash 付き（-<hash>）・従来の素の名前の双方に一致させる。
 export function isData(rel) {
-  return /(^|\/)content\.sqlite3$/.test(rel) || /\.wasm$/.test(rel)
+  return /(^|\/)content(-[^/]*)?\.sqlite3$/.test(rel) || /\.wasm$/.test(rel)
 }
 
 // fallback チャンク（#173）：SQLite/wasm のロード失敗時のみ動的 import される保険資産

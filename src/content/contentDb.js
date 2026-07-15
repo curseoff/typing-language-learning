@@ -2,6 +2,10 @@
 // 配布物の .sqlite3 を fetch → メモリDBに deserialize してクエリする。
 // 読み取り専用なので OPFS も Worker も不要＝メインスレッドで動く（ユーザーデータ側とは別系統）。
 // 返す配列/オブジェクトの形は従来の src/content/*.js と同一にして、hooks/UI を無改修に保つ。
+// URL は Vite の `?url` import で解決＝base 込み・hash 付き（assets/content-<hash>.sqlite3）の
+// 正しい URL になる（手書き new URL(..., document.baseURI) はパス型ルーティング配下で 404 になった #414）。
+import dbUrl from './generated/content.sqlite3?url'
+
 let dbPromise = null
 
 // SQLite ファイルのマジック "SQLite format 3\0"（先頭16バイト）。
@@ -37,9 +41,8 @@ async function fetchDbBytes(url, retries = 2) {
 async function openDb() {
   const { default: sqlite3InitModule } = await import('@sqlite.org/sqlite-wasm')
   const sqlite3 = await sqlite3InitModule()
-  // base 相対で解決（dev / GitHub Pages サブパス / Electron file:// のいずれでも可）。
-  const url = new URL('content.sqlite3', document.baseURI).href
-  const bytes = await fetchDbBytes(url)
+  // dbUrl は Vite が base 込み・hash 付きで解決した asset URL（dev / GitHub Pages サブパス / Electron のいずれでも可）。
+  const bytes = await fetchDbBytes(dbUrl)
   const db = new sqlite3.oo1.DB()
   const p = sqlite3.wasm.allocFromTypedArray(bytes)
   const rc = sqlite3.capi.sqlite3_deserialize(
