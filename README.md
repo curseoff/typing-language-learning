@@ -4,6 +4,8 @@
 
 🎮 **デモ**: https://curseoff.github.io/typing-language-learning/
 
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-start.png" alt="スタート画面：種類・レベル・テーマ・範囲・モード・学習モード・終了条件を選ぶ" width="640">
+
 React + Vite 製。ブラウザで動きます（PWA としてインストール・オフライン利用も可）。
 
 ## 種類とモード
@@ -39,6 +41,8 @@ React + Vite 製。ブラウザで動きます（PWA としてインストール
 ### 学習モード（通常／穴埋め）
 **単語・単語例文・英英辞典**の**通常入力**（`英語・日本語`／`英語`／`日本語`）を選んでいるときだけ、`通常` と `穴埋め` を切り替えられます（翻訳・4択では出ません）。
 - **穴埋め**：`5問ごと`に覚えた語を伏字（`____`）で出題。ヒントは反対側の言語で示され、ミスすると正解が現れます。単語は入力対象をまるごと（`英語・日本語`は英/日どちらか片側）、単語例文・英英は文中の1〜3語を伏字にします。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-cloze-masked.png" alt="穴埋めモード：覚えた語を伏字で出題し、反対側の言語のヒントを表示。ミスで正解が現れる" width="640">
 
 ### 終了条件（単語・単語例文・英英で選択）
 プレイの終わり方を選べます（既定は時間60秒）。

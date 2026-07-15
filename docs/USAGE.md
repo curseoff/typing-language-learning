@@ -34,6 +34,8 @@
 - マウスでクリックしても選べます（クリックした行にフォーカスが移ります）。
 - `←` `→` で「種類」を切り替えると、その下の項目（レベル・モード等）も種類に応じて入れ替わります。
 
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-start.png" alt="スタート画面：種類6タブ・レベル・テーマ・範囲・モード・学習モード・終了条件を一望" width="640">
+
 ## 種類とモード
 
 種類はスタート画面のタブ順に **物語 / 単語 / 単語例文 / 英英辞典 / タッチタイピング / ローマ字入力** の6つです。
@@ -45,22 +47,32 @@
 - 物語は最後まで進めて終わるので、**終了条件セレクタはありません**。
 - 結果画面では、進んだ本文と**自分が選んだ選択肢**が時系列で表示されます。
 
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-story.png" alt="物語プレイ：英文と和訳、漢字にルビを表示しながら打つ" width="640">
+
 ### 🔤 単語（語彙を覚える）
 語彙学習。レベル4段階（`L1 基礎`／`L2 初級`／`L3 中級`／`L4 上級`）× テーマ（`すべて`／`日常`／`旅行`／`ビジネス`）。
 - 入力モード：`英語・日本語`／`英語`（和訳→英単語）／`日本語`（英単語→和訳）
 - 4択モード：`英語訳`（和訳→英単語を選ぶ）／`日本語訳`（英単語→和訳を選ぶ）。**選択肢を打って選ぶ**
 - 通常入力では**学習モード**（通常／穴埋め）を選べます（後述）。終わり方は**終了条件セレクタ**で選びます（後述）。
 
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-words-play.png" alt="単語プレイ：英単語と和訳を打つ通常入力" width="640">
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-words-quiz.png" alt="単語4択：和訳から英単語を選ぶ。選択肢を打って選ぶ" width="640">
+
 ### ✍️ 単語例文（単語を文で使う）
 収録した単語を使った**例文**を打ちます。レベル4段階（`L1 基礎`／`L2 初級`／`L3 中級`／`L4 上級`）× テーマ（`すべて`／`日常`／`旅行`／`ビジネス`）。
 - モード：`英語・日本語`（交互）／`英語`／`日本語`／`英語訳`／`日本語訳`
 - 通常入力では**学習モード**（通常／穴埋め）を選べます。終わり方は**終了条件セレクタ**で選びます。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-wsent-play.png" alt="単語例文プレイ：単語を使った例文を英・和の二段フローで打つ" width="640">
 
 ### 📚 英英辞典（英語で意味を学ぶ）
 英語の定義で語彙を学ぶ。単語のサブセットで、**収録のあるレベルのみ**選べます。テーマは `すべて`／`日常`／`旅行`／`ビジネス`。
 - 入力モード：`英語・日本語`／`英語`（定義文を打つ）／`日本語`（和訳を打つ）
 - 4択モード：`単語4択`（英語の定義 → 英単語を選ぶ・回答後に和訳）／`説明4択`（英単語＋意味 → 合う説明文を打って選ぶ）
 - 通常入力では**学習モード**（通常／穴埋め）を選べます。終わり方は**終了条件セレクタ**で選びます。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-dict-play.png" alt="英英辞典プレイ：英語の定義文を打って語彙を学ぶ" width="640">
 
 ### ⌨️ タッチタイピング（ブラインドタッチ）
 画面を見ずに打つ練習。**40打のドリル**で終了（終了条件セレクタはありません）。
@@ -72,8 +84,12 @@
 - **打つと該当キーが沈み込み**、**正解は緑の枠**、**ミスは押した（誤った）キーが赤い枠**で光ります。
 - **記録ランキング**：完走すると速度（打/分）・正確率・時間を**レベル×モード別**に保存し、スタート画面のタッチタイピングに**速い順**で表示します。
 
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-touch.png" alt="タッチタイピング：画面キーボードと指の色分け、次に打つキーを強調表示" width="640">
+
 ### あ ローマ字入力（かなを打つ）
 かな（ローマ字）入力の基礎練習。出題は行グループ別で、**あ行〜わ行・ん、濁音・半濁音・拗音、ぜんぶ**から選びます。ガイドを常に表示しながらかなを打ちます（終了条件セレクタはありません）。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-romaji.png" alt="ローマ字入力：かな表と現在のセル、ローマ字ヒントを表示" width="640">
 
 ## 学習モード（通常／穴埋め）
 
@@ -84,6 +100,14 @@
   - 単語：入力対象を**まるごと**伏字（`英語・日本語`モードは英/日のどちらか片側）。
   - 単語例文・英英：文中の**1〜3語**を伏字。
   - 終了条件が「問題数」のときは、通常5問→穴埋め5問…と挟むため、実質的に問題数が2倍になります。
+
+伏字（`····`）で出題し、反対側にヒントを表示します。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-cloze-masked.png" alt="穴埋め：覚えた語を伏字で出題し、反対側の言語のヒントを表示" width="640">
+
+ミスすると、その問題の正解を通常表示のまま開示します。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-cloze-reveal.png" alt="穴埋め：ミスすると伏字だった正解が通常表示で開示される" width="640">
 
 ## 終了条件（単語・単語例文・英英で選択）
 
@@ -113,6 +137,8 @@
 - **記録ランキング**：速度（打/分）・時間・ミス・正確率を、**種類・レベル・モード・終了条件ごと**（範囲を選べばその範囲別にも）にブラウザ内（SQLite/OPFS）へ永続化します。
 - **収録一覧**：スタート画面で「記録ランキング / 収録一覧」を切り替えると、収録された問題と**問題ごとの記録（練習回数・平均ミス・打/秒）**を確認できます。
 - **もう一度チャレンジ**：結果画面から、**同じ問題列**を再現して再挑戦できます。
+
+<img src="https://raw.githubusercontent.com/curseoff/typing-language-learning/issue-assets/assets/usage-result.png" alt="結果画面：今回の記録・問題別の記録・ランキングを表示" width="640">
 
 ## ヒント
 
