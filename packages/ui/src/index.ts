@@ -23,6 +23,7 @@ import './styles/about.css'
 import './styles/all-records.css'
 import './styles/sound.css'
 import './styles/menu.css'
+import './styles/versus.css'
 export { Stat, StatsRow } from './shared/Stats.presenter'
 export type { StatProps, StatsRowProps } from './shared/Stats.presenter'
 export { default as SegStatsTable } from './result/SegStatsTable.presenter'
@@ -137,4 +138,10 @@ export type {
   DictOption,
   DictWordRuby,
 } from './dictionary/DictView.presenter'
+export { default as SignalingExchangeView } from './versus/SignalingExchangeView.presenter'
+export type {
+  VersusRole,
+  VersusConnection,
+  SignalingExchangeViewProps,
+} from './versus/SignalingExchangeView.presenter'
 

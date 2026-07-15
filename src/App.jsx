@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MODES, modeLabel } from './content/modes.js'
 import { LEARNING_MODES, supportsLearning } from './content/learningModes.js'
 import { WORD_LEVELS, WORD_MODES, WORD_THEMES, WORD_COUNTS, loadWords, loadWordGloss, loadWordRuby } from './content/words.js'
@@ -27,6 +27,9 @@ import TouchView from './ui/touch/TouchView.container.jsx'
 import RomajiView from './ui/romaji/RomajiView.container.jsx'
 import AboutView from './ui/about/AboutView.presenter.jsx'
 import AllRecordsView from './ui/records/AllRecordsView.container.jsx'
+// #426 対戦（接続コード交換）は遅延ロード（初回バンドルへ WebRTC 配線を載せない）。
+// 現状の到達手段は開発時の ?preview=versus のみ（メニュー/ルーティング統合は #425 でスコープ外）。
+const VersusConnect = lazy(() => import('./ui/versus/VersusConnect.container.jsx'))
 import { ReplayProvider } from './ui/result/ReplayContext.context.jsx'
 import { RecordDetailProvider } from './ui/result/RecordDetailContext.context.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.container.jsx'
@@ -674,6 +677,7 @@ export default function App() {
         if (lv && ROMAJI_LEVEL_KEYS.includes(lv)) setRomajiLevel(lv)
         setPhase('romaji')
       }
+      else if (p === 'versus') setPhase('versus') // #426 対戦の接続コード交換（到達確認用・dev のみ）
       else if (p === 'story') setPhase('story')
       else if (p === 'story-choice') {
         setStoryStart({ stage: 'choice' }) // 物語の選択肢場面（段組みフロー確認用）
@@ -755,6 +759,13 @@ export default function App() {
       )}
 
       {phase === 'about' && <AboutView onStart={() => setPhase('ready')} />}
+
+      {/* #426 対戦（接続コード交換）。現状は dev の ?preview=versus からのみ到達（遅延ロード）。 */}
+      {phase === 'versus' && (
+        <Suspense fallback={<p className="vs-pending">読み込み中…</p>}>
+          <VersusConnect />
+        </Suspense>
+      )}
 
       {phase === 'allrecords' && <AllRecordsView onExit={() => setPhase('ready')} />}
 
