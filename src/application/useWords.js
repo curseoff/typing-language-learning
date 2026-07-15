@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildWordPassage } from '../domain/words/wordset.service.js'
 import { buildUnits, segMatches } from '../domain/typing/units.service.js'
-import { buildClozeUnits, isClozeRevealed } from '../domain/typing/cloze.service.js'
+import { buildClozeUnits, isClozeRevealed, clozeSideFor } from '../domain/typing/cloze.service.js'
 import { tagLearningBlocks, itemsTargetFor } from '../domain/session/learningSequence.service.js'
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
@@ -31,16 +31,6 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 // application 層のモジュールカウンタで session ID を採番する（純ドメインは ID を作れない）。
 let wordsSessionSeq = 0
 const nextWordsId = () => `words-${++wordsSessionSeq}`
-
-// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の伏字側選択の種に使う（#402）。
-function fnv1a(str) {
-  let h = 0x811c9dc5
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 // #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
@@ -73,11 +63,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   //   ・normal フェーズ（伏せない）と cloze フェーズで同じ語なら同じ側判定になる（位置に依らない）。
   // both 以外（en/ja 単一）は対象側が自明なので側選択は不要。
   const clozeSideOf = useCallback(
-    (item) => {
-      if (mode !== 'both') return undefined
-      const h = fnv1a(item.en) ^ (sessionSeed >>> 0)
-      return mulberry32(h >>> 0)() < 0.5 ? 'en' : 'ja'
-    },
+    (item) => (mode !== 'both' ? undefined : clozeSideFor(sessionSeed, item.en)),
     [mode, sessionSeed],
   )
   const unitsOf = useCallback(
