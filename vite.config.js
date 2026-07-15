@@ -83,6 +83,11 @@ export default defineConfig(({ command }) => ({
         // （manualSignaling.adapter）と設定（iceConfig.repository）は計測対象（各 spec で被覆）。
         // 実挙動（実接続・open・送受信・切断）は pwa-verifier の実ブラウザ検証で担保する。
         'src/infrastructure/p2p/webrtcPeer.adapter.js',
+        // #426 対戦基盤スライス3：対戦セッションフック。RTCPeerConnection（webrtcPeer.adapter）・
+        // crypto.randomUUID・performance.now・DataChannel 送受信の薄い配線＝上記 p2p/db と同種の
+        // ブラウザ API エントリ配線として計測除外。状態遷移の純ロジック（versusSession.store）は
+        // 計測対象（store spec で被覆）。実挙動は pwa-verifier の実ブラウザ検証で担保する。
+        'src/application/versus/useVersus.js',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
@@ -137,7 +142,10 @@ export default defineConfig(({ command }) => ({
       // #426 対戦基盤スライス2（infrastructure/p2p の iceConfig.repository/manualSignaling.adapter に単体テスト。
       // webrtcPeer.adapter は RTCPeerConnection 配線で計測除外）で各指標が上振れ（実測 S89.31/B82.98/F90.64/L90.56）
       // → 実測から ≈0.2〜0.3 のマージン（v8 の実行揺れ吸収）で実測直下へラチェット（up-only）。
-      thresholds: { statements: 89.0, branches: 82.7, functions: 90.4, lines: 90.3 },
+      // #426 対戦基盤スライス3（application/versus の versusSession.store に純粋リデューサ単体テスト。
+      // useVersus フックは RTCPeerConnection/crypto/performance 配線で計測除外）で各指標が上振れ
+      // （実測 S89.34/B83.03/F90.66/L90.6）→ 実測から ≈0.2 のマージンで実測直下へラチェット（up-only）。
+      thresholds: { statements: 89.1, branches: 82.8, functions: 90.5, lines: 90.4 },
     },
   },
 }))
