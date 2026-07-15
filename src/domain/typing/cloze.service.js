@@ -2,6 +2,21 @@
 // 入力対象の seg を「伏字(cloze)」にし、反対側の言語を hint として添える。
 // 照合（variants/canonical）は buildUnits と同一に保つ（正誤判定は通常と同じ）。
 import { buildUnits, enWords } from './units.service.js'
+import { mulberry32, fnv1a } from '../rng.service.js'
+
+// seed×語キーから決定的な mask 用 rng（mulberry32 発生器）を返す（#402/#412）。
+// 語キー（en/def）を fnv1a で 32bit 化し seed と XOR して混ぜる＝同じ seed・同じ語なら常に同じ列。
+//   ・リプレイ/継ぎ足しバッチや normal/cloze フェーズに依らず、語が同じなら同じ mask になる。
+export function clozeMaskRng(seed, key) {
+  return mulberry32((fnv1a(key) ^ (seed >>> 0)) >>> 0)
+}
+
+// seed×語キーから both×cloze で「英語 or 読み」どちらを伏せるかを語ごとに決める（#402/#412）。
+// clozeMaskRng と同じ混ぜ方（fnv1a(key) ^ (seed>>>0)）の乱数を1つ引き、0.5 未満なら 'en'、以上なら 'ja'。
+//   ・同じ seed・同じ語なら常に同じ側＝リプレイ/「毎回同じ順で復習」で再現する（位置に依らない）。
+export function clozeSideFor(seed, key) {
+  return mulberry32(fnv1a(key) ^ (seed >>> 0))() < 0.5 ? 'en' : 'ja'
+}
 
 // buildUnits を基に、入力対象 seg へ cloze:true と hint（反対側の表示文字列）を付与する。
 //   en   … 英語 seg を伏せ、hint は日本語(ja)

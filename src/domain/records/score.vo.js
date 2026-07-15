@@ -15,6 +15,12 @@ function isNonNegativeFinite(value) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
+// 打鍵/分（速度）の正準式（#412）。ms>0 のとき keys/(ms/60000) を四捨五入、さもなくば 0（ゼロ除算回避）。
+// makeScore の speed・segmentStats の segmentScore/quizScore・ライブ HUD が全てこの1式に寄る。
+export function keysPerMinute(keys, ms) {
+  return ms > 0 ? Math.round(keys / (ms / 60000)) : 0
+}
+
 // Score のファクトリ＋採点式＋自己検証＋不変（凍結）。不変条件違反は throw する。
 //   keys/mistakes … 非負整数（負/非整数/NaN/Infinity/非数は throw）。
 //   elapsedMs … 非負の有限数（負/NaN/Infinity/非数は throw、小数は許容）。
@@ -33,8 +39,7 @@ export function makeScore({ keys, mistakes, elapsedMs }) {
     throw new Error(`makeScore: elapsedMs は非負の有限数が必要: ${String(elapsedMs)}`)
   }
 
-  const minutes = elapsedMs / 60000
-  const speed = elapsedMs > 0 ? Math.round(keys / minutes) : 0 // 打/分
+  const speed = keysPerMinute(keys, elapsedMs) // 打/分
   const denom = keys + mistakes
   const accuracy = denom > 0 ? Math.round((keys / denom) * 100) : 100
   const seconds = Math.round(elapsedMs / 100) / 10

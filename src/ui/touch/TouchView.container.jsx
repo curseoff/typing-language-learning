@@ -4,6 +4,7 @@
 import { useEffect, useRef } from 'react'
 import { TouchView as TouchViewPresenter } from '@tll/ui'
 import { useTouch } from '../../application/useTouch.js'
+import { makeScoreRecord } from '../../domain/records/scoreRecord.vo.js'
 
 export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord, onExit }) {
   const t = useTouch({ level, onExit })
@@ -18,20 +19,16 @@ export default function TouchView({ level, levelLabel, mode, modeLabel, onRecord
     }
     if (saved.current) return
     saved.current = true
-    const seconds = t.elapsedSec
-    const keys = t.typedKeys // 正しく打ったキー数＝タイピング数（主指標）
-    const speed = seconds > 0 ? Math.round((keys / seconds) * 60) : 0
-    const accuracy = keys + t.mistakes > 0 ? Math.round((keys / (keys + t.mistakes)) * 100) : 100
+    // 採点（speed/accuracy/seconds）は domain の makeScoreRecord に集約（canonical・ms 基準）。#412
+    // 本フックは ms を持たない（elapsedSec のみ）ので秒×1000 を elapsedMs として渡す＝丸めは従来と同値。
+    // keys＝正しく打ったキー数（タイピング数・主指標）。凍結を plain 展開して従来の record 形状を保つ。
     onRecord?.({
-      source: 'touch',
-      mode,
-      rank: level,
-      keys,
-      speed,
-      mistakes: t.mistakes,
-      accuracy,
-      seconds,
-      date: new Date().toLocaleString('ja-JP'),
+      ...makeScoreRecord({
+        keys: t.typedKeys,
+        mistakes: t.mistakes,
+        elapsedMs: t.elapsedSec * 1000,
+        meta: { source: 'touch', mode, rank: level, date: new Date().toLocaleString('ja-JP') },
+      }),
     })
     // 完了フラグ立ち上がりで保存。値は当該レンダーのものを使う。
     // eslint-disable-next-line react-hooks/exhaustive-deps

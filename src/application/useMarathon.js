@@ -12,7 +12,7 @@ import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { itemsTargetFor } from '../domain/session/learningSequence.service.js'
-import { isClozeRevealed } from '../domain/typing/cloze.service.js'
+import { isClozeRevealed, clozeMaskRng } from '../domain/typing/cloze.service.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
@@ -30,20 +30,11 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let marathonSessionSeq = 0
 const nextMarathonId = () => `marathon-${++marathonSessionSeq}`
 
-// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の mask 選定 seed に使う（#402）。
-function fnv1a(str) {
-  let h = 0x811c9dc5
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}
-
 // 文（item.en）ごとに決定的な mask 用 rng を返すファクトリ。seed と文キーを混ぜて再現可能にする。
 //   ・同じ seed・同じ文なら常に同じ語がマスクされる（リプレイ再現）。
 //   ・normal/cloze フェーズや継ぎ足しバッチに依らず、文が同じなら同じ mask。
-const maskRngFactory = (seed) => (item) => mulberry32((fnv1a(item.en) ^ (seed >>> 0)) >>> 0)
+// seed 導出は domain（clozeMaskRng）へ集約し、ここは item→文キー(en) の取り出しだけを担う。
+const maskRngFactory = (seed) => (item) => clozeMaskRng(seed, item.en)
 
 // endCondition 未指定は既定 time60（＝従来の60秒制・従来キー）。
 // #402 learningMode='cloze'（例文/英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、

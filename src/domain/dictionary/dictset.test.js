@@ -4,6 +4,7 @@ import {
   levelEntries,
   makeDictQuiz,
   makeDictPick,
+  selectPool,
 } from './dictset.service.js'
 import { DICT_AVAILABLE_LEVELS, loadDict } from '../../content/dictionary.js'
 import { mulberry32 } from '../rng.service.js'
@@ -296,5 +297,46 @@ describe('buildDictSet の固定範囲 range（#364）', () => {
     // range 無しなら freqOf/keyOf は結果に影響しない（従来経路のまま）
     expect(a.map((e) => e.word)).toEqual(b.map((e) => e.word))
     expect(a).toHaveLength(5)
+  })
+})
+
+// ---- #412 selectPool：dict の level×theme プール選択を単一 export に集約（挙動不変・Red） ----
+// 現状の重複：dictset.service.js:8-13（pool）/ useDict.js:55-56 / DictSection.container.jsx:52（strict）。
+// 仕様（words 側と同一シグネチャ）：selectPool(items, level, theme, { fallback = false } = {})
+//   fallback:false … level 一致 && (theme==='すべて' || item.theme===theme)（strict）
+//   fallback:true  … strict が空なら level 一致のみ（全テーマ）へフォールバック
+// 呼び出し側は現状の fallback 値をそのまま渡して挙動不変（配線は coder）。
+describe('selectPool（#412：dict の level×theme プール選択・fallback 引数で切替）', () => {
+  const dict = [
+    { word: 'a', level: 1, theme: '日常' },
+    { word: 'b', level: 1, theme: '旅行' },
+    { word: 'c', level: 1, theme: '日常' },
+    { word: 'd', level: 2, theme: '旅行' },
+  ]
+
+  it('fallback:false（既定）＝strict：level 一致かつ theme 一致のみ', () => {
+    expect(selectPool(dict, 1, '日常').map((d) => d.word)).toEqual(['a', 'c'])
+  })
+
+  it("theme==='すべて' は level 一致の全テーマ（fallback に依らない）", () => {
+    expect(selectPool(dict, 1, 'すべて').map((d) => d.word)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('fallback:false かつ該当テーマ空なら空配列（フォールバックしない）', () => {
+    expect(selectPool(dict, 1, 'ビジネス')).toEqual([])
+  })
+
+  it('fallback:true かつ strict 空なら level 一致のみ（全テーマ）へフォールバック', () => {
+    expect(selectPool(dict, 1, 'ビジネス', { fallback: true }).map((d) => d.word)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('fallback:true でも strict が非空ならフォールバックせず strict を返す', () => {
+    expect(selectPool(dict, 1, '旅行', { fallback: true }).map((d) => d.word)).toEqual(['b'])
+  })
+
+  it('入力配列を破壊しない（純粋）', () => {
+    const snapshot = JSON.parse(JSON.stringify(dict))
+    selectPool(dict, 1, '日常', { fallback: true })
+    expect(dict).toEqual(snapshot)
   })
 })

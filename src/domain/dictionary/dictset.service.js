@@ -1,13 +1,16 @@
 // 英英辞典の出題生成（レベル×テーマで絞り込み）。
 // 英英データ(dict)は遅延読み込みのため呼び出し側から渡す（純関数）。
 import { poolForRangeBy, RANGE_SIZE } from '../words/wordRange.service.js'
+import { selectPool } from '../words/wordset.service.js'
+
+// dict の level×theme プール選択は words と同じ形＝単一 export（selectPool）を共用する（#412）。
+export { selectPool }
 
 export const DICT_TYPE_COUNT = 12 // 説明文4択(pick)の問題数
 export const DICT_QUIZ_COUNT = 20 // 4択の問題数
 
 function pool(dict, level, theme) {
-  let p = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  if (p.length === 0) p = dict.filter((d) => d.level === level)
+  let p = selectPool(dict, level, theme, { fallback: true })
   if (p.length === 0) p = dict
   return p
 }

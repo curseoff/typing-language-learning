@@ -2,6 +2,7 @@
 // 各フック（useMarathon/useWords/useDict/useWordQuiz/useDictQuiz）と segTracker.policy に
 // 散在していた inline 式をここへ集約する（挙動不変＝各式を byte 等価に写す）。
 // React/DOM/IO/クロック非依存の純関数のみ（入力を破壊しない）。
+import { keysPerMinute } from './score.vo.js'
 
 // タイピング系の一発正解数＝完了(非partial)かつミス0の問題数（mistakes 欠落は 0 扱い）。
 export function firstTryCorrectCount(segStats) {
@@ -17,7 +18,7 @@ export function firstTryCorrectCountQuiz(segStats) {
 export function segmentScore({ keys, ms }) {
   return {
     seconds: Math.round(ms / 100) / 10,
-    speed: ms > 0 ? Math.round(keys / (ms / 60000)) : 0,
+    speed: keysPerMinute(keys, ms),
   }
 }
 
@@ -32,6 +33,6 @@ export function quizScore({ keys, correct, total, elapsedMs }) {
   return {
     seconds: Math.round(elapsedMs / 100) / 10,
     accuracy: total > 0 ? Math.round((correct / total) * 100) : 0,
-    speed: elapsedMs > 0 ? Math.round(keys / (elapsedMs / 60000)) : 0,
+    speed: keysPerMinute(keys, elapsedMs),
   }
 }

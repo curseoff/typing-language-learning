@@ -126,7 +126,9 @@ export default defineConfig(({ command }) => ({
       // 追加し実測が上振れ（S87.04/B79.67/F88.11/L88.18）→ 実測直下へラチェット（up-only）。
       // #402 穴埋め学習モード（useWords cloze 配線＋結合テスト）で各指標が上振れ（実測
       // S88.17/B80.70/F89.74/L89.36）→ 実測直下へラチェット（v8 の数行揺れ分のマージンは残す）。
-      thresholds: { statements: 88.0, branches: 80.4, functions: 89.5, lines: 89.2 },
+      // #412 貧血ドメイン整理（fnv1a/cloze seed導出/keysPerMinute/selectPool を domain へ抽出し重複除去）＋
+      // 抽出後の pin テストで各指標が上振れ（実測 S89.07/B82.62/F90.4/L90.35）→ 実測直下へラチェット（up-only）。
+      thresholds: { statements: 88.9, branches: 82.3, functions: 90.2, lines: 90.2 },
     },
   },
 }))
