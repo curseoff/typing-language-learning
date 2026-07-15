@@ -88,6 +88,11 @@ export default defineConfig(({ command }) => ({
         // ブラウザ API エントリ配線として計測除外。状態遷移の純ロジック（versusSession.store）は
         // 計測対象（store spec で被覆）。実挙動は pwa-verifier の実ブラウザ検証で担保する。
         'src/application/versus/useVersus.js',
+        // #426 対戦基盤スライス4：接続コード交換の container（useVersus の薄い配線）。useVersus は
+        // RTCPeerConnection/crypto/performance に依存し jsdom で描画（rendering）まで通せない＝上記
+        // useVersus と同種のブラウザ API エントリ配線として計測除外。純粋 presenter（SignalingExchangeView）は
+        // 計測対象（smoke で被覆）。実挙動（2者接続）は pwa-verifier の実ブラウザ検証で担保する。
+        'src/ui/versus/VersusConnect.container.jsx',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',

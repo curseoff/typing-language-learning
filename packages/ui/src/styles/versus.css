@@ -1,0 +1,174 @@
+/* 対戦の接続コード交換（SignalingExchangeView presenter）の専用スタイル。既存トークンを流用し、
+   独自のハードコード色は足さない。狭幅でも横あふれしないよう code 欄は折り返し可。 */
+.vs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 640px;
+  margin: 0 auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.vs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vs-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+/* 接続状態バッジ */
+.vs-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted-fn);
+  background: var(--panel-2);
+}
+.vs-badge.vs-connecting {
+  color: var(--text);
+}
+.vs-badge.vs-connected {
+  color: var(--ok, #38c172);
+  border-color: currentColor;
+}
+.vs-badge.vs-disconnected {
+  color: var(--danger, #e3342f);
+  border-color: currentColor;
+}
+
+.vs-lead,
+.vs-pending {
+  color: var(--muted-fn);
+  font-size: 14px;
+  margin: 0;
+}
+
+.vs-error {
+  color: var(--danger, #e3342f);
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 役割選択 */
+.vs-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.vs-role-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 手順（ホストは番号付き、ゲストは単一ステップ） */
+.vs-steps {
+  list-style: none;
+  counter-reset: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.vs-step,
+.vs-steps > li {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vs-step-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.vs-codeblock,
+.vs-pasteblock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vs-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-code {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.vs-copy,
+.vs-share,
+.vs-submit {
+  align-self: flex-start;
+}
+
+/* 参加者一覧（接続済み） */
+.vs-connected-msg {
+  font-weight: 700;
+  margin: 0;
+}
+.vs-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.vs-roster-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-roster-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vs-roster-list .vs-self {
+  font-weight: 700;
+}
+.vs-partner {
+  font-size: 14px;
+  margin: 0;
+}
+
+.vs-back {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.vs-back:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
