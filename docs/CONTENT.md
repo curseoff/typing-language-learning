@@ -50,7 +50,7 @@
 - `level`: 対象語のレベルに一致。`en`/`ja`/`kana`/`jaWords` の規則は文章と同じ。
 - validate が `word ∈ words.en`／例文で使用／level一致／`jaWords`連結=ja／kana整合 を検査。
 - **生成手順**：頻出順で語を選び並列生成（各 JSON 直書き）→ 構造検証 → 読み点検（kuroshiro候補抽出＋点検エージェント確定）。
-- **出題UI**：トップの種類タブ「単語例文（`wsent`）」で**語レベル別**に出題。文章モードと同じ打鍵エンジン（marathon）を再利用し、記録は `recKey(mode, level, 'wsent')` で文章と分離。
+- **出題UI**：トップの種類タブ「単語例文（`wsent`）」で**語レベル別**に出題。打鍵エンジンは長文入力用の marathon を再利用し、記録は `recKey(mode, level, 'wsent')` で他の種類と分離。
 
 ## 単語（`content/words.js`）
 

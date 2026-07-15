@@ -49,7 +49,7 @@
    ├─ domain/                      純粋ロジック（Reactなし、*.test.js あり）
    │  ├─ romaji/romaji.js          かな⇄ローマ字エンジン（複数綴り受理／canonical）
    │  ├─ typing/{units,progress}.js  セグメント生成／入力進捗・漢字位置変換
-   │  ├─ marathon/{passage,scoring}.js  出題（600文字）／採点
+   │  ├─ marathon/{passage,scoring}.js  出題（長文生成）／採点
    │  ├─ story/navigation.js       物語グラフのナビゲーション
    │  ├─ words/wordset.js          単語の出題・4択生成
    │  ├─ dictionary/dictset.js     英英の出題・4択・説明4択生成
@@ -93,7 +93,7 @@
 
 ## 主要な定数
 
-- `TARGET_KEYS`（`domain/marathon/passage.js`）… 文章・単語入力の終了文字数（既定 600）
+- `TARGET_KEYS`（`domain/marathon/passage.js`）… 文字数制の既定終了文字数（600）。終了条件は時間/文字数/問題数/サドンデス/エンドレスから選ぶ（`content/endConditions.js`）。出題自体は途中で尽きないよう長め（`PASSAGE_KEYS`≒2000打分）に生成する
 - `MAX_RECORDS`（`domain/records/ranking.js`）… ランキング保持件数（既定 15）
 - 単語4択 30問 / 英英4択 20問 / 英英 説明4択・入力 12問（`domain/*/...set.js`）
 
@@ -102,8 +102,9 @@
 - **ローマ字判定**：`domain/romaji/romaji.js` がかな読みから「許容する全ローマ字パターン」を展開して照合（`shi`/`si` などを同時許容）。表示は標準（ヘボン式）を既定にしつつ入力に追従。
 - **漢字の進捗表示**：`domain/typing/progress.js` の `alignJaToKana` で漢字↔かなを簡易アライメントし、ローマ字入力の進捗を漢字位置に変換して色づける。送り仮名が読み先頭の同一かなへ誤マッチしないよう、漢字数ぶん先から照合する。
 - **4択の進捗着色**：`ui/shared/QuizOptionLabel.jsx` が、打鍵済みプレフィックスを着色（漢字選択肢は読み→漢字位置へ変換）。
-- **出題の長さ調整**：単語/英英の入力モードは「最短綴りで打っても600文字に届く」よう語を並べる（短い綴りで打ち切って詰むのを防止）。
-- **速度** = 文字数 ÷ 経過分（打/分）。文章は1文ごとの速度・ミスも計測。
+- **出題の長さ調整**：単語/英英の入力モードは「最短綴りで打っても選んだ終了条件まで尽きない」よう語を並べる（`PASSAGE_KEYS`≒2000打分。短い綴りで打ち切って詰むのを防止）。
+- **速度** = 文字数 ÷ 経過分（打/分）。単語例文・物語は1文ごとの速度・ミスも計測。
+- **学習モード（通常／穴埋め）と範囲（復習）**：単語/単語例文/英英の通常入力（both/en/ja）では `穴埋め` を選べ、`domain/typing/cloze.service.js` が5問ごとに伏字問題を差し込む（出題列の組み立ては `domain/session/learningSequence.service.js`、ラベルは `content/learningModes.js`）。同3種は 100 語単位の**範囲**指定で復習でき、`domain/words/wordRange.service.js` が固定順の出題範囲を切り出す。
 - **問題ごとの記録**：`application/itemTracker.js` が入力モードで「問題が切り替わるたび/終了時」に `application/records.js`（ファサード）経由で `item_stats`（SQLite）へ記録。id は `type:mode:key`（例 `w:en:reserve`）で**モード別**。収録一覧（`ui/ready/ItemList.jsx`）に練習回数・平均ミス・打/秒を表示。4択は対象外。
 - **タッチタイピング**：`content/keyboard.js` の指割当でキーを色分けし、`useTouch` がドリル（既定40打）を進行。記録は保存しない。
 - **永続化（SQLite-WASM + OPFS）**：記録は `application/records.js` ファサード経由で読み書きする。既定バックエンドは `sqlite`（OPFS の SQLite・Worker 実行）で、起動時にメモリ像へ hydrate し、以後は像を即時更新しつつ Worker へ write-through する。OPFS/Worker/Web Locks が使えない環境は `memory`（非永続・メモリのみ）へ縮退し告知する。多タブは Web Locks で主タブ1つを選出（副タブは read-only、主が閉じたら handoff で昇格）。起動時に整合性検査→破損なら内部バックアップから自動復元、外部フォルダ（File System Access）への自動バックアップにも対応。**localStorage による記録の永続化は廃止**（音設定など記録以外の localStorage は継続）。純ロジックは `application/persist/*`、DB I/O は `infrastructure/db/*`。
