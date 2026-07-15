@@ -2,6 +2,7 @@
 // 経過秒/速度計算を集約し、各ゲームフックの重複を排除する。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
+import { keysPerMinute } from '../domain/records/score.vo.js'
 
 // active: 時間を刻む条件（marathon は active prop、他は !finished）
 // startTime: 最初の打鍵時刻（呼び出し側が保持・null は未開始）
@@ -44,8 +45,7 @@ export function useCountdownTimer({ active, startTime, onTimeout, limitMs = TIME
   const liveSpeed = useCallback(
     (count) => {
       if (!started || now === 0) return 0
-      const min = (now - startTime) / 60000
-      return min > 0 ? Math.round(count / min) : 0
+      return keysPerMinute(count, now - startTime) // 打/分（正準式・ms 基準）
     },
     [started, now, startTime],
   )

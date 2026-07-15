@@ -5,6 +5,7 @@ import { storyById } from '../content/stories/index.js'
 import { buildUnits, choiceSeg, segMatches, typingLang } from '../domain/typing/units.service.js'
 import { firstChoiceNodeId } from '../domain/story/navigation.service.js'
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
+import { keysPerMinute } from '../domain/records/score.vo.js'
 import {
   loadFound,
   saveFound,
@@ -84,8 +85,7 @@ export function useStory({ mode, storyId, start, onExit }) {
   const started = startTime !== null
   const liveSpeed = useMemo(() => {
     if (!started || now === 0) return 0
-    const min = (now - startTime) / 60000
-    return min > 0 ? Math.round(typedKeys / min) : 0
+    return keysPerMinute(typedKeys, now - startTime) // 打/分（正準式・ms 基準）
   }, [now, typedKeys, started, startTime])
   const elapsedSec = useMemo(() => {
     if (!started || now === 0) return 0
