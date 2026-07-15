@@ -16,11 +16,13 @@ describe('gen-precache: scope 相対パス化（#171）', () => {
     expect(toSitePath('index.html')).toBe('./')
     expect(toSitePath('assets/index-abc123.js')).toBe('assets/index-abc123.js')
     expect(toSitePath('icon.svg')).toBe('icon.svg')
-    expect(toSitePath('content.sqlite3')).toBe('content.sqlite3')
+    expect(toSitePath('assets/content-abc123.sqlite3')).toBe('assets/content-abc123.sqlite3')
   })
 
   it('data 群は content.sqlite3 と wasm のみ（#173：fallback チャンクは含めない）', () => {
-    expect(isData('content.sqlite3')).toBe(true)
+    // #414：sqlite は Vite の `?url` import で hash 付き asset になった
+    expect(isData('assets/content-abc123.sqlite3')).toBe(true)
+    expect(isData('content.sqlite3')).toBe(true) // 素の名前も後方互換で許容
     expect(isData('assets/sqlite3-xyz.wasm')).toBe(true)
     // fallback チャンクは data ではない（skip 扱い）
     expect(isData('assets/L1-abc.js')).toBe(false)
@@ -41,13 +43,13 @@ describe('gen-precache: scope 相対パス化（#171）', () => {
     expect(isFallbackChunk('assets/wordGlossData-abc.js')).toBe(true)
     // 通常資産は fallback ではない
     expect(isFallbackChunk('assets/index-abc.js')).toBe(false)
-    expect(isFallbackChunk('content.sqlite3')).toBe(false)
+    expect(isFallbackChunk('assets/content-abc123.sqlite3')).toBe(false)
     expect(isFallbackChunk('assets/sqlite3-xyz.wasm')).toBe(false)
   })
 
   it('classify は 3値（skip/data/shell）に振り分ける（#173）', () => {
     // data：sqlite/wasm のみ
-    expect(classify('content.sqlite3')).toBe('data')
+    expect(classify('assets/content-abc123.sqlite3')).toBe('data')
     expect(classify('assets/sqlite3-xyz.wasm')).toBe('data')
     // skip：fallback チャンクと除外対象
     expect(classify('assets/L1-abc.js')).toBe('skip')
@@ -67,7 +69,7 @@ describe('gen-precache: scope 相対パス化（#171）', () => {
       'assets/index-abc.css',
       'icon.svg',
       'manifest.webmanifest',
-      'content.sqlite3',
+      'assets/content-abc123.sqlite3',
       'assets/sqlite3-xyz.wasm',
       'assets/L1-abc.js',
       'assets/wordsData-abc.js',
@@ -89,9 +91,9 @@ describe('gen-precache: scope 相対パス化（#171）', () => {
     expect(shell).toContain('icon.svg')
     expect(shell).toContain('manifest.webmanifest')
     // data は sqlite/wasm のみ（#173）
-    expect(data).toContain('content.sqlite3')
+    expect(data).toContain('assets/content-abc123.sqlite3')
     expect(data).toContain('assets/sqlite3-xyz.wasm')
-    expect(data).toEqual(['assets/sqlite3-xyz.wasm', 'content.sqlite3'])
+    expect(data).toEqual(['assets/content-abc123.sqlite3', 'assets/sqlite3-xyz.wasm'])
     // fallback チャンクは shell/data どちらにも載らない（#173：skip）
     expect(all).not.toContain('assets/L1-abc.js')
     expect(all).not.toContain('assets/wordsData-abc.js')

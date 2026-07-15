@@ -10,11 +10,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
 import { wordsInRangeBy, RANGE_SIZE } from '../domain/words/wordRange.service.js'
+import { selectPool } from '../domain/dictionary/dictset.service.js'
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
 import { itemsTargetFor } from '../domain/session/learningSequence.service.js'
-import { isClozeRevealed } from '../domain/typing/cloze.service.js'
+import { isClozeRevealed, clozeMaskRng } from '../domain/typing/cloze.service.js'
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord, recordItemStat } from './records.service.js'
@@ -33,27 +34,18 @@ const ENDLESS_MIN_RECORD_MS = END_TIME_VALUES[0] * 1000
 let dictSessionSeq = 0
 const nextDictId = () => `dict-${++dictSessionSeq}`
 
-// 文字列を 32bit 整数へ決定的に写す（FNV-1a）。cloze の mask 選定 seed に使う（#402）。
-function fnv1a(str) {
-  let h = 0x811c9dc5
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  return h >>> 0
-}
-
 // 定義文（item.en＝def）ごとに決定的な mask 用 rng を返す。seed と文キーを混ぜて再現可能にする。
-const maskRngFactory = (seed) => (item) => mulberry32((fnv1a(item.en) ^ (seed >>> 0)) >>> 0)
+// seed 導出は domain（clozeMaskRng）へ集約し、ここは item→文キー(en) の取り出しだけを担う。
+const maskRngFactory = (seed) => (item) => clozeMaskRng(seed, item.en)
 
 // dict エントリを buildPassage の pool 形式 {word, en, ja, kana, jaWords} に整える。
 // jaWords は日本語モードの穴埋め（buildClozeSentence(item,'ja')）で1〜3語を伏字にするのに使う。
 const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana, jaWords: e.jaWords })
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
+// selectPool（fallback:true）で strict→level フォールバックまで、3段目（全件）はここに残す。
 function dictPool(dict, level, theme) {
-  let p = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  if (p.length === 0) p = dict.filter((d) => d.level === level)
+  let p = selectPool(dict, level, theme, { fallback: true })
   if (p.length === 0) p = dict
   return p.map(toDictSeg)
 }
@@ -63,7 +55,7 @@ function dictPool(dict, level, theme) {
 // range）は null＝呼び出し側で従来プールへフォールバック。
 function dictRangePool(dict, level, theme, range, freqMap) {
   const freqOf = (e) => freqMap?.get(e.word) ?? null
-  const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
+  const strict = selectPool(dict, level, theme) // strict（フォールバック無し）
   const sliced = wordsInRangeBy(strict, range, RANGE_SIZE, freqOf, (e) => e.word)
   return sliced.length > 0 ? sliced.map(toDictSeg) : null
 }

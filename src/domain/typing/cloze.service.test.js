@@ -7,6 +7,9 @@ import {
   computeClozeMask,
   isClozeRevealed,
   buildClozeSentence,
+  // #412 seed 導出の集約（現状 useMarathon/useDict/useWords にインライン）。coder が Green で追加。
+  clozeMaskRng,
+  clozeSideFor,
 } from './cloze.service.js'
 import { buildUnits, segMatches } from './units.service.js'
 import { mulberry32 } from '../rng.service.js'
@@ -464,5 +467,82 @@ describe('buildClozeSentence（ja モード：和文 item.ja の内容語を jaW
     const out = buildClozeSentence(noWords, 'ja', { rng: mulberry32(1) })
     expect(out.target).toBe(noWords.ja)
     expect(out.ranges).toEqual([])
+  })
+})
+
+// ---- #412 seed 導出の集約（挙動不変リファクタ・Red） ----
+// 現状 useMarathon.js:46 / useDict.js:47 の maskRngFactory と useWords.js:75-82 の clozeSideOf は
+// いずれも fnv1a（domain/rng へ抽出予定）+ mulberry32 を「seed と語キーで混ぜる」同じ式を持つ。
+// これを cloze.service へ集約する。ここでは抽出後の関数が現行インライン式と同値であることを pin する。
+// 期待値は現行式（mulberry32((fnv1a(key) ^ (seed>>>0)) >>> 0)）を node 実行して取得。
+
+// 参照実装（現行インライン式そのまま）。抽出後の domain 関数がこれと一致することを検証する。
+function fnv1aRef(str) {
+  let h = 0x811c9dc5
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+const maskRngRef = (seed, key) => mulberry32((fnv1aRef(key) ^ (seed >>> 0)) >>> 0)
+const sideRef = (seed, key) => (mulberry32(fnv1aRef(key) ^ (seed >>> 0))() < 0.5 ? 'en' : 'ja')
+
+describe('clozeMaskRng（#412：seed×語キーで決定的な mask 用 rng を返す）', () => {
+  it('現行 maskRngFactory と同じ乱数列（先頭5値）を返す＝厳密一致で pin', () => {
+    // 期待値は現行式 mulberry32((fnv1a('above') ^ (12345>>>0)) >>> 0) を node 実行して取得。
+    const r = clozeMaskRng(12345, 'above')
+    const seq = [r(), r(), r(), r(), r()]
+    expect(seq).toEqual([
+      0.7259057078044862,
+      0.0051703189965337515,
+      0.14887121808715165,
+      0.8095005212817341,
+      0.97914310824126,
+    ])
+  })
+
+  it('複数の (seed,key) で現行インライン式と乱数列が完全一致する', () => {
+    for (const seed of [0, 1, 12345, 987654321]) {
+      for (const key of ['above', 'reserve', 'cat', 'apple']) {
+        const got = clozeMaskRng(seed, key)
+        const ref = maskRngRef(seed, key)
+        for (let i = 0; i < 4; i++) expect(got()).toBe(ref())
+      }
+    }
+  })
+
+  it('決定的：同じ (seed,key) から作った rng は同じ列を返す（呼び出しごとに新しい発生器）', () => {
+    const a = clozeMaskRng(7, 'reserve')
+    const b = clozeMaskRng(7, 'reserve')
+    expect([a(), a(), a()]).toEqual([b(), b(), b()])
+  })
+})
+
+describe("clozeSideFor（#412：seed×語キーで 'en'/'ja' を語ごとに決める）", () => {
+  it('現行 clozeSideOf と同じ side を返す（seed=12345 で en/ja 両方が出る）', () => {
+    // 現行式 mulberry32(fnv1a(key) ^ (seed>>>0))() < 0.5 ? 'en' : 'ja' を node 実行して取得。
+    expect(clozeSideFor(12345, 'above')).toBe('ja')
+    expect(clozeSideFor(12345, 'reserve')).toBe('ja')
+    expect(clozeSideFor(12345, 'dog')).toBe('en')
+    expect(clozeSideFor(12345, 'house')).toBe('en')
+  })
+
+  it('複数の (seed,key) で現行インライン式と side が完全一致する', () => {
+    for (const seed of [0, 1, 12345, 987654321]) {
+      for (const key of ['above', 'reserve', 'cat', 'apple', 'dog', 'house', 'tree', 'book']) {
+        expect(clozeSideFor(seed, key)).toBe(sideRef(seed, key))
+      }
+    }
+  })
+
+  it("戻り値は 'en' または 'ja' のいずれか", () => {
+    for (const key of ['above', 'dog', 'house', 'book']) {
+      expect(['en', 'ja']).toContain(clozeSideFor(12345, key))
+    }
+  })
+
+  it('決定的：同じ (seed,key) は常に同じ side を返す', () => {
+    expect(clozeSideFor(42, 'reserve')).toBe(clozeSideFor(42, 'reserve'))
   })
 })

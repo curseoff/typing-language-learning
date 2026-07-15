@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildWordSet, buildWordPassage, levelWords, makeQuiz, WORD_COUNT } from './wordset.service.js'
+import { buildWordSet, buildWordPassage, levelWords, makeQuiz, WORD_COUNT, selectPool } from './wordset.service.js'
 import { buildUnits } from '../typing/units.service.js'
 import { TARGET_KEYS } from '../marathon/passage.service.js'
 import { WORDS } from '../../content/wordsAll.js'
@@ -187,5 +187,51 @@ describe('makeQuiz (4択)', () => {
         }
       })
     }
+  })
+})
+
+// ---- #412 selectPool：level×theme プール選択を単一 export に集約（挙動不変リファクタ・Red） ----
+// 現状の重複：wordset.service.js:11-12（levelThemePool）/ dictset.service.js:8-13 /
+//   useDict.js:55-56 / WordsSection.container.jsx:39（フォールバック無）/ DictSection.container.jsx:52（strict）。
+// 仕様：selectPool(items, level, theme, { fallback = false } = {})
+//   fallback:false … level 一致 && (theme==='すべて' || item.theme===theme)（＝strict）
+//   fallback:true  … strict が空なら level 一致のみ（全テーマ）へフォールバック
+// 各呼び出し側は後で「現状の fallback 値」をそのまま渡すことで挙動不変（配線は coder）。
+describe('selectPool（#412：level×theme のプール選択・fallback 引数で挙動を切替）', () => {
+  const items = [
+    { en: 'a', level: 1, theme: '日常' },
+    { en: 'b', level: 1, theme: '旅行' },
+    { en: 'c', level: 1, theme: '日常' },
+    { en: 'd', level: 2, theme: '旅行' },
+  ]
+
+  it("fallback:false（既定）＝strict：level 一致かつ theme 一致のみ", () => {
+    const out = selectPool(items, 1, '日常')
+    expect(out.map((w) => w.en)).toEqual(['a', 'c'])
+  })
+
+  it("theme==='すべて' は level 一致の全テーマを返す（fallback に依らない）", () => {
+    expect(selectPool(items, 1, 'すべて').map((w) => w.en)).toEqual(['a', 'b', 'c'])
+    expect(selectPool(items, 1, 'すべて', { fallback: true }).map((w) => w.en)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('fallback:false かつ該当テーマが空なら空配列を返す（フォールバックしない）', () => {
+    // level1 に theme 'ビジネス' は無い＝strict は空。fallback しないので空のまま。
+    expect(selectPool(items, 1, 'ビジネス')).toEqual([])
+  })
+
+  it('fallback:true かつ strict が空なら level 一致のみ（全テーマ）へフォールバックする', () => {
+    // level1 × 'ビジネス' は空 → level1 全テーマ [a,b,c] へ。
+    expect(selectPool(items, 1, 'ビジネス', { fallback: true }).map((w) => w.en)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('fallback:true でも strict が非空ならフォールバックせず strict を返す', () => {
+    expect(selectPool(items, 1, '旅行', { fallback: true }).map((w) => w.en)).toEqual(['b'])
+  })
+
+  it('入力配列・要素を破壊しない（純粋）', () => {
+    const snapshot = JSON.parse(JSON.stringify(items))
+    selectPool(items, 1, '日常', { fallback: true })
+    expect(items).toEqual(snapshot)
   })
 })
