@@ -835,6 +835,8 @@ export default function App() {
         <MarathonView
           mode={mode}
           endCondition={endCondition}
+          // #406 HUD 分母の2倍補正に必要（useMarathon に渡すのと同じ値）。
+          learningMode={supportsLearning(mode) ? learningMode : 'normal'}
           rankText={`単語例文 L${wsentLevel}`}
           gloss={wsentGloss}
           segments={segments}

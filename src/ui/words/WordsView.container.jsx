@@ -7,18 +7,9 @@ import { useWords } from '../../application/useWords.js'
 import { useWordQuiz } from '../../application/useWordQuiz.js'
 import { wordRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
-import { itemsTargetFor } from '../../domain/session/learningSequence.service.js'
-import { makeEndCondition } from '../../domain/session/endCondition.vo.js'
+import { hudEndFor } from '../../domain/session/learningSequence.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
-
-// #402 cloze かつ問題数制のとき、HUD の分母（実効目標）を2倍にする（finish 側 useWords と一致）。
-function hudEndFor(endCondition, learningMode) {
-  if (learningMode === 'cloze' && endCondition?.kind === 'items') {
-    return makeEndCondition('items', itemsTargetFor(endCondition, 'cloze'))
-  }
-  return endCondition
-}
 
 export default function WordsView({ words, level, theme, mode, seed, range, learningMode = 'normal', levelLabel, modeLabel, endCondition, onExit }) {
   const metaSub = `${modeLabel} / ${theme}`

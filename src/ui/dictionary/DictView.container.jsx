@@ -8,6 +8,7 @@ import { useDict } from '../../application/useDict.js'
 import { useDictQuiz } from '../../application/useDictQuiz.js'
 import { dictRecKey } from '../../application/records.service.js'
 import { endHudStat } from '../../content/endConditions.js'
+import { hudEndFor } from '../../domain/session/learningSequence.service.js'
 import { useRecordDetail } from '../result/useRecordDetail.jsx'
 import { useOpenDetail } from '../result/RecordDetailContext.context.jsx'
 
@@ -52,8 +53,10 @@ function typeHint(mode, segType) {
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）。単語例文（マラソン）と同じ TopFlow で描画。
 function TypeView({ dict, gloss, level, theme, mode, seed, range, freqMap, learningMode, levelLabel, metaSub, endCondition, onExit }) {
   const d = useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode, onExit })
+  // #406 cloze かつ問題数制は目標2倍＝HUD の分母も2倍にして finish（useDict）と一致させる。
+  const hudEnd = hudEndFor(endCondition, learningMode)
   // items 制の HUD 進捗＝完了語数（segIndex）。time/chars は不変。
-  const endStat = endHudStat(endCondition, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
+  const endStat = endHudStat(hudEnd, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
 
   return (
     <DictTypeView

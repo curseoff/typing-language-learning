@@ -1,5 +1,6 @@
 // 穴埋め学習モードの出題順（#402）。純粋・React/DOM 非依存。
 // 「まず通常入力で覚え → 同じ順で穴埋めで定着」を1ブロック単位で繰り返す。
+import { makeEndCondition } from './endCondition.vo.js'
 
 // items を blockSize ごとのブロックに区切り、各ブロックを
 // 「normal 全部 → 同じ順で cloze 全部」に展開する（末尾端数は単独ブロック）。
@@ -22,4 +23,14 @@ export function tagLearningBlocks(items, { blockSize = 5 } = {}) {
 export function itemsTargetFor(endCondition, learningMode) {
   if (!endCondition || endCondition.kind !== 'items') return null
   return learningMode === 'cloze' ? endCondition.value * 2 : endCondition.value
+}
+
+// HUD 用の「実効目標」EndCondition。#406 cloze かつ問題数制のとき、finish 側（itemsTargetFor＝2倍）
+// と分母・進捗バーを一致させるため value を 2 倍にした EndCondition を返す。それ以外はそのまま返す
+// （items 以外・normal・null/undefined は入力を無改変で返す＝非破壊）。
+export function hudEndFor(endCondition, learningMode) {
+  if (learningMode === 'cloze' && endCondition?.kind === 'items') {
+    return makeEndCondition('items', itemsTargetFor(endCondition, 'cloze'))
+  }
+  return endCondition
 }

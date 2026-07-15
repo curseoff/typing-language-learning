@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 // Issue #402 穴埋め学習モード（TDD Red）。
 // 本体 src/domain/session/learningSequence.service.js は coder が Green で作る（現状未実装＝import で undefined）。
-import { tagLearningBlocks, itemsTargetFor } from './learningSequence.service.js'
+import { tagLearningBlocks, itemsTargetFor, hudEndFor } from './learningSequence.service.js'
 
 // テスト用の最小 item（実体は問わない＝タグ付けは参照を保持するだけ）
 const A = { en: 'a' }
@@ -129,5 +129,43 @@ describe('itemsTargetFor（cloze は items 目標を 2 倍にする）', () => {
   it('value=0 の端ケースでも例外を投げず数値を返す（cloze→0 / normal→0）', () => {
     expect(itemsTargetFor({ kind: 'items', value: 0 }, 'cloze')).toBe(0)
     expect(itemsTargetFor({ kind: 'items', value: 0 }, 'normal')).toBe(0)
+  })
+})
+
+// #406 HUD の分母（実効目標）補正。cloze×items は finish 側（itemsTargetFor）と一致させて 2 倍する。
+// items 以外・normal はそのまま返す（据置）。純粋・入力非破壊。
+describe('hudEndFor（cloze×items のとき HUD 目標を2倍にする）', () => {
+  it("kind=items かつ learningMode='cloze' なら value を 2 倍した EndCondition を返す", () => {
+    expect(hudEndFor({ kind: 'items', value: 25 }, 'cloze')).toEqual({ kind: 'items', value: 50 })
+    expect(hudEndFor({ kind: 'items', value: 10 }, 'cloze')).toEqual({ kind: 'items', value: 20 })
+  })
+
+  it('kind=items だが normal（cloze 以外）は据置（同じ endCondition を返す）', () => {
+    const ec = { kind: 'items', value: 25 }
+    expect(hudEndFor(ec, 'normal')).toBe(ec)
+    expect(hudEndFor(ec)).toBe(ec) // 未指定＝normal 扱い
+  })
+
+  it('items 以外（time/chars/life/endless）は cloze でも据置（同じ endCondition を返す）', () => {
+    for (const ec of [
+      { kind: 'time', value: 60 },
+      { kind: 'chars', value: 600 },
+      { kind: 'life', value: 3 },
+      { kind: 'endless', value: null },
+    ]) {
+      expect(hudEndFor(ec, 'cloze')).toBe(ec)
+    }
+  })
+
+  it('endCondition が null/undefined でも例外を投げず据置で返す', () => {
+    expect(hudEndFor(null, 'cloze')).toBeNull()
+    expect(hudEndFor(undefined, 'cloze')).toBeUndefined()
+  })
+
+  it('純粋：入力 endCondition を破壊しない（cloze×items でも元は不変）', () => {
+    const ec = { kind: 'items', value: 25 }
+    const snapshot = { ...ec }
+    hudEndFor(ec, 'cloze')
+    expect(ec).toEqual(snapshot)
   })
 })
