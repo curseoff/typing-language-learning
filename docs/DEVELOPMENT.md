@@ -156,7 +156,7 @@ git config ai.signingKey     "~/.ssh/ai-signing.pub" # SSH 署名公開鍵
 
 | 種類 | テーブル | 単位 |
 |---|---|---|
-| 文章 | `records` | モード×レベル（`${mode}__r${rank}`） |
+| 単語例文 | `records` | モード×レベル（`${mode}__r${rank}`） |
 | 単語 | `word_records` | レベル×テーマ×モード |
 | 英英辞典 | `dict_records` | レベル×テーマ×モード |
 | 物語（記録） | `story_records` | 速度ランキング |
