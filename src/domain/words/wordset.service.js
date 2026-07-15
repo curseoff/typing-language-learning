@@ -7,9 +7,19 @@ import { poolForRange } from './wordRange.service.js'
 
 export const WORD_COUNT = 30 // 4択クイズの問題数
 
+// level×theme のプール選択（#412・純粋・非破壊）。dict も同じ形なので共用する。
+//   fallback:false（既定）… level 一致 && (theme==='すべて' || item.theme===theme)（＝strict）。
+//   fallback:true        … strict が空なら level 一致のみ（全テーマ）へフォールバックする。
+// theme==='すべて' は fallback に依らず level 一致の全テーマ。3段目（同レベルも空→全件）は
+// 呼び出し側（levelThemePool 等）に残す＝既存の出題フォールバックを byte 同一に保つ。
+export function selectPool(items, level, theme, { fallback = false } = {}) {
+  const strict = items.filter((it) => it.level === level && (theme === 'すべて' || it.theme === theme))
+  if (strict.length > 0 || !fallback) return strict
+  return items.filter((it) => it.level === level)
+}
+
 function levelThemePool(words, level, theme) {
-  let pool = words.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
-  if (pool.length === 0) pool = words.filter((w) => w.level === level)
+  let pool = selectPool(words, level, theme, { fallback: true })
   if (pool.length === 0) pool = words
   return pool
 }

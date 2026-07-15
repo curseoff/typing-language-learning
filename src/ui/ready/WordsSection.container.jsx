@@ -7,6 +7,7 @@ import { RankSectionView } from '@tll/ui'
 import { WORD_LEVELS, WORD_MODES, WORD_COUNTS, loadWords } from '../../content/words.js'
 import { wordRanking } from '../../application/records.service.js'
 import { rangeLabel, poolForRange, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { selectPool } from '../../domain/words/wordset.service.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
 import LearningSelect from './LearningSelect.container.jsx'
@@ -36,7 +37,7 @@ function WordsList({ level, theme, mode, range }) {
   const items =
     range != null
       ? poolForRange(words, level, theme, range)
-      : words.filter((w) => w.level === level && (theme === 'すべて' || w.theme === theme))
+      : selectPool(words, level, theme) // strict（フォールバック無し）
   return <ItemList items={items} type="words" mode={mode} />
 }
 

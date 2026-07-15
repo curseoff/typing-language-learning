@@ -8,6 +8,7 @@ import { DICT_MODES, DICT_COUNTS, DICT_AVAILABLE_LEVELS, loadDict } from '../../
 import { loadWords } from '../../content/words.js'
 import { dictRanking } from '../../application/records.service.js'
 import { rangeLabel, RANGE_SIZE } from '../../domain/words/wordRange.service.js'
+import { selectPool } from '../../domain/dictionary/dictset.service.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import ItemList from './ItemList.container.jsx'
 import EndConditionSelect from './EndConditionSelect.container.jsx'
@@ -49,7 +50,7 @@ function DictList({ level, theme, mode, range }) {
     }
   }, [range, level])
   if (!dict || (range != null && !freqMap)) return <p className="pool-count">読み込み中…</p>
-  const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
+  const strict = selectPool(dict, level, theme) // strict（フォールバック無し）
   const items = sliceByHeadwordFreq(strict, range, freqMap)
   return <ItemList items={items} type="dict" mode={mode} />
 }

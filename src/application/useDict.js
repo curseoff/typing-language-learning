@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildPassage } from '../domain/marathon/passage.service.js'
 import { wordsInRangeBy, RANGE_SIZE } from '../domain/words/wordRange.service.js'
+import { selectPool } from '../domain/dictionary/dictset.service.js'
 import { makeScoreRecord } from '../domain/records/scoreRecord.vo.js'
 import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } from '../domain/session/endCondition.vo.js'
@@ -42,9 +43,9 @@ const maskRngFactory = (seed) => (item) => clozeMaskRng(seed, item.en)
 const toDictSeg = (e) => ({ word: e.word, en: e.def, ja: e.ja, kana: e.kana, jaWords: e.jaWords })
 
 // dict を level/theme で絞り、buildPassage の pool 形式 {word, en, ja, kana} に整える。
+// selectPool（fallback:true）で strict→level フォールバックまで、3段目（全件）はここに残す。
 function dictPool(dict, level, theme) {
-  let p = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
-  if (p.length === 0) p = dict.filter((d) => d.level === level)
+  let p = selectPool(dict, level, theme, { fallback: true })
   if (p.length === 0) p = dict
   return p.map(toDictSeg)
 }
@@ -54,7 +55,7 @@ function dictPool(dict, level, theme) {
 // range）は null＝呼び出し側で従来プールへフォールバック。
 function dictRangePool(dict, level, theme, range, freqMap) {
   const freqOf = (e) => freqMap?.get(e.word) ?? null
-  const strict = dict.filter((d) => d.level === level && (theme === 'すべて' || d.theme === theme))
+  const strict = selectPool(dict, level, theme) // strict（フォールバック無し）
   const sliced = wordsInRangeBy(strict, range, RANGE_SIZE, freqOf, (e) => e.word)
   return sliced.length > 0 ? sliced.map(toDictSeg) : null
 }
