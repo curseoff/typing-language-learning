@@ -10,9 +10,10 @@ import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { readNdjson } from './lib/ndjson.mjs'
 
 const u = (p) => new URL(p, import.meta.url)
-// public/ に置く＝dev/build で静的アセットとして配信され、アプリが fetch できる（生成物・gitignore）。
-mkdirSync(u('../public/'), { recursive: true })
-const OUT = u('../public/content.sqlite3')
+// src/content/generated/ に置く＝Vite が `?url` import で hash 付き asset として処理し、
+// base 込み・キャッシュ無効化された正しい URL を返す（生成物・gitignore）。
+mkdirSync(u('../src/content/generated/'), { recursive: true })
+const OUT = u('../src/content/generated/content.sqlite3')
 const SCHEMA_VERSION = 1
 
 const sqlite3 = await sqlite3InitModule()
