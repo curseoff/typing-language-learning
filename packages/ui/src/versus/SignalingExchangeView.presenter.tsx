@@ -45,9 +45,9 @@ function CodeBlock({
   return (
     <div className="vs-codeblock">
       <label className="vs-label">{label}</label>
-      <textarea className="vs-code" readOnly rows={3} value={value} />
+      <textarea className="vs-code" readOnly rows={4} value={value} />
       {onCopy && (
-        <button type="button" className="btn-secondary vs-copy" onClick={() => onCopy(value)}>
+        <button type="button" className="vs-btn vs-btn-secondary vs-copy" onClick={() => onCopy(value)}>
           コピー
         </button>
       )}
@@ -74,14 +74,14 @@ function PasteBlock({
       <label className="vs-label">{label}</label>
       <textarea
         className="vs-code"
-        rows={3}
+        rows={4}
         placeholder={placeholder}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
       <button
         type="button"
-        className="btn-primary vs-submit"
+        className="vs-btn vs-btn-primary vs-submit"
         disabled={trimmed.length === 0}
         onClick={() => onSubmit(trimmed)}
       >
@@ -151,10 +151,10 @@ export default function SignalingExchangeView({
         <div className="vs-roles">
           <p className="vs-lead">QR なしのコピペ／共有URLで、2人以上をつなぎます。</p>
           <div className="vs-role-buttons">
-            <button type="button" className="btn-primary" onClick={onSelectHost}>
+            <button type="button" className="vs-btn vs-btn-primary" onClick={onSelectHost}>
               部屋を作る
             </button>
-            <button type="button" className="btn-secondary" onClick={onSelectGuest}>
+            <button type="button" className="vs-btn vs-btn-secondary" onClick={onSelectGuest}>
               部屋に入る
             </button>
           </div>
@@ -173,7 +173,7 @@ export default function SignalingExchangeView({
                   {shareUrl && onCopy && (
                     <button
                       type="button"
-                      className="btn-secondary vs-share"
+                      className="vs-btn vs-btn-secondary vs-share"
                       onClick={() => onCopy(shareUrl)}
                     >
                       共有URLをコピー

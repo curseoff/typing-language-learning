@@ -5,10 +5,16 @@
 //   2. 共有URL（location から #versus=<code> を組み立て・コピー）と hash 由来の自動 join
 //   3. クリップボードコピー（navigator.clipboard）
 // の3点。個人情報や実 IP は URL に載せない（# 断片のみ・# 断片はサーバーへ送られない）。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SignalingExchangeView } from '@tll/ui'
 import { useVersus } from '../../application/versus/useVersus.js'
 import { activeIds as rosterActiveIds } from '../../domain/versus/peerRoster.service.js'
+
+// 共有URL経由 auto-join を「同一コードに対し確実に1回だけ」に絞る消化済みセット（module スコープ）。
+// ref ガードだと StrictMode（dev）の二重マウントで 1回目 cleanup が予約を消し、2回目 effect が
+// ガードで早期 return して永久に発火しない不具合になる。module スコープなら二重マウントを跨いで
+// 一度きり判定でき、本番でも一度だけになる（ページ再読込で module 再評価＝セットは初期化）。
+const consumedHashCodes = new Set()
 
 // location.hash から接続コードを取り出す（`#versus=<code>` 形式・無ければ null）。純粋・DOM 非依存。
 function parseHashCode(hash) {
@@ -52,17 +58,17 @@ export default function VersusConnect() {
 
   // 共有URL経由のゲスト自動参加：mount 時に hash の接続コードを拾って joinRoom へ流す（1回だけ）。
   // effect 内の同期 setState を避けるため setTimeout(…,0) で遅延させる（react-hooks/set-state-in-effect）。
-  const autoJoined = useRef(false)
+  // cleanup で clearTimeout しない：StrictMode の二重マウントで 1回目 cleanup が予約を消すと
+  // 2回目 effect が消化済み判定で return し auto-join が永久に発火しなくなるため。二重発火（peer 二重生成）は
+  // consumedHashCodes（module スコープ）が防ぐ＝発火は同一コードに対し確実に1回だけ、dev/本番いずれも。
   useEffect(() => {
-    if (autoJoined.current) return
     const code = parseHashCode(window.location.hash)
-    if (!code) return
-    autoJoined.current = true
-    const id = setTimeout(() => {
+    if (!code || consumedHashCodes.has(code)) return
+    consumedHashCodes.add(code)
+    setTimeout(() => {
       setChosenRole('guest')
       v.joinRoom(code)
     }, 0)
-    return () => clearTimeout(id)
     // mount 時1回のみ（hash は初期表示時の値で確定・v は安定参照でなくても再実行不要）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
