@@ -226,6 +226,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* width:100% が要点：margin:0 auto（左右auto余白）はフレックス子の align-items:stretch を無効化し、
+     definite な width が無いと .vs-board が max-content に縮退する。すると時間表示の
+     「1 / 60秒」↔「0.7 / 60秒」（整数↔小数）で盤面カード（青枠）の幅が揺れる（実測 382↔445px）。
+     width:100%（max-width:640 でキャップ）で cross-size を確定させ、縮退＝幅ゆれを無くす。 */
+  width: 100%;
   max-width: 640px;
   margin: 0 auto;
 }
