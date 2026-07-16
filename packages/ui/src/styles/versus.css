@@ -303,7 +303,9 @@
 /* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
 .vs-card-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* minmax(0,1fr) が要点：素の 1fr は minmax(auto,1fr)＝内容(min-content)で列が広がるため、
+     時間「48.9 / 60秒」等の長い値が列を押し広げて幅が揺れる。min を 0 に固定して内容非依存の等幅にする。 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 .vs-card-stat {
@@ -312,6 +314,7 @@
   padding: 8px 6px;
   text-align: center;
   min-width: 0; /* 内容（時間の桁変化等）で列幅が伸縮しないよう固定（等幅グリッド維持）。 */
+  overflow: hidden; /* 万一値がセル幅を超えても列を広げない（幅一定を保証）。 */
 }
 .vs-card-stat-label {
   font-size: 10px;
