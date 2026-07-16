@@ -67,7 +67,11 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 // #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する。
 //   ハンドラ内（ref 読み許可の場所）から { typed, mistakes, segStats, currentMistakes } を渡す。
 //   未指定（既定 undefined）は従来と完全に同一挙動＝通常プレイは一切影響を受けない（後方互換）。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress }) {
+// #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
+//   （startTime を performance.now() で即セット＝レース開始＝カウントダウン終了と同時に時間が進む）。
+//   未指定（solo プレイ）は従来どおり初回打鍵で開始＝挙動を一切変えない。effect で同期 setState すると
+//   cascading render 警告になるため、lazy 初期化で最初の render 時刻を startTime とする（＝マウント時計時開始）。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -104,14 +108,14 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [segMistaken, setSegMistaken] = useState(false) // 現在問題でミスがあったか（cloze の正解開示用）
-  const [startTime, setStartTime] = useState(null)
+  const [startTime, setStartTime] = useState(() => (autoStart ? performance.now() : null))
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const startTimeRef = useRef(null) // 進捗 finish 用の開始時刻（startTime と同値）
+  const startTimeRef = useRef(startTime) // 進捗 finish 用の開始時刻（startTime と同値。autoStart 時は初期値も揃える）
 
   // 打鍵数(keys)とミス数(mistakes)を保持する可変 Entity（部分採用）。器の endCondition VO は
   // ダミー（finish 判定には使わない＝session.finish()/isFinished() は呼ばない）。Factory と VO は初回のみ生成。

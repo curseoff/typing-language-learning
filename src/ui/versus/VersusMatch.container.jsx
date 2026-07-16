@@ -244,6 +244,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     learningMode: 'cloze',
     onExit: () => {},
     onProgress,
+    // 対戦はレース開始（この PlayArea のマウント＝カウントダウン終了）と同時に計時を始める（初回打鍵を待たない）。
+    autoStart: true,
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
   useLiveRefSync(liveRef, d.liveSpeed, d.elapsedSec)
@@ -295,6 +297,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     learningMode: 'cloze',
     onExit: () => {},
     onProgress,
+    // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
+    autoStart: true,
   })
   useLiveRefSync(liveRef, w.liveSpeed, w.elapsedSec)
   useFinishBroadcast({ finished: w.finished, lives: derived.lives, progress, initialLives, typed: w.typedKeys, total, mistakes: w.mistakes, correct: derived.correct, speed: w.liveSpeed, elapsedSec: w.elapsedSec, sendProgress, sendFinished })
@@ -357,7 +361,8 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
     },
     [sendProgress, sendFinished, total, initialLives, liveRef],
   )
-  const m = useMarathon({ active: true, onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress })
+  // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
+  const m = useMarathon({ active: true, onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true })
 
   // マウント時に1回だけ出題を開始（全員同一 seed＝同一問題列）。
   const started = useRef(false)
@@ -404,6 +409,31 @@ function PlayArea(props) {
   if (props.config.gameType === 'dict') return <DictPlayArea {...props} />
   if (props.config.gameType === 'words') return <WordsPlayArea {...props} />
   return <WsentPlayArea {...props} />
+}
+
+// カウントダウン中の表示。残り秒（3・2・1）を大きな数字で見せ、100ms 間隔で再描画して減らす。
+// 残り秒 = ceil((localStartAt - Date.now())/1000)＝localStartAt は Date.now() 基準（このブランチの壁掛け時計）。
+// localStartAt が null の間（開始時刻未確定）は従来どおり「まもなく開始します…」だけを出す。
+// 残り秒（remain）は state に持ち、interval コールバック内でのみ Date.now() から再計算する
+// （render 中に Date.now() を読むと react-hooks/purity に触れる／effect 本体で同期 setState もしない）。
+// remain が null の間（localStartAt 未確定 or 初回 tick 前）は補助文言だけを出す。0 到達 or phase→running で
+// 親（VersusMatch）が本コンポーネントを外し、プレイ画面へ遷移する。
+function CountdownNote({ localStartAt }) {
+  const [remain, setRemain] = useState(null)
+  useEffect(() => {
+    if (localStartAt == null) return
+    const id = setInterval(() => setRemain(Math.max(0, Math.ceil((localStartAt - Date.now()) / 1000))), 100)
+    return () => clearInterval(id)
+  }, [localStartAt])
+  if (remain == null) {
+    return <p className="vs-lead vs-countdown-note">まもなく開始します…</p>
+  }
+  return (
+    <div className="vs-countdown" role="status" aria-live="polite">
+      <span className="vs-countdown-num">{remain}</span>
+      <p className="vs-lead vs-countdown-note">まもなく開始します…</p>
+    </div>
+  )
 }
 
 // 対戦本体。VersusConnect から useVersus の返り値を受け取り、content ロード→カウントダウン→プレイ→終了まで繋ぐ。
@@ -472,7 +502,7 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
     const self = { typed: 0, speed: 0, mistakes: 0, correct: 0, lives: initialLives ?? 0, elapsedSec: 0 }
     return (
       <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec}>
-        <p className="vs-lead vs-countdown-note">まもなく開始します…</p>
+        <CountdownNote localStartAt={localStartAt} />
       </MatchStage>
     )
   }
