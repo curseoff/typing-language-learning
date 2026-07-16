@@ -9,6 +9,7 @@ import {
   markFinished,
   activeIds,
   allFinished,
+  resetFinished,
 } from './peerRoster.service.js'
 
 describe('peerRoster（#426・参加者名簿）', () => {
@@ -193,6 +194,69 @@ describe('peerRoster（#426・参加者名簿）', () => {
       const before = allFinished(r0)
       markFinished(r0, 'a')
       expect(allFinished(r0)).toBe(before)
+    })
+  })
+
+  // #432 ナビ改善：次戦へ備えるため全 peer の finished を落とす（接続維持のロビー復帰で使う）。
+  describe('resetFinished：完了フラグを全員 false に戻す（#432）', () => {
+    it('finished 済みの複数 peer を全て false に戻す', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a')
+      r = markFinished(r, 'me')
+      r = markFinished(r, 'a')
+      const reset = resetFinished(r)
+      expect(reset.peers.me.finished).toBe(false)
+      expect(reset.peers.a.finished).toBe(false)
+    })
+
+    it('元 roster を破壊しない（新オブジェクトを返す・元の finished は保持）', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a')
+      r = markFinished(r, 'me')
+      r = markFinished(r, 'a')
+      const reset = resetFinished(r)
+      expect(reset).not.toBe(r)
+      // 元は不変（finished のまま）
+      expect(r.peers.me.finished).toBe(true)
+      expect(r.peers.a.finished).toBe(true)
+    })
+
+    it('order・self・left・name は保持する', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a', 'Alice')
+      r = markFinished(r, 'a')
+      r = removePeer(r, 'a') // left=true・finished=true の peer
+      const reset = resetFinished(r)
+      expect(reset.order).toEqual(['me', 'a'])
+      expect(reset.peers.me.self).toBe(true)
+      expect(reset.peers.a.self).toBe(false)
+      expect(reset.peers.a.left).toBe(true) // left フラグは保持
+      expect(reset.peers.a.name).toBe('Alice')
+    })
+
+    it('left した peer の finished も false になる（left は残す）', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a')
+      r = markFinished(r, 'a')
+      r = removePeer(r, 'a')
+      const reset = resetFinished(r)
+      expect(reset.peers.a.finished).toBe(false)
+      expect(reset.peers.a.left).toBe(true)
+    })
+
+    it('既に finished=false の peer はそのまま false のまま', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a')
+      const reset = resetFinished(r)
+      expect(reset.peers.me.finished).toBe(false)
+      expect(reset.peers.a.finished).toBe(false)
+    })
+
+    it('自分だけの名簿でも安全に処理できる', () => {
+      const r = makeRoster('me')
+      const reset = resetFinished(r)
+      expect(activeIds(reset)).toEqual(['me'])
+      expect(reset.peers.me.finished).toBe(false)
     })
   })
 })
