@@ -126,6 +126,50 @@ describe('peerRoster（#426・参加者名簿）', () => {
     })
   })
 
+  describe('addPeer：表示名 name（#432 拡張）', () => {
+    it('name 付きで追加すると peer が name を保持する', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a', 'Alice')
+      expect(r.peers.a.name).toBe('Alice')
+    })
+
+    it('name 省略時は従来同等（name は無し／nullish）', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a')
+      expect(r.peers.a.name ?? null).toBe(null)
+    })
+
+    it('name を付けても self/left/finished の既存フィールドは従来どおり', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a', 'Alice')
+      expect(r.peers.a.self).toBe(false)
+      expect(r.peers.a.left).toBe(false)
+      expect(r.peers.a.finished).toBe(false)
+    })
+
+    it('既存 peer の再 add で name が新たに与えられたら更新される（hello の name を後から反映）', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a') // 先に name 無しで参加
+      r = addPeer(r, 'a', 'Alice') // 後から name 付きで再 add
+      expect(r.peers.a.name).toBe('Alice')
+    })
+
+    it('name 更新の再 add でも activeIds の冪等性（順序・重複なし）は保たれる', () => {
+      let r = makeRoster('me')
+      r = addPeer(r, 'a', 'Alice')
+      const before = activeIds(r)
+      r = addPeer(r, 'a', 'Alice2')
+      expect(activeIds(r)).toEqual(before)
+    })
+
+    it('name 付き add でも元 roster は破壊しない（新オブジェクト返却）', () => {
+      const r0 = makeRoster('me')
+      const r1 = addPeer(r0, 'a', 'Alice')
+      expect(r0.peers.a).toBeUndefined() // 元は不変
+      expect(r1).not.toBe(r0)
+    })
+  })
+
   describe('純粋性：入力非破壊・新オブジェクト返却', () => {
     it('addPeer は元 roster を破壊しない', () => {
       const r0 = makeRoster('me')
