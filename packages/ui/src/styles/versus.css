@@ -218,3 +218,190 @@
   color: var(--text);
   background: var(--panel-2);
 }
+
+/* ── 対戦中の進捗カード（ProgressCardView）＋盤面（VersusBoardView）───────────── */
+
+/* 盤面：カードを人数ぶん並べ、終了後は勝敗/ドローバッジを上に添える。 */
+.vs-board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.vs-board-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.vs-board-badge {
+  align-self: center;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.vs-board-winner {
+  color: var(--green);
+}
+.vs-board-draw {
+  color: var(--muted-fn);
+}
+
+/* 進捗カード：自分は枠を強調（accent）。 */
+.vs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.vs-card-self {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.vs-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vs-card-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+.vs-card-id {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-card-self .vs-card-id {
+  color: var(--accent);
+}
+
+/* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
+.vs-card-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.vs-card-stat {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.vs-card-stat-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+.vs-card-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* 勝敗軸＝正解問題数（強調）。 */
+.vs-card-correct {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+.vs-card-correct-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.vs-card-correct-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* 残ライフ（サドンデス時のみ）。 */
+.vs-card-lives {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vs-heart {
+  color: var(--red);
+  font-size: 16px;
+}
+.vs-card-lives-count {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+
+/* ── 設定案の承認（MatchApprovalView）──────────────────────────────────── */
+.vs-approval-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.vs-approval-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vs-approval-row dt {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+  margin: 0;
+}
+.vs-approval-row dd {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+.vs-approval-ask {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.vs-approval-waiting {
+  font-size: 14px;
+  color: var(--muted-fn);
+  margin: 0;
+}
+.vs-approval-rejection {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--red);
+  background: var(--panel-2);
+}
+.vs-approval-votes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vs-vote {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-vote-accept {
+  color: var(--green);
+}
+.vs-vote-reject {
+  color: var(--red);
+}
