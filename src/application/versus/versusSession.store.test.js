@@ -469,6 +469,52 @@ describe('reduce: reset（完全初期化・接続画面へ・#432）', () => {
   })
 })
 
+// ── #432 ホスト権威の対戦終了配布：matchEnded action ─────────────────────
+// matchEnded＝ホストが配布する対戦終了。受信側は現在の phase に関わらず phase を
+// 'finished' に確定し、結果表示に使う roster/progress/config/seed 等は保持する。
+describe('reduce: matchEnded（ホスト権威の対戦終了・#432）', () => {
+  it('running から phase=finished へ確定する', () => {
+    let s = connected('me')
+    s = reduce(s, { type: 'lifecycle', event: 'raceStarted' }) // running
+    s = reduce(s, { type: 'matchEnded' })
+    expect(s.phase).toBe('finished')
+  })
+
+  it('countdown からでも phase=finished へ強制する（ホスト権威の終了）', () => {
+    const s = reduce(connected('me'), { type: 'matchEnded' }) // countdown → finished
+    expect(s.phase).toBe('finished')
+  })
+
+  it('running（未完走）から強制終了しても progress/roster/config/seed を保持する（結果表示に使う）', () => {
+    // config/seed/progress を積んだ running 状態（まだ誰も完走していない＝phase は running）。
+    let base = connected('me') // countdown, roster=[me, rival]
+    base = reduce(base, { type: 'setRole', role: 'host' })
+    base = reduce(base, { type: 'propose', config: CONFIG, seed: 42, memberIds: ['me', 'rival'], proposer: 'me' })
+    base = reduce(base, { type: 'configAccepted' }) // config=CONFIG
+    base = reduce(base, { type: 'lifecycle', event: 'raceStarted' }) // running
+    base = reduce(base, {
+      type: 'progress',
+      message: { type: 'progress', peerId: 'rival', typed: 8, total: 20, mistakes: 2, at: 200 },
+    })
+    expect(base.phase).toBe('running') // 前提：まだ finished でない
+    const s = reduce(base, { type: 'matchEnded' })
+    expect(s.phase).toBe('finished') // 強制終了
+    expect(s.config).toEqual(CONFIG)
+    expect(s.seed).toBe(42)
+    expect(s.progress).toEqual(base.progress)
+    expect(s.roster).toEqual(base.roster)
+  })
+
+  it('元の state を破壊しない（新オブジェクトを返す）', () => {
+    let base = connected('me')
+    base = reduce(base, { type: 'lifecycle', event: 'raceStarted' }) // running
+    const snapshot = structuredClone(base)
+    const s = reduce(base, { type: 'matchEnded' })
+    expect(base).toEqual(snapshot)
+    expect(s).not.toBe(base)
+  })
+})
+
 describe('入力非破壊: #432 追加 action', () => {
   it('propose/vote/configAccepted/configRejected/suddenDeathEnd は元の state を変更しない', () => {
     let base = reduce(initSession('me'), {

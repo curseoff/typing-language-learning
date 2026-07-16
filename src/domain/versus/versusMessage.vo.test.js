@@ -361,3 +361,57 @@ describe('buildMessage：propose/vote/start を組み立てる（未知はなお
     expect(() => buildMessage('ping', { peerId: 'a' })).toThrow()
   })
 })
+
+// ============================================================================
+// #432 対戦マッチ制御メッセージ：abort（ESCでロビー復帰の同期）＋ matchEnd（ホスト権威の終了配布）。
+//   本体 versusMessage.vo.js に KNOWN_TYPES/PARSERS を追加する前提の「失敗テスト（Red）」。
+// ============================================================================
+
+// ---- abort：ESC でロビーへ戻ったことを相手へ通知（peerId 必須） ----
+describe('parseMessage：abort（peerId 非空文字列を検証）', () => {
+  it('妥当な abort を正規化して返す', () => {
+    const m = parseMessage({ type: 'abort', peerId: 'a' })
+    expect(m).toEqual({ type: 'abort', peerId: 'a' })
+  })
+
+  it('余計なフィールドは落とす（peerId だけを保持）', () => {
+    const m = parseMessage({ type: 'abort', peerId: 'a', extra: 'x', reason: 'esc' })
+    expect(m).toEqual({ type: 'abort', peerId: 'a' })
+  })
+
+  const invalid = [
+    ['peerId 欠落', { type: 'abort' }],
+    ['peerId 空文字', { type: 'abort', peerId: '' }],
+    ['peerId 非文字列', { type: 'abort', peerId: 5 }],
+    ['peerId null', { type: 'abort', peerId: null }],
+  ]
+  it.each(invalid)('%s → null', (_label, input) => {
+    expect(parseMessage(input)).toBeNull()
+  })
+})
+
+// ---- matchEnd：ホストが対戦終了を全員へ配布（ペイロードなし） ----
+describe('parseMessage：matchEnd（ペイロードなし・余計なフィールドは落とす）', () => {
+  it('妥当な matchEnd を { type: "matchEnd" } に正規化して返す', () => {
+    const m = parseMessage({ type: 'matchEnd' })
+    expect(m).toEqual({ type: 'matchEnd' })
+  })
+
+  it('余計なフィールドは落として { type: "matchEnd" } のみ返す', () => {
+    const m = parseMessage({ type: 'matchEnd', peerId: 'a', extra: 1 })
+    expect(m).toEqual({ type: 'matchEnd' })
+  })
+})
+
+// ---- buildMessage：abort/matchEnd を許可（未知はなお throw） ----
+describe('buildMessage：abort/matchEnd を組み立てる（未知はなお throw）', () => {
+  it('abort を組み立てる（type と peerId をまとめた object を返す）', () => {
+    const m = buildMessage('abort', { peerId: 'a' })
+    expect(m).toMatchObject({ type: 'abort', peerId: 'a' })
+  })
+
+  it('matchEnd を組み立てる（ペイロードなし）', () => {
+    const m = buildMessage('matchEnd')
+    expect(m).toMatchObject({ type: 'matchEnd' })
+  })
+})
