@@ -5,8 +5,11 @@
 // performance に依存＝jsdom/node で意味のある単体計測ができず、coverage 対象外＝vite.config.js）。
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { initSession, reduce } from './versusSession.store.js'
+import { makeSeed } from '../seed.policy.js'
 import { parseMessage, buildMessage } from '../../domain/versus/versusMessage.vo.js'
 import { localStartTime } from '../../domain/versus/startClock.service.js'
+import { activeIds } from '../../domain/versus/peerRoster.service.js'
+import { isAllAccepted, isRejected } from '../../domain/versus/approvalState.service.js'
 import { createPeer } from '../../infrastructure/p2p/webrtcPeer.adapter.js'
 import { encodeSignal, decodeSignal } from '../../infrastructure/p2p/manualSignaling.adapter.js'
 import { getIceMode, setIceMode as persistIceMode, iceServersFor } from '../../infrastructure/p2p/iceConfig.repository.js'
@@ -33,6 +36,13 @@ function safeParseJson(data) {
 export function useVersus({ selfId: providedSelfId } = {}) {
   const selfId = useMemo(() => providedSelfId ?? genSelfId(), [providedSelfId])
   const [state, dispatch] = useReducer(reduce, selfId, initSession)
+
+  // 最新 state を毎レンダー保持する ref。handleMessage/effect が useCallback 依存に state 全体を
+  // 抱えずに最新 roster/approval/role/seed を安全に読むための「最新値ホルダー」（単一ピア設計に合わせた最小変更）。
+  const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  })
 
   // UI 向けの補助状態（reducer の対戦状態とは別に、接続導線の一時値を持つ）。
   const [iceMode, setIceModeState] = useState(() => getIceMode())
@@ -86,6 +96,23 @@ export function useVersus({ selfId: providedSelfId } = {}) {
           break
         case 'peerLeft':
           dispatch({ type: 'peerLeft', peerId: msg.peerId })
+          break
+        case 'propose':
+          // 相手からの設定提案。memberIds は自分視点の最新 active 名簿で起こす（stateRef で最新 roster を読む）。
+          dispatch({
+            type: 'propose',
+            config: msg.config,
+            seed: msg.seed,
+            memberIds: activeIds(stateRef.current.roster),
+            proposer: msg.peerId,
+          })
+          break
+        case 'vote':
+          dispatch({ type: 'vote', peerId: msg.peerId, vote: msg.accept ? 'accept' : 'reject' })
+          break
+        case 'start':
+          // ホストが可決を確定→配布した start。ゲストは approval.config を commit する（seed は propose 時に取得済み）。
+          dispatch({ type: 'configAccepted' })
           break
         default:
           break
@@ -181,10 +208,55 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     scheduleRace(startAt)
   }, [scheduleRace])
 
+  // 設定提案を起こす（誰でも押下可）。共有 seed を採番し、自分視点の全 active を memberIds として
+  // approval を起こす。相手へは propose メッセージを配信する（peerId/config/seed のみ運ぶ）。
+  const proposeMatch = useCallback(
+    (config) => {
+      const seed = makeSeed()
+      const memberIds = activeIds(stateRef.current.roster)
+      dispatch({ type: 'propose', config, seed, memberIds, proposer: selfId })
+      peerRef.current?.send(JSON.stringify(buildMessage('propose', { peerId: selfId, config, seed })))
+    },
+    [selfId],
+  )
+
+  // 提案への賛否を投じる（accept=true で賛成）。自分ぶんを反映しつつ相手へも vote を配信する。
+  const voteMatch = useCallback(
+    (accept) => {
+      dispatch({ type: 'vote', peerId: selfId, vote: accept ? 'accept' : 'reject' })
+      peerRef.current?.send(JSON.stringify(buildMessage('vote', { peerId: selfId, accept })))
+    },
+    [selfId],
+  )
+
+  // 承認状態の集約：投票が出揃った結果を1箇所で判定する。
+  //  - 誰かが reject → 全員ロビーへ差し戻し（configRejected で approval が null になり再発火しない）。
+  //  - 全員 accept かつ自分がホスト → start を配布し config を commit してカウントダウン開始。
+  //    ゲストは local all-accepted でも動かず、ホストの start 受信で commit する（開始権限をホストに一本化）。
+  useEffect(() => {
+    const ap = state.approval
+    if (!ap) return
+    if (isRejected(ap)) {
+      dispatch({ type: 'configRejected' })
+      return
+    }
+    if (isAllAccepted(ap) && state.role === 'host') {
+      peerRef.current?.send(JSON.stringify(buildMessage('start', { seed: stateRef.current.seed, config: ap.config })))
+      dispatch({ type: 'configAccepted' })
+      startMatch()
+    }
+    // startMatch は scheduleRace（安定）のみに依存する安定コールバックのため依存に含めない（意図的）。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.approval, state.role])
+
   // 進捗を配信し、自分ぶんもローカルへ反映する（peerId は自 ID・時刻は performance.now）。
+  // correct（一発正解数）・lives（サドンデス残機）は与えられたときだけ message に含める（無指定は従来どおり）。
   const sendProgress = useCallback(
-    ({ typed, total, mistakes }) => {
-      const msg = buildMessage('progress', { peerId: selfId, typed, total, mistakes, at: performance.now() })
+    ({ typed, total, mistakes, correct, lives }) => {
+      const payload = { peerId: selfId, typed, total, mistakes, at: performance.now() }
+      if (correct !== undefined) payload.correct = correct
+      if (lives !== undefined) payload.lives = lives
+      const msg = buildMessage('progress', payload)
       peerRef.current?.send(JSON.stringify(msg))
       dispatch({ type: 'progress', message: msg })
     },
@@ -224,6 +296,11 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     progress: state.progress,
     startAt: state.startAt,
     localStartAt,
+    // 承認フロー（設定提案）
+    config: state.config,
+    approval: state.approval,
+    rejection: state.rejection,
+    seed: state.seed,
     // 接続導線
     iceMode,
     setIceMode,
@@ -235,6 +312,8 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     joinRoom,
     acceptAnswer,
     // 対戦操作
+    proposeMatch,
+    voteMatch,
     startMatch,
     sendProgress,
     sendFinished,
