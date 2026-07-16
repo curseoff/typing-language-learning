@@ -14,7 +14,7 @@ const SELF_ID = '03ecf8d2-1111-4a2b-9c3d-aaaaaaaaaaaa';
 const PEER_ID = '77bd90ac-2222-4f5e-8d6c-bbbbbbbbbbbb';
 
 const proposal = {
-  gameType: '穴埋め',
+  gameType: '英英辞典',
   level: 3,
   theme: '日常',
   mode: 'ノーマル',

@@ -11,7 +11,7 @@
 // 後方互換の任意コールバック onProgress（打鍵ごとに { typed, mistakes, segStats, currentMistakes } を
 // ハンドラ内＝ref 読み許可の場所から通知）だけを足し、判定/採点ロジックは触っていない。
 // content ロードは App.jsx の開始経路（startDict/startWords/startWsent）を最小移植する。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DictTypeView, WordTypeView, VersusBoardView } from '@tll/ui'
 import MarathonView from '../marathon/MarathonView.container.jsx'
 import { useDict } from '../../application/useDict.js'
@@ -19,8 +19,8 @@ import { useWords } from '../../application/useWords.js'
 import { useMarathon } from '../../application/useMarathon.js'
 import { toProgressPayload } from '../../application/versus/versusPlay.policy.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
-import { activeIds } from '../../domain/versus/peerRoster.service.js'
-import { winners as computeWinners } from '../../domain/versus/matchScore.service.js'
+import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
+import { rankMap } from '../../domain/versus/matchScore.service.js'
 import { anyoneEliminated } from '../../domain/versus/suddenDeath.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
 import { rangeCount } from '../../domain/words/wordRange.service.js'
@@ -97,9 +97,11 @@ function useVersusContent(config) {
 }
 
 // 盤面カード配列（ProgressCardData[]）を組み立てる。自分＝手元の live 値、相手＝受信した progress の数値のみ。
-// 相手は speed/elapsedSec を配信していない（progress payload に無い）ため 0 で表示する（数値のカンニング防止は担保）。
+// #432 相手の速度(speed)・経過(elapsedMs)も progress で配信するようになったため、あれば反映（無ければ 0）。
+// 数値のみ（問題テキストは渡さない）＝カンニング防止は担保。finished は roster から各参加者ぶんを取る。
 function buildMembers({ selfId, roster, self, progress, initialLives, limitSec }) {
   return activeIds(roster).map((id) => {
+    const finished = roster.peers[id]?.finished ?? false
     if (id === selfId) {
       return {
         id,
@@ -109,6 +111,7 @@ function buildMembers({ selfId, roster, self, progress, initialLives, limitSec }
         mistakes: self.mistakes,
         elapsedSec: self.elapsedSec,
         correct: self.correct,
+        finished,
         ...(limitSec != null ? { limitSec } : {}),
         ...(initialLives != null ? { lives: self.lives } : {}),
       }
@@ -118,31 +121,42 @@ function buildMembers({ selfId, roster, self, progress, initialLives, limitSec }
       id,
       self: false,
       typed: p.typed ?? 0,
-      speed: 0, // 相手の速度は未配信（progress payload に無い）→ 0 表示。#432 TODO: speed 配信は将来拡張。
+      // 相手の速度・経過は progress の speed/elapsedMs から反映（未配信＝旧クライアント時は 0）。
+      speed: p.speed ?? 0,
       mistakes: p.mistakes ?? 0,
-      elapsedSec: 0, // 相手の経過秒も未配信 → 0 表示。
+      elapsedSec: p.elapsedMs != null ? Math.round(p.elapsedMs / 1000) : 0,
       correct: p.correct ?? 0,
+      finished,
       ...(limitSec != null ? { limitSec } : {}),
       ...(initialLives != null ? { lives: p.lives ?? initialLives } : {}),
     }
   })
 }
 
-// 盤面（自分/相手カード＋勝敗バッジ）を組み立てて描画する共有 stage。play は自分のプレイ UI（children）。
+// 盤面（自分/相手カード）を組み立てて描画する共有 stage。play は自分のプレイ UI（children）。
+// 終了後は各カード内に順位（rankMap＝competition ranking）を出す（上部の勝敗バッジは廃止＝#432 E）。
+// 自分が完了して相手待ちのときは、相手の完了を待つ案内を出す（#432 D）。
 function MatchStage({ selfId, roster, self, progress, phase, initialLives, limitSec, children }) {
   const members = buildMembers({ selfId, roster, self, progress, initialLives, limitSec })
   const finished = phase === 'finished'
-  // 勝敗は correct（一発正解数）最多で判定（複数はドロー）。終了時のみ算出して盤面に渡す。
-  const winnerIds = useMemo(() => {
-    if (!finished) return undefined
-    const scores = Object.fromEntries(members.map((m) => [m.id, { correct: m.correct }]))
-    return computeWinners(scores)
-    // members は毎レンダー新規参照だが finished 時のみ評価＝終了フレームで一度確定する。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished, progress, self.correct])
+  // 終了後のみ、correct（一発正解数）から順位を算出して各カードへ載せる（同点は同順位）。
+  const ranked = finished
+    ? (() => {
+        const scores = Object.fromEntries(members.map((m) => [m.id, { correct: m.correct }]))
+        const ranks = rankMap(scores)
+        return members.map((m) => ({ ...m, rank: ranks[m.id] }))
+      })()
+    : members
+  // 自分が完了かつ全員は未完了（＝相手待ち）のとき、待機案内を出す。
+  const waitingForOthers = (roster.peers[selfId]?.finished ?? false) && !allFinished(roster)
   return (
     <div className="vs vs-match">
-      <VersusBoardView members={members} winners={winnerIds} finished={finished} />
+      {waitingForOthers && (
+        <p className="vs-lead vs-match-waiting" role="status">
+          相手の完了を待っています…
+        </p>
+      )}
+      <VersusBoardView members={ranked} />
       <div className="vs-match-play">{children}</div>
     </div>
   )
@@ -153,25 +167,34 @@ function MatchStage({ selfId, roster, self, progress, phase, initialLives, limit
 //   lives     … 自分の残ライフ（サドンデスのみ・undefined ならライフ判定しない）。
 //   progress  … 相手の受信進捗（誰か lives0 で自分も終了へ倒す最小サドンデス対応）。
 //   typed/mistakes/elapsedSec … 完走配信に載せる手元の実績（effect 内で最新値を読む＝ref を render 中に書かない）。
+//   correct   … 手元の一発正解数（最終 progress に載せる）。speed … 手元の live 速度（同上）。
+// #432 完走時は sendFinished の直前に「最終 progress」を1回配信する（相手カードの完了表示が最終
+// typed/mistakes/correct/lives/speed/elapsedMs になり、0 秒/0 速度で止まらない）。
 // #432 要判断：store の suddenDeathEnd は useVersus 未配線のため、脱落検知時は sendFinished 相当で
 // 全員完走へ収束させる最小対応にしている（本来はホストが全員へ終了を配布すべき）。
-function useFinishBroadcast({ finished, lives, progress, initialLives, typed, mistakes, elapsedSec, sendFinished }) {
+function useFinishBroadcast({ finished, lives, progress, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished }) {
   const sentRef = useRef(false)
   useEffect(() => {
     if (sentRef.current) return
     const eliminated = initialLives != null && ((typeof lives === 'number' && lives <= 0) || anyoneEliminated(progress))
     if (!finished && !eliminated) return
     sentRef.current = true
-    sendFinished({ keys: typed, mistakes, elapsedMs: Math.round(elapsedSec * 1000) })
-  }, [finished, lives, progress, initialLives, typed, mistakes, elapsedSec, sendFinished])
+    const elapsedMs = Math.round(elapsedSec * 1000)
+    // 最終 progress（透過値そのまま・correct/lives/speed/elapsedMs 込み）を1回だけ配信する。
+    sendProgress({ typed, total, mistakes, correct, speed, elapsedMs, ...(initialLives != null ? { lives } : {}) })
+    sendFinished({ keys: typed, mistakes, elapsedMs })
+  }, [finished, lives, progress, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
 }
 
 // 手元スナップショット（onProgress 由来の correct/lives）を保持し、進捗を配信する共通フック。
 // onProgress のたびに payload（correct/lives 込み）を作って sendProgress し、correct/lives を state に反映する。
-function useProgressRelay({ sendProgress, total, initialLives }) {
+// #432 相手カードの速度・時間：live 速度・経過を liveRef（各 PlayArea が effect で更新する最新値ホルダー）
+// から読み、payload に speed/elapsedMs を載せて配信する（render 中に ref を書かない＝effect 更新の1フレーム遅れは表示上許容）。
+function useProgressRelay({ sendProgress, total, initialLives, liveRef }) {
   const [derived, setDerived] = useState({ correct: 0, lives: initialLives ?? 0 })
   const onProgress = useCallback(
     (snap) => {
+      const live = liveRef.current
       const payload = toProgressPayload({
         typed: snap.typed,
         total,
@@ -179,20 +202,36 @@ function useProgressRelay({ sendProgress, total, initialLives }) {
         segStats: snap.segStats,
         currentMistakes: snap.currentMistakes,
         initialLives,
+        speed: live.speed,
+        elapsedMs: live.elapsedMs,
       })
       sendProgress(payload)
       // ハンドラ内 setState（effect ではない）＝cascading render 警告の対象外。
       setDerived({ correct: payload.correct, lives: payload.lives ?? initialLives ?? 0 })
     },
-    [sendProgress, total, initialLives],
+    [sendProgress, total, initialLives, liveRef],
   )
   return { derived, onProgress }
+}
+
+// live 速度・経過の最新値ホルダー（ref）を作る。プレイフックより先に生成が要る（onProgress へ渡すため）。
+function useLiveRef() {
+  return useRef({ speed: 0, elapsedMs: 0 })
+}
+
+// プレイフックの live 速度・経過を最新値ホルダー（ref）へ反映する（render 中に書かず effect で更新）。
+// onProgress/finish の effect が読む「1フレーム遅れの最新値」＝表示上は許容。
+function useLiveRefSync(liveRef, speed, elapsedSec) {
+  useEffect(() => {
+    liveRef.current = { speed: speed ?? 0, elapsedMs: Math.round((elapsedSec ?? 0) * 1000) }
+  }, [liveRef, speed, elapsedSec])
 }
 
 // dict（英英）の対戦プレイエリア。useDict を seed 注入・cloze 固定で駆動する。
 function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives })
+  const liveRef = useLiveRef()
+  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
   const d = useDict({
     dict: content.dict,
     level: config.level,
@@ -206,7 +245,9 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     onExit: () => {},
     onProgress,
   })
-  useFinishBroadcast({ finished: d.finished, lives: derived.lives, progress, initialLives, typed: d.typedKeys, mistakes: d.mistakes, elapsedSec: d.elapsedSec, sendFinished })
+  // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
+  useLiveRefSync(liveRef, d.liveSpeed, d.elapsedSec)
+  useFinishBroadcast({ finished: d.finished, lives: derived.lives, progress, initialLives, typed: d.typedKeys, total, mistakes: d.mistakes, correct: derived.correct, speed: d.liveSpeed, elapsedSec: d.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: d.typedKeys, speed: d.liveSpeed, mistakes: d.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: d.elapsedSec }
   const hudEnd = hudEndFor(config.endCondition, 'cloze')
@@ -241,7 +282,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
 // words（単語）の対戦プレイエリア。useWords を seed 注入・cloze 固定で駆動する。
 function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives })
+  const liveRef = useLiveRef()
+  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
   const w = useWords({
     allWords: content.words,
     level: config.level,
@@ -254,7 +296,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     onExit: () => {},
     onProgress,
   })
-  useFinishBroadcast({ finished: w.finished, lives: derived.lives, progress, initialLives, typed: w.typedKeys, mistakes: w.mistakes, elapsedSec: w.elapsedSec, sendFinished })
+  useLiveRefSync(liveRef, w.liveSpeed, w.elapsedSec)
+  useFinishBroadcast({ finished: w.finished, lives: derived.lives, progress, initialLives, typed: w.typedKeys, total, mistakes: w.mistakes, correct: derived.correct, speed: w.liveSpeed, elapsedSec: w.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: w.typedKeys, speed: w.liveSpeed, mistakes: w.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: w.elapsedSec }
   const hudEnd = hudEndFor(config.endCondition, 'cloze')
@@ -287,16 +330,32 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
 // wsent（単語例文）の対戦プレイエリア。useMarathon を start() で駆動する（segments は start で注入）。
 function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives })
-  // onFinish（マラソンは finished フラグを持たず onFinish で完走を通知）→ 完走を1回だけ配信する。
+  const liveRef = useLiveRef()
+  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  // 最新の derived（correct/lives）を effect で ref へ控える（onFinish の最終 progress が読む）。
+  const derivedRef = useRef(derived)
+  useEffect(() => {
+    derivedRef.current = derived
+  }, [derived])
+  // onFinish（マラソンは finished フラグを持たず onFinish で完走を通知）→ 最終 progress→完走を1回だけ配信する。
   const finSentRef = useRef(false)
   const onFinish = useCallback(
     (record) => {
       if (finSentRef.current) return
       finSentRef.current = true
+      // 相手カードが最終値になるよう、最終 progress を1回配信してから完走を送る（#432）。
+      sendProgress({
+        typed: record.keys,
+        total,
+        mistakes: record.mistakes,
+        correct: derivedRef.current.correct,
+        speed: liveRef.current.speed,
+        elapsedMs: record.elapsedMs,
+        ...(initialLives != null ? { lives: derivedRef.current.lives } : {}),
+      })
       sendFinished({ keys: record.keys, mistakes: record.mistakes, elapsedMs: record.elapsedMs })
     },
-    [sendFinished],
+    [sendProgress, sendFinished, total, initialLives, liveRef],
   )
   const m = useMarathon({ active: true, onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress })
 
@@ -310,8 +369,9 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // サドンデス脱落での終了（onFinish は個人完走用）。誰か lives0 なら sendFinished で収束させる最小対応。
-  useFinishBroadcast({ finished: false, lives: derived.lives, progress, initialLives, typed: m.typedKeys, mistakes: m.mistakes, elapsedSec: m.elapsedSec, sendFinished })
+  useLiveRefSync(liveRef, m.liveSpeed, m.elapsedSec)
+  // サドンデス脱落での終了（onFinish は個人完走用）。誰か lives0 なら 最終 progress→sendFinished で収束させる最小対応。
+  useFinishBroadcast({ finished: false, lives: derived.lives, progress, initialLives, typed: m.typedKeys, total, mistakes: m.mistakes, correct: derived.correct, speed: m.liveSpeed, elapsedSec: m.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: m.typedKeys, speed: m.liveSpeed, mistakes: m.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: m.elapsedSec }
 
@@ -347,9 +407,24 @@ function PlayArea(props) {
 }
 
 // 対戦本体。VersusConnect から useVersus の返り値を受け取り、content ロード→カウントダウン→プレイ→終了まで繋ぐ。
-export default function VersusMatch({ config, seed, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+export default function VersusMatch({ config, seed, selfId, roster, progress, phase, sendProgress, sendFinished, onExit }) {
   const content = useVersusContent(config)
   const { initialLives, limitSec } = matchParams(config.endCondition)
+
+  // Esc で対戦を中断して前の画面へ戻す（プレイ中ヒント「Esc で中断してトップへ」と挙動一致）。
+  // capture 段で stopPropagation し、プレイフック（useDict/useMarathon）の Esc 処理（escFinish）が
+  // 二重発火しないよう最小限で preempt する。onExit はピア切断＋前画面復帰を担う（VersusConnect）。
+  useEffect(() => {
+    if (!onExit) return
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      e.preventDefault()
+      onExit()
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  }, [onExit])
 
   if (content.error) {
     return (

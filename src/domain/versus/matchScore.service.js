@@ -18,3 +18,16 @@ export function winners(scores) {
   const max = Math.max(...ids.map((id) => scores[id].correct))
   return ids.filter((id) => scores[id].correct === max)
 }
+
+// #432 不具合④：競技順位（同点は同順位・次順位は飛ぶ）を { [peerId]: rank } で返す。
+// rank = 1 + (自分より correct が真に大きい人数)。1始まり整数。空 scores は {}。
+export function rankMap(scores) {
+  const ids = Object.keys(scores)
+  const out = {}
+  for (const id of ids) {
+    const mine = scores[id].correct
+    const above = ids.filter((other) => scores[other].correct > mine).length
+    out[id] = 1 + above
+  }
+  return out
+}

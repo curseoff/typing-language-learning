@@ -14,6 +14,8 @@ export interface ProgressCardData {
   limitSec?: number // 制限秒（時間終了条件時に `経過 / 制限秒` を出す。無ければ経過のみ）
   correct: number // 正解問題数（＝勝敗軸・目立たせる）
   lives?: number // 残ライフ（サドンデス時のみ・undefined なら非表示）
+  finished?: boolean // #432 その参加者が完了したか（true で「完了」バッジを出す）
+  rank?: number // #432 終了後の順位（1始まり・同点は同順位）。undefined なら順位バッジ非表示。
 }
 
 // peerId（生 UUID）は意味を持たないので、見出しでは先頭 8 文字だけを表示する。
@@ -42,6 +44,8 @@ export default function ProgressCardView({
   limitSec,
   correct,
   lives,
+  finished,
+  rank,
 }: ProgressCardData) {
   const timeText = limitSec != null ? `${elapsedSec} / ${limitSec}秒` : `${elapsedSec}秒`
 
@@ -49,8 +53,14 @@ export default function ProgressCardView({
     <div className={`vs-card${self ? ' vs-card-self' : ''}`}>
       <div className="vs-card-head">
         <span className="vs-card-name">{name || shortId(id)}</span>
-        <span className="vs-card-id">
-          {self ? 'あなた' : '相手'}（{shortId(id)}）
+        <span className="vs-card-badges">
+          {/* #432 順位（終了後のみ・同点は同順位）。勝敗軸の correct から container が算出。 */}
+          {rank != null && <span className="vs-card-rank">{rank}位</span>}
+          {/* #432 完了/待機の可視化：完了した参加者に「完了」バッジを出す。 */}
+          {finished && <span className="vs-card-finished">完了</span>}
+          <span className="vs-card-id">
+            {self ? 'あなた' : '相手'}（{shortId(id)}）
+          </span>
         </span>
       </div>
 

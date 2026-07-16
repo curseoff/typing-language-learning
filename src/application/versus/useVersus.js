@@ -250,12 +250,15 @@ export function useVersus({ selfId: providedSelfId } = {}) {
   }, [state.approval, state.role])
 
   // 進捗を配信し、自分ぶんもローカルへ反映する（peerId は自 ID・時刻は performance.now）。
-  // correct（一発正解数）・lives（サドンデス残機）は与えられたときだけ message に含める（無指定は従来どおり）。
+  // correct（一発正解数）・lives（サドンデス残機）・speed（打鍵速度）・elapsedMs（経過時間）は
+  // 与えられたときだけ message に含める（無指定は従来どおり＝後方互換）。
   const sendProgress = useCallback(
-    ({ typed, total, mistakes, correct, lives }) => {
+    ({ typed, total, mistakes, correct, lives, speed, elapsedMs }) => {
       const payload = { peerId: selfId, typed, total, mistakes, at: performance.now() }
       if (correct !== undefined) payload.correct = correct
       if (lives !== undefined) payload.lives = lives
+      if (speed !== undefined) payload.speed = speed
+      if (elapsedMs !== undefined) payload.elapsedMs = elapsedMs
       const msg = buildMessage('progress', payload)
       peerRef.current?.send(JSON.stringify(msg))
       dispatch({ type: 'progress', message: msg })
@@ -272,6 +275,13 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     },
     [selfId],
   )
+
+  // 対戦を抜ける（Esc 中断など）：タイマー停止＋ピア切断で後始末する。UI 側は onExit で前画面へ戻す。
+  // close は handleClose 経由で peerLeft/aborted を流し、connection を disconnected にする。
+  const leave = useCallback(() => {
+    clearTimeout(raceTimerRef.current)
+    peerRef.current?.close()
+  }, [])
 
   // アンマウント時にタイマーとピアを後始末する（同期 setState を避けるためクリーンアップのみ）。
   useEffect(() => {
@@ -311,6 +321,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     createRoom,
     joinRoom,
     acceptAnswer,
+    leave,
     // 対戦操作
     proposeMatch,
     voteMatch,

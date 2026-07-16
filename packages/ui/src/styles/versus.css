@@ -221,7 +221,7 @@
 
 /* ── 対戦中の進捗カード（ProgressCardView）＋盤面（VersusBoardView）───────────── */
 
-/* 盤面：カードを人数ぶん並べ、終了後は勝敗/ドローバッジを上に添える。 */
+/* 盤面：カードを人数ぶん並べる。勝敗は上部バッジではなく各カード内の順位（.vs-card-rank）で示す（#432）。 */
 .vs-board {
   display: flex;
   flex-direction: column;
@@ -234,20 +234,11 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
-.vs-board-badge {
+
+/* 自分が完了して相手待ちのときの案内（role="status"）。 */
+.vs-match-waiting {
   align-self: center;
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-}
-.vs-board-winner {
-  color: var(--green);
-}
-.vs-board-draw {
-  color: var(--muted-fn);
+  font-weight: 700;
 }
 
 /* 進捗カード：自分は枠を強調（accent）。 */
@@ -274,6 +265,12 @@
   font-size: 16px;
   font-weight: 800;
 }
+/* 見出し右側のバッジ群（順位・完了・短縮ID）を1行に収める。 */
+.vs-card-badges {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
 .vs-card-id {
   font-size: 12px;
   font-weight: 700;
@@ -281,6 +278,26 @@
 }
 .vs-card-self .vs-card-id {
   color: var(--accent);
+}
+/* 順位バッジ（終了後のみ・#432）。勝敗軸 correct から container が算出。 */
+.vs-card-rank {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+/* 完了バッジ（その参加者が完了・#432）。 */
+.vs-card-finished {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted-fn);
+  background: var(--panel);
 }
 
 /* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
@@ -405,3 +422,23 @@
 .vs-vote-reject {
   color: var(--red);
 }
+
+/* ── ロビー（VersusLobby / VersusConnect のロビー分岐）─────────────────────── */
+/* 接続後ロビーのフロー容器（.vs のフレックス間隔を継ぐ）。特別な余白は不要＝子の間隔は .vs が持つ。 */
+/* .vs-lobby-flow … 追加の余白定義は不要（.vs の gap で十分）。意図的に空定義を置かず注記のみ。 */
+
+/* 「対戦開始」ボタン行。直前の終了条件セクションと密着しないよう間隔を空ける。 */
+.vs-lobby-actions {
+  margin-top: 20px;
+}
+
+/* 提案が拒否された差し戻しバナー（.vs-approval-rejection と同等のボックス装飾で統一）。 */
+.vs-lobby-rejection {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--red);
+  background: var(--panel-2);
+}
+
+/* .vs-countdown-note（「まもなく開始します…」）… .vs-lead の余白を継ぐため追加定義は不要。 */
+/* .vs-match-play（対戦中の自分プレイ領域）… レイアウトは内側の presenter が持つため追加定義は不要。 */

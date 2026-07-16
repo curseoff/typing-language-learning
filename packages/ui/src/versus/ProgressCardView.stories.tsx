@@ -44,6 +44,23 @@ export const OpponentTimed: Story = {
   ),
 };
 
+// 終了後（完了バッジ＋順位バッジ）
+export const Finished: Story = {
+  render: () => (
+    <ProgressCardView
+      id={SELF_ID}
+      self
+      typed={128}
+      speed={312}
+      mistakes={4}
+      elapsedSec={42}
+      correct={7}
+      finished
+      rank={1}
+    />
+  ),
+};
+
 // サドンデス（残ライフをハートで表示）
 export const SuddenDeath: Story = {
   render: () => (

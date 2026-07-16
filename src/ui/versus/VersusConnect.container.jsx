@@ -55,8 +55,14 @@ function buildShareUrl({ origin, pathname }, code) {
   return `${origin}${pathname}#versus=${encodeURIComponent(code)}`
 }
 
-export default function VersusConnect() {
+export default function VersusConnect({ onExit }) {
   const v = useVersus()
+
+  // 対戦を抜ける（Esc 中断など）：ピアを切断してから前の画面（トップ/ready）へ復帰する。
+  const handleExit = useCallback(() => {
+    v.leave()
+    onExit?.()
+  }, [v, onExit])
 
   // ゲストは joinRoom を呼ぶまで reducer 上の role が未確定なので、UI 上の「入る」選択を一時保持する。
   const [chosenRole, setChosenRole] = useState(null)
@@ -137,6 +143,7 @@ export default function VersusConnect() {
         phase={v.phase}
         sendProgress={v.sendProgress}
         sendFinished={v.sendFinished}
+        onExit={handleExit}
       />
     )
   }

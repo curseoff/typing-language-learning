@@ -765,7 +765,7 @@ export default function App() {
       {/* #426 対戦（接続コード交換）。現状は dev の ?preview=versus からのみ到達（遅延ロード）。 */}
       {phase === 'versus' && (
         <Suspense fallback={<p className="vs-pending">読み込み中…</p>}>
-          <VersusConnect />
+          <VersusConnect onExit={() => setPhase('ready')} />
         </Suspense>
       )}
 

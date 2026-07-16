@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { VersusBoardView } from '@tll/ui';
 import type { ProgressCardData } from '@tll/ui';
 
-// 対戦盤面。進行中/勝者確定/ドローの各状態を代表 props で描く。
+// 対戦盤面。進行中/順位確定（単独）/同点（同順位）の各状態を代表 props で描く。
+// 勝敗は上部バッジではなく各カード内の順位（rank）で示す（container が算出して members に載せる）。
 const meta = {
   title: 'versus/VersusBoardView',
   component: VersusBoardView,
@@ -18,17 +19,27 @@ const members: ProgressCardData[] = [
   { id: PEER_ID, name: 'ゲスト', self: false, typed: 96, speed: 240, mistakes: 9, elapsedSec: 42, correct: 5 },
 ];
 
-// 進行中（バッジなし）
+// 進行中（順位・完了バッジなし）
 export const InProgress: Story = {
   render: () => <VersusBoardView members={members} />,
 };
 
-// 勝者確定
-export const Winner: Story = {
-  render: () => <VersusBoardView members={members} finished winners={[SELF_ID]} />,
+// 順位確定（自分1位・相手2位）＝各カードに順位/完了を表示
+export const Ranked: Story = {
+  render: () => (
+    <VersusBoardView
+      members={members.map((m) => ({
+        ...m,
+        finished: true,
+        rank: m.id === SELF_ID ? 1 : 2,
+      }))}
+    />
+  ),
 };
 
-// ドロー（勝者が複数）
+// 同点（同順位＝両者1位）
 export const Draw: Story = {
-  render: () => <VersusBoardView members={members} finished winners={[SELF_ID, PEER_ID]} />,
+  render: () => (
+    <VersusBoardView members={members.map((m) => ({ ...m, finished: true, rank: 1 }))} />
+  ),
 };

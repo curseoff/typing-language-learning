@@ -59,6 +59,9 @@ export function reduce(state, action) {
       const entry = { typed: m.typed, total: m.total, mistakes: m.mistakes, at: m.at }
       if ('correct' in m) entry.correct = m.correct
       if ('lives' in m) entry.lives = m.lives
+      // #432 相手カードの速度・時間：あれば取り込む（無ければキーを持たせない＝後方互換）。
+      if ('speed' in m) entry.speed = m.speed
+      if ('elapsedMs' in m) entry.elapsedMs = m.elapsedMs
       return {
         ...state,
         progress: { ...state.progress, [m.peerId]: entry },

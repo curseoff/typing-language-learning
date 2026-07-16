@@ -51,6 +51,9 @@ const PARSERS = {
     // #432 任意フィールド：妥当なら保持、型不正は省略（基本 progress は無効化しない＝後方互換）。
     if (isNonNegFinite(obj.correct)) out.correct = obj.correct
     if (Number.isInteger(obj.lives)) out.lives = obj.lives
+    // #432 相手カードの速度・時間：非負有限数なら保持、不正は省略（correct/lives と同方針）。
+    if (isNonNegFinite(obj.speed)) out.speed = obj.speed
+    if (isNonNegFinite(obj.elapsedMs)) out.elapsedMs = obj.elapsedMs
     return out
   },
   countdown(obj) {
