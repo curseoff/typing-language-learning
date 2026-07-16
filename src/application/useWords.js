@@ -36,7 +36,9 @@ const nextWordsId = () => `words-${++wordsSessionSeq}`
 // #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
 // #402 learningMode='cloze'＝5問ブロックで「通常→穴埋め」を交互に出す（問題数制は2倍が実効目標）。
 //   normal（既定）は従来と完全に同一挙動（tag も cloze も掛けない）。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit }) {
+// #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する（useDict と同形）。
+//   未指定（既定 undefined）は従来と完全に同一挙動（後方互換）。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress }) {
   const isCloze = learningMode === 'cloze'
   // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
   //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
@@ -317,10 +319,15 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         const pm = sessionRef.current.progress()
         finishByProgress(t, pm.keys, completed.length, pm.mistakes, input.length)
       }
+      // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      if (onProgress) {
+        const pp = sessionRef.current.progress()
+        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes })
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems])
+  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems, onProgress])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。

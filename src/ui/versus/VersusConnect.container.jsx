@@ -1,14 +1,41 @@
-// #426 対戦基盤スライス4：接続コード交換の container。
-// useVersus（対戦セッションの状態機械・WebRTC・手動シグナリング配線）を呼び、@tll/ui の
-// SignalingExchangeView（純粋 presenter）へ props/コールバックを渡す。ここが持つ app 固有の配線は
-//   1. 役割選択の一時状態（ゲストは joinRoom 前に「入る」を選んだ時点で貼付欄を出す）
-//   2. 共有URL（location から #versus=<code> を組み立て・コピー）と hash 由来の自動 join
-//   3. クリップボードコピー（navigator.clipboard）
-// の3点。個人情報や実 IP は URL に載せない（# 断片のみ・# 断片はサーバーへ送られない）。
+// #426/#432 対戦の接続〜対戦導線 container（フロー化）。
+// useVersus（対戦セッションの状態機械・WebRTC・手動シグナリング配線）を呼び、返り値の
+// connection/approval/config/phase を見て表示を出し分ける（新たなグローバル state は足さない）：
+//   1. 未接続            … SignalingExchangeView（接続コード交換）
+//   2. 接続済み・設定前   … VersusLobby（対戦条件を選び proposeMatch で提案）
+//   3. 提案中（approval）… MatchApprovalView（承認/拒否・投票状況・拒否差し戻し）
+//   4. 合意後（config）  … 対戦本体プレースホルダ（countdown/running/finished・PR8 で差し替え）
+// この container が持つ app 固有の配線は
+//   a. 役割選択の一時状態（ゲストは joinRoom 前に「入る」を選んだ時点で貼付欄を出す）
+//   b. 共有URL（location から #versus=<code> を組み立て・コピー）と hash 由来の自動 join
+//   c. クリップボードコピー（navigator.clipboard）
+//   d. MatchConfig → presenter 向けの人間可読ラベル整形（表示文字列は container 側で作り presenter は表示のみ）
+// の4点。個人情報や実 IP は URL に載せない（# 断片のみ・# 断片はサーバーへ送られない）。
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { SignalingExchangeView } from '@tll/ui'
+import { SignalingExchangeView, MatchApprovalView } from '@tll/ui'
 import { useVersus } from '../../application/versus/useVersus.js'
 import { activeIds as rosterActiveIds } from '../../domain/versus/peerRoster.service.js'
+import { modeLabel } from '../../content/modes.js'
+import { endKind, endValueLabel } from '../../content/endConditions.js'
+import VersusLobby from './VersusLobby.container.jsx'
+import VersusMatch from './VersusMatch.container.jsx'
+
+// 種目キー → 表示名（ロビーのタブと同じ呼称）。
+const GAME_TYPE_LABELS = { words: '単語', wsent: '単語例文', dict: '英英辞典' }
+
+// MatchConfig を MatchApprovalView が期待する表示用サマリ（すべて整形済み文字列）へ変換する。
+// presenter は表示に徹する規約のため、ラベル整形はここ（container）で完結させる。
+function formatProposal(config) {
+  const ec = config.endCondition
+  return {
+    gameType: GAME_TYPE_LABELS[config.gameType] ?? config.gameType,
+    level: config.level,
+    theme: config.theme,
+    mode: modeLabel(config.mode),
+    // 例: 時間60秒 / 問題数25問 / サドンデスライフ3。
+    endConditionLabel: `${endKind(ec.kind).label}${endValueLabel(ec.kind, ec.value)}`,
+  }
+}
 
 // 共有URL経由 auto-join を「同一コードに対し確実に1回だけ」に絞る消化済みセット（module スコープ）。
 // ref ガードだと StrictMode（dev）の二重マウントで 1回目 cleanup が予約を消し、2回目 effect が
@@ -28,8 +55,15 @@ function buildShareUrl({ origin, pathname }, code) {
   return `${origin}${pathname}#versus=${encodeURIComponent(code)}`
 }
 
-export default function VersusConnect() {
+export default function VersusConnect({ onExit }) {
   const v = useVersus()
+
+  // 対戦をやめて前の画面（トップ/ready）へ戻る：ピアを切断してから復帰する。
+  // 接続画面（SignalingExchangeView）の「戻る」導線（onBack）から呼ぶ（対戦中の Esc はロビー復帰＝returnToLobby）。
+  const handleExit = useCallback(() => {
+    v.leave()
+    onExit?.()
+  }, [v, onExit])
 
   // ゲストは joinRoom を呼ぶまで reducer 上の role が未確定なので、UI 上の「入る」選択を一時保持する。
   const [chosenRole, setChosenRole] = useState(null)
@@ -73,21 +107,77 @@ export default function VersusConnect() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ---- 表示の出し分け（useVersus の返り値のみで決める）----
+
+  // 1. 未接続：接続コード交換 UI（従来どおり）。
+  if (v.connection !== 'connected') {
+    return (
+      <SignalingExchangeView
+        role={role}
+        connection={v.connection}
+        selfId={v.selfId}
+        offerCode={v.offerCode}
+        answerCode={v.answerCode}
+        shareUrl={shareUrl}
+        activeIds={ids}
+        error={v.error}
+        onSelectHost={onSelectHost}
+        onSelectGuest={onSelectGuest}
+        onSubmitOffer={v.joinRoom}
+        onSubmitAnswer={v.acceptAnswer}
+        onCopy={handleCopy}
+        onBack={handleExit}
+      />
+    )
+  }
+
+  // 4. 合意後（config が commit 済み）：対戦本体（VersusMatch）。config は configAccepted まで null なので、
+  // この分岐は「可決後の countdown/running/finished」だけを捉える。VersusMatch が content ロード→
+  // カウントダウン→穴埋めプレイ→終了（勝敗）まで担う。
+  if (v.config) {
+    return (
+      <VersusMatch
+        config={v.config}
+        seed={v.seed}
+        selfId={v.selfId}
+        role={v.role}
+        roster={v.roster}
+        progress={v.progress}
+        phase={v.phase}
+        localStartAt={v.localStartAt}
+        sendProgress={v.sendProgress}
+        sendFinished={v.sendFinished}
+        endMatch={v.endMatch}
+        onReturnToLobby={() => v.returnToLobby()}
+      />
+    )
+  }
+
+  // 3. 提案中：承認 UI（設定サマリ＋投票＋拒否差し戻し）。
+  if (v.approval) {
+    return (
+      <MatchApprovalView
+        proposal={formatProposal(v.approval.config)}
+        proposerId={v.approval.proposer}
+        isProposer={v.approval.proposer === v.selfId}
+        votes={v.approval.votes}
+        rejection={v.rejection}
+        onAccept={() => v.voteMatch(true)}
+        onReject={() => v.voteMatch(false)}
+      />
+    )
+  }
+
+  // 2. 接続済み・未提案：対戦条件を選ぶロビー。提案が拒否された直後（approval=null・rejection あり）も
+  // ここに落ちるため、押した本人（提案者）へ差し戻しを伝えるバナーを上部に出す。
   return (
-    <SignalingExchangeView
-      role={role}
-      connection={v.connection}
-      selfId={v.selfId}
-      offerCode={v.offerCode}
-      answerCode={v.answerCode}
-      shareUrl={shareUrl}
-      activeIds={ids}
-      error={v.error}
-      onSelectHost={onSelectHost}
-      onSelectGuest={onSelectGuest}
-      onSubmitOffer={v.joinRoom}
-      onSubmitAnswer={v.acceptAnswer}
-      onCopy={handleCopy}
-    />
+    <div className="vs vs-lobby-flow">
+      {v.rejection && v.rejection.by.length > 0 && (
+        <p className="vs-error vs-lobby-rejection" role="alert">
+          設定が拒否されました（{v.rejection.by.map((id) => id.slice(0, 8)).join('、')}）。条件を見直して再提案してください。
+        </p>
+      )}
+      <VersusLobby onPropose={(config) => v.proposeMatch(config)} onEndSession={() => v.endSession()} />
+    </div>
   )
 }

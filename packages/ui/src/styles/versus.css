@@ -218,3 +218,267 @@
   color: var(--text);
   background: var(--panel-2);
 }
+
+/* ── 対戦中の進捗カード（ProgressCardView）＋盤面（VersusBoardView）───────────── */
+
+/* 盤面：カードを人数ぶん並べる。勝敗は上部バッジではなく各カード内の順位（.vs-card-rank）で示す（#432）。 */
+.vs-board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* width:100% が要点：margin:0 auto（左右auto余白）はフレックス子の align-items:stretch を無効化し、
+     definite な width が無いと .vs-board が max-content に縮退する。すると時間表示の
+     「1 / 60秒」↔「0.7 / 60秒」（整数↔小数）で盤面カード（青枠）の幅が揺れる（実測 382↔445px）。
+     width:100%（max-width:640 でキャップ）で cross-size を確定させ、縮退＝幅ゆれを無くす。 */
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.vs-board-cards {
+  display: grid;
+  /* プレイヤーは縦に並べる（③）。1列固定＝各カードが全幅（.vs-board=640）でセルが広く、
+     ラベルの改行や時間のはみ出しも起きにくい。 */
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* 対戦画面は幅を確定させる（.vs は .app のフレックス子で flex:0 1 auto＝内容幅に伸縮するため、
+   プレイエリアの単語チップ幅が問題ごとに変わると盤面カード（青枠）の幅まで揺れる）。
+   width:100%（＝.vs の max-width 640 で確定）＋ min-width:0 で内容非依存の定幅にする。 */
+.vs-match {
+  width: 100%;
+  min-width: 0;
+}
+/* プレイエリアが広くても対戦画面の幅を押し広げない（はみ出しは横スクロールで吸収）。 */
+.vs-match-play {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* 自分が完了して相手待ちのときの案内（role="status"）。 */
+.vs-match-waiting {
+  align-self: center;
+  font-weight: 700;
+}
+
+/* 進捗カード：自分は枠を強調（accent）。 */
+.vs-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.vs-card-self {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.vs-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vs-card-name {
+  font-size: 16px;
+  font-weight: 800;
+}
+/* 見出し右側のバッジ群（順位・完了・短縮ID）を1行に収める。 */
+.vs-card-badges {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.vs-card-id {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-card-self .vs-card-id {
+  color: var(--accent);
+}
+/* 順位バッジ（終了後のみ・#432）。勝敗軸 correct から container が算出。 */
+.vs-card-rank {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+/* 完了バッジ（その参加者が完了・#432）。 */
+.vs-card-finished {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted-fn);
+  background: var(--panel);
+}
+
+/* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
+.vs-card-stats {
+  display: grid;
+  /* minmax(0,1fr) が要点：素の 1fr は minmax(auto,1fr)＝内容(min-content)で列が広がるため、
+     時間「48.9 / 60秒」等の長い値が列を押し広げて幅が揺れる。min を 0 に固定して内容非依存の等幅にする。 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.vs-card-stat {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+  min-width: 0; /* 内容（時間の桁変化等）で列幅が伸縮しないよう固定（等幅グリッド維持）。 */
+  overflow: hidden; /* 万一値がセル幅を超えても列を広げない（幅一定を保証）。 */
+}
+.vs-card-stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap; /* ラベルを改行させない（①「タイピング数」「速度（打/分）」の折返し防止）。 */
+}
+.vs-card-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+  /* 桁が変わっても文字幅を一定に（時間 25.1→25 等での揺れ防止）。 */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  white-space: nowrap; /* 値の折り返し防止（幅一定を保つ）。 */
+}
+/* 時間の経過部（左辺）を固定幅・右寄せにして「/」の位置を動かさない（⑤）。
+   幅は presenter が制限秒の桁数ぶん（min-width: Nch）を inline で与える。tabular-nums は親から継承。 */
+.vs-time-num {
+  display: inline-block;
+  text-align: right;
+}
+
+/* 勝敗軸＝正解問題数（強調）。 */
+.vs-card-correct {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+.vs-card-correct-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.vs-card-correct-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* 残ライフ（サドンデス時のみ）。 */
+.vs-card-lives {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vs-heart {
+  color: var(--red);
+  font-size: 16px;
+}
+.vs-card-lives-count {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+
+/* ── 設定案の承認（MatchApprovalView）──────────────────────────────────── */
+.vs-approval-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.vs-approval-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vs-approval-row dt {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+  margin: 0;
+}
+.vs-approval-row dd {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+.vs-approval-ask {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.vs-approval-waiting {
+  font-size: 14px;
+  color: var(--muted-fn);
+  margin: 0;
+}
+.vs-approval-rejection {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--red);
+  background: var(--panel-2);
+}
+.vs-approval-votes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vs-vote {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted-fn);
+}
+.vs-vote-accept {
+  color: var(--green);
+}
+.vs-vote-reject {
+  color: var(--red);
+}
+
+/* ── ロビー（VersusLobby / VersusConnect のロビー分岐）─────────────────────── */
+/* 接続後ロビーのフロー容器（.vs のフレックス間隔を継ぐ）。特別な余白は不要＝子の間隔は .vs が持つ。 */
+/* .vs-lobby-flow … 追加の余白定義は不要（.vs の gap で十分）。意図的に空定義を置かず注記のみ。 */
+
+/* 「対戦開始」ボタン行。直前の終了条件セクションと密着しないよう間隔を空ける。 */
+.vs-lobby-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* 提案が拒否された差し戻しバナー（.vs-approval-rejection と同等のボックス装飾で統一）。 */
+.vs-lobby-rejection {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--red);
+  background: var(--panel-2);
+}
+
+/* .vs-countdown-note（「まもなく開始します…」）… .vs-lead の余白を継ぐため追加定義は不要。 */
+/* .vs-match-play（対戦中の自分プレイ領域）… レイアウトは内側の presenter が持つため追加定義は不要。 */

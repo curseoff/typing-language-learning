@@ -38,6 +38,10 @@ const REASON_TEXT = {
 }
 const reasonText = (code) => (code ? (REASON_TEXT[code] ?? null) : null)
 
+// #432 対戦（P2P穴埋め）のトップ動線。TODO-A（相手が入力しないと終わらない）解消後に true にして本番公開する。
+// それまでは DEV 限定でメニューに出す（本番ビルドでは「対戦」を非表示）。
+const VERSUS_ENABLED = import.meta.env.DEV
+
 // 保存状態バッジの reasonCode → 詳細文言（title/aria-label 用）。安定コードを UI 側で日本語へ写像する（#399）。
 const SAVE_REASON_TEXT = {
   secondary: '他のタブで記録中のため、このタブでは保存されません',
@@ -48,7 +52,7 @@ const SAVE_REASON_TEXT = {
   'not-saved': 'このタブでは保存されません',
 }
 
-export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllRecords }) {
+export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllRecords, onNavigateVersus }) {
   const [openId, setOpenId] = useState(null)
   const [toast, setToast] = useState(null) // { msg, isError } | null
   const fileRef = useRef(null)
@@ -145,6 +149,9 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
         case 'allRecords':
           onNavigateAllRecords?.()
           break
+        case 'versus-open':
+          onNavigateVersus?.()
+          break
         case 'install':
           promptInstall()
           break
@@ -164,7 +171,7 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
           break
       }
     },
-    [onClose, onNavigateAbout, onNavigateAllRecords, runExport, runConnectExternal, runRestoreExternal],
+    [onClose, onNavigateAbout, onNavigateAllRecords, onNavigateVersus, runExport, runConnectExternal, runRestoreExternal],
   )
 
   const menus = [
@@ -189,6 +196,16 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
         { id: 'restoreExternal', label: 'フォルダから復元', icon: '📂', enabled: vis.data.restoreExternal.enabled, reason: reasonText(vis.data.restoreExternal.reason) },
       ],
     },
+    // #432 対戦（caps 非依存で常時 enabled）。VERSUS_ENABLED（＝DEV）のときだけ足す。
+    ...(VERSUS_ENABLED
+      ? [
+          {
+            id: 'versus',
+            label: '対戦',
+            items: [{ id: 'versus-open', label: '対戦をはじめる', enabled: true, reason: null }],
+          },
+        ]
+      : []),
   ]
 
   // warn のときだけバッジを描画（保存できていない＝secondary/memory）。詳細は title/aria-label に載せる。

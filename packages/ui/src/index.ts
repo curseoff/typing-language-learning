@@ -144,4 +144,13 @@ export type {
   VersusConnection,
   SignalingExchangeViewProps,
 } from './versus/SignalingExchangeView.presenter'
+export { default as ProgressCardView } from './versus/ProgressCardView.presenter'
+export type { ProgressCardData } from './versus/ProgressCardView.presenter'
+export { default as VersusBoardView } from './versus/VersusBoardView.presenter'
+export type { VersusBoardViewProps } from './versus/VersusBoardView.presenter'
+export { default as MatchApprovalView } from './versus/MatchApprovalView.presenter'
+export type {
+  MatchProposal,
+  MatchApprovalViewProps,
+} from './versus/MatchApprovalView.presenter'
 
