@@ -54,6 +54,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
   const peerRef = useRef(null) // 現在の WebRTC ピア（webrtcPeer.adapter の返り値）
   const remoteIdRef = useRef(null) // hello で判明した相手の peerId（切断時の peerLeft 用）
   const raceTimerRef = useRef(null) // カウントダウン→ raceStarted のタイマー
+  const endingRef = useRef(false) // 意図的なセッション終了中フラグ（handleClose の state 上書きを抑制する）
 
   // ICE モードを切り替える（永続化＋ UI 反映）。次に生成するピアから反映される。
   const setIceMode = useCallback((mode) => {
@@ -129,7 +130,10 @@ export function useVersus({ selfId: providedSelfId } = {}) {
   }, [selfId])
 
   // 切断：相手が判明していれば離脱扱いにし、対戦を aborted で終了させる。
+  // ただし自分から意図的にセッションを終えた（endSession）場合は、reset で作った未接続の綺麗な初期状態を
+  // 保つため、peer.close() が非同期に発火する本ハンドラの state 上書き（peerLeft/aborted/disconnected）を抑制する。
   const handleClose = useCallback(() => {
+    if (endingRef.current) return
     if (remoteIdRef.current) dispatch({ type: 'peerLeft', peerId: remoteIdRef.current })
     dispatch({ type: 'lifecycle', event: 'aborted' })
     setConnection('disconnected')
@@ -283,6 +287,30 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     peerRef.current?.close()
   }, [])
 
+  // 対戦中/終了後にルール選択ロビーへ戻る（#432 ナビ改善）。接続は保ったまま resetMatch で
+  // config/approval/seed/rejection/progress をクリアし phase を countdown（接続済みロビー）へ戻す。
+  // ローカルの race タイマーは止めておく（次戦のカウントダウンと二重発火しないよう）。
+  const returnToLobby = useCallback(() => {
+    clearTimeout(raceTimerRef.current)
+    dispatch({ type: 'resetMatch' })
+  }, [])
+
+  // セッションを終了して接続画面（未接続）へ戻る（#432 ナビ改善）。ピアを閉じ、接続導線の一時値を初期化し、
+  // reduce を initSession 相当へ reset する。endingRef を立てておくことで、peer.close() が非同期に発火する
+  // handleClose が connection を 'disconnected' に上書きするのを抑制し、綺麗な未接続の初期状態を保つ。
+  const endSession = useCallback(() => {
+    endingRef.current = true
+    clearTimeout(raceTimerRef.current)
+    peerRef.current?.close()
+    peerRef.current = null
+    remoteIdRef.current = null
+    setConnection('idle')
+    setOfferCode(null)
+    setAnswerCode(null)
+    setError(null)
+    dispatch({ type: 'reset', selfId })
+  }, [selfId])
+
   // アンマウント時にタイマーとピアを後始末する（同期 setState を避けるためクリーンアップのみ）。
   useEffect(() => {
     return () => {
@@ -322,6 +350,8 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     joinRoom,
     acceptAnswer,
     leave,
+    returnToLobby,
+    endSession,
     // 対戦操作
     proposeMatch,
     voteMatch,

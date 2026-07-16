@@ -430,6 +430,9 @@
 /* 「対戦開始」ボタン行。直前の終了条件セクションと密着しないよう間隔を空ける。 */
 .vs-lobby-actions {
   margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* 提案が拒否された差し戻しバナー（.vs-approval-rejection と同等のボックス装飾で統一）。 */

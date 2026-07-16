@@ -54,6 +54,14 @@ export function markFinished(roster, peerId) {
   }
 }
 
+// 全 peer の完了フラグ（finished）を false に戻した新 roster を返す（#432 ナビ改善）。
+// 次戦へ備える再戦リセット用。order・self・left・name は保持し、finished だけ落とす（入力非破壊）。
+export function resetFinished(roster) {
+  const peers = {}
+  for (const id of roster.order) peers[id] = { ...roster.peers[id], finished: false }
+  return { order: [...roster.order], peers }
+}
+
 // 離脱していない参加者の id を追加順で返す。
 export function activeIds(roster) {
   return roster.order.filter((id) => !roster.peers[id].left)

@@ -58,7 +58,8 @@ function buildShareUrl({ origin, pathname }, code) {
 export default function VersusConnect({ onExit }) {
   const v = useVersus()
 
-  // 対戦を抜ける（Esc 中断など）：ピアを切断してから前の画面（トップ/ready）へ復帰する。
+  // 対戦をやめて前の画面（トップ/ready）へ戻る：ピアを切断してから復帰する。
+  // 接続画面（SignalingExchangeView）の「戻る」導線（onBack）から呼ぶ（対戦中の Esc はロビー復帰＝returnToLobby）。
   const handleExit = useCallback(() => {
     v.leave()
     onExit?.()
@@ -125,6 +126,7 @@ export default function VersusConnect({ onExit }) {
         onSubmitOffer={v.joinRoom}
         onSubmitAnswer={v.acceptAnswer}
         onCopy={handleCopy}
+        onBack={handleExit}
       />
     )
   }
@@ -143,7 +145,7 @@ export default function VersusConnect({ onExit }) {
         phase={v.phase}
         sendProgress={v.sendProgress}
         sendFinished={v.sendFinished}
-        onExit={handleExit}
+        onReturnToLobby={() => v.returnToLobby()}
       />
     )
   }
@@ -172,7 +174,7 @@ export default function VersusConnect({ onExit }) {
           設定が拒否されました（{v.rejection.by.map((id) => id.slice(0, 8)).join('、')}）。条件を見直して再提案してください。
         </p>
       )}
-      <VersusLobby onPropose={(config) => v.proposeMatch(config)} />
+      <VersusLobby onPropose={(config) => v.proposeMatch(config)} onEndSession={() => v.endSession()} />
     </div>
   )
 }

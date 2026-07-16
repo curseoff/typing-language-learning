@@ -407,24 +407,24 @@ function PlayArea(props) {
 }
 
 // 対戦本体。VersusConnect から useVersus の返り値を受け取り、content ロード→カウントダウン→プレイ→終了まで繋ぐ。
-export default function VersusMatch({ config, seed, selfId, roster, progress, phase, sendProgress, sendFinished, onExit }) {
+export default function VersusMatch({ config, seed, selfId, roster, progress, phase, sendProgress, sendFinished, onReturnToLobby }) {
   const content = useVersusContent(config)
   const { initialLives, limitSec } = matchParams(config.endCondition)
 
-  // Esc で対戦を中断して前の画面へ戻す（プレイ中ヒント「Esc で中断してトップへ」と挙動一致）。
+  // Esc で対戦を抜けてルール選択ロビーへ戻す（#432 ナビ改善：接続は維持したまま resetMatch）。
   // capture 段で stopPropagation し、プレイフック（useDict/useMarathon）の Esc 処理（escFinish）が
-  // 二重発火しないよう最小限で preempt する。onExit はピア切断＋前画面復帰を担う（VersusConnect）。
+  // 二重発火しないよう最小限で preempt する。onReturnToLobby は接続維持のロビー復帰を担う（VersusConnect）。
   useEffect(() => {
-    if (!onExit) return
+    if (!onReturnToLobby) return
     const onKeyDown = (e) => {
       if (e.key !== 'Escape') return
       e.stopPropagation()
       e.preventDefault()
-      onExit()
+      onReturnToLobby()
     }
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
-  }, [onExit])
+  }, [onReturnToLobby])
 
   if (content.error) {
     return (

@@ -3,7 +3,7 @@
 // 純粋・入力非破壊：state は決して変更せず、毎回新しいオブジェクトを返す（副作用・時刻・乱数なし）。
 // 実際の時刻採番・送受信・タイマーは useVersus フック側が担い、ここは「状態遷移の規則」だけを持つ。
 import { transition } from '../../domain/versus/matchState.service.js'
-import { makeRoster, addPeer, removePeer, markFinished, allFinished } from '../../domain/versus/peerRoster.service.js'
+import { makeRoster, addPeer, removePeer, markFinished, allFinished, resetFinished } from '../../domain/versus/peerRoster.service.js'
 import { initApproval, castVote, rejectedBy } from '../../domain/versus/approvalState.service.js'
 
 // 対戦セッションの初期状態を作る。
@@ -113,6 +113,25 @@ export function reduce(state, action) {
     // サドンデス終了。running→finished へ（matchState の allFinished 遷移を流用。他 phase は暴発しない）。
     case 'suddenDeathEnd':
       return { ...state, phase: transition({ phase: state.phase }, { type: 'allFinished' }).phase }
+
+    // 接続維持のロビー復帰（#432 ナビ改善）。config/approval/seed/rejection と progress をクリアし、
+    // roster の完了フラグを全員 false に戻し（resetFinished）、phase を countdown（接続済みロビー）へ戻す。
+    // role は保持する（host/guest のまま次戦に臨む）。接続そのもの（peer）はフック側が保つ。
+    case 'resetMatch':
+      return {
+        ...state,
+        phase: 'countdown',
+        roster: resetFinished(state.roster),
+        progress: {},
+        approval: null,
+        config: null,
+        seed: null,
+        rejection: null,
+      }
+
+    // 完全初期化（#432 ナビ改善）。接続終了後に接続画面へ戻すため initSession 相当へ戻す。
+    case 'reset':
+      return initSession(action.selfId)
 
     // 未知 action は状態を一切変えない（同一参照を返す＝再描画を誘発しない）。
     default:

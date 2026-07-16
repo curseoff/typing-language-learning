@@ -49,7 +49,7 @@ function typeConfig(gameType) {
   return { levels: WORD_LEVEL_OPTIONS, counts: WORD_COUNTS, unit: '語' } // words
 }
 
-export default function VersusLobby({ onPropose }) {
+export default function VersusLobby({ onPropose, onEndSession }) {
   const [gameType, setGameType] = useState('dict')
   const [level, setLevel] = useState(1)
   const [theme, setTheme] = useState(THEME_OPTIONS[0]) // 'すべて'
@@ -209,6 +209,10 @@ export default function VersusLobby({ onPropose }) {
       <div className="vs-lobby-actions">
         <button type="button" className="vs-btn vs-btn-primary" onClick={onStart}>
           対戦開始
+        </button>
+        {/* 対戦終了：接続を閉じて接続画面（部屋を作る/入る）へ戻る（ローカル操作・#432 ナビ改善）。 */}
+        <button type="button" className="vs-btn vs-btn-secondary" onClick={() => onEndSession?.()}>
+          対戦終了
         </button>
       </div>
     </div>
