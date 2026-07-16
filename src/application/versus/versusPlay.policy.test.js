@@ -100,3 +100,82 @@ describe('toProgressPayload: lives（サドンデス時のみ）', () => {
     expect(p.lives).toBe(0)
   })
 })
+
+// #432 相手カードの速度・時間が0：progress payload に速度(speed)・経過時間(elapsedMs)を載せる。
+// 呼び出し側が計測した speed/elapsedMs を透過するだけの純ポリシー（派生計算はしない）。
+// 後方互換：undefined のときはキー自体を含めない（既存の呼び出しを壊さない）。
+describe('toProgressPayload: speed/elapsedMs（相手カード表示用）', () => {
+  it('speed と elapsedMs を渡すと payload に含める', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+      speed: 185,
+      elapsedMs: 4200,
+    })
+    expect(p.speed).toBe(185)
+    expect(p.elapsedMs).toBe(4200)
+  })
+
+  it('speed=0 / elapsedMs=0（レース開始直後の下限）も含める', () => {
+    const p = toProgressPayload({
+      typed: 0,
+      total: 30,
+      mistakes: 0,
+      segStats: [],
+      currentMistakes: 0,
+      initialLives: null,
+      speed: 0,
+      elapsedMs: 0,
+    })
+    expect(p.speed).toBe(0)
+    expect(p.elapsedMs).toBe(0)
+  })
+
+  it('speed が undefined ならキーを含めない（後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+      elapsedMs: 4200,
+    })
+    expect('speed' in p).toBe(false)
+    expect(p.elapsedMs).toBe(4200)
+  })
+
+  it('elapsedMs が undefined ならキーを含めない（後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+      speed: 185,
+    })
+    expect('elapsedMs' in p).toBe(false)
+    expect(p.speed).toBe(185)
+  })
+
+  it('speed/elapsedMs を渡さない既存呼び出しは両キーを含めない（後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+    })
+    expect('speed' in p).toBe(false)
+    expect('elapsedMs' in p).toBe(false)
+    // 既存の correct/lives 仕様は不変（correct は必ず入り、lives は initialLives=null なので入らない）。
+    expect(p.correct).toBe(firstTryCorrectCount(SEG_STATS))
+    expect('lives' in p).toBe(false)
+  })
+})

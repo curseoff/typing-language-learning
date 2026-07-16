@@ -208,6 +208,65 @@ describe('parseMessage：progress 拡張（correct/lives は後方互換の任�
   })
 })
 
+// ---- progress 拡張：speed / elapsedMs の後方互換（#432 相手カードの速度・時間が0 の修正） ----
+// 相手カードの速度・時間を出すため、progress に速度(speed)・経過時間(elapsedMs)を後方互換で載せる。
+// 方針は correct/lives と同じ：非負有限数なら保持、不正（負・非数・NaN・Infinity）は省略し、基本 progress は無効化しない。
+describe('parseMessage：progress 拡張（speed/elapsedMs は後方互換の任意フィールド）', () => {
+  it('speed/elapsedMs を省いた既存形はキーを持たない（後方互換）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('speed')
+    expect(m).not.toHaveProperty('elapsedMs')
+  })
+
+  it('speed（非負有限数）と elapsedMs（非負有限数）が妥当なら保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, speed: 180, elapsedMs: 4200 })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', speed: 180, elapsedMs: 4200 })
+  })
+
+  it('speed=0 / elapsedMs=0（下限）を保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 0, total: 1, mistakes: 0, at: 0, speed: 0, elapsedMs: 0 })
+    expect(m.speed).toBe(0)
+    expect(m.elapsedMs).toBe(0)
+  })
+
+  it('小数の speed（例：150.5）も非負有限数なら保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, speed: 150.5 })
+    expect(m.speed).toBe(150.5)
+  })
+
+  const invalidSpeed = [
+    ['負', -1],
+    ['非数（文字列）', '180'],
+    ['NaN', NaN],
+    ['Infinity', Infinity],
+  ]
+  it.each(invalidSpeed)('speed が %s なら省略して基本 progress は有効', (_label, speed) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, speed })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('speed')
+  })
+
+  const invalidElapsed = [
+    ['負', -1],
+    ['非数（文字列）', '4200'],
+    ['NaN', NaN],
+    ['Infinity', Infinity],
+  ]
+  it.each(invalidElapsed)('elapsedMs が %s なら省略して基本 progress は有効', (_label, elapsedMs) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, elapsedMs })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('elapsedMs')
+  })
+
+  it('buildMessage で speed/elapsedMs を含む progress を組み立てられる', () => {
+    const m = buildMessage('progress', { peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, speed: 180, elapsedMs: 4200 })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', speed: 180, elapsedMs: 4200 })
+  })
+})
+
 // ---- propose：対戦設定の提案 ----
 describe('parseMessage：propose（config は parseMatchConfig 検証・seed は非負整数）', () => {
   it('妥当な propose を正規化して返す', () => {

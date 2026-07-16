@@ -324,6 +324,43 @@ describe('reduce: progress の correct/lives 取り込み（後方互換）', ()
   })
 })
 
+// #432 相手カードの速度・時間が0：progress メッセージの speed/elapsedMs を進捗エントリに取り込む。
+// message に speed/elapsedMs があれば含め、無ければ従来どおり含めない（後方互換）。
+describe('reduce: progress の speed/elapsedMs 取り込み（後方互換）', () => {
+  it('message に speed/elapsedMs があれば progress エントリに含める', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, speed: 185, elapsedMs: 4200 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, speed: 185, elapsedMs: 4200 })
+  })
+
+  it('speed のみあれば speed だけ含める（elapsedMs は含めない）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, speed: 185 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, speed: 185 })
+    expect('elapsedMs' in s.progress.rival).toBe(false)
+  })
+
+  it('elapsedMs のみあれば elapsedMs だけ含める（speed は含めない）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, elapsedMs: 4200 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, elapsedMs: 4200 })
+    expect('speed' in s.progress.rival).toBe(false)
+  })
+
+  it('speed/elapsedMs の無い旧メッセージは従来どおり（両キーを持たない）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect('speed' in s.progress.rival).toBe(false)
+    expect('elapsedMs' in s.progress.rival).toBe(false)
+  })
+
+  it('correct/lives と speed/elapsedMs を併せ持つ message は全て取り込む', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, correct: 3, lives: 2, speed: 185, elapsedMs: 4200 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, correct: 3, lives: 2, speed: 185, elapsedMs: 4200 })
+  })
+})
+
 describe('reduce: suddenDeathEnd（サドンデス終了）', () => {
   it('running から finished へ遷移する（matchState の allFinished 流用）', () => {
     let s = connected('me')
