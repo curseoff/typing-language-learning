@@ -311,6 +311,7 @@
   border-radius: 10px;
   padding: 8px 6px;
   text-align: center;
+  min-width: 0; /* 内容（時間の桁変化等）で列幅が伸縮しないよう固定（等幅グリッド維持）。 */
 }
 .vs-card-stat-label {
   font-size: 10px;
@@ -320,6 +321,10 @@
   font-size: 16px;
   font-weight: 700;
   margin-top: 4px;
+  /* 桁が変わっても文字幅を一定に（時間 25.1→25 等での揺れ防止）。 */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  white-space: nowrap; /* 値の折り返し防止（幅一定を保つ）。 */
 }
 
 /* 勝敗軸＝正解問題数（強調）。 */
@@ -341,6 +346,8 @@
   font-size: 26px;
   font-weight: 800;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
 /* 残ライフ（サドンデス時のみ）。 */
