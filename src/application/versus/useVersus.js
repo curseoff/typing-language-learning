@@ -55,6 +55,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
   const remoteIdRef = useRef(null) // hello で判明した相手の peerId（切断時の peerLeft 用）
   const raceTimerRef = useRef(null) // カウントダウン→ raceStarted のタイマー
   const endingRef = useRef(false) // 意図的なセッション終了中フラグ（handleClose の state 上書きを抑制する）
+  const endedRef = useRef(false) // #432 対戦終了配布の冪等ガード（endMatch/matchEnd 受信を1回に絞る）
 
   // ICE モードを切り替える（永続化＋ UI 反映）。次に生成するピアから反映される。
   const setIceMode = useCallback((mode) => {
@@ -114,6 +115,19 @@ export function useVersus({ selfId: providedSelfId } = {}) {
         case 'start':
           // ホストが可決を確定→配布した start。ゲストは approval.config を commit する（seed は propose 時に取得済み）。
           dispatch({ type: 'configAccepted' })
+          break
+        case 'abort':
+          // #432 相手が ESC でロビーへ戻った。自分も接続維持のままロビー（countdown）へ戻す。
+          // 対戦終了系のタイマーを止め、終了配布の冪等ガードを次戦のためリセットする。
+          // 時間制の締切タイマーは VersusMatch 側が phase 変化の effect クリーンアップで止める。
+          clearTimeout(raceTimerRef.current)
+          endedRef.current = false
+          dispatch({ type: 'resetMatch' })
+          break
+        case 'matchEnd':
+          // #432 ホスト権威の対戦終了配布。ゲスト含む全員が結果へ倒れる（phase=finished 強制）。
+          endedRef.current = true
+          dispatch({ type: 'matchEnded' })
           break
         default:
           break
@@ -287,19 +301,33 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     peerRef.current?.close()
   }, [])
 
+  // ホスト権威の対戦終了を全員へ配布する（#432）。冪等（endedRef で1回だけ）。matchEnd を相手へ送り、
+  // 自分も matchEnded で結果（phase=finished）へ倒し、時間制の締切タイマーを止める。
+  // 終了条件（時間＝締切／問題数・文字数・サドンデス＝最初の完走/脱落）の最終収束をホストに一本化する。
+  const endMatch = useCallback(() => {
+    if (endedRef.current) return
+    endedRef.current = true
+    peerRef.current?.send(JSON.stringify(buildMessage('matchEnd')))
+    dispatch({ type: 'matchEnded' })
+  }, [])
+
   // 対戦中/終了後にルール選択ロビーへ戻る（#432 ナビ改善）。接続は保ったまま resetMatch で
   // config/approval/seed/rejection/progress をクリアし phase を countdown（接続済みロビー）へ戻す。
-  // ローカルの race タイマーは止めておく（次戦のカウントダウンと二重発火しないよう）。
+  // ローカルの race タイマーは止め、相手へも abort を配って両者をロビーへ揃える。終了配布の冪等
+  // ガード（endedRef）は次戦のためリセットする（時間制の締切タイマーは VersusMatch が phase 変化で止める）。
   const returnToLobby = useCallback(() => {
     clearTimeout(raceTimerRef.current)
+    endedRef.current = false
+    peerRef.current?.send(JSON.stringify(buildMessage('abort', { peerId: selfId })))
     dispatch({ type: 'resetMatch' })
-  }, [])
+  }, [selfId])
 
   // セッションを終了して接続画面（未接続）へ戻る（#432 ナビ改善）。ピアを閉じ、接続導線の一時値を初期化し、
   // reduce を initSession 相当へ reset する。endingRef を立てておくことで、peer.close() が非同期に発火する
   // handleClose が connection を 'disconnected' に上書きするのを抑制し、綺麗な未接続の初期状態を保つ。
   const endSession = useCallback(() => {
     endingRef.current = true
+    endedRef.current = false
     clearTimeout(raceTimerRef.current)
     peerRef.current?.close()
     peerRef.current = null
@@ -358,5 +386,6 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     startMatch,
     sendProgress,
     sendFinished,
+    endMatch,
   }
 }

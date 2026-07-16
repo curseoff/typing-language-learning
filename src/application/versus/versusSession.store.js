@@ -129,6 +129,11 @@ export function reduce(state, action) {
         rejection: null,
       }
 
+    // ホスト権威の対戦終了配布（#432）。transition を経由せず phase を 'finished' へ強制する
+    // （countdown/running いずれからでも終了へ倒す）。結果表示に使う roster/progress/config/seed は保持する。
+    case 'matchEnded':
+      return { ...state, phase: 'finished' }
+
     // 完全初期化（#432 ナビ改善）。接続終了後に接続画面へ戻すため initSession 相当へ戻す。
     case 'reset':
       return initSession(action.selfId)

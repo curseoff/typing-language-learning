@@ -407,7 +407,7 @@ function PlayArea(props) {
 }
 
 // 対戦本体。VersusConnect から useVersus の返り値を受け取り、content ロード→カウントダウン→プレイ→終了まで繋ぐ。
-export default function VersusMatch({ config, seed, selfId, roster, progress, phase, sendProgress, sendFinished, onReturnToLobby }) {
+export default function VersusMatch({ config, seed, selfId, role, roster, progress, phase, localStartAt, sendProgress, sendFinished, endMatch, onReturnToLobby }) {
   const content = useVersusContent(config)
   const { initialLives, limitSec } = matchParams(config.endCondition)
 
@@ -425,6 +425,29 @@ export default function VersusMatch({ config, seed, selfId, roster, progress, ph
     window.addEventListener('keydown', onKeyDown, true)
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [onReturnToLobby])
+
+  // #432 ホスト権威の対戦終了収束：ホストだけが v.endMatch（matchEnd 配布＝冪等）で全員を結果へ倒す。
+  // 時間制：レース開始（running）したら「開始時刻(localStartAt)＋制限秒」に達したら終了する締切タイマーを
+  // 1本張る。ゲストや非時間制では張らない。phase 変化/アンマウントで clear（abort/matchEnd 受信もここで止まる）。
+  const isHost = role === 'host'
+  const endKind = config.endCondition.kind
+  useEffect(() => {
+    if (!isHost || !endMatch || endKind !== 'time' || phase !== 'running' || localStartAt == null) return
+    const delay = Math.max(0, localStartAt + config.endCondition.value * 1000 - performance.now())
+    const id = setTimeout(() => endMatch(), delay)
+    return () => clearTimeout(id)
+  }, [isHost, endMatch, endKind, phase, localStartAt, config.endCondition.value])
+
+  // 問題数/文字数/サドンデス（items/chars/life）：最初の完走 or 脱落で全員終了する。
+  // roster の finished がどれか true になったら（自分の完走/脱落も useFinishBroadcast→sendFinished で
+  // roster.self.finished を立てる想定）ホストが終了を配布する。dispatch を render 位相に持ち込まないよう
+  // setTimeout(…,0) で遅延実行する（endMatch は冪等＝二重でも無害）。
+  const anyFinished = activeIds(roster).some((id) => roster.peers[id]?.finished)
+  useEffect(() => {
+    if (!isHost || !endMatch || endKind === 'time' || phase !== 'running' || !anyFinished) return
+    const id = setTimeout(() => endMatch(), 0)
+    return () => clearTimeout(id)
+  }, [isHost, endMatch, endKind, phase, anyFinished])
 
   if (content.error) {
     return (

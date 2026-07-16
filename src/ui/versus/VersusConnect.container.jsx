@@ -140,11 +140,14 @@ export default function VersusConnect({ onExit }) {
         config={v.config}
         seed={v.seed}
         selfId={v.selfId}
+        role={v.role}
         roster={v.roster}
         progress={v.progress}
         phase={v.phase}
+        localStartAt={v.localStartAt}
         sendProgress={v.sendProgress}
         sendFinished={v.sendFinished}
+        endMatch={v.endMatch}
         onReturnToLobby={() => v.returnToLobby()}
       />
     )

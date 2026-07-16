@@ -14,6 +14,8 @@ const KNOWN_TYPES = new Set([
   'propose',
   'vote',
   'start',
+  'abort',
+  'matchEnd',
 ])
 
 // 非空文字列か（peerId 等の識別子用）。
@@ -104,6 +106,15 @@ const PARSERS = {
     const config = parseMatchConfig(obj.config)
     if (config === null) return null
     return { type: 'start', config, seed: obj.seed }
+  },
+  // #432 ESC でロビーへ戻ったことを相手へ通知（peerId 必須・余計なフィールドは落とす）。
+  abort(obj) {
+    if (!isNonEmptyString(obj.peerId)) return null
+    return { type: 'abort', peerId: obj.peerId }
+  },
+  // #432 ホストが対戦終了を全員へ配布（ペイロードなし・余計なフィールドは落とす）。
+  matchEnd() {
+    return { type: 'matchEnd' }
   },
 }
 
