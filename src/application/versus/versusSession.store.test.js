@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest'
 import { initSession, reduce } from './versusSession.store.js'
 import { activeIds } from '../../domain/versus/peerRoster.service.js'
+import { initApproval, castVote, rejectedBy } from '../../domain/versus/approvalState.service.js'
 
 // self→countdown まで進めた状態を作るヘルパ（running/finished 系のテスト用）。
 function connected(selfId = 'me') {
@@ -175,5 +176,187 @@ describe('入力非破壊・未知 action', () => {
     const base = initSession('me')
     expect(reduce(base, { type: 'nope' })).toBe(base)
     expect(reduce(base, undefined)).toBe(base)
+  })
+})
+
+// ── #432 P2P穴埋め対戦：承認/設定/seed/進捗correct・lives/サドンデス終了 ─────────
+// 承認フロー・設定確定・差し戻し・進捗の correct/lives 取り込み・サドンデス終了を固定する。
+
+const CONFIG = { mode: 'blank', questions: 5, theme: '日常' }
+
+describe('initSession: #432 追加フィールド', () => {
+  it('初期形に approval/config/seed/rejection が null で加わる（既存フィールドは不変）', () => {
+    const s = initSession('me')
+    expect(s.approval).toBeNull()
+    expect(s.config).toBeNull()
+    expect(s.seed).toBeNull()
+    expect(s.rejection).toBeNull()
+    // 既存フィールドは従来どおり
+    expect(s.phase).toBe('waiting')
+    expect(s.role).toBeNull()
+    expect(s.startAt).toBeNull()
+    expect(s.progress).toEqual({})
+  })
+})
+
+describe('reduce: propose（承認フロー開始）', () => {
+  it('approval を initApproval で生成し、seed を記録し、rejection をクリアする', () => {
+    const s = reduce(initSession('me'), {
+      type: 'propose',
+      config: CONFIG,
+      seed: 12345,
+      memberIds: ['me', 'rival'],
+      proposer: 'me',
+    })
+    expect(s.approval).toEqual(initApproval({ config: CONFIG, memberIds: ['me', 'rival'], proposer: 'me' }))
+    expect(s.seed).toBe(12345)
+    expect(s.rejection).toBeNull()
+  })
+
+  it('propose 段階では config をまだ commit しない（approval.config が正・state.config は null のまま）', () => {
+    const s = reduce(initSession('me'), {
+      type: 'propose',
+      config: CONFIG,
+      seed: 7,
+      memberIds: ['me', 'rival'],
+      proposer: 'me',
+    })
+    expect(s.config).toBeNull()
+    expect(s.approval.config).toEqual(CONFIG)
+  })
+
+  it('入力（action と state）を破壊しない', () => {
+    const base = initSession('me')
+    const baseSnap = structuredClone(base)
+    const action = { type: 'propose', config: CONFIG, seed: 7, memberIds: ['me', 'rival'], proposer: 'me' }
+    const actionSnap = structuredClone(action)
+    reduce(base, action)
+    expect(base).toEqual(baseSnap)
+    expect(action).toEqual(actionSnap)
+  })
+})
+
+describe('reduce: vote（投票委譲）', () => {
+  it('approval があれば castVote の結果に置換する', () => {
+    let s = reduce(initSession('me'), {
+      type: 'propose',
+      config: CONFIG,
+      seed: 1,
+      memberIds: ['me', 'rival'],
+      proposer: 'me',
+    })
+    const before = s.approval
+    s = reduce(s, { type: 'vote', peerId: 'rival', vote: 'accept' })
+    expect(s.approval).toEqual(castVote(before, 'rival', 'accept'))
+  })
+
+  it('approval が null なら現状維持（同一参照を返す）', () => {
+    const base = initSession('me')
+    expect(reduce(base, { type: 'vote', peerId: 'rival', vote: 'accept' })).toBe(base)
+  })
+})
+
+describe('reduce: configAccepted（設定確定）', () => {
+  it('approval.config を config へ commit し、approval と rejection をクリアする（phase は不変）', () => {
+    let s = reduce(initSession('me'), {
+      type: 'propose',
+      config: CONFIG,
+      seed: 1,
+      memberIds: ['me', 'rival'],
+      proposer: 'me',
+    })
+    const phaseBefore = s.phase
+    s = reduce(s, { type: 'configAccepted' })
+    expect(s.config).toEqual(CONFIG)
+    expect(s.approval).toBeNull()
+    expect(s.rejection).toBeNull()
+    expect(s.phase).toBe(phaseBefore) // カウントダウンは別 action
+  })
+
+  it('approval が null のときは現状維持で安全（config は null のまま・throw しない）', () => {
+    const base = initSession('me')
+    const s = reduce(base, { type: 'configAccepted' })
+    expect(s.config).toBeNull()
+    expect(s.approval).toBeNull()
+  })
+})
+
+describe('reduce: configRejected（ロビーへ差し戻し）', () => {
+  it('rejection.by に rejectedBy を記録し、approval/config/seed をクリアする', () => {
+    let s = reduce(initSession('me'), {
+      type: 'propose',
+      config: CONFIG,
+      seed: 999,
+      memberIds: ['me', 'rival'],
+      proposer: 'me',
+    })
+    s = reduce(s, { type: 'vote', peerId: 'rival', vote: 'reject' })
+    const approvalBefore = s.approval
+    s = reduce(s, { type: 'configRejected' })
+    expect(s.rejection).toEqual({ by: rejectedBy(approvalBefore) })
+    expect(s.rejection.by).toEqual(['rival'])
+    expect(s.approval).toBeNull()
+    expect(s.config).toBeNull()
+    expect(s.seed).toBeNull()
+  })
+})
+
+describe('reduce: progress の correct/lives 取り込み（後方互換）', () => {
+  it('message に correct/lives があれば progress エントリに含める', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, correct: 3, lives: 2 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, correct: 3, lives: 2 })
+  })
+
+  it('correct のみあれば correct だけ含める（lives は含めない）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, correct: 3 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, correct: 3 })
+    expect('lives' in s.progress.rival).toBe(false)
+  })
+
+  it('correct/lives の無い旧メッセージは従来どおり（correct/lives キーを持たない）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100 })
+    expect('correct' in s.progress.rival).toBe(false)
+    expect('lives' in s.progress.rival).toBe(false)
+  })
+})
+
+describe('reduce: suddenDeathEnd（サドンデス終了）', () => {
+  it('running から finished へ遷移する（matchState の allFinished 流用）', () => {
+    let s = connected('me')
+    s = reduce(s, { type: 'lifecycle', event: 'raceStarted' }) // running
+    s = reduce(s, { type: 'suddenDeathEnd' })
+    expect(s.phase).toBe('finished')
+  })
+
+  it('running でない段階では暴発しない（countdown は据え置き）', () => {
+    const s0 = connected('me') // countdown
+    const s = reduce(s0, { type: 'suddenDeathEnd' })
+    expect(s.phase).toBe('countdown')
+  })
+})
+
+describe('入力非破壊: #432 追加 action', () => {
+  it('propose/vote/configAccepted/configRejected/suddenDeathEnd は元の state を変更しない', () => {
+    let base = reduce(initSession('me'), {
+      type: 'propose',
+      config: CONFIG,
+      seed: 1,
+      memberIds: ['me', 'rival'],
+      proposer: 'me',
+    })
+    const snapshot = structuredClone(base)
+    reduce(base, { type: 'vote', peerId: 'rival', vote: 'accept' })
+    reduce(base, { type: 'configAccepted' })
+    reduce(base, { type: 'configRejected' })
+    reduce(base, { type: 'suddenDeathEnd' })
+    reduce(base, {
+      type: 'progress',
+      message: { type: 'progress', peerId: 'rival', typed: 1, total: 2, mistakes: 0, at: 1, correct: 1, lives: 3 },
+    })
+    expect(base).toEqual(snapshot)
   })
 })
