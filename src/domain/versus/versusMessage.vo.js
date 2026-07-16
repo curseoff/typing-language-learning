@@ -2,9 +2,19 @@
 // parseMessage(obj)          … 受信（untrusted）。不正入力は決して throw せず null。正常は正規化した message。
 // buildMessage(type, payload) … 送信（自コード＝trusted）。不正/未知/空 type は throw。
 // 純ドメイン：React/DOM/乱数 非依存・副作用なし・決定的。
+import { parseMatchConfig } from './matchConfig.vo.js'
 
-// 送受信で扱うメッセージ型の集合。
-const KNOWN_TYPES = new Set(['progress', 'countdown', 'finished', 'peerLeft', 'hello'])
+// 送受信で扱うメッセージ型の集合。#432 で穴埋め対戦の propose/vote/start を追加。
+const KNOWN_TYPES = new Set([
+  'progress',
+  'countdown',
+  'finished',
+  'peerLeft',
+  'hello',
+  'propose',
+  'vote',
+  'start',
+])
 
 // 非空文字列か（peerId 等の識別子用）。
 function isNonEmptyString(v) {
@@ -16,6 +26,11 @@ function isNonNegFinite(v) {
   return typeof v === 'number' && Number.isFinite(v) && v >= 0
 }
 
+// 非負の整数か（seed 用。0 可）。
+function isNonNegInt(v) {
+  return Number.isInteger(v) && v >= 0
+}
+
 // 各型ごとのバリデータ＋正規化。妥当なら「規定フィールドのみ」の新オブジェクトを返し、不正なら null。
 // untrusted 入力なので余計なフィールドは落とす（安全側）。
 const PARSERS = {
@@ -25,7 +40,7 @@ const PARSERS = {
     if (!(isNonNegFinite(obj.total) && obj.total >= 1)) return null
     if (!isNonNegFinite(obj.mistakes)) return null
     if (!isNonNegFinite(obj.at)) return null
-    return {
+    const out = {
       type: 'progress',
       peerId: obj.peerId,
       typed: obj.typed,
@@ -33,6 +48,10 @@ const PARSERS = {
       mistakes: obj.mistakes,
       at: obj.at,
     }
+    // #432 任意フィールド：妥当なら保持、型不正は省略（基本 progress は無効化しない＝後方互換）。
+    if (isNonNegFinite(obj.correct)) out.correct = obj.correct
+    if (Number.isInteger(obj.lives)) out.lives = obj.lives
+    return out
   },
   countdown(obj) {
     if (!isNonNegFinite(obj.startAt)) return null
@@ -61,6 +80,27 @@ const PARSERS = {
     // name は省略可。文字列のときだけ保持する。
     if (typeof obj.name === 'string') out.name = obj.name
     return out
+  },
+  // #432 対戦設定の提案。config は parseMatchConfig で検証（null なら propose 全体を無効化）。
+  propose(obj) {
+    if (!isNonEmptyString(obj.peerId)) return null
+    if (!isNonNegInt(obj.seed)) return null
+    const config = parseMatchConfig(obj.config)
+    if (config === null) return null
+    return { type: 'propose', peerId: obj.peerId, config, seed: obj.seed }
+  },
+  // #432 提案への賛否。accept は厳格 boolean（1/'true'/null 等は不正）。
+  vote(obj) {
+    if (!isNonEmptyString(obj.peerId)) return null
+    if (typeof obj.accept !== 'boolean') return null
+    return { type: 'vote', peerId: obj.peerId, accept: obj.accept }
+  },
+  // #432 確定した対戦設定の冪等配布（peerId は持たない）。config は parseMatchConfig で検証。
+  start(obj) {
+    if (!isNonNegInt(obj.seed)) return null
+    const config = parseMatchConfig(obj.config)
+    if (config === null) return null
+    return { type: 'start', config, seed: obj.seed }
   },
 }
 
