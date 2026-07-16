@@ -433,7 +433,8 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
   const endKind = config.endCondition.kind
   useEffect(() => {
     if (!isHost || !endMatch || endKind !== 'time' || phase !== 'running' || localStartAt == null) return
-    const delay = Math.max(0, localStartAt + config.endCondition.value * 1000 - performance.now())
+    // localStartAt は Date.now() 基準（壁掛け時計）なので締切も Date.now() で測る（performance.now() と混ぜない）。
+    const delay = Math.max(0, localStartAt + config.endCondition.value * 1000 - Date.now())
     const id = setTimeout(() => endMatch(), delay)
     return () => clearTimeout(id)
   }, [isHost, endMatch, endKind, phase, localStartAt, config.endCondition.value])
