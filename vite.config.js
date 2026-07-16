@@ -99,6 +99,10 @@ export default defineConfig(({ command }) => ({
         // 純ロジック（versusPlay.policy/matchScore/suddenDeath/matchConfig）は各 spec で被覆。
         // 実挙動（2者対戦・進捗配信・勝敗）は pwa-verifier の実ブラウザ検証で担保する。
         'src/ui/versus/VersusMatch.container.jsx',
+        // #432 P2P穴埋め対戦：ロビー container。既存 ready 設定 UI 部品（parts.container/EndConditionSelect）
+        // の対戦向けフィルタ＋ローカル選択状態の薄い結線で、VersusConnect/VersusMatch と同種のブラウザ API
+        // エントリ配線として計測除外。設定 VO の妥当性は matchConfig.vo/endCondition.vo の spec で被覆。
+        'src/ui/versus/VersusLobby.container.jsx',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',
