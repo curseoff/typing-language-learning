@@ -30,6 +30,7 @@ import AllRecordsView from './ui/records/AllRecordsView.container.jsx'
 // #426 対戦（接続コード交換）は遅延ロード（初回バンドルへ WebRTC 配線を載せない）。
 // 現状の到達手段は開発時の ?preview=versus のみ（メニュー/ルーティング統合は #425 でスコープ外）。
 const VersusConnect = lazy(() => import('./ui/versus/VersusConnect.container.jsx'))
+const VersusLobby = lazy(() => import('./ui/versus/VersusLobby.container.jsx'))
 import { ReplayProvider } from './ui/result/ReplayContext.context.jsx'
 import { RecordDetailProvider } from './ui/result/RecordDetailContext.context.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.container.jsx'
@@ -678,6 +679,7 @@ export default function App() {
         setPhase('romaji')
       }
       else if (p === 'versus') setPhase('versus') // #426 対戦の接続コード交換（到達確認用・dev のみ）
+      else if (p === 'versus-lobby') setPhase('versus-lobby') // #432 対戦ロビー（設定→提案・到達確認用・dev のみ）
       else if (p === 'story') setPhase('story')
       else if (p === 'story-choice') {
         setStoryStart({ stage: 'choice' }) // 物語の選択肢場面（段組みフロー確認用）
@@ -764,6 +766,14 @@ export default function App() {
       {phase === 'versus' && (
         <Suspense fallback={<p className="vs-pending">読み込み中…</p>}>
           <VersusConnect />
+        </Suspense>
+      )}
+
+      {/* #432 対戦ロビー（設定→提案）。現状は dev の ?preview=versus-lobby からのみ到達（遅延ロード）。
+          onPropose は開発スタブ＝受け取った MatchConfig を console に出すだけ（接続/useVersus は未結線）。 */}
+      {phase === 'versus-lobby' && (
+        <Suspense fallback={<p className="vs-pending">読み込み中…</p>}>
+          <VersusLobby onPropose={(config) => console.log('[versus-lobby] propose', config)} />
         </Suspense>
       )}
 
