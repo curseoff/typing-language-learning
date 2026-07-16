@@ -64,7 +64,10 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 // #364 range 有り（英英固定範囲）＝範囲内を freq 順で決定的に流し record.range に往復させる。
 // #402 learningMode='cloze'（英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、穴埋めフェーズは
 //   定義文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。英語を打つモード（en/both）のみ。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit }) {
+// #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する。
+//   ハンドラ内（ref 読み許可の場所）から { typed, mistakes, segStats, currentMistakes } を渡す。
+//   未指定（既定 undefined）は従来と完全に同一挙動＝通常プレイは一切影響を受けない（後方互換）。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -335,8 +338,13 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
+      // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      if (onProgress) {
+        const pp = sessionRef.current.progress()
+        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes })
+      }
     },
-    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession],
+    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
   )
 
   useEffect(() => {

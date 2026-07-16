@@ -40,7 +40,9 @@ const maskRngFactory = (seed) => (item) => clozeMaskRng(seed, item.en)
 // #402 learningMode='cloze'（例文/英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、
 //   穴埋めフェーズは打鍵対象文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。
 //   cloze は通常入力（en/both/ja）で有効。ja は和文の内容語を jaWords 境界でマスク。翻訳は normal。
-export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal' }) {
+// #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する（useDict と同形）。
+//   未指定（既定 undefined）は従来と完全に同一挙動（後方互換）。
+export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal', onProgress }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -274,8 +276,13 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
+      // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      if (onProgress) {
+        const pp = sessionRef.current.progress()
+        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segStatsRef.current, currentMistakes: segMistakesRef.current })
+      }
     },
-    [segments, segIndex, segInput, completed, finishByProgress, syncSession],
+    [segments, segIndex, segInput, completed, finishByProgress, syncSession, onProgress],
   )
 
   useEffect(() => {

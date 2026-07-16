@@ -93,6 +93,12 @@ export default defineConfig(({ command }) => ({
         // useVersus と同種のブラウザ API エントリ配線として計測除外。純粋 presenter（SignalingExchangeView）は
         // 計測対象（smoke で被覆）。実挙動（2者接続）は pwa-verifier の実ブラウザ検証で担保する。
         'src/ui/versus/VersusConnect.container.jsx',
+        // #432 P2P穴埋め対戦：対戦本体 container。useVersus（RTCDataChannel 送受信）＋プレイフック
+        // （performance/keyboard/sound 配線）＋動的 content ロードの薄い結線で、jsdom/node で意味のある
+        // 単体計測ができない＝上記 VersusConnect と同種のブラウザ API エントリ配線として計測除外。
+        // 純ロジック（versusPlay.policy/matchScore/suddenDeath/matchConfig）は各 spec で被覆。
+        // 実挙動（2者対戦・進捗配信・勝敗）は pwa-verifier の実ブラウザ検証で担保する。
+        'src/ui/versus/VersusMatch.container.jsx',
         'packages/*/src/**/*.test.{ts,tsx}',
         'packages/*/src/**/*.stories.tsx',
         'packages/*/src/index.ts',

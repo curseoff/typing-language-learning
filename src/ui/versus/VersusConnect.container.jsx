@@ -18,6 +18,7 @@ import { activeIds as rosterActiveIds } from '../../domain/versus/peerRoster.ser
 import { modeLabel } from '../../content/modes.js'
 import { endKind, endValueLabel } from '../../content/endConditions.js'
 import VersusLobby from './VersusLobby.container.jsx'
+import VersusMatch from './VersusMatch.container.jsx'
 
 // 種目キー → 表示名（ロビーのタブと同じ呼称）。
 const GAME_TYPE_LABELS = { words: '単語', wsent: '単語例文', dict: '英英辞典' }
@@ -122,10 +123,22 @@ export default function VersusConnect() {
     )
   }
 
-  // 4. 合意後（config が commit 済み）：対戦本体は PR8。ここでは開始が動いていることが分かる最小表示。
-  // config は configAccepted まで null なので、この分岐は「可決後の countdown/running/finished」だけを捉える。
+  // 4. 合意後（config が commit 済み）：対戦本体（VersusMatch）。config は configAccepted まで null なので、
+  // この分岐は「可決後の countdown/running/finished」だけを捉える。VersusMatch が content ロード→
+  // カウントダウン→穴埋めプレイ→終了（勝敗）まで担う。
   if (v.config) {
-    return <VersusMatchPlaceholder phase={v.phase} startAt={v.startAt} localStartAt={v.localStartAt} />
+    return (
+      <VersusMatch
+        config={v.config}
+        seed={v.seed}
+        selfId={v.selfId}
+        roster={v.roster}
+        progress={v.progress}
+        phase={v.phase}
+        sendProgress={v.sendProgress}
+        sendFinished={v.sendFinished}
+      />
+    )
   }
 
   // 3. 提案中：承認 UI（設定サマリ＋投票＋拒否差し戻し）。
@@ -153,24 +166,6 @@ export default function VersusConnect() {
         </p>
       )}
       <VersusLobby onPropose={(config) => v.proposeMatch(config)} />
-    </div>
-  )
-}
-
-// 対戦本体（PR8）までの暫定表示。カウントダウン中は開始予定が近づいていることを示す。
-// phase は connect 直後から 'countdown' になるが、この分岐に来るのは config 可決後だけなので
-// startAt が設定済み＝実カウントダウン中とみなせる。
-function VersusMatchPlaceholder({ phase, startAt, localStartAt }) {
-  let text = '対戦の準備中…'
-  if (phase === 'countdown') text = startAt !== null ? 'まもなく開始します…' : '対戦の準備中…'
-  else if (phase === 'running') text = '対戦中…'
-  else if (phase === 'finished') text = '対戦が終了しました'
-  return (
-    <div className="vs vs-match-placeholder">
-      <p className="vs-lead">{text}</p>
-      {startAt !== null && localStartAt !== null && phase === 'countdown' && (
-        <p className="vs-countdown-note">開始まであとわずか（開始時刻を同期済み）。</p>
-      )}
     </div>
   )
 }
