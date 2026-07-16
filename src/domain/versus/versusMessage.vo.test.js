@@ -147,3 +147,158 @@ describe('buildMessage：正常生成と不正 type の throw', () => {
     expect(() => buildMessage('', { peerId: 'a' })).toThrow()
   })
 })
+
+// ============================================================================
+// #432 P2P 穴埋め対戦：progress 拡張（correct/lives）＋ propose/vote/start の追加。
+//   本体 versusMessage.vo.js に型追加する前提の「失敗テスト（Red）」。
+//   config は parseMatchConfig で検証する想定＝ここではワイヤ形（endCondition={kind,value}）で渡す。
+// ============================================================================
+
+// ワイヤ由来の妥当な MatchConfig（propose/start の config に使う）。
+function validWireConfig(overrides = {}) {
+  return {
+    gameType: 'wsent',
+    level: 3,
+    theme: '日常',
+    range: null,
+    mode: 'both',
+    endCondition: { kind: 'chars', value: 60 },
+    learningMode: 'cloze',
+    ...overrides,
+  }
+}
+
+// ---- progress 拡張：correct / lives の後方互換 ----
+describe('parseMessage：progress 拡張（correct/lives は後方互換の任意フィールド）', () => {
+  it('correct/lives を省いた既存形は従来どおり通る（後方互換）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).not.toHaveProperty('correct')
+    expect(m).not.toHaveProperty('lives')
+  })
+
+  it('correct（非負有限数）と lives（整数）が妥当なら保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, correct: 2, lives: 3 })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', correct: 2, lives: 3 })
+  })
+
+  it('correct=0 / lives=0（下限）を保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 0, total: 1, mistakes: 0, at: 0, correct: 0, lives: 0 })
+    expect(m.correct).toBe(0)
+    expect(m.lives).toBe(0)
+  })
+
+  it('correct が型不正なら省略して基本 progress は有効（任意フィールドは落とす）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, correct: '2' })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('correct')
+  })
+
+  it('correct が負なら省略して基本 progress は有効', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, correct: -1 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('correct')
+  })
+
+  it('lives が非整数なら省略して基本 progress は有効', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, lives: 2.5 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('lives')
+  })
+})
+
+// ---- propose：対戦設定の提案 ----
+describe('parseMessage：propose（config は parseMatchConfig 検証・seed は非負整数）', () => {
+  it('妥当な propose を正規化して返す', () => {
+    const m = parseMessage({ type: 'propose', peerId: 'a', config: validWireConfig(), seed: 12345 })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'propose', peerId: 'a', seed: 12345 })
+    expect(m.config).toMatchObject({ gameType: 'wsent', level: 3, theme: '日常', mode: 'both', learningMode: 'cloze' })
+    expect(m.config.endCondition).toMatchObject({ kind: 'chars', value: 60 })
+  })
+
+  it('seed=0（下限）を許可する', () => {
+    const m = parseMessage({ type: 'propose', peerId: 'a', config: validWireConfig(), seed: 0 })
+    expect(m).not.toBeNull()
+    expect(m.seed).toBe(0)
+  })
+
+  const invalid = [
+    ['peerId 空', { type: 'propose', peerId: '', config: validWireConfig(), seed: 1 }],
+    ['peerId 欠落', { type: 'propose', config: validWireConfig(), seed: 1 }],
+    ['config 不正（gameType 集合外）', { type: 'propose', peerId: 'a', config: validWireConfig({ gameType: 'x' }), seed: 1 }],
+    ['config が endless', { type: 'propose', peerId: 'a', config: validWireConfig({ endCondition: { kind: 'endless', value: null } }), seed: 1 }],
+    ['config 欠落', { type: 'propose', peerId: 'a', seed: 1 }],
+    ['seed 負', { type: 'propose', peerId: 'a', config: validWireConfig(), seed: -1 }],
+    ['seed 非整数', { type: 'propose', peerId: 'a', config: validWireConfig(), seed: 1.5 }],
+    ['seed 非数', { type: 'propose', peerId: 'a', config: validWireConfig(), seed: '1' }],
+    ['seed 欠落', { type: 'propose', peerId: 'a', config: validWireConfig() }],
+  ]
+  it.each(invalid)('%s → null', (_label, input) => {
+    expect(parseMessage(input)).toBeNull()
+  })
+})
+
+// ---- vote：提案への賛否（accept は厳格 boolean） ----
+describe('parseMessage：vote（accept は厳格 boolean）', () => {
+  it.each([true, false])('accept=%s を保持する', (accept) => {
+    const m = parseMessage({ type: 'vote', peerId: 'a', accept })
+    expect(m).toMatchObject({ type: 'vote', peerId: 'a', accept })
+  })
+
+  const invalid = [
+    ['peerId 空', { type: 'vote', peerId: '', accept: true }],
+    ['accept が数値', { type: 'vote', peerId: 'a', accept: 1 }],
+    ['accept が文字列', { type: 'vote', peerId: 'a', accept: 'true' }],
+    ['accept が null', { type: 'vote', peerId: 'a', accept: null }],
+    ['accept 欠落', { type: 'vote', peerId: 'a' }],
+  ]
+  it.each(invalid)('%s → null', (_label, input) => {
+    expect(parseMessage(input)).toBeNull()
+  })
+})
+
+// ---- start：確定した対戦設定の冪等配布 ----
+describe('parseMessage：start（config=parseMatchConfig 検証・seed は非負整数）', () => {
+  it('妥当な start を正規化して返す', () => {
+    const m = parseMessage({ type: 'start', config: validWireConfig(), seed: 999 })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'start', seed: 999 })
+    expect(m.config).toMatchObject({ gameType: 'wsent', mode: 'both', learningMode: 'cloze' })
+  })
+
+  const invalid = [
+    ['config 不正（mode 集合外）', { type: 'start', config: validWireConfig({ mode: 'mix' }), seed: 1 }],
+    ['config が endless', { type: 'start', config: validWireConfig({ endCondition: { kind: 'endless', value: null } }), seed: 1 }],
+    ['config 欠落', { type: 'start', seed: 1 }],
+    ['seed 負', { type: 'start', config: validWireConfig(), seed: -1 }],
+    ['seed 非整数', { type: 'start', config: validWireConfig(), seed: 2.5 }],
+    ['seed 欠落', { type: 'start', config: validWireConfig() }],
+  ]
+  it.each(invalid)('%s → null', (_label, input) => {
+    expect(parseMessage(input)).toBeNull()
+  })
+})
+
+// ---- buildMessage：新 type を許可（未知はなお throw） ----
+describe('buildMessage：propose/vote/start を組み立てる（未知はなお throw）', () => {
+  it('propose を組み立てる', () => {
+    const m = buildMessage('propose', { peerId: 'a', config: validWireConfig(), seed: 12345 })
+    expect(m).toMatchObject({ type: 'propose', peerId: 'a', seed: 12345 })
+  })
+
+  it('vote を組み立てる', () => {
+    const m = buildMessage('vote', { peerId: 'a', accept: true })
+    expect(m).toMatchObject({ type: 'vote', peerId: 'a', accept: true })
+  })
+
+  it('start を組み立てる', () => {
+    const m = buildMessage('start', { config: validWireConfig(), seed: 999 })
+    expect(m).toMatchObject({ type: 'start', seed: 999 })
+  })
+
+  it('未知 type はなお throw する', () => {
+    expect(() => buildMessage('ping', { peerId: 'a' })).toThrow()
+  })
+})
