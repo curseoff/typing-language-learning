@@ -697,6 +697,7 @@ export default function App() {
       appName="英文・和文タイピング"
       onNavigateAbout={() => { setDetailRoute(null); setPhase('about') }}
       onNavigateAllRecords={() => { setDetailRoute(null); setPhase('allrecords') }}
+      onNavigateVersus={() => { setDetailRoute(null); setPhase('versus') }}
     />
     <div className="app">
       {import.meta.env.DEV && (
