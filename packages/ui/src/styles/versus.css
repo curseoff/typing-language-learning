@@ -236,7 +236,9 @@
 }
 .vs-board-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  /* プレイヤーは縦に並べる（③）。1列固定＝各カードが全幅（.vs-board=640）でセルが広く、
+     ラベルの改行や時間のはみ出しも起きにくい。 */
+  grid-template-columns: 1fr;
   gap: 16px;
 }
 
@@ -337,6 +339,7 @@
 .vs-card-stat-label {
   font-size: 10px;
   color: var(--muted);
+  white-space: nowrap; /* ラベルを改行させない（①「タイピング数」「速度（打/分）」の折返し防止）。 */
 }
 .vs-card-stat-value {
   font-size: 16px;
@@ -346,6 +349,12 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
   white-space: nowrap; /* 値の折り返し防止（幅一定を保つ）。 */
+}
+/* 時間の経過部（左辺）を固定幅・右寄せにして「/」の位置を動かさない（⑤）。
+   幅は presenter が制限秒の桁数ぶん（min-width: Nch）を inline で与える。tabular-nums は親から継承。 */
+.vs-time-num {
+  display: inline-block;
+  text-align: right;
 }
 
 /* 勝敗軸＝正解問題数（強調）。 */

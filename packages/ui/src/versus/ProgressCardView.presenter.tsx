@@ -1,6 +1,7 @@
 // #432 穴埋め対戦：1人ぶんの進捗カード presenter（純粋描画・props とコールバックだけ）。
 // 対戦中に各参加者の進み具合を数値で見せる。勝敗軸は「正解問題数」なので強調して並べる。
 // カンニング防止のため問題テキストは受け取らない（自分の問題表示はプレイ画面側が担う）＝ここは数値のみ。
+import type { ReactNode } from 'react'
 
 // カード1枚ぶんのデータ。VersusBoardView が配列で持ち、各要素をそのままこのカードへ渡す。
 export interface ProgressCardData {
@@ -24,7 +25,7 @@ function shortId(id: string): string {
 }
 
 // 数値枠（タイピング数/速度/ミス/時間）。既存プレイ/結果 UI の stat 枠に準じた見た目。
-function CardStat({ label, value }: { label: string; value: string }) {
+function CardStat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="vs-card-stat">
       <div className="vs-card-stat-label">{label}</div>
@@ -47,7 +48,21 @@ export default function ProgressCardView({
   finished,
   rank,
 }: ProgressCardData) {
-  const timeText = limitSec != null ? `${elapsedSec} / ${limitSec}秒` : `${elapsedSec}秒`
+  // 時間は整数表示（④小数を出さない）。経過部を制限秒の桁数ぶん固定幅・右寄せにして
+  // 左辺が1桁↔2桁でも「/」位置が動かないようにする（⑤）。
+  const elapsed = Math.floor(elapsedSec)
+  const timeValue =
+    limitSec != null ? (
+      <>
+        <span className="vs-time-num" style={{ minWidth: `${String(limitSec).length}ch` }}>
+          {elapsed}
+        </span>
+        {' / '}
+        {limitSec}秒
+      </>
+    ) : (
+      <>{elapsed}秒</>
+    )
 
   return (
     <div className={`vs-card${self ? ' vs-card-self' : ''}`}>
@@ -69,7 +84,7 @@ export default function ProgressCardView({
         <CardStat label="タイピング数" value={String(typed)} />
         <CardStat label="速度（打/分）" value={String(speed)} />
         <CardStat label="ミス" value={String(mistakes)} />
-        <CardStat label="時間" value={timeText} />
+        <CardStat label="時間" value={timeValue} />
       </div>
 
       {/* 勝敗軸＝正解問題数。数値枠より目立たせる。 */}
