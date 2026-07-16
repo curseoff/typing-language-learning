@@ -235,6 +235,19 @@
   gap: 16px;
 }
 
+/* 対戦画面は幅を確定させる（.vs は .app のフレックス子で flex:0 1 auto＝内容幅に伸縮するため、
+   プレイエリアの単語チップ幅が問題ごとに変わると盤面カード（青枠）の幅まで揺れる）。
+   width:100%（＝.vs の max-width 640 で確定）＋ min-width:0 で内容非依存の定幅にする。 */
+.vs-match {
+  width: 100%;
+  min-width: 0;
+}
+/* プレイエリアが広くても対戦画面の幅を押し広げない（はみ出しは横スクロールで吸収）。 */
+.vs-match-play {
+  min-width: 0;
+  overflow-x: auto;
+}
+
 /* 自分が完了して相手待ちのときの案内（role="status"）。 */
 .vs-match-waiting {
   align-self: center;
