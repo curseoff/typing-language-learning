@@ -6,9 +6,9 @@
 //     peers: { [id]: { self, left, finished } } }  … 参加者ごとの状態
 // self … 自分自身か（remove しても残る）／left … 離脱したか（activeIds から除外）／finished … 完了したか。
 
-// 参加者1人ぶんの初期状態を作る。
-function makePeer(self) {
-  return { self, left: false, finished: false }
+// 参加者1人ぶんの初期状態を作る。name は表示名（省略時は無し＝nullish）。
+function makePeer(self, name) {
+  return { self, left: false, finished: false, name: name ?? null }
 }
 
 // 自分（selfId）だけを含む名簿を作る。
@@ -19,12 +19,18 @@ export function makeRoster(selfId) {
   }
 }
 
-// 参加者を追加する（冪等：既存 id・自分自身の再追加は不変）。
-export function addPeer(roster, peerId) {
-  if (roster.peers[peerId]) return { order: [...roster.order], peers: { ...roster.peers } }
+// 参加者を追加する（冪等：既存 id・自分自身の再追加は順序不変）。
+// name を新たに与えた再 add は表示名だけ更新する（順序・self/left/finished は不変）。
+export function addPeer(roster, peerId, name) {
+  const existing = roster.peers[peerId]
+  if (existing) {
+    const peers = { ...roster.peers }
+    if (name != null && name !== existing.name) peers[peerId] = { ...existing, name }
+    return { order: [...roster.order], peers }
+  }
   return {
     order: [...roster.order, peerId],
-    peers: { ...roster.peers, [peerId]: makePeer(false) },
+    peers: { ...roster.peers, [peerId]: makePeer(false, name) },
   }
 }
 
