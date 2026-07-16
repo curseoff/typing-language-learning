@@ -160,7 +160,10 @@ export default defineConfig(({ command }) => ({
       // #426 対戦基盤スライス3（application/versus の versusSession.store に純粋リデューサ単体テスト。
       // useVersus フックは RTCPeerConnection/crypto/performance 配線で計測除外）で各指標が上振れ
       // （実測 S89.34/B83.03/F90.66/L90.6）→ 実測から ≈0.2 のマージンで実測直下へラチェット（up-only）。
-      thresholds: { statements: 89.1, branches: 82.8, functions: 90.5, lines: 90.4 },
+      // #432 対戦の開始まわり（プレイフックの autoStart 計時開始＝lazy 初期化分岐に結合テスト追加。
+      // VersusMatch の CountdownNote は versus container として計測除外）で各指標が上振れ
+      // （実測 S89.48/B83.6/F90.63/L90.74）→ 実測から ≈0.2 のマージンで実測直下へラチェット（up-only）。
+      thresholds: { statements: 89.3, branches: 83.4, functions: 90.5, lines: 90.55 },
     },
   },
 }))

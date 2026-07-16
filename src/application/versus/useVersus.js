@@ -63,11 +63,14 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     setIceModeState(getIceMode())
   }, [])
 
-  // レース開始時刻（ローカル時刻）に合わせて raceStarted を発火する。
-  // MVP は時計ずれを 0 と仮定（同時刻）。TODO(#426): ping/pong によるオフセット推定で精緻化する。
+  // レース開始時刻に合わせて raceStarted を発火する。
+  // 開始時刻は Date.now()（壁掛け時計＝ページ間で共有される絶対時刻）基準。performance.now() は
+  // ページごとに原点が異なり端末/タブ間で比較できないため、同時開始には Date.now() を使う。
+  // 同一マシンの2タブは完全一致、別マシンは NTP 同期（通常±数十ms）。clockOffsetMs=0 はこの前提では妥当。
+  // TODO(#432): さらに精緻化するなら ping/pong で offset を実測する。
   const scheduleRace = useCallback((hostStartAt) => {
     const localAt = localStartTime({ hostStartAt, clockOffsetMs: 0 })
-    const delay = Math.max(0, localAt - performance.now())
+    const delay = Math.max(0, localAt - Date.now())
     clearTimeout(raceTimerRef.current)
     raceTimerRef.current = setTimeout(() => {
       dispatch({ type: 'lifecycle', event: 'raceStarted' })
@@ -220,7 +223,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
 
   // ホスト：レース開始時刻を決めて全員へ配信し、自分もカウントダウンへ入る。
   const startMatch = useCallback(() => {
-    const startAt = performance.now() + COUNTDOWN_MS
+    const startAt = Date.now() + COUNTDOWN_MS
     peerRef.current?.send(JSON.stringify(buildMessage('countdown', { startAt })))
     dispatch({ type: 'countdown', startAt })
     scheduleRace(startAt)

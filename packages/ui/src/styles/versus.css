@@ -58,6 +58,23 @@
   margin: 0;
 }
 
+/* #432 開始カウントダウン（3・2・1）。大きな数字を中央に見せ、補助文言は小さく併記する。 */
+.vs-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 0;
+}
+
+.vs-countdown-num {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
 /* versus 専用ボタン（TOP 単独 CTA の .btn-primary/.btn-secondary は流用しない＝ここで完結）。
    役割選択の primary/secondary は同サイズ・同高さ。submit は左揃え（align-self は各所で指定）。 */
 .vs-btn {

@@ -38,7 +38,10 @@ const nextWordsId = () => `words-${++wordsSessionSeq}`
 //   normal（既定）は従来と完全に同一挙動（tag も cloze も掛けない）。
 // #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する（useDict と同形）。
 //   未指定（既定 undefined）は従来と完全に同一挙動（後方互換）。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress }) {
+// #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
+//   （lazy 初期化で最初の render 時刻を startTime にする＝レース開始と同時に時間が進む）。未指定（solo）は
+//   従来どおり初回打鍵で開始＝挙動を一切変えない。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
   const isCloze = learningMode === 'cloze'
   // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
   //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
@@ -91,7 +94,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
-  const [startTime, setStartTime] = useState(null)
+  const [startTime, setStartTime] = useState(() => (autoStart ? performance.now() : null))
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
