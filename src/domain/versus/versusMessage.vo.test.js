@@ -487,3 +487,242 @@ describe('buildMessage：abort/matchEnd を組み立てる（未知はなお thr
     expect(m).toMatchObject({ type: 'matchEnd' })
   })
 })
+
+// ============================================================================
+// #439 対戦：相手カードに盤面複製（伏字）＝方式B（構造送信）。
+//   契約④ progress へ qIndex/typedSide/curPos を後方互換追加（不正はキー省略・cells 受理は残す）。
+//   契約⑤ 新メッセージ board を追加（peerId/qIndex/typedSide/word/wordJa?/hint/answerShape・untrusted 検証）。
+//   本体 versusMessage.vo.js に PARSERS.progress 拡張・KNOWN_TYPES/PARSERS.board 追加する前提の Red。
+//   不変条件：どのフィールドにも答えの文字（定義文/和訳/例文の綴り・かな）を含めない。
+// ============================================================================
+
+// ---- 契約④ progress 拡張：qIndex / typedSide / curPos の後方互換 ----
+describe('parseMessage：progress 拡張（qIndex/typedSide/curPos は後方互換の任意フィールド・#439）', () => {
+  it('qIndex/typedSide/curPos を省いた既存形はキーを持たない（後方互換）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('qIndex')
+    expect(m).not.toHaveProperty('typedSide')
+    expect(m).not.toHaveProperty('curPos')
+  })
+
+  it('qIndex(非負整数)/typedSide(en|ja)/curPos(非負整数)/miss が妥当なら全部保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, qIndex: 2, typedSide: 'en', curPos: 3, miss: false })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', qIndex: 2, typedSide: 'en', curPos: 3, miss: false })
+  })
+
+  it('qIndex=0 / curPos=0（下限）を保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 0, total: 1, mistakes: 0, at: 0, qIndex: 0, curPos: 0 })
+    expect(m.qIndex).toBe(0)
+    expect(m.curPos).toBe(0)
+  })
+
+  it.each(['en', 'ja'])('typedSide=%s を保持する', (typedSide) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, typedSide })
+    expect(m.typedSide).toBe(typedSide)
+  })
+
+  it('typedSide が集合外（"x"）なら typedSide だけ省略し他は保持', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, typedSide: 'x', qIndex: 1 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('typedSide')
+    expect(m.qIndex).toBe(1)
+  })
+
+  const invalidQIndex = [
+    ['負', -1],
+    ['非整数（小数）', 1.5],
+    ['非数（文字列）', '2'],
+    ['NaN', NaN],
+  ]
+  it.each(invalidQIndex)('qIndex が %s なら qIndex だけ省略して基本 progress は有効', (_label, qIndex) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, qIndex })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('qIndex')
+  })
+
+  const invalidCurPos = [
+    ['負', -1],
+    ['非整数（小数）', 2.5],
+    ['非数（文字列）', '3'],
+    ['Infinity', Infinity],
+  ]
+  it.each(invalidCurPos)('curPos が %s なら curPos だけ省略して基本 progress は有効', (_label, curPos) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, curPos })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('curPos')
+  })
+
+  it('cells 併存でも progress は有効（cells 受理は残す＝旧クライアント無害）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, cells: 4, qIndex: 1, typedSide: 'ja', curPos: 2 })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', qIndex: 1, typedSide: 'ja', curPos: 2, cells: 4 })
+  })
+
+  it('buildMessage で qIndex/typedSide/curPos を含む progress を組み立てられる', () => {
+    const m = buildMessage('progress', { peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, qIndex: 2, typedSide: 'en', curPos: 3 })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', qIndex: 2, typedSide: 'en', curPos: 3 })
+  })
+})
+
+// 妥当な board のワイヤ形（overrides で各フィールドを差し替えて端ケースを作る）。
+function validWireBoard(overrides = {}) {
+  return {
+    type: 'board',
+    peerId: 'a',
+    qIndex: 2,
+    typedSide: 'ja',
+    word: 'apple',
+    wordJa: 'りんご',
+    hint: { side: 'en', text: 'a round fruit' },
+    answerShape: [2, 4, 4],
+    ...overrides,
+  }
+}
+
+// ---- 契約⑤ board：構造送信メッセージ（untrusted 検証・答え文字を含めない） ----
+describe('parseMessage：board（#439・盤面複製の構造メッセージ・untrusted 検証）', () => {
+  it('正常な board を正規化して返す（必須＋任意すべて保持）', () => {
+    const m = parseMessage(validWireBoard())
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({
+      type: 'board',
+      peerId: 'a',
+      qIndex: 2,
+      typedSide: 'ja',
+      word: 'apple',
+      wordJa: 'りんご',
+      answerShape: [2, 4, 4],
+    })
+    expect(m.hint).toMatchObject({ side: 'en', text: 'a round fruit' })
+  })
+
+  it('qIndex=0（下限）を許可する', () => {
+    const m = parseMessage(validWireBoard({ qIndex: 0 }))
+    expect(m).not.toBeNull()
+    expect(m.qIndex).toBe(0)
+  })
+
+  it.each(['en', 'ja'])('typedSide=%s を許可する', (typedSide) => {
+    const m = parseMessage(validWireBoard({ typedSide }))
+    expect(m).not.toBeNull()
+    expect(m.typedSide).toBe(typedSide)
+  })
+
+  it('wordJa 省略時は wordJa 無しで board を保持（ja モード＝和訳が答え）', () => {
+    const board = validWireBoard()
+    delete board.wordJa
+    const m = parseMessage(board)
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('wordJa')
+    expect(m.type).toBe('board')
+  })
+
+  it('wordJa が非文字列なら wordJa だけ落として board を保持', () => {
+    const m = parseMessage(validWireBoard({ wordJa: 123 }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('wordJa')
+  })
+
+  it('hint に kana があれば保持する（ja ヒントのルビ用）', () => {
+    const m = parseMessage(validWireBoard({ typedSide: 'en', hint: { side: 'ja', text: 'りんご', kana: 'りんご' } }))
+    expect(m).not.toBeNull()
+    expect(m.hint).toMatchObject({ side: 'ja', text: 'りんご', kana: 'りんご' })
+  })
+
+  it('hint が不正（side/text 欠落）なら hint キーを落として board は生存', () => {
+    const m = parseMessage(validWireBoard({ hint: { side: 'en' } }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('hint')
+    expect(m.type).toBe('board')
+  })
+
+  it('hint.side が集合外なら hint キーを落として board は生存', () => {
+    const m = parseMessage(validWireBoard({ hint: { side: 'xx', text: 'foo' } }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('hint')
+  })
+
+  it('hint.kana が非文字列なら kana だけ落として hint 本体は保持', () => {
+    const m = parseMessage(validWireBoard({ hint: { side: 'ja', text: 'りんご', kana: 5 } }))
+    expect(m).not.toBeNull()
+    expect(m.hint).toMatchObject({ side: 'ja', text: 'りんご' })
+    expect(m.hint).not.toHaveProperty('kana')
+  })
+
+  it('answerShape に 0/負/非整数が混入したら answerShape を落として board は生存', () => {
+    const m = parseMessage(validWireBoard({ answerShape: [2, 0, 4] }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('answerShape')
+    expect(m.type).toBe('board')
+  })
+
+  it('answerShape が配列でない（数値）なら answerShape を落として board は生存', () => {
+    const m = parseMessage(validWireBoard({ answerShape: 5 }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('answerShape')
+  })
+
+  it('answerShape が上限(64)超なら落として board は生存（防御）', () => {
+    const m = parseMessage(validWireBoard({ answerShape: new Array(65).fill(1) }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('answerShape')
+  })
+
+  it('answerShape がちょうど 64 要素なら保持する（境界）', () => {
+    const shape = new Array(64).fill(1)
+    const m = parseMessage(validWireBoard({ answerShape: shape }))
+    expect(m).not.toBeNull()
+    expect(m.answerShape).toHaveLength(64)
+  })
+
+  it('余計なフィールドは落として規定キーのみ返す', () => {
+    const m = parseMessage(validWireBoard({ extra: 'x', letters: 'apple' }))
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('extra')
+    expect(m).not.toHaveProperty('letters')
+  })
+
+  const invalid = [
+    ['peerId 欠落', validWireBoard({ peerId: undefined })],
+    ['peerId 空文字', validWireBoard({ peerId: '' })],
+    ['peerId 非文字列', validWireBoard({ peerId: 5 })],
+    ['qIndex 負', validWireBoard({ qIndex: -1 })],
+    ['qIndex 非整数', validWireBoard({ qIndex: 1.5 })],
+    ['qIndex 非数', validWireBoard({ qIndex: '2' })],
+    ['typedSide 集合外', validWireBoard({ typedSide: 'x' })],
+    ['typedSide 欠落', validWireBoard({ typedSide: undefined })],
+    ['word 非文字列', validWireBoard({ word: 123 })],
+    ['word 欠落', validWireBoard({ word: undefined })],
+  ]
+  it.each(invalid)('%s → null（必須欠落は board 全体 null）', (_label, input) => {
+    expect(parseMessage(input)).toBeNull()
+  })
+
+  it('不変条件：board は答えの文字（かな/綴り）をフィールドに含めない＝answerShape は長さ情報のみ', () => {
+    // ja モード（typedSide=ja・答えはかな）：hint は英語側の実テキスト、答え側はマス数のみ。
+    const m = parseMessage(validWireBoard({ typedSide: 'ja', word: 'apple', wordJa: undefined, hint: { side: 'en', text: 'a round fruit' }, answerShape: [3] }))
+    expect(m).not.toBeNull()
+    // answerShape は数値配列＝答えのかな綴りを含まない。
+    expect(m.answerShape.every((n) => typeof n === 'number')).toBe(true)
+  })
+
+  it('board は決して throw しない（悪意入力：getter が throw する answerShape 等）', () => {
+    const hostile = { type: 'board', peerId: 'a', qIndex: 2, typedSide: 'en', word: 'x', get answerShape() { throw new Error('boom') } }
+    let result
+    expect(() => {
+      result = parseMessage(hostile)
+    }).not.toThrow()
+    expect(result === null || typeof result === 'object').toBe(true)
+  })
+})
+
+// ---- buildMessage：board を許可（未知はなお throw） ----
+describe('buildMessage：board を組み立てる（KNOWN_TYPES に board 追加・未知はなお throw）', () => {
+  it('board を組み立てる（type と payload をまとめた object を返す）', () => {
+    const m = buildMessage('board', { peerId: 'a', qIndex: 2, typedSide: 'ja', word: 'apple', hint: { side: 'en', text: 'a round fruit' }, answerShape: [2, 4, 4] })
+    expect(m).toMatchObject({ type: 'board', peerId: 'a', qIndex: 2, typedSide: 'ja', word: 'apple' })
+  })
+})
