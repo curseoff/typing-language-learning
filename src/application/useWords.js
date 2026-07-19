@@ -21,6 +21,7 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.pol
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
+import { segMaskLen } from '../domain/versus/progressMask.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -323,9 +324,12 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         finishByProgress(t, pm.keys, completed.length, pm.mistakes, input.length)
       }
       // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      // #437 伏せ字マスバー用：今打っている対象（seg）の実長 curPos/curLen とミス中フラグ miss を載せる。
       if (onProgress) {
         const pp = sessionRef.current.progress()
-        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes })
+        const wasHit = segMatches(seg, candidate)
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix: wasHit ? candidate : input })
+        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes, curPos, curLen, miss: !wasHit })
       }
     }
     window.addEventListener('keydown', onKey)

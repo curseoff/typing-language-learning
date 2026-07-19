@@ -337,6 +337,32 @@
   background: var(--panel);
 }
 
+/* #437 伏せ字マスバー：いま打っている問題の進み具合を等幅マスで可視化（相手カードのみ・実長は出さない）。
+   ●=打てた分／・=未入力。折返しは許容しつつ、狭幅(320px)でも 12 マスが崩れないよう等幅・小さめにする。 */
+.vs-card-mask {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  line-height: 1;
+}
+.vs-mask-cell {
+  font-size: 12px;
+  /* 等幅で並べる（●/・の字幅差を吸収）。 */
+  width: 1ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.vs-mask-filled {
+  color: var(--accent);
+}
+.vs-mask-pending {
+  color: var(--muted);
+}
+/* ミス中は filled マスを静的な赤（点滅しない）。 */
+.vs-mask-miss.vs-mask-filled {
+  color: var(--red);
+}
+
 /* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
 .vs-card-stats {
   display: grid;

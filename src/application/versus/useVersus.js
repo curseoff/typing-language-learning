@@ -274,12 +274,15 @@ export function useVersus({ selfId: providedSelfId } = {}) {
   // correct（一発正解数）・lives（サドンデス残機）・speed（打鍵速度）・elapsedMs（経過時間）は
   // 与えられたときだけ message に含める（無指定は従来どおり＝後方互換）。
   const sendProgress = useCallback(
-    ({ typed, total, mistakes, correct, lives, speed, elapsedMs }) => {
+    ({ typed, total, mistakes, correct, lives, speed, elapsedMs, cells, miss }) => {
       const payload = { peerId: selfId, typed, total, mistakes, at: performance.now() }
       if (correct !== undefined) payload.correct = correct
       if (lives !== undefined) payload.lives = lives
       if (speed !== undefined) payload.speed = speed
       if (elapsedMs !== undefined) payload.elapsedMs = elapsedMs
+      // #437 伏せ字マスバー：量子化済み cells（整数）と miss（boolean）を与えられたときだけ載せる（後方互換）。
+      if (cells !== undefined) payload.cells = cells
+      if (miss !== undefined) payload.miss = miss
       const msg = buildMessage('progress', payload)
       peerRef.current?.send(JSON.stringify(msg))
       dispatch({ type: 'progress', message: msg })

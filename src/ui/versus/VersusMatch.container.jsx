@@ -20,6 +20,7 @@ import { useMarathon } from '../../application/useMarathon.js'
 import { toProgressPayload } from '../../application/versus/versusPlay.policy.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
+import { maskedCells, PROGRESS_MASK_CAP } from '../../domain/versus/progressMask.service.js'
 import { rankMap } from '../../domain/versus/matchScore.service.js'
 import { anyoneEliminated } from '../../domain/versus/suddenDeath.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
@@ -127,6 +128,9 @@ function buildMembers({ selfId, roster, self, progress, initialLives, limitSec }
       elapsedSec: p.elapsedMs != null ? Math.round(p.elapsedMs / 1000) : 0,
       correct: p.correct ?? 0,
       finished,
+      // #437 伏せ字マスバー：受信した量子化済み cells（0..cap 整数）を cap マスへ展開して渡す。
+      // 未配信（旧クライアント/4択＝cells 無し）は undefined＝presenter でマスバー非表示。
+      ...(p.cells != null ? { maskCells: maskedCells({ fill: p.cells, cap: PROGRESS_MASK_CAP, state: p.miss ? 'miss' : 'ok' }) } : {}),
       ...(limitSec != null ? { limitSec } : {}),
       ...(initialLives != null ? { lives: p.lives ?? initialLives } : {}),
     }
@@ -204,6 +208,12 @@ function useProgressRelay({ sendProgress, total, initialLives, liveRef }) {
         initialLives,
         speed: live.speed,
         elapsedMs: live.elapsedMs,
+        // #437 伏せ字マスバー：今打っている対象の実長 curPos/curLen を cap マスへ量子化して cells を作る
+        // （実長 curLen はワイヤに出さない＝policy 側で量子化）。miss は現在問題のミス中フラグ。
+        curPos: snap.curPos,
+        curLen: snap.curLen,
+        cap: PROGRESS_MASK_CAP,
+        miss: snap.miss,
       })
       sendProgress(payload)
       // ハンドラ内 setState（effect ではない）＝cascading render 警告の対象外。
