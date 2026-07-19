@@ -412,6 +412,134 @@ describe('reduce: progress の cells/miss 取り込み（後方互換・#437）'
   })
 })
 
+// #439 盤面複製（方式B・PR2 store）：progress メッセージの qIndex（非負整数）/
+// typedSide（'en'|'ja'）/curPos（非負整数）を進捗エントリへ透過する。cells/miss と同方針で
+// message にあれば含め、無ければキーを持たない（後方互換）。qIndex=0/curPos=0 は 'in' 判定で保持する。
+describe('reduce: progress の qIndex/typedSide/curPos 取り込み（後方互換・#439）', () => {
+  it('message に qIndex/typedSide/curPos があれば progress エントリに含める', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, qIndex: 2, typedSide: 'en', curPos: 3 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100, qIndex: 2, typedSide: 'en', curPos: 3 })
+  })
+
+  it("typedSide:'ja' も保持する", () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, typedSide: 'ja' }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival.typedSide).toBe('ja')
+  })
+
+  it('qIndex=0 を保持する（0 を falsy で落とさない＝in 判定）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, qIndex: 0 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect('qIndex' in s.progress.rival).toBe(true)
+    expect(s.progress.rival.qIndex).toBe(0)
+  })
+
+  it('curPos=0 を保持する（0 を falsy で落とさない＝in 判定）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, curPos: 0 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect('curPos' in s.progress.rival).toBe(true)
+    expect(s.progress.rival.curPos).toBe(0)
+  })
+
+  it('qIndex/typedSide/curPos の無い旧メッセージは従来どおり（3 キーを持たない）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100 }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100 })
+    expect('qIndex' in s.progress.rival).toBe(false)
+    expect('typedSide' in s.progress.rival).toBe(false)
+    expect('curPos' in s.progress.rival).toBe(false)
+  })
+
+  it('cells/miss/speed/elapsedMs と qIndex/typedSide/curPos を併せ持つ message は全て取り込む', () => {
+    const msg = {
+      type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100,
+      speed: 185, elapsedMs: 4200, cells: 6, miss: true, qIndex: 4, typedSide: 'ja', curPos: 7,
+    }
+    const s = reduce(initSession('me'), { type: 'progress', message: msg })
+    expect(s.progress.rival).toEqual({
+      typed: 5, total: 20, mistakes: 1, at: 100,
+      speed: 185, elapsedMs: 4200, cells: 6, miss: true, qIndex: 4, typedSide: 'ja', curPos: 7,
+    })
+  })
+})
+
+// #439 盤面複製（方式B・PR2 store）：受信 board（parseMessage 済み）を peer ごとに「最新 1 件」キャッシュする
+// 新 action 'board'。キー設計は boards[peerId]=board（最新 board 1 件）で仕様化する。
+// both モード（同一 qIndex に en/ja 2 board）は「表示は今アクティブな side だけ」なので最新表示で足りる、と割り切る。
+// （※ 曖昧点として司令塔へ確認済み：peerId×qIndex×side を全保持する要求が出れば設計を見直す。）
+const BOARD_RIVAL_2 = {
+  type: 'board', peerId: 'rival', qIndex: 2, typedSide: 'en', word: 'apple',
+  wordJa: 'りんご', answerShape: [5],
+}
+
+describe('initSession: #439 boards フィールド', () => {
+  it('初期形に boards が空オブジェクトで加わる（既存フィールドは不変）', () => {
+    const s = initSession('me')
+    expect(s.boards).toEqual({})
+    // 既存フィールドは従来どおり
+    expect(s.phase).toBe('waiting')
+    expect(s.progress).toEqual({})
+  })
+})
+
+describe('reduce: board（受信 board の最新1件キャッシュ・#439）', () => {
+  it('受信 board を boards[peerId] にそのまま格納する（最新 1 件保持）', () => {
+    const s = reduce(initSession('me'), { type: 'board', message: BOARD_RIVAL_2 })
+    expect(s.boards.rival).toEqual(BOARD_RIVAL_2)
+  })
+
+  it('同一 peer の board 再送は最新で上書きする（後勝ち・both の en↔ja 切替も最新表示）', () => {
+    let s = initSession('me')
+    s = reduce(s, { type: 'board', message: BOARD_RIVAL_2 })
+    const nextJa = { type: 'board', peerId: 'rival', qIndex: 2, typedSide: 'ja', word: 'apple', wordJa: 'りんご', answerShape: [3] }
+    s = reduce(s, { type: 'board', message: nextJa })
+    expect(s.boards.rival).toEqual(nextJa)
+    // peer は増えない（同一 peer の上書き）。
+    expect(Object.keys(s.boards)).toEqual(['rival'])
+  })
+
+  it('別の qIndex の board も最新で上書きする（peer あたり 1 件のみ保持）', () => {
+    let s = initSession('me')
+    s = reduce(s, { type: 'board', message: BOARD_RIVAL_2 })
+    const q3 = { type: 'board', peerId: 'rival', qIndex: 3, typedSide: 'en', word: 'banana', answerShape: [6] }
+    s = reduce(s, { type: 'board', message: q3 })
+    expect(s.boards.rival).toEqual(q3)
+    expect(Object.keys(s.boards)).toEqual(['rival'])
+  })
+
+  it('別 peer の board は独立に保持する', () => {
+    let s = initSession('me')
+    s = reduce(s, { type: 'board', message: BOARD_RIVAL_2 })
+    const other = { type: 'board', peerId: 'foe', qIndex: 0, typedSide: 'en', word: 'cat', answerShape: [3] }
+    s = reduce(s, { type: 'board', message: other })
+    expect(s.boards.rival).toEqual(BOARD_RIVAL_2)
+    expect(s.boards.foe).toEqual(other)
+    expect(Object.keys(s.boards).sort()).toEqual(['foe', 'rival'])
+  })
+
+  it('progress など他の state は保持する（boards だけを更新する）', () => {
+    let s = initSession('me')
+    s = reduce(s, {
+      type: 'progress',
+      message: { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100 },
+    })
+    const progressBefore = s.progress
+    s = reduce(s, { type: 'board', message: BOARD_RIVAL_2 })
+    expect(s.progress).toEqual(progressBefore)
+    expect(s.boards.rival).toEqual(BOARD_RIVAL_2)
+  })
+
+  it('元の state を破壊しない（新オブジェクトを返す）', () => {
+    const base = initSession('me')
+    const snapshot = structuredClone(base)
+    const s = reduce(base, { type: 'board', message: BOARD_RIVAL_2 })
+    expect(base).toEqual(snapshot)
+    expect(s).not.toBe(base)
+    expect(s.boards).not.toBe(base.boards)
+  })
+})
+
 describe('reduce: suddenDeathEnd（サドンデス終了）', () => {
   it('running から finished へ遷移する（matchState の allFinished 流用）', () => {
     let s = connected('me')
