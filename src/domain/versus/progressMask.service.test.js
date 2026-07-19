@@ -4,8 +4,9 @@ import { describe, it, expect } from 'vitest'
 // 純ドメイン：React/DOM/乱数 非依存・副作用なし・決定的。
 //   maskFill({ curPos, curLen, cap }) … 送信側で実長 curLen を cap マスに量子化（floor）した 0..cap 整数。
 //   maskedCells({ fill, cap, state }) … 受信側で fill マスを可視化する長さ cap の配列。
+//   segMaskLen({ variants, prefix }) … 現在セグの許容解と正打接頭辞から実長 { curPos, curLen } を導く（量子化前）。
 //   PROGRESS_MASK_CAP                … sender/receiver 単一ソースのマス上限（=12）。
-import { maskFill, maskedCells, PROGRESS_MASK_CAP } from './progressMask.service.js'
+import { maskFill, maskedCells, segMaskLen, PROGRESS_MASK_CAP } from './progressMask.service.js'
 
 describe('progressMask（#437・伏せ字マスバー）', () => {
   describe('PROGRESS_MASK_CAP：sender/receiver 単一ソースのマス上限', () => {
@@ -60,6 +61,65 @@ describe('progressMask（#437・伏せ字マスバー）', () => {
           expect(fill).toBeLessThanOrEqual(cap)
         }
       }
+    })
+  })
+
+  describe('segMaskLen：許容解 variants と正打接頭辞 prefix から実長 { curPos, curLen } を導く', () => {
+    // (variants, prefix) → 期待 { curPos, curLen }。
+    //   matching = prefix で始まる variant 群。空なら pool=全 variant、非空なら pool=matching。
+    //   curLen = pool の最短長（pool 空なら 0）。curPos = min(prefix.length, curLen)（clamp）。
+    const cases = [
+      ['未入力は最短解の長さ（両方一致・si=2）', ['shi', 'si'], '', 0, 2],
+      ['s は両方一致のまま最短2・curPos=1', ['shi', 'si'], 's', 1, 2],
+      ['sh は shi のみ一致＝最短3・curPos=2', ['shi', 'si'], 'sh', 2, 3],
+      ['si は完了（満杯相当）＝最短2・curPos=2', ['shi', 'si'], 'si', 2, 2],
+      ['shi は完了＝最短3・curPos=3', ['shi', 'si'], 'shi', 3, 3],
+      ['どれも prefix で始まらない→pool 全体・最短2・curPos は clamp', ['si'], 'six', 2, 2],
+      ['不整合（x）→pool 全体・最短2・curPos=min(1,2)=1', ['shi', 'si'], 'x', 1, 2],
+      ['variants 空は curLen=0・curPos=0', [], 'abc', 0, 0],
+      ['長い単一解の途中', ['kakikukeko'], 'kaki', 4, 10],
+    ]
+    it.each(cases)('%s：(%j,%j)→{curPos:%i,curLen:%i}', (_label, variants, prefix, curPos, curLen) => {
+      expect(segMaskLen({ variants, prefix })).toEqual({ curPos, curLen })
+    })
+
+    it('variants が非配列（null）なら空配列扱い＝{curPos:0, curLen:0}', () => {
+      expect(segMaskLen({ variants: null, prefix: 'ab' })).toEqual({ curPos: 0, curLen: 0 })
+    })
+
+    it('prefix が非文字列（undefined）なら空文字扱い＝全一致・最短長', () => {
+      // '' は全 variant の接頭辞→matching=全体・最短3・curPos=min(0,3)=0。
+      expect(segMaskLen({ variants: ['abc', 'abcd'], prefix: undefined })).toEqual({ curPos: 0, curLen: 3 })
+    })
+
+    it('curPos は常に curLen 以下（curPos<=curLen の不変条件・maskFill の前提と整合）', () => {
+      const samples = [
+        { variants: ['shi', 'si'], prefix: '' },
+        { variants: ['shi', 'si'], prefix: 's' },
+        { variants: ['shi', 'si'], prefix: 'shi' },
+        { variants: ['si'], prefix: 'six' },
+        { variants: ['shi', 'si'], prefix: 'x' },
+        { variants: ['kakikukeko'], prefix: 'kaki' },
+        { variants: [], prefix: 'abc' },
+        { variants: ['abc', 'abcd'], prefix: undefined },
+      ]
+      for (const s of samples) {
+        const { curPos, curLen } = segMaskLen(s)
+        expect(curPos).toBeLessThanOrEqual(curLen)
+        expect(curPos).toBeGreaterThanOrEqual(0)
+      }
+    })
+
+    it('segMaskLen→maskFill 結合：実長は出さずマス化される（curLen=10,curPos=4,cap=12→fill=4）', () => {
+      const { curPos, curLen } = segMaskLen({ variants: ['kakikukeko'], prefix: 'kaki' })
+      expect({ curPos, curLen }).toEqual({ curPos: 4, curLen: 10 })
+      expect(maskFill({ curPos, curLen, cap: 12 })).toBe(4)
+    })
+
+    it('segMaskLen→maskFill 結合：完了は満杯（si 完了→fill=cap）', () => {
+      const { curPos, curLen } = segMaskLen({ variants: ['shi', 'si'], prefix: 'si' })
+      expect({ curPos, curLen }).toEqual({ curPos: 2, curLen: 2 })
+      expect(maskFill({ curPos, curLen, cap: 12 })).toBe(12)
     })
   })
 
