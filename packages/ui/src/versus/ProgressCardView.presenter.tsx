@@ -12,8 +12,6 @@ export interface ProgressCardData {
   typed: number // タイピング数（打鍵で確定した文字数）
   speed: number // 速度（打/分）
   mistakes: number // ミス数
-  elapsedSec: number // 経過秒
-  limitSec?: number // 制限秒（時間終了条件時に `経過 / 制限秒` を出す。無ければ経過のみ）
   correct: number // 正解問題数（＝勝敗軸・目立たせる）
   lives?: number // 残ライフ（サドンデス時のみ・undefined なら非表示）
   finished?: boolean // #432 その参加者が完了したか（true で「完了」バッジを出す）
@@ -26,7 +24,7 @@ function shortId(id: string): string {
   return id.slice(0, 8)
 }
 
-// 数値枠（タイピング数/速度/ミス/時間）。既存プレイ/結果 UI の stat 枠に準じた見た目。
+// 数値枠（タイピング数/速度/ミス）。既存プレイ/結果 UI の stat 枠に準じた見た目。
 function CardStat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="vs-card-stat">
@@ -43,30 +41,12 @@ export default function ProgressCardView({
   typed,
   speed,
   mistakes,
-  elapsedSec,
-  limitSec,
   correct,
   lives,
   finished,
   rank,
   mirror,
 }: ProgressCardData) {
-  // 時間は整数表示（④小数を出さない）。経過部を制限秒の桁数ぶん固定幅・右寄せにして
-  // 左辺が1桁↔2桁でも「/」位置が動かないようにする（⑤）。
-  const elapsed = Math.floor(elapsedSec)
-  const timeValue =
-    limitSec != null ? (
-      <>
-        <span className="vs-time-num" style={{ minWidth: `${String(limitSec).length}ch` }}>
-          {elapsed}
-        </span>
-        {' / '}
-        {limitSec}秒
-      </>
-    ) : (
-      <>{elapsed}秒</>
-    )
-
   return (
     <div className={`vs-card${self ? ' vs-card-self' : ''}`}>
       <div className="vs-card-head">
@@ -86,12 +66,11 @@ export default function ProgressCardView({
           board 未受信 or qIndex 不一致（保留）は container が undefined を渡す＝数値カードのみ（複製非表示）。 */}
       {mirror && <MirrorBoardView {...mirror} />}
 
-      {/* タイピング数/速度/ミス/時間 の 4 枠。 */}
+      {/* #439 タイピング数/速度/ミス の 3 枠（時間は撤去＝盤面上部の progressバーへ集約）。 */}
       <div className="vs-card-stats">
         <CardStat label="タイピング数" value={String(typed)} />
         <CardStat label="速度（打/分）" value={String(speed)} />
         <CardStat label="ミス" value={String(mistakes)} />
-        <CardStat label="時間" value={timeValue} />
       </div>
 
       {/* 勝敗軸＝正解問題数。数値枠より目立たせる。 */}

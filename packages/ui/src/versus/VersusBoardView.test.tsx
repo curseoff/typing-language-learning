@@ -10,8 +10,8 @@ afterEach(cleanup)
 const SELF_ID = '03ecf8d2-1111'
 const PEER_ID = '77bd90ac-2222'
 const members: ProgressCardData[] = [
-  { id: SELF_ID, self: true, typed: 128, speed: 312, mistakes: 4, elapsedSec: 42, correct: 7 },
-  { id: PEER_ID, self: false, typed: 96, speed: 240, mistakes: 9, elapsedSec: 42, correct: 5 },
+  { id: SELF_ID, self: true, typed: 128, speed: 312, mistakes: 4, correct: 7 },
+  { id: PEER_ID, self: false, typed: 96, speed: 240, mistakes: 9, correct: 5 },
 ]
 
 describe('VersusBoardView smoke', () => {

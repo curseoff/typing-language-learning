@@ -424,12 +424,12 @@
   color: var(--red);
 }
 
-/* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
+/* 数値枠 3 つ（タイピング数/速度/ミス）。#439 時間枠は撤去し、時間は盤面上部の progressバーへ集約。 */
 .vs-card-stats {
   display: grid;
   /* minmax(0,1fr) が要点：素の 1fr は minmax(auto,1fr)＝内容(min-content)で列が広がるため、
-     時間「48.9 / 60秒」等の長い値が列を押し広げて幅が揺れる。min を 0 に固定して内容非依存の等幅にする。 */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+     値が列を押し広げて幅が揺れる。min を 0 に固定して内容非依存の等幅にする。 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .vs-card-stat {
@@ -453,12 +453,6 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
   white-space: nowrap; /* 値の折り返し防止（幅一定を保つ）。 */
-}
-/* 時間の経過部（左辺）を固定幅・右寄せにして「/」の位置を動かさない（⑤）。
-   幅は presenter が制限秒の桁数ぶん（min-width: Nch）を inline で与える。tabular-nums は親から継承。 */
-.vs-time-num {
-  display: inline-block;
-  text-align: right;
 }
 
 /* 勝敗軸＝正解問題数（強調）。 */
