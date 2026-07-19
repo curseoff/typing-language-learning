@@ -132,8 +132,9 @@ const PARSERS = {
     if (!isNonEmptyString(obj.peerId)) return null
     if (!isNonNegInt(obj.qIndex)) return null
     if (!(obj.typedSide === 'en' || obj.typedSide === 'ja')) return null
-    if (typeof obj.word !== 'string') return null
-    const out = { type: 'board', peerId: obj.peerId, qIndex: obj.qIndex, typedSide: obj.typedSide, word: obj.word }
+    const out = { type: 'board', peerId: obj.peerId, qIndex: obj.qIndex, typedSide: obj.typedSide }
+    // word（見出し語・任意）：文字列のときだけ保持（単語モードは見出し語 word 無しで送られる＝wordJa と同方針）。
+    if (typeof obj.word === 'string') out.word = obj.word
     // wordJa（表示可・任意）：文字列のときだけ保持（ja モードは送られない＝和訳が答え）。
     if (typeof obj.wordJa === 'string') out.wordJa = obj.wordJa
     // hint（表示する側の実テキスト）：オブジェクトで side∈{en,ja} かつ text 文字列のときだけ保持。
