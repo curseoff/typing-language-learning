@@ -22,6 +22,7 @@ import { loadDictRecords, saveDictRecord, recordItemStat } from './records.servi
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
+import { segMaskLen } from '../domain/versus/progressMask.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
@@ -343,9 +344,13 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
       // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      // #437 伏せ字マスバー用：今打っている対象（seg）の実長 curPos/curLen とミス中フラグ miss を載せる。
+      //   正打なら接頭辞＝候補（完了時は完成解＝満杯）、ミスなら据え置きの直近正解接頭辞（segInput）。
       if (onProgress) {
         const pp = sessionRef.current.progress()
-        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes })
+        const wasHit = seg.variants.some((v) => v.startsWith(candidate))
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix: wasHit ? candidate : segInput })
+        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes, curPos, curLen, miss: !wasHit })
       }
     },
     [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],

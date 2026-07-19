@@ -56,6 +56,9 @@ const PARSERS = {
     // #432 相手カードの速度・時間：非負有限数なら保持、不正は省略（correct/lives と同方針）。
     if (isNonNegFinite(obj.speed)) out.speed = obj.speed
     if (isNonNegFinite(obj.elapsedMs)) out.elapsedMs = obj.elapsedMs
+    // #437 伏せ字マスバー：量子化済み cells（非負整数）と miss（厳格 boolean）を後方互換で保持。
+    if (Number.isInteger(obj.cells) && obj.cells >= 0) out.cells = obj.cells
+    if (typeof obj.miss === 'boolean') out.miss = obj.miss
     return out
   },
   countdown(obj) {

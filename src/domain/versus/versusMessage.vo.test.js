@@ -267,6 +267,78 @@ describe('parseMessage：progress 拡張（speed/elapsedMs は後方互換の任
   })
 })
 
+// ---- progress 拡張：cells / miss の後方互換（#437 伏せ字マスバーのワイヤ形） ----
+// 相手のリアルタイム入力進捗を伏せ字マスで見せるため、量子化済みの cells（0..cap 整数）と
+// ミス中フラグ miss（厳格 boolean）を progress に後方互換で載せる。curLen 実長はワイヤに流さない。
+// 方針：cells は非負整数なら保持・不正は省略、miss は厳格 boolean なら保持・それ以外は省略。
+// いずれも基本 progress は無効化しない（correct/lives/speed/elapsedMs と同方針）。
+describe('parseMessage：progress 拡張（cells/miss は後方互換の任意フィールド・#437）', () => {
+  it('cells/miss を省いた既存形はキーを持たない（後方互換）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('cells')
+    expect(m).not.toHaveProperty('miss')
+  })
+
+  it('cells（非負整数）が妥当なら保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, cells: 4 })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', cells: 4 })
+  })
+
+  it('cells=0（下限）を保持する', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 0, total: 1, mistakes: 0, at: 0, cells: 0 })
+    expect(m.cells).toBe(0)
+  })
+
+  const invalidCells = [
+    ['非整数（小数）', 4.5],
+    ['非数（文字列）', '4'],
+    ['負', -1],
+    ['NaN', NaN],
+    ['Infinity', Infinity],
+  ]
+  it.each(invalidCells)('cells が %s なら省略して基本 progress は有効', (_label, cells) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, cells })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('cells')
+  })
+
+  it('cells 欠落でも progress は有効（cells キーを持たない）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('cells')
+  })
+
+  it.each([true, false])('miss=%s（厳格 boolean）を保持する', (miss) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, miss })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', miss })
+  })
+
+  const invalidMiss = [
+    ['数値 1', 1],
+    ['文字列 "true"', 'true'],
+    ['null', null],
+  ]
+  it.each(invalidMiss)('miss が %s なら省略して基本 progress は有効', (_label, miss) => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, miss })
+    expect(m).not.toBeNull()
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', typed: 3 })
+    expect(m).not.toHaveProperty('miss')
+  })
+
+  it('miss 欠落でも progress は有効（miss キーを持たない）', () => {
+    const m = parseMessage({ type: 'progress', peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5 })
+    expect(m).not.toBeNull()
+    expect(m).not.toHaveProperty('miss')
+  })
+
+  it('buildMessage で cells/miss を含む progress を組み立てられる', () => {
+    const m = buildMessage('progress', { peerId: 'a', typed: 3, total: 10, mistakes: 1, at: 5, cells: 4, miss: true })
+    expect(m).toMatchObject({ type: 'progress', peerId: 'a', cells: 4, miss: true })
+  })
+})
+
 // ---- propose：対戦設定の提案 ----
 describe('parseMessage：propose（config は parseMatchConfig 検証・seed は非負整数）', () => {
   it('妥当な propose を正規化して返す', () => {

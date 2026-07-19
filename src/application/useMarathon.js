@@ -19,6 +19,7 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.pol
 import { recordItemStat } from './records.service.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { firstTryCorrectCount, segmentScore, missedItemCount } from '../domain/records/segmentStats.service.js'
+import { segMaskLen } from '../domain/versus/progressMask.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -283,9 +284,12 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
       // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      // #437 伏せ字マスバー用：今打っている対象（seg）の実長 curPos/curLen とミス中フラグ miss を載せる。
       if (onProgress) {
         const pp = sessionRef.current.progress()
-        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segStatsRef.current, currentMistakes: segMistakesRef.current })
+        const wasHit = seg.variants.some((v) => v.startsWith(candidate))
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix: wasHit ? candidate : segInput })
+        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segStatsRef.current, currentMistakes: segMistakesRef.current, curPos, curLen, miss: !wasHit })
       }
     },
     [segments, segIndex, segInput, completed, finishByProgress, syncSession, onProgress],
