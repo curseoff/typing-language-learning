@@ -130,11 +130,12 @@ export type {
   WordQuizViewProps,
   WordQuizOption,
 } from './words/WordsView.presenter'
-export { DictTypeView, DictQuizView, DictPickView } from './dictionary/DictView.presenter'
+export { DictTypeView, DictQuizView, DictPickView, DictMirrorView } from './dictionary/DictView.presenter'
 export type {
   DictTypeViewProps,
   DictQuizViewProps,
   DictPickViewProps,
+  DictMirrorViewProps,
   DictOption,
   DictWordRuby,
 } from './dictionary/DictView.presenter'
