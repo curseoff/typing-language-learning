@@ -694,11 +694,41 @@ describe('parseMessage：board（#439・盤面複製の構造メッセージ・u
     ['qIndex 非数', validWireBoard({ qIndex: '2' })],
     ['typedSide 集合外', validWireBoard({ typedSide: 'x' })],
     ['typedSide 欠落', validWireBoard({ typedSide: undefined })],
-    ['word 非文字列', validWireBoard({ word: 123 })],
-    ['word 欠落', validWireBoard({ word: undefined })],
   ]
   it.each(invalid)('%s → null（必須欠落は board 全体 null）', (_label, input) => {
     expect(parseMessage(input)).toBeNull()
+  })
+
+  // #439 word 任意化：単語(words)モードは見出し語 word を持たない（単語自体が答え）ため、
+  // 送信 board に word が無い。従来は word 必須で board 全体 null → 相手盤面が単語モードだけ出なかった。
+  // wordJa/hint と同方針で「あれば保持・欠落/不正なら落として board は生存」に変える。
+  it('word 欠落でも board は有効（単語モード＝見出し語なし・#439 回帰ガード）', () => {
+    const board = validWireBoard()
+    delete board.word
+    delete board.wordJa
+    const m = parseMessage(board)
+    expect(m).not.toBeNull()
+    expect(m.type).toBe('board')
+    expect(m).not.toHaveProperty('word')
+    // 必須（peerId/qIndex/typedSide）と任意（hint/answerShape）は従来どおり通る。
+    expect(m).toMatchObject({ peerId: 'a', qIndex: 2, typedSide: 'ja' })
+    expect(m.hint).toMatchObject({ side: 'en', text: 'a round fruit' })
+    expect(m.answerShape).toEqual([2, 4, 4])
+  })
+
+  it('word が文字列なら保持する', () => {
+    const m = parseMessage(validWireBoard({ word: 'apple' }))
+    expect(m).not.toBeNull()
+    expect(m.word).toBe('apple')
+  })
+
+  it('word が非文字列（123）なら word だけ落として board は生存（#439・従来は board 全体 null）', () => {
+    const m = parseMessage(validWireBoard({ word: 123 }))
+    expect(m).not.toBeNull()
+    expect(m.type).toBe('board')
+    expect(m).not.toHaveProperty('word')
+    // 必須・他の任意フィールドは無効化しない。
+    expect(m).toMatchObject({ peerId: 'a', qIndex: 2, typedSide: 'ja' })
   })
 
   it('不変条件：board は答えの文字（かな/綴り）をフィールドに含めない＝answerShape は長さ情報のみ', () => {
