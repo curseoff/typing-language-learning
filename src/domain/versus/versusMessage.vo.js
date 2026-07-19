@@ -16,6 +16,7 @@ const KNOWN_TYPES = new Set([
   'start',
   'abort',
   'matchEnd',
+  'board',
 ])
 
 // 非空文字列か（peerId 等の識別子用）。
@@ -59,6 +60,11 @@ const PARSERS = {
     // #437 伏せ字マスバー：量子化済み cells（非負整数）と miss（厳格 boolean）を後方互換で保持。
     if (Number.isInteger(obj.cells) && obj.cells >= 0) out.cells = obj.cells
     if (typeof obj.miss === 'boolean') out.miss = obj.miss
+    // #439 盤面複製（方式B）：board との突合キー qIndex・打鍵側 typedSide・表示単位進捗 curPos を後方互換で保持。
+    // 不正はキー省略・progress 自体は無効化しない（cells/miss と同方針）。答えの文字は載せない。
+    if (isNonNegInt(obj.qIndex)) out.qIndex = obj.qIndex
+    if (obj.typedSide === 'en' || obj.typedSide === 'ja') out.typedSide = obj.typedSide
+    if (isNonNegInt(obj.curPos)) out.curPos = obj.curPos
     return out
   },
   countdown(obj) {
@@ -118,6 +124,38 @@ const PARSERS = {
   // #432 ホストが対戦終了を全員へ配布（ペイロードなし・余計なフィールドは落とす）。
   matchEnd() {
     return { type: 'matchEnd' }
+  },
+  // #439 盤面複製（方式B）：問題境界（qIndex/typedSide 変化時）で送る低頻度の構造メッセージ。
+  // 答えの文字（定義文/和訳/例文の綴り・かな）は一切含めず、answerShape は長さ情報のみ。
+  board(obj) {
+    // 必須（いずれか不正なら board 全体 null）。
+    if (!isNonEmptyString(obj.peerId)) return null
+    if (!isNonNegInt(obj.qIndex)) return null
+    if (!(obj.typedSide === 'en' || obj.typedSide === 'ja')) return null
+    if (typeof obj.word !== 'string') return null
+    const out = { type: 'board', peerId: obj.peerId, qIndex: obj.qIndex, typedSide: obj.typedSide, word: obj.word }
+    // wordJa（表示可・任意）：文字列のときだけ保持（ja モードは送られない＝和訳が答え）。
+    if (typeof obj.wordJa === 'string') out.wordJa = obj.wordJa
+    // hint（表示する側の実テキスト）：オブジェクトで side∈{en,ja} かつ text 文字列のときだけ保持。
+    // 不正なら hint キーを落として board は生存（ヒント無しでもマス複製は出る）。
+    const h = obj.hint
+    if (h && typeof h === 'object' && (h.side === 'en' || h.side === 'ja') && typeof h.text === 'string') {
+      const hint = { side: h.side, text: h.text }
+      // kana（ja ヒントのルビ用）は文字列のときだけ保持。
+      if (typeof h.kana === 'string') hint.kana = h.kana
+      out.hint = hint
+    }
+    // answerShape（答え側の語ごとマス数）：配列かつ全要素が正整数かつ長さ≤64 のときだけ保持。
+    // それ以外は落として board 生存（65以上は丸ごと落とす＝切詰めない）。
+    const shape = obj.answerShape
+    if (
+      Array.isArray(shape) &&
+      shape.length <= 64 &&
+      shape.every((n) => Number.isInteger(n) && n > 0)
+    ) {
+      out.answerShape = shape
+    }
+    return out
   },
 }
 
