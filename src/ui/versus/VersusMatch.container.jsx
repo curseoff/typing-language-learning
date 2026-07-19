@@ -12,7 +12,7 @@
 // ハンドラ内＝ref 読み許可の場所から通知）だけを足し、判定/採点ロジックは触っていない。
 // content ロードは App.jsx の開始経路（startDict/startWords/startWsent）を最小移植する。
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DictTypeView, WordTypeView, VersusBoardView } from '@tll/ui'
+import { DictTypeView, DictMirrorView, WordTypeView, VersusBoardView, ProgressCardView } from '@tll/ui'
 import MarathonView from '../marathon/MarathonView.container.jsx'
 import { useDict } from '../../application/useDict.js'
 import { useWords } from '../../application/useWords.js'
@@ -156,7 +156,10 @@ function mirrorFor(board, p) {
 // 盤面（自分/相手カード）を組み立てて描画する共有 stage。play は自分のプレイ UI（children）。
 // 終了後は各カード内に順位（rankMap＝competition ranking）を出す（上部の勝敗バッジは廃止＝#432 E）。
 // 自分が完了して相手待ちのときは、相手の完了を待つ案内を出す（#432 D）。
-function MatchStage({ selfId, roster, self, progress, boards, phase, initialLives, limitSec, children }) {
+// #439 renderMirror（相手ぶんの伏字複製盤面を返す関数）が渡されたときは「カード→盤面」を
+//   プレイヤーごとに縦積みする新レイアウトにする（自分＝実プレイ children／相手＝renderMirror）。
+//   渡されないとき（単語/単語例文の後追いまで）は従来レイアウト（カード群＋自分プレイ）を保つ。
+function MatchStage({ selfId, roster, self, progress, boards, phase, initialLives, limitSec, renderMirror, children }) {
   const members = buildMembers({ selfId, roster, self, progress, boards, initialLives, limitSec })
   const finished = phase === 'finished'
   // 終了後のみ、correct（一発正解数）から順位を算出して各カードへ載せる（同点は同順位）。
@@ -169,13 +172,41 @@ function MatchStage({ selfId, roster, self, progress, boards, phase, initialLive
     : members
   // 自分が完了かつ全員は未完了（＝相手待ち）のとき、待機案内を出す。
   const waitingForOthers = (roster.peers[selfId]?.finished ?? false) && !allFinished(roster)
+  const waiting = waitingForOthers && (
+    <p className="vs-lead vs-match-waiting" role="status">
+      相手の完了を待っています…
+    </p>
+  )
+
+  // #439 新レイアウト：あなたを先頭に、各プレイヤーの「カード→盤面」を縦積みする。
+  // 自分→相手の順に並べ替えるだけの表示整形（filter の載せ替え＝整列ロジックは持たない）。
+  if (renderMirror) {
+    const lanes = [...ranked.filter((m) => m.self), ...ranked.filter((m) => !m.self)]
+    return (
+      <div className="vs vs-match">
+        {waiting}
+        <div className="vs-lanes">
+          {lanes.map((m) => {
+            // カードは数値のみ。mirror は下段の盤面へ分離するのでカードには渡さない。
+            const { mirror, ...cardProps } = m
+            return (
+              <div key={m.id} className={`vs-lane${m.self ? ' vs-lane-self' : ''}`}>
+                <div className="vs-board-cards">
+                  <ProgressCardView {...cardProps} />
+                </div>
+                <div className="vs-lane-board">{m.self ? children : renderMirror(m)}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // 従来レイアウト（renderMirror 無し）：カード群を並べて下に自分プレイ。
   return (
     <div className="vs vs-match">
-      {waitingForOthers && (
-        <p className="vs-lead vs-match-waiting" role="status">
-          相手の完了を待っています…
-        </p>
-      )}
+      {waiting}
       <VersusBoardView members={ranked} />
       <div className="vs-match-play">{children}</div>
     </div>
@@ -303,8 +334,23 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, boards,
   const hudEnd = hudEndFor(config.endCondition, 'cloze')
   const endStat = endHudStat(hudEnd, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
 
+  // #439 相手ぶんの伏字複製盤面（DictMirrorView）。board 未受信/qIndex 不一致（mirror 無し）は null＝盤面非表示。
+  // 自分と同じ見出し語＋英語/日本語の2段レイアウトで、答え側だけを伏字マス（実文字を出さない）で描く。
+  const renderMirror = (m) =>
+    m.mirror ? (
+      <DictMirrorView
+        levelLabel={`L${config.level}`}
+        metaSub={`英英 / ${modeLabel(config.mode)} / ${config.theme}`}
+        word={m.mirror.word}
+        wordJa={m.mirror.wordJa}
+        answerSide={m.mirror.answerSide}
+        hint={m.mirror.hint}
+        cells={m.mirror.cells}
+      />
+    ) : null
+
   return (
-    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} boards={boards} phase={phase} initialLives={initialLives} limitSec={limitSec}>
+    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} boards={boards} phase={phase} initialLives={initialLives} limitSec={limitSec} renderMirror={renderMirror}>
       <DictTypeView
         levelLabel={`L${config.level}`}
         metaSub={`英英 / ${modeLabel(config.mode)} / ${config.theme}`}
@@ -324,6 +370,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, boards,
         segInput={d.segInput}
         hasError={d.hasError}
         clozeRevealed={d.clozeRevealed}
+        // #439 対戦: 上部 stats は「残り（時間）＋progressバー」だけに絞る（数値はカードへ分離）。
+        compact
       />
     </MatchStage>
   )
