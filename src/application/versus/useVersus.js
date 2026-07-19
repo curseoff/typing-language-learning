@@ -92,6 +92,10 @@ export function useVersus({ selfId: providedSelfId } = {}) {
         case 'progress':
           dispatch({ type: 'progress', message: msg })
           break
+        case 'board':
+          // #439 盤面複製（方式B）：相手の問題境界で届く構造メッセージ。peerId ごとに最新1件をキャッシュする。
+          dispatch({ type: 'board', message: msg })
+          break
         case 'finished':
           dispatch({ type: 'peerFinished', peerId: msg.peerId })
           break
@@ -290,6 +294,15 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     [selfId],
   )
 
+  // #439 盤面複製（方式B）：問題境界（qIndex/typedSide 変化時）でだけ盤面の材料を配信する（低頻度）。
+  // payload は container が構造化済み（peerId/qIndex/typedSide/word/wordJa?/hint/answerShape）＝答えの文字は含まない。
+  // 自分ぶんも store へ流して boards[selfId] を持つ（自分カードは数値のままなので実害はなく、progress と対称）。
+  const sendBoard = useCallback((payload) => {
+    const msg = buildMessage('board', payload)
+    peerRef.current?.send(JSON.stringify(msg))
+    dispatch({ type: 'board', message: msg })
+  }, [])
+
   // 完走を配信し、自分ぶんも finished マークする（active 全員完走で phase=finished）。
   const sendFinished = useCallback(
     ({ keys, mistakes, elapsedMs }) => {
@@ -391,6 +404,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     voteMatch,
     startMatch,
     sendProgress,
+    sendBoard,
     sendFinished,
     endMatch,
   }

@@ -21,6 +21,7 @@ import { toProgressPayload } from '../../application/versus/versusPlay.policy.js
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
 import { maskedCells, PROGRESS_MASK_CAP } from '../../domain/versus/progressMask.service.js'
+import { maskStructure } from '../../domain/versus/boardMirror.service.js'
 import { rankMap } from '../../domain/versus/matchScore.service.js'
 import { anyoneEliminated } from '../../domain/versus/suddenDeath.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
@@ -190,12 +191,35 @@ function useFinishBroadcast({ finished, lives, progress, initialLives, typed, to
   }, [finished, lives, progress, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
 }
 
+// #439 盤面複製（方式B）：onProgress の board 材料 → sendBoard へ渡すワイヤー用ペイロードへ構造化する。
+// ワイヤーへ出すのは「人に見せてよい」word/wordJa/hint（非答え側の実テキスト）と answerShape（長さ配列）だけ。
+// 答え側の綴り/かなは maskStructure で長さ配列へ落とし、文字は一切載せない（#439 §1-D の不変条件）。
+//   hint は打っていない側（en を打つなら日本語ヒント／ja を打つなら英語ヒント）の実テキスト。
+//   wordJa（見出し和訳）は表示可だが、ja モード（和訳が答え）では答えになるため付けない。gloss は container が持つ。
+function buildBoardPayload({ selfId, qIndex, typedSide, board, gloss }) {
+  const answerShape = maskStructure({ typedSide, en: board.en, kana: board.kana })
+  const hint =
+    typedSide === 'en'
+      ? { side: 'ja', text: board.ja ?? '', ...(board.kana ? { kana: board.kana } : {}) }
+      : { side: 'en', text: board.en ?? '' }
+  const word = typeof board.word === 'string' ? board.word : ''
+  const payload = { peerId: selfId, qIndex, typedSide, word, hint, answerShape }
+  if (typedSide !== 'ja' && word) {
+    const wj = gloss?.[word]
+    if (typeof wj === 'string' && wj) payload.wordJa = wj
+  }
+  return payload
+}
+
 // 手元スナップショット（onProgress 由来の correct/lives）を保持し、進捗を配信する共通フック。
 // onProgress のたびに payload（correct/lives 込み）を作って sendProgress し、correct/lives を state に反映する。
 // #432 相手カードの速度・時間：live 速度・経過を liveRef（各 PlayArea が effect で更新する最新値ホルダー）
 // から読み、payload に speed/elapsedMs を載せて配信する（render 中に ref を書かない＝effect 更新の1フレーム遅れは表示上許容）。
-function useProgressRelay({ sendProgress, total, initialLives, liveRef }) {
+// #439 盤面複製：毎打鍵の progress に qIndex/typedSide/curPos（en=char/ja=kana）を後方互換で足し、
+//   qIndex または typedSide が変わった境界でだけ board（見出し語＋ヒント＋答え構造）を sendBoard する（低頻度）。
+function useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss }) {
   const [derived, setDerived] = useState({ correct: 0, lives: initialLives ?? 0 })
+  const prevBoardKeyRef = useRef(null) // 直近に board を送った `${qIndex}:${typedSide}`（境界検知用）
   const onProgress = useCallback(
     (snap) => {
       const live = liveRef.current
@@ -215,11 +239,23 @@ function useProgressRelay({ sendProgress, total, initialLives, liveRef }) {
         cap: PROGRESS_MASK_CAP,
         miss: snap.miss,
       })
+      // #439 progress 後方互換追加：qIndex/typedSide/curPos（en=char/ja=kana・答えの文字は載せない）。
+      if (Number.isInteger(snap.qIndex)) payload.qIndex = snap.qIndex
+      if (snap.typedSide === 'en' || snap.typedSide === 'ja') payload.typedSide = snap.typedSide
+      if (Number.isInteger(snap.boardCurPos)) payload.curPos = snap.boardCurPos
       sendProgress(payload)
+      // #439 board：qIndex または typedSide が変わった境界でだけ配信（1問1回・both は en↔ja で2回）。
+      if (sendBoard && snap.board && (snap.typedSide === 'en' || snap.typedSide === 'ja') && Number.isInteger(snap.qIndex)) {
+        const key = `${snap.qIndex}:${snap.typedSide}`
+        if (key !== prevBoardKeyRef.current) {
+          prevBoardKeyRef.current = key
+          sendBoard(buildBoardPayload({ selfId, qIndex: snap.qIndex, typedSide: snap.typedSide, board: snap.board, gloss }))
+        }
+      }
       // ハンドラ内 setState（effect ではない）＝cascading render 警告の対象外。
       setDerived({ correct: payload.correct, lives: payload.lives ?? initialLives ?? 0 })
     },
-    [sendProgress, total, initialLives, liveRef],
+    [sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss],
   )
   return { derived, onProgress }
 }
@@ -238,10 +274,10 @@ function useLiveRefSync(liveRef, speed, elapsedSec) {
 }
 
 // dict（英英）の対戦プレイエリア。useDict を seed 注入・cloze 固定で駆動する。
-function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
   const liveRef = useLiveRef()
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
   const d = useDict({
     dict: content.dict,
     level: config.level,
@@ -292,10 +328,11 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
 }
 
 // words（単語）の対戦プレイエリア。useWords を seed 注入・cloze 固定で駆動する。
-function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
   const liveRef = useLiveRef()
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  // 単語（words）は見出し和訳グロサリを持たない（word 自体が答え側＝board では word='' で見出し無し）。gloss は undefined。
+  const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: undefined })
   const w = useWords({
     allWords: content.words,
     level: config.level,
@@ -342,10 +379,10 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
 }
 
 // wsent（単語例文）の対戦プレイエリア。useMarathon を start() で駆動する（segments は start で注入）。
-function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
   const liveRef = useLiveRef()
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
   // 最新の derived（correct/lives）を effect で ref へ控える（onFinish の最終 progress が読む）。
   const derivedRef = useRef(derived)
   useEffect(() => {
@@ -447,7 +484,7 @@ function CountdownNote({ localStartAt }) {
 }
 
 // 対戦本体。VersusConnect から useVersus の返り値を受け取り、content ロード→カウントダウン→プレイ→終了まで繋ぐ。
-export default function VersusMatch({ config, seed, selfId, role, roster, progress, phase, localStartAt, sendProgress, sendFinished, endMatch, onReturnToLobby }) {
+export default function VersusMatch({ config, seed, selfId, role, roster, progress, phase, localStartAt, sendProgress, sendBoard, sendFinished, endMatch, onReturnToLobby }) {
   const content = useVersusContent(config)
   const { initialLives, limitSec } = matchParams(config.endCondition)
 
@@ -528,6 +565,7 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
       progress={progress}
       phase={phase}
       sendProgress={sendProgress}
+      sendBoard={sendBoard}
       sendFinished={sendFinished}
     />
   )
