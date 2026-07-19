@@ -26,6 +26,38 @@ describe('boardCursor（#439・送信側カーソル：typedSide/curPos）', () 
     expect(boardCursor({ seg, segInput: 'abcd' })).toEqual({ typedSide: 'en', curPos: 2 })
   })
 
+  // ==========================================================================
+  // #439 バグB：複数語（英英定義）の en curPos は「空白を除いた文字数」で数える。
+  //   maskBoardCells は space を進捗にカウントせず char セルで filled を数えるため、
+  //   curPos が空白込みだと空白を打つたびに伏字が1つ先行して埋まる（単位不一致）。
+  //   → en の curPos を空白除外の char 数へ統一する（ja=kanaConsumed は不変）。
+  // ==========================================================================
+  it('en 複数語：空白を除いた文字数で数える（"to make food"/"to m" → curPos:3＝t,o,m）', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    // 現状実装は [...'to m'].length=4 を返す＝赤。空白を除くと 't','o','m'=3。
+    expect(boardCursor({ seg, segInput: 'to m' })).toEqual({ typedSide: 'en', curPos: 3 })
+  })
+
+  it('en 複数語：末尾空白は進捗に数えない（"to make food"/"to make " → curPos:6＝to2+make4）', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    expect(boardCursor({ seg, segInput: 'to make ' })).toEqual({ typedSide: 'en', curPos: 6 })
+  })
+
+  it('en 複数語：完了は空白を除いた総 char 数（"to make food" 完了 → curPos:10）', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    expect(boardCursor({ seg, segInput: 'to make food' })).toEqual({ typedSide: 'en', curPos: 10 })
+  })
+
+  it('en 複数語：未打鍵は curPos:0', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    expect(boardCursor({ seg, segInput: '' })).toEqual({ typedSide: 'en', curPos: 0 })
+  })
+
+  it('en 複数語：過入力は空白除外の総 char 数で clamp（"to make food xx" → curPos:10）', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    expect(boardCursor({ seg, segInput: 'to make food xx' })).toEqual({ typedSide: 'en', curPos: 10 })
+  })
+
   it('ja：kana 消費数で数える（太陽/たいよう・tai → curPos:2＝た・い）', () => {
     const seg = { type: 'ja', ja: '太陽', kana: 'たいよう' }
     expect(boardCursor({ seg, segInput: 'tai' })).toEqual({ typedSide: 'ja', curPos: 2 })
@@ -318,5 +350,32 @@ describe('buildBoardPayload（#439・送信側 board ペイロード：答え非
     const snapshot = { ...input }
     expect(() => buildBoardPayload(input)).not.toThrow()
     expect(input).toEqual(snapshot)
+  })
+})
+
+// ============================================================================
+// #439 バグB 結合回帰：boardCursor → maskBoardCells の単位一致。
+//   空白込み curPos だと空白を打つたび伏字が先走る（filled 過多）。en の curPos を
+//   空白除外に統一すれば「filled 数＝実際に打った非空白文字数」で char セルと一致する。
+// ============================================================================
+describe('boardCursor→maskBoardCells 結合（#439・filled 数＝非空白打鍵文字数で単位一致）', () => {
+  const charCells = (cells) => cells.filter((c) => c.kind !== 'space')
+
+  it('shape=[2,4,4], en "to make food" を "to m" まで → filled=3（空白は進捗に数えない）', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    const { typedSide, curPos } = boardCursor({ seg, segInput: 'to m' })
+    const answerShape = maskStructure({ typedSide, en: seg.en })
+    expect(answerShape).toEqual([2, 4, 4])
+    const cells = maskBoardCells({ answerShape, curPos })
+    // 実際に打った非空白文字は t,o,m の3つ＝伏字も3マスだけ filled（先走らない）。
+    expect(charCells(cells).filter((c) => c.kind === 'filled')).toHaveLength(3)
+  })
+
+  it('shape=[2,4,4], "to make " まで（末尾空白）→ filled=6（空白でカーソルが前進しない）', () => {
+    const seg = { type: 'en', en: 'to make food' }
+    const { typedSide, curPos } = boardCursor({ seg, segInput: 'to make ' })
+    const answerShape = maskStructure({ typedSide, en: seg.en })
+    const cells = maskBoardCells({ answerShape, curPos })
+    expect(charCells(cells).filter((c) => c.kind === 'filled')).toHaveLength(6)
   })
 })
