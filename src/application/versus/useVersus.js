@@ -379,6 +379,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     role: state.role,
     roster: state.roster,
     progress: state.progress,
+    boards: state.boards,
     startAt: state.startAt,
     localStartAt,
     // 承認フロー（設定提案）

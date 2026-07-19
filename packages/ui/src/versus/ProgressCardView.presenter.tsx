@@ -2,12 +2,7 @@
 // 対戦中に各参加者の進み具合を数値で見せる。勝敗軸は「正解問題数」なので強調して並べる。
 // カンニング防止のため問題テキストは受け取らない（自分の問題表示はプレイ画面側が担う）＝ここは数値のみ。
 import type { ReactNode } from 'react'
-
-// #437 伏せ字マスバーの1マス。filled＝●（打てた分）/ pending＝・（未入力）。state で色（ok/ミス中の赤）。
-export interface MaskCell {
-  kind: 'filled' | 'pending'
-  state: 'ok' | 'miss'
-}
+import MirrorBoardView, { type MirrorBoardData } from './MirrorBoardView.presenter'
 
 // カード1枚ぶんのデータ。VersusBoardView が配列で持ち、各要素をそのままこのカードへ渡す。
 export interface ProgressCardData {
@@ -23,7 +18,7 @@ export interface ProgressCardData {
   lives?: number // 残ライフ（サドンデス時のみ・undefined なら非表示）
   finished?: boolean // #432 その参加者が完了したか（true で「完了」バッジを出す）
   rank?: number // #432 終了後の順位（1始まり・同点は同順位）。undefined なら順位バッジ非表示。
-  maskCells?: MaskCell[] // #437 伏せ字マスバー（container が domain maskedCells で展開）。undefined＝非表示（4択/旧クライアント）。
+  mirror?: MirrorBoardData // #439 相手の盤面複製（伏字）。相手カードのみ・board 未受信/qIndex 不一致は undefined＝数値のみ。
 }
 
 // peerId（生 UUID）は意味を持たないので、見出しでは先頭 8 文字だけを表示する。
@@ -54,10 +49,8 @@ export default function ProgressCardView({
   lives,
   finished,
   rank,
-  maskCells,
+  mirror,
 }: ProgressCardData) {
-  // #437 伏せ字マスバー：filled マスの個数（進捗の分子）。aria-label に「X/cap」で出す（実長は出さない）。
-  const maskFilled = maskCells ? maskCells.filter((c) => c.kind === 'filled').length : 0
   // 時間は整数表示（④小数を出さない）。経過部を制限秒の桁数ぶん固定幅・右寄せにして
   // 左辺が1桁↔2桁でも「/」位置が動かないようにする（⑤）。
   const elapsed = Math.floor(elapsedSec)
@@ -89,21 +82,9 @@ export default function ProgressCardView({
         </span>
       </div>
 
-      {/* #437 伏せ字マスバー：いま打っている問題の進み具合を等幅マスで可視化（実長は出さない＝カンニング防止）。
-          ●=打てた分 / ・=未入力。ミス中は filled を静的な赤。cells 無し（4択/旧クライアント）は非表示。 */}
-      {maskCells && maskCells.length > 0 && (
-        <div className="vs-card-mask" role="img" aria-label={`${self ? 'あなた' : '相手'}の進捗 ${maskFilled}/${maskCells.length}`}>
-          {maskCells.map((c, i) => (
-            <span
-              key={i}
-              className={`vs-mask-cell vs-mask-${c.kind}${c.state === 'miss' ? ' vs-mask-miss' : ''}`}
-              aria-hidden="true"
-            >
-              {c.kind === 'filled' ? '●' : '・'}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* #439 盤面複製：相手がいま解いている1問を伏字で静止複製（答え側＝伏字マス／ヒント側＝実テキスト）。
+          board 未受信 or qIndex 不一致（保留）は container が undefined を渡す＝数値カードのみ（複製非表示）。 */}
+      {mirror && <MirrorBoardView {...mirror} />}
 
       {/* タイピング数/速度/ミス/時間 の 4 枠。 */}
       <div className="vs-card-stats">
