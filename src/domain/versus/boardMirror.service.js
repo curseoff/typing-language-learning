@@ -25,9 +25,12 @@ export function boardCursor({ seg, segInput }) {
     const curPos = clamp(kanaConsumed(kana, input), 0, kanaLen)
     return { typedSide: 'ja', curPos }
   }
-  // en（既定）：打鍵文字数を語長で clamp。
-  const enLen = [...(typeof seg.en === 'string' ? seg.en : '')].length
-  const curPos = clamp([...input].length, 0, enLen)
+  // en（既定）：打鍵の「非空白」文字数を、答え側の非空白文字数で clamp。
+  //   maskBoardCells は space を進捗にカウントせず char セルで filled を数えるため、
+  //   空白込みで数えると空白を打つたび伏字が1マス先走る（#439 バグB）。単位を非空白 char で揃える。
+  const nonSpace = (s) => [...(typeof s === 'string' ? s : '')].filter((ch) => !/\s/.test(ch)).length
+  const enLen = nonSpace(seg.en)
+  const curPos = clamp(nonSpace(input), 0, enLen)
   return { typedSide: 'en', curPos }
 }
 
