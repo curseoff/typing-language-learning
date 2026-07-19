@@ -21,7 +21,7 @@ import { toProgressPayload } from '../../application/versus/versusPlay.policy.js
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
 import { maskedCells, PROGRESS_MASK_CAP } from '../../domain/versus/progressMask.service.js'
-import { maskStructure } from '../../domain/versus/boardMirror.service.js'
+import { buildBoardPayload } from '../../domain/versus/boardMirror.service.js'
 import { rankMap } from '../../domain/versus/matchScore.service.js'
 import { anyoneEliminated } from '../../domain/versus/suddenDeath.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
@@ -191,26 +191,6 @@ function useFinishBroadcast({ finished, lives, progress, initialLives, typed, to
   }, [finished, lives, progress, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
 }
 
-// #439 盤面複製（方式B）：onProgress の board 材料 → sendBoard へ渡すワイヤー用ペイロードへ構造化する。
-// ワイヤーへ出すのは「人に見せてよい」word/wordJa/hint（非答え側の実テキスト）と answerShape（長さ配列）だけ。
-// 答え側の綴り/かなは maskStructure で長さ配列へ落とし、文字は一切載せない（#439 §1-D の不変条件）。
-//   hint は打っていない側（en を打つなら日本語ヒント／ja を打つなら英語ヒント）の実テキスト。
-//   wordJa（見出し和訳）は表示可だが、ja モード（和訳が答え）では答えになるため付けない。gloss は container が持つ。
-function buildBoardPayload({ selfId, qIndex, typedSide, board, gloss }) {
-  const answerShape = maskStructure({ typedSide, en: board.en, kana: board.kana })
-  const hint =
-    typedSide === 'en'
-      ? { side: 'ja', text: board.ja ?? '', ...(board.kana ? { kana: board.kana } : {}) }
-      : { side: 'en', text: board.en ?? '' }
-  const word = typeof board.word === 'string' ? board.word : ''
-  const payload = { peerId: selfId, qIndex, typedSide, word, hint, answerShape }
-  if (typedSide !== 'ja' && word) {
-    const wj = gloss?.[word]
-    if (typeof wj === 'string' && wj) payload.wordJa = wj
-  }
-  return payload
-}
-
 // 手元スナップショット（onProgress 由来の correct/lives）を保持し、進捗を配信する共通フック。
 // onProgress のたびに payload（correct/lives 込み）を作って sendProgress し、correct/lives を state に反映する。
 // #432 相手カードの速度・時間：live 速度・経過を liveRef（各 PlayArea が effect で更新する最新値ホルダー）
@@ -249,7 +229,18 @@ function useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives
         const key = `${snap.qIndex}:${snap.typedSide}`
         if (key !== prevBoardKeyRef.current) {
           prevBoardKeyRef.current = key
-          sendBoard(buildBoardPayload({ selfId, qIndex: snap.qIndex, typedSide: snap.typedSide, board: snap.board, gloss }))
+          const board = snap.board
+          // 純ドメインで答え非漏洩ペイロードを組み、peerId（selfId）は container が外付けする。gloss→wordJa 解決も container 側。
+          const payload = buildBoardPayload({
+            qIndex: snap.qIndex,
+            typedSide: snap.typedSide,
+            word: board.word,
+            en: board.en,
+            ja: board.ja,
+            kana: board.kana,
+            wordJa: gloss?.[board.word],
+          })
+          sendBoard({ peerId: selfId, ...payload })
         }
       }
       // ハンドラ内 setState（effect ではない）＝cascading render 警告の対象外。

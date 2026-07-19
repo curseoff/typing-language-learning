@@ -46,6 +46,23 @@ export function maskStructure({ typedSide, en, kana }) {
     .map((w) => [...w].length)
 }
 
+// 契約④：送信側 board ペイロード組み立て（純ドメイン）。
+//   ワイヤーへ出すのは「人に見せてよい」word/wordJa/hint（非答え側の実テキスト）と answerShape（長さ配列）だけ。
+//   答え側の綴り/かなは maskStructure で長さ配列へ落とし、文字は一切載せない（答え非漏洩の要）。
+//   hint は打っていない側（en を打つなら日本語ヒント／ja を打つなら英語ヒント）の実テキスト。
+//   wordJa（見出し和訳）は en モードでは表示可だが、ja モード（和訳が答え）では付けない。
+//   peerId は container が selfId から外付けする（本関数は純関数・入力非破壊）。
+export function buildBoardPayload({ qIndex, typedSide, word, en, ja, kana, wordJa }) {
+  const answerShape = maskStructure({ typedSide, en, kana })
+  const hint =
+    typedSide === 'en'
+      ? { side: 'ja', text: ja ?? '', ...(kana != null ? { kana } : {}) }
+      : { side: 'en', text: en ?? '' }
+  const payload = { qIndex, typedSide, word, hint, answerShape }
+  if (typedSide !== 'ja' && typeof wordJa === 'string' && wordJa) payload.wordJa = wordJa
+  return payload
+}
+
 // 契約③：受信側の伏字マス列。語を順に展開し、語間に space マスを1つ挿入。
 //   文字マス（filled/pending）を先頭から curPos 個 filled・残り pending（space はカウント外）。
 export function maskBoardCells({ answerShape, curPos, miss }) {
