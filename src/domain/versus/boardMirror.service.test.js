@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest'
 //   boardCursor({ seg, segInput })                … 送信側で「打っている側」と表示単位進捗を導く（en=char / ja=kana）。
 //   maskStructure({ typedSide, en, kana })        … 答え側の「語ごとのマス数」配列（文字は落とす）。
 //   maskBoardCells({ answerShape, curPos, miss }) … 受信側で語構造を filled/pending/space マス列に展開。
-import { boardCursor, maskStructure, maskBoardCells } from './boardMirror.service.js'
+import { boardCursor, maskStructure, maskBoardCells, buildBoardPayload } from './boardMirror.service.js'
 
 // ============================================================================
 // 契約① boardCursor（送信側）：typedSide=seg.type、en=char 数 / ja=kanaConsumed。
@@ -192,5 +192,131 @@ describe('maskBoardCells（#439・受信側の伏字マス列：filled/pending/s
       expect(c).not.toHaveProperty('value')
       expect(c).not.toHaveProperty('text')
     }
+  })
+})
+
+// ============================================================================
+// 契約④ buildBoardPayload（#439・送信側 board ペイロード組み立て：純ドメイン）
+//   VersusMatch.container.jsx の inline 実装を純ドメインへ切り出す前提。
+//   シグネチャ：buildBoardPayload({ qIndex, typedSide, word, en, ja, kana, wordJa })
+//            → { qIndex, typedSide, word, wordJa?, hint, answerShape }
+//   意図（答え非漏洩の要）：
+//     - hint は「打っていない側（非アクティブ側）」の実テキストのみ。
+//     - answerShape は答え側を maskStructure で長さ配列へ落とす（文字は載せない）。
+//     - ja モード（和訳＝答え）では wordJa（見出し和訳）を出力に含めない。
+//   ※ container は selfId→peerId 付与・gloss→wordJa 解決を外側で行う想定（本関数は純関数）。
+// ============================================================================
+describe('buildBoardPayload（#439・送信側 board ペイロード：答え非漏洩・hint 側選択・ja で wordJa 抑止）', () => {
+  it('typedSide=en：hint は非答え側の日本語（text=ja, kana）／answerShape=maskStructure(en)／wordJa は保持', () => {
+    const out = buildBoardPayload({
+      qIndex: 0,
+      typedSide: 'en',
+      word: 'cook',
+      en: 'to make food',
+      ja: '熱を使って食材を調理する',
+      kana: 'ねつをつかってしょくざいをちょうりする',
+      wordJa: '料理する',
+    })
+    expect(out).toEqual({
+      qIndex: 0,
+      typedSide: 'en',
+      word: 'cook',
+      wordJa: '料理する',
+      hint: { side: 'ja', text: '熱を使って食材を調理する', kana: 'ねつをつかってしょくざいをちょうりする' },
+      answerShape: [2, 4, 4],
+    })
+  })
+
+  it('typedSide=en・不変条件：答え側 en の実テキストが出力のどのフィールドにも現れない（word/wordJa/hint/answerShape）', () => {
+    const out = buildBoardPayload({
+      qIndex: 0,
+      typedSide: 'en',
+      word: 'cook',
+      en: 'to make food',
+      ja: '熱を使って食材を調理する',
+      kana: 'ねつをつかってしょくざいをちょうりする',
+      wordJa: '料理する',
+    })
+    const dump = JSON.stringify(out)
+    // 答えは en。綴りは長さ配列 [2,4,4] にしか反映されない＝実テキストは載らない。
+    expect(dump).not.toContain('to make food')
+    expect(dump).not.toContain('make')
+    expect(dump).not.toContain('food')
+    // answerShape は正整数のみ（文字を持たない）。
+    expect(out.answerShape.every((n) => Number.isInteger(n) && n > 0)).toBe(true)
+  })
+
+  it('typedSide=ja：hint は非答え側の英語（text=en・kana 無し）／wordJa キー無し／answerShape=maskStructure(kana)', () => {
+    const out = buildBoardPayload({
+      qIndex: 3,
+      typedSide: 'ja',
+      word: 'cook',
+      en: 'to make food',
+      ja: '熱を使って調理',
+      kana: 'ねつをつかって', // 7 かな＝[7]
+      wordJa: '料理する',
+    })
+    expect(out).toEqual({
+      qIndex: 3,
+      typedSide: 'ja',
+      word: 'cook',
+      hint: { side: 'en', text: 'to make food' },
+      answerShape: [7],
+    })
+    // ja モードでは wordJa（見出し和訳＝答えになり得る）を出力に含めない。
+    expect(out).not.toHaveProperty('wordJa')
+    // hint に kana（読み＝答え）を含めない。
+    expect(out.hint).not.toHaveProperty('kana')
+  })
+
+  it('typedSide=ja・不変条件：答え側 ja/kana の実テキストが出力のどのフィールドにも現れない', () => {
+    const out = buildBoardPayload({
+      qIndex: 3,
+      typedSide: 'ja',
+      word: 'cook',
+      en: 'to make food',
+      ja: '熱を使って調理',
+      kana: 'ねつをつかって',
+      wordJa: '料理する',
+    })
+    const dump = JSON.stringify(out)
+    // 答えは ja/kana。どちらの実テキストも載らない（answerShape=長さ配列のみ）。
+    expect(dump).not.toContain('ねつをつかって')
+    expect(dump).not.toContain('熱を使って調理')
+    expect(dump).not.toContain('料理する') // wordJa も答えになり得るため抑止。
+    expect(out.answerShape).toEqual([7])
+  })
+
+  it('word は typedSide に関わらず常に保持し、qIndex/typedSide は透過する', () => {
+    const en = buildBoardPayload({ qIndex: 5, typedSide: 'en', word: 'apple', en: 'a fruit', ja: '果物', kana: 'くだもの', wordJa: 'りんご' })
+    expect(en.word).toBe('apple')
+    expect(en.qIndex).toBe(5)
+    expect(en.typedSide).toBe('en')
+    const ja = buildBoardPayload({ qIndex: 7, typedSide: 'ja', word: 'apple', en: 'a fruit', ja: '果物', kana: 'くだもの', wordJa: 'りんご' })
+    expect(ja.word).toBe('apple')
+    expect(ja.qIndex).toBe(7)
+    expect(ja.typedSide).toBe('ja')
+  })
+
+  it('防御：kana 欠落（en-only 文）でも throw せず、hint に kana キーを付けない', () => {
+    const out = buildBoardPayload({ qIndex: 1, typedSide: 'en', word: 'run', en: 'to move fast', ja: '速く動く', wordJa: '走る' })
+    expect(out.hint).toEqual({ side: 'ja', text: '速く動く' })
+    expect(out.hint).not.toHaveProperty('kana')
+    // en の答え構造は kana 非依存で算出できる。
+    expect(out.answerShape).toEqual([2, 4, 4])
+  })
+
+  it('防御：wordJa 欠落（単語種目など見出し和訳なし）でも throw せず、wordJa キーを付けない', () => {
+    const out = buildBoardPayload({ qIndex: 2, typedSide: 'en', word: 'sun', en: 'a star', ja: '恒星', kana: 'こうせい' })
+    expect(out).not.toHaveProperty('wordJa')
+    expect(out.word).toBe('sun')
+    expect(out.hint).toEqual({ side: 'ja', text: '恒星', kana: 'こうせい' })
+  })
+
+  it('純粋：入力オブジェクトを破壊しない（凍結入力でも throw しない）', () => {
+    const input = Object.freeze({ qIndex: 0, typedSide: 'en', word: 'cook', en: 'to make food', ja: '調理', kana: 'ちょうり', wordJa: '料理する' })
+    const snapshot = { ...input }
+    expect(() => buildBoardPayload(input)).not.toThrow()
+    expect(input).toEqual(snapshot)
   })
 })
