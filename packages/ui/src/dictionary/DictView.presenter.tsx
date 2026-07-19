@@ -4,11 +4,9 @@
 // フック・content・application には依存しない。
 import type { ReactNode } from 'react'
 import { StatsRow } from '../shared/Stats.presenter'
-import { RubyText } from '../shared/Text.presenter'
 import OptionJa from '../shared/OptionJa.presenter'
 import QuizOptionLabel from '../shared/QuizOptionLabel.presenter'
 import TopFlow, { type TopSeg } from '../marathon/TopFlow.presenter'
-import MaskBoard, { type MaskBoardCell } from '../versus/MaskBoard.presenter'
 
 function PlayMeta({ levelLabel, sub }: { levelLabel: string; sub: string }) {
   return (
@@ -20,7 +18,7 @@ function PlayMeta({ levelLabel, sub }: { levelLabel: string; sub: string }) {
 }
 
 // 見出し語ヘッダ「単語 <word>（<和訳>）」。solo の入力盤面（DictTypeView）と
-// 相手の伏字複製（DictMirrorView）で共有し、両者の見出しを同一マークアップ＝同一見た目にする。
+// 相手の伏字複製（PlayMirrorView）は同じ .seg-word マークアップで見た目を揃える。
 function SegWord({ word, wordJa }: { word?: string; wordJa?: string }) {
   if (!word) return null
   return (
@@ -63,7 +61,7 @@ export interface DictTypeViewProps {
   segInput: string
   hasError: boolean
   clozeRevealed?: boolean // #402 現在問題(cloze)でミスがあり正解を開示中か
-  compact?: boolean // #439 対戦: 上部 stats を「残り（時間）＋progressバー」だけに絞る（solo は既定 false＝全 stat 維持）
+  versus?: boolean // #439 対戦: PlayMeta と StatsRow を出さない（上部の独立ヘッダバーへ集約）。solo は既定 false＝全部出す。
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）。TopFlow（ティッカー表示）で描画。
@@ -86,30 +84,28 @@ export function DictTypeView({
   segInput,
   hasError,
   clozeRevealed = false,
-  compact = false,
+  versus = false,
 }: DictTypeViewProps) {
   return (
     <div className="game">
-      <PlayMeta levelLabel={levelLabel} sub={metaSub} />
+      {/* #439 対戦は PlayMeta を出さない（上部の独立ヘッダバーへ集約）。solo は従来どおり出す。 */}
+      {!versus && <PlayMeta levelLabel={levelLabel} sub={metaSub} />}
       {finished ? (
         resultNode
       ) : (
         <>
-          <StatsRow
-            // #439 対戦（compact）は上部を「残り（時間）＋progressバー」だけに絞る（数値はカードに分離）。
-            // solo（既定）はタイピング数/速度/ミス/残り の 4 枠を維持する。
-            stats={
-              compact
-                ? [{ label: endStatLabel, value: endStatValue }]
-                : [
-                    { label: 'タイピング数', value: `${typedKeys}` },
-                    { label: '速度', value: `${liveSpeed} 打/分` },
-                    { label: 'ミス', value: mistakes },
-                    { label: endStatLabel, value: endStatValue },
-                  ]
-            }
-            progress={progress}
-          />
+          {/* #439 対戦は StatsRow を出さない（時間/進捗はヘッダバー・数値はカードへ分離）。solo は 4 枠を維持。 */}
+          {!versus && (
+            <StatsRow
+              stats={[
+                { label: 'タイピング数', value: `${typedKeys}` },
+                { label: '速度', value: `${liveSpeed} 打/分` },
+                { label: 'ミス', value: mistakes },
+                { label: endStatLabel, value: endStatValue },
+              ]}
+              progress={progress}
+            />
+          )}
           <SegWord word={word} wordJa={wordJa} />
           <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} hasError={hasError} clozeRevealed={clozeRevealed} ticker />
           <p className="hint">
@@ -122,53 +118,8 @@ export function DictTypeView({
   )
 }
 
-// #439 対戦：相手の入力盤面を伏字で静止複製する（方式B＝構造送信）。solo の DictTypeView と同じ
-// .game / .seg-word / .flow マークアップを使い、見出し語＋英語/日本語の2段を「まったく同じ盤面 UI」で描く。
-// 答え側（answerSide）の行は伏字マス（MaskBoard・実文字を出さない＝カンニング防止）、ヒント側は実テキスト
-// （日本語は RubyText で読み補助）。カーソル・入力欄・stats・ティッカースクロールは持たない（静止複製）。純粋描画。
-export interface DictMirrorViewProps {
-  levelLabel: string
-  metaSub: string
-  word?: string // 見出し語（表示可・空なら見出し無し）
-  wordJa?: string // 見出し和訳（en モードのみ・ja モードは付かない＝答えになるため）
-  answerSide: 'en' | 'ja' // 相手が打っている側＝MaskBoard を出す行
-  hint?: { side: 'en' | 'ja'; text: string; kana?: string } // 非答え側の実テキスト（無ければその行を出さない）
-  cells: MaskBoardCell[] // 答え行の伏字マス列（domain maskBoardCells の結果）
-}
-
-export function DictMirrorView({ levelLabel, metaSub, word, wordJa, answerSide, hint, cells }: DictMirrorViewProps) {
-  // 各言語行の中身：答え側は伏字マス、非答え側はヒントの実テキスト（該当が無ければ null＝行を出さない）。
-  const rowContent = (side: 'en' | 'ja') => {
-    if (side === answerSide) return <MaskBoard cells={cells} />
-    if (hint && hint.side === side) {
-      return side === 'ja' ? <RubyText ja={hint.text} kana={hint.kana ?? ''} /> : <span>{hint.text}</span>
-    }
-    return null
-  }
-  const enNode = rowContent('en')
-  const jaNode = rowContent('ja')
-  return (
-    <div className="game">
-      <PlayMeta levelLabel={levelLabel} sub={metaSub} />
-      <SegWord word={word} wordJa={wordJa} />
-      {/* solo の TopFlow と同じ .flow パネル＋ref-tag 行。ただし ticker は動かさず（静止）内容は全表示（vs-mirror-flow）。 */}
-      <div className="flow vs-mirror-flow">
-        {enNode && (
-          <div className="flow-row">
-            <span className="ref-tag en">英語</span>
-            <div className="flow-track">{enNode}</div>
-          </div>
-        )}
-        {jaNode && (
-          <div className="flow-row">
-            <span className="ref-tag ja">日本語</span>
-            <div className="flow-track">{jaNode}</div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+// #439 対戦：相手の伏字複製盤面は共有 presenter（versus/PlayMirrorView）へ移設した（3 モード共通・
+// solo の .game/.seg-word/.flow マークアップを共有）。DictView 側は入力/クイズ presenter のみを持つ。
 
 export interface DictQuizViewProps {
   levelLabel: string

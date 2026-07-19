@@ -337,8 +337,8 @@
   background: var(--panel);
 }
 
-/* #439 対戦レイアウト（dict）：プレイヤーごとに「カード→盤面」を縦積みにする。
-   自分は実プレイ盤面（DictTypeView）、相手は伏字複製盤面（DictMirrorView）を同じ枠で並べる。 */
+/* #439 対戦レイアウト（全モード共通）：プレイヤーごとに「カード→盤面」を縦積みにする。
+   自分は実プレイ盤面（DictTypeView/WordTypeView/MarathonView の versus）、相手は伏字複製盤面（PlayMirrorView）を同じ枠で並べる。 */
 .vs-lanes {
   display: flex;
   flex-direction: column;
@@ -358,7 +358,25 @@
   overflow-x: auto;
 }
 
-/* #439 相手盤面（DictMirrorView）：solo の .flow パネルを共有しつつ ticker を動かさない静止複製。
+/* #439 最上部の独立ヘッダバー（MatchHeaderBar）：種類/レベル/モード＋残り＋progress を1本へ集約。
+   各盤面（あなた/相手）からは PlayMeta/StatsRow を出さず、上部の重複表示をここへ一本化する。 */
+.vs-match-header {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 8px;
+}
+/* バー内は詰めて配置（solo の stats/progress の大きめ余白を対戦バー用に縮める）。 */
+.vs-match-header .play-meta {
+  margin-bottom: 8px;
+}
+.vs-match-header .stats {
+  margin-bottom: 8px;
+}
+.vs-match-header .progress-bar {
+  margin-bottom: 0;
+}
+
+/* #439 相手盤面（PlayMirrorView）：solo の .flow パネルを共有しつつ ticker を動かさない静止複製。
    flow-track の横クリップ／端フェードを解除し、伏字マス・ヒント文を全表示（折り返し可）にする。 */
 .flow.vs-mirror-flow .flow-track {
   overflow-x: visible;
@@ -366,32 +384,6 @@
   flex-wrap: wrap;
   -webkit-mask-image: none;
   mask-image: none;
-}
-
-/* #439 盤面複製（旧：相手カード内・単語/単語例文の後追いまでの経過措置）：相手がいま解いている1問を静止複製する。
-   見出し語ヘッダ＋英語/日本語の2段。答え側は伏字マス（vs-mb）、ヒント側は実テキスト。 */
-.vs-mirror {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-.vs-mirror-word {
-  margin: 0;
-  font-size: 13px;
-}
-/* 英語/日本語の1行（ref-tag ラベル＋中身）。狭幅でも崩れないよう折返し許容。 */
-.vs-mirror-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.vs-mirror-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
 }
 
 /* 伏字マス列（答え側）：●=相手が打てた分／・=未入力／語間の余白。折返し許容・等幅・ルビ無し。 */

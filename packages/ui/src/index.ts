@@ -130,12 +130,11 @@ export type {
   WordQuizViewProps,
   WordQuizOption,
 } from './words/WordsView.presenter'
-export { DictTypeView, DictQuizView, DictPickView, DictMirrorView } from './dictionary/DictView.presenter'
+export { DictTypeView, DictQuizView, DictPickView } from './dictionary/DictView.presenter'
 export type {
   DictTypeViewProps,
   DictQuizViewProps,
   DictPickViewProps,
-  DictMirrorViewProps,
   DictOption,
   DictWordRuby,
 } from './dictionary/DictView.presenter'
@@ -149,8 +148,10 @@ export { default as ProgressCardView } from './versus/ProgressCardView.presenter
 export type { ProgressCardData } from './versus/ProgressCardView.presenter'
 export { default as MaskBoard } from './versus/MaskBoard.presenter'
 export type { MaskBoardCell, MaskBoardProps } from './versus/MaskBoard.presenter'
-export { default as MirrorBoardView } from './versus/MirrorBoardView.presenter'
-export type { MirrorBoardData, MirrorHint, MirrorBoardViewProps } from './versus/MirrorBoardView.presenter'
+export { default as PlayMirrorView } from './versus/PlayMirrorView.presenter'
+export type { MirrorHint, PlayMirrorViewProps } from './versus/PlayMirrorView.presenter'
+export { default as MatchHeaderBar } from './versus/MatchHeaderBar.presenter'
+export type { MatchHeaderBarProps } from './versus/MatchHeaderBar.presenter'
 export { default as VersusBoardView } from './versus/VersusBoardView.presenter'
 export type { VersusBoardViewProps } from './versus/VersusBoardView.presenter'
 export { default as MatchApprovalView } from './versus/MatchApprovalView.presenter'

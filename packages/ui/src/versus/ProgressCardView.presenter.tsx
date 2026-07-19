@@ -2,7 +2,6 @@
 // 対戦中に各参加者の進み具合を数値で見せる。勝敗軸は「正解問題数」なので強調して並べる。
 // カンニング防止のため問題テキストは受け取らない（自分の問題表示はプレイ画面側が担う）＝ここは数値のみ。
 import type { ReactNode } from 'react'
-import MirrorBoardView, { type MirrorBoardData } from './MirrorBoardView.presenter'
 
 // カード1枚ぶんのデータ。VersusBoardView が配列で持ち、各要素をそのままこのカードへ渡す。
 export interface ProgressCardData {
@@ -16,7 +15,6 @@ export interface ProgressCardData {
   lives?: number // 残ライフ（サドンデス時のみ・undefined なら非表示）
   finished?: boolean // #432 その参加者が完了したか（true で「完了」バッジを出す）
   rank?: number // #432 終了後の順位（1始まり・同点は同順位）。undefined なら順位バッジ非表示。
-  mirror?: MirrorBoardData // #439 相手の盤面複製（伏字）。相手カードのみ・board 未受信/qIndex 不一致は undefined＝数値のみ。
 }
 
 // peerId（生 UUID）は意味を持たないので、見出しでは先頭 8 文字だけを表示する。
@@ -45,7 +43,6 @@ export default function ProgressCardView({
   lives,
   finished,
   rank,
-  mirror,
 }: ProgressCardData) {
   return (
     <div className={`vs-card${self ? ' vs-card-self' : ''}`}>
@@ -62,11 +59,8 @@ export default function ProgressCardView({
         </span>
       </div>
 
-      {/* #439 盤面複製：相手がいま解いている1問を伏字で静止複製（答え側＝伏字マス／ヒント側＝実テキスト）。
-          board 未受信 or qIndex 不一致（保留）は container が undefined を渡す＝数値カードのみ（複製非表示）。 */}
-      {mirror && <MirrorBoardView {...mirror} />}
-
-      {/* #439 タイピング数/速度/ミス の 3 枠（時間は撤去＝盤面上部の progressバーへ集約）。 */}
+      {/* #439 タイピング数/速度/ミス の 3 枠（時間は撤去＝盤面上部の progressバーへ集約）。
+          相手の盤面複製（伏字）は下段の盤面レーン（PlayMirrorView）へ分離した＝カードは数値のみ。 */}
       <div className="vs-card-stats">
         <CardStat label="タイピング数" value={String(typed)} />
         <CardStat label="速度（打/分）" value={String(speed)} />

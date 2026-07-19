@@ -2,8 +2,7 @@
 // presenter smoke（#233 M7）: 入力モード/単語4択/説明文4択。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
-import { DictTypeView, DictQuizView, DictPickView, DictMirrorView } from './DictView.presenter'
-import type { MaskBoardCell } from '../versus/MaskBoard.presenter'
+import { DictTypeView, DictQuizView, DictPickView } from './DictView.presenter'
 
 afterEach(cleanup)
 
@@ -38,7 +37,7 @@ describe('DictTypeView smoke', () => {
     expect(container.textContent).toContain('dictionary')
   })
 
-  it('compact（対戦）：上部 stats を「残り＋progressバー」だけに絞る', () => {
+  it('versus（対戦）：PlayMeta と StatsRow を出さない（上部の独立ヘッダバーへ集約）', () => {
     const segments = [
       { type: 'en' as const, en: 'a book that lists words and their meanings', ja: '', kana: '', sentenceIndex: 0 },
     ]
@@ -61,70 +60,17 @@ describe('DictTypeView smoke', () => {
         segIndex={0}
         segInput="a book that l"
         hasError={false}
-        compact
+        versus
       />,
     )
-    // compact は stat 枠を1つ（残り）に絞る。タイピング数/速度/ミスのラベルは出さない。
-    expect(container.querySelectorAll('.stat')).toHaveLength(1)
-    expect(container.textContent).toContain('残り')
+    // versus は StatsRow（.stat/.progress-bar）も PlayMeta（.play-meta）も出さない。
+    expect(container.querySelectorAll('.stat')).toHaveLength(0)
+    expect(container.querySelector('.progress-bar')).toBeNull()
+    expect(container.querySelector('.play-meta')).toBeNull()
     expect(container.textContent).not.toContain('タイピング数')
-    // progressバーは維持。
-    expect(container.querySelector('.progress-bar')).not.toBeNull()
-  })
-})
-
-describe('DictMirrorView smoke', () => {
-  const cellsFor = (shape: number[], curPos: number, miss = false): MaskBoardCell[] => {
-    const sum = shape.reduce((a, b) => a + b, 0)
-    const filled = Math.max(0, Math.min(curPos, sum))
-    const out: MaskBoardCell[] = []
-    let idx = 0
-    shape.forEach((len, wi) => {
-      if (wi > 0) out.push({ kind: 'space', miss })
-      for (let i = 0; i < len; i += 1) {
-        out.push({ kind: idx < filled ? 'filled' : 'pending', miss })
-        idx += 1
-      }
-    })
-    return out
-  }
-
-  it('en モード：見出し語＋ヒント（日本語）を実テキストで描き、答え側（英語）は伏字マス', () => {
-    const { container } = render(
-      <DictMirrorView
-        levelLabel="L1"
-        metaSub="英英 / 英語入力 / すべて"
-        word="apple"
-        wordJa="りんご"
-        answerSide="en"
-        hint={{ side: 'ja', text: '果物の一種' }}
-        cells={cellsFor([1, 5, 4], 3)}
-      />,
-    )
-    const t = container.textContent ?? ''
-    // 見出し語と和訳、ヒント（日本語）は実テキストで見える。
-    expect(t).toContain('apple')
-    expect(t).toContain('りんご')
-    expect(t).toContain('果物の一種')
-    // 答え側は伏字マス（vs-mb）で描き、英語定義の実文字は出さない。
-    expect(container.querySelector('.vs-mb')).not.toBeNull()
-  })
-
-  it('ja モード：見出し和訳は隠し（答えになるため）、ヒント（英語）を実テキストで描く', () => {
-    const { container } = render(
-      <DictMirrorView
-        levelLabel="L1"
-        metaSub="英英 / 日本語入力 / すべて"
-        word="sun"
-        answerSide="ja"
-        hint={{ side: 'en', text: 'the star that the earth moves around' }}
-        cells={cellsFor([4], 2)}
-      />,
-    )
-    const t = container.textContent ?? ''
-    expect(t).toContain('sun')
-    expect(t).toContain('the star that the earth moves around')
-    expect(container.querySelector('.vs-mb')).not.toBeNull()
+    // 見出し語とティッカー（.flow）は versus でも出す。
+    expect(container.textContent).toContain('dictionary')
+    expect(container.querySelector('.flow')).not.toBeNull()
   })
 })
 
