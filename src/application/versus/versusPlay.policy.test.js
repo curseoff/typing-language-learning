@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest'
 import { toProgressPayload } from './versusPlay.policy.js'
 import { firstTryCorrectCount, missedItemCount } from '../../domain/records/segmentStats.service.js'
 import { livesFor } from '../../domain/versus/suddenDeath.service.js'
+import { maskFill } from '../../domain/versus/progressMask.service.js'
 
 // segTracker.policy.js が積む segStats 要素の実構造に合わせた fixture。
 // 一発正解＝!partial かつ mistakes0。ここでは 3 問正解・1 問ミス・1 問打ち切り。
@@ -177,5 +178,95 @@ describe('toProgressPayload: speed/elapsedMs（相手カード表示用）', () 
     // 既存の correct/lives 仕様は不変（correct は必ず入り、lives は initialLives=null なので入らない）。
     expect(p.correct).toBe(firstTryCorrectCount(SEG_STATS))
     expect('lives' in p).toBe(false)
+  })
+})
+
+// #437 伏せ字マスバー：手元の実長 curLen を送信側で cap マスに量子化し、cells（0..cap 整数）を載せる。
+// curLen 実長はワイヤに流さない（cells のみ）。ミス中フラグ miss も透過する。
+// 4択（curLen or cap 未指定）では cells を出さない。後方互換：未指定ならキー自体を含めない。
+describe('toProgressPayload: cells/miss（伏せ字マスバー・#437）', () => {
+  it('curLen と cap を渡すと cells = maskFill(...) を含める（送信側で量子化）', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+      curPos: 1,
+      curLen: 3,
+      cap: 12,
+    })
+    expect(p.cells).toBe(maskFill({ curPos: 1, curLen: 3, cap: 12 }))
+    expect(p.cells).toBe(4) // floor(1/3*12)=4
+  })
+
+  it('curLen=0（未着手）でも cells を含める（cells=0）', () => {
+    const p = toProgressPayload({
+      typed: 0,
+      total: 30,
+      mistakes: 0,
+      segStats: [],
+      currentMistakes: 0,
+      initialLives: null,
+      curPos: 0,
+      curLen: 0,
+      cap: 12,
+    })
+    expect(p.cells).toBe(0)
+  })
+
+  it('curLen 未指定なら cells を含めない（4択相当・後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+      curPos: 1,
+      cap: 12,
+    })
+    expect('cells' in p).toBe(false)
+  })
+
+  it('cap 未指定なら cells を含めない（4択相当・後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12,
+      total: 30,
+      mistakes: 2,
+      segStats: SEG_STATS,
+      currentMistakes: 0,
+      initialLives: null,
+      curPos: 1,
+      curLen: 3,
+    })
+    expect('cells' in p).toBe(false)
+  })
+
+  it('miss を渡すと payload に含める（true/false どちらも透過）', () => {
+    const t = toProgressPayload({
+      typed: 12, total: 30, mistakes: 2, segStats: SEG_STATS, currentMistakes: 0, initialLives: null, miss: true,
+    })
+    expect(t.miss).toBe(true)
+    const f = toProgressPayload({
+      typed: 12, total: 30, mistakes: 2, segStats: SEG_STATS, currentMistakes: 0, initialLives: null, miss: false,
+    })
+    expect(f.miss).toBe(false)
+  })
+
+  it('miss が undefined ならキーを含めない（後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12, total: 30, mistakes: 2, segStats: SEG_STATS, currentMistakes: 0, initialLives: null,
+    })
+    expect('miss' in p).toBe(false)
+  })
+
+  it('cells/miss を渡さない既存呼び出しは両キーを含めない（後方互換）', () => {
+    const p = toProgressPayload({
+      typed: 12, total: 30, mistakes: 2, segStats: SEG_STATS, currentMistakes: 0, initialLives: null,
+    })
+    expect('cells' in p).toBe(false)
+    expect('miss' in p).toBe(false)
   })
 })
