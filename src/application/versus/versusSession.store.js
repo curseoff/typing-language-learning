@@ -12,6 +12,7 @@ import { initApproval, castVote, rejectedBy } from '../../domain/versus/approval
 //   roster   … 参加者名簿（自分だけを含む。peerRoster.service で不変更新）
 //   startAt  … ホスト時刻でのレース開始時刻（未設定は null。カウントダウン開始で入る）
 //   progress … peerId → { typed, total, mistakes, at, [correct], [lives] } の進捗マップ（受信のたび上書き）
+//   boards   … peerId → 最新の board メッセージ（盤面複製・受信のたび後勝ちで上書き。初期は空）
 //   approval … 設定提案の承認状態（approvalState.service の状態。未提案は null）
 //   config   … 確定した対戦設定（承認可決で commit。未確定は null）
 //   seed     … 出題順を決める共有 seed（提案時に受け取る。未提案は null）
@@ -23,6 +24,7 @@ export function initSession(selfId) {
     roster: makeRoster(selfId),
     startAt: null,
     progress: {},
+    boards: {},
     approval: null,
     config: null,
     seed: null,
@@ -65,11 +67,23 @@ export function reduce(state, action) {
       // #437 相手カードのマスバー：セル配列・ミス位置はあれば取り込む（無ければキーを持たせない＝後方互換）。
       if ('cells' in m) entry.cells = m.cells
       if ('miss' in m) entry.miss = m.miss
+      // #439 盤面複製（方式B）：問題番号・入力側・カーソル位置はあれば取り込む（in 判定で 0 も保持）。
+      if ('qIndex' in m) entry.qIndex = m.qIndex
+      if ('typedSide' in m) entry.typedSide = m.typedSide
+      if ('curPos' in m) entry.curPos = m.curPos
       return {
         ...state,
         progress: { ...state.progress, [m.peerId]: entry },
       }
     }
+
+    // 相手の盤面（parseMessage 済みの board メッセージ）。peerId ごとに最新1件だけキャッシュする。
+    // both モード（同一 qIndex に en/ja 2 board）は「表示は今アクティブな side だけ」なので後勝ちで足りる。
+    case 'board':
+      return {
+        ...state,
+        boards: { ...state.boards, [action.message.peerId]: action.message },
+      }
 
     // 参加者が完走した。roster に finished を立て、その結果 active 全員が完走なら
     // phase を allFinished で finished へ進める（running → finished）。
