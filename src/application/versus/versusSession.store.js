@@ -64,8 +64,7 @@ export function reduce(state, action) {
       // #432 相手カードの速度・時間：あれば取り込む（無ければキーを持たせない＝後方互換）。
       if ('speed' in m) entry.speed = m.speed
       if ('elapsedMs' in m) entry.elapsedMs = m.elapsedMs
-      // #437 相手カードのマスバー：セル配列・ミス位置はあれば取り込む（無ければキーを持たせない＝後方互換）。
-      if ('cells' in m) entry.cells = m.cells
+      // #439 盤面複製：現在問題のミス中フラグはあれば取り込む（伏字マスの赤描画に使う。無ければ持たせない＝後方互換）。
       if ('miss' in m) entry.miss = m.miss
       // #439 盤面複製（方式B）：問題番号・入力側・カーソル位置はあれば取り込む（in 判定で 0 も保持）。
       if ('qIndex' in m) entry.qIndex = m.qIndex

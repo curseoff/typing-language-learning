@@ -361,16 +361,10 @@ describe('reduce: progress の speed/elapsedMs 取り込み（後方互換）', 
   })
 })
 
-// #437 相手カードのマスバーが出ない：progress メッセージの cells（0..12 整数）/miss（boolean）を
-// 進捗エントリに透過する。message にあれば含め、無ければ従来どおり含めない（後方互換）。
-// cells=0 や miss=false は falsy でも保持する（'in' 判定であること）。
-describe('reduce: progress の cells/miss 取り込み（後方互換・#437）', () => {
-  it('message に cells があれば progress エントリに含める', () => {
-    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, cells: 4 }
-    const s = reduce(initSession('me'), { type: 'progress', message: msg })
-    expect(s.progress.rival.cells).toBe(4)
-  })
-
+// #439 盤面複製：progress メッセージの miss（boolean）を進捗エントリに透過する（伏字マスの赤描画用）。
+// #437 の cells 透過は撤去（方式Bで長さ情報は board.answerShape が運ぶ）＝cells は保存しない。
+// miss=false は falsy でも保持する（'in' 判定であること）。
+describe('reduce: progress の miss 取り込み（後方互換・#439）', () => {
   it('message に miss:true があれば保持する', () => {
     const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, miss: true }
     const s = reduce(initSession('me'), { type: 'progress', message: msg })
@@ -384,22 +378,20 @@ describe('reduce: progress の cells/miss 取り込み（後方互換・#437）'
     expect(s.progress.rival.miss).toBe(false)
   })
 
-  it('cells=0 を保持する（0 を falsy で落とさない＝in 判定）', () => {
-    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, cells: 0 }
+  it('cells は撤去済み＝message に cells があっても保存しない（無害に落とす）', () => {
+    const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100, cells: 4 }
     const s = reduce(initSession('me'), { type: 'progress', message: msg })
-    expect('cells' in s.progress.rival).toBe(true)
-    expect(s.progress.rival.cells).toBe(0)
+    expect('cells' in s.progress.rival).toBe(false)
   })
 
-  it('cells/miss の無い旧メッセージは従来どおり（両キーを持たない）', () => {
+  it('miss の無い旧メッセージは従来どおり（miss キーを持たない）', () => {
     const msg = { type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100 }
     const s = reduce(initSession('me'), { type: 'progress', message: msg })
     expect(s.progress.rival).toEqual({ typed: 5, total: 20, mistakes: 1, at: 100 })
-    expect('cells' in s.progress.rival).toBe(false)
     expect('miss' in s.progress.rival).toBe(false)
   })
 
-  it('correct/lives/speed/elapsedMs と cells/miss を併せ持つ message は全て取り込む', () => {
+  it('correct/lives/speed/elapsedMs と miss を併せ持つ message は全て取り込む（cells は落とす）', () => {
     const msg = {
       type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100,
       correct: 3, lives: 2, speed: 185, elapsedMs: 4200, cells: 6, miss: true,
@@ -407,7 +399,7 @@ describe('reduce: progress の cells/miss 取り込み（後方互換・#437）'
     const s = reduce(initSession('me'), { type: 'progress', message: msg })
     expect(s.progress.rival).toEqual({
       typed: 5, total: 20, mistakes: 1, at: 100,
-      correct: 3, lives: 2, speed: 185, elapsedMs: 4200, cells: 6, miss: true,
+      correct: 3, lives: 2, speed: 185, elapsedMs: 4200, miss: true,
     })
   })
 })
@@ -451,7 +443,7 @@ describe('reduce: progress の qIndex/typedSide/curPos 取り込み（後方互�
     expect('curPos' in s.progress.rival).toBe(false)
   })
 
-  it('cells/miss/speed/elapsedMs と qIndex/typedSide/curPos を併せ持つ message は全て取り込む', () => {
+  it('miss/speed/elapsedMs と qIndex/typedSide/curPos を併せ持つ message は全て取り込む（cells は落とす）', () => {
     const msg = {
       type: 'progress', peerId: 'rival', typed: 5, total: 20, mistakes: 1, at: 100,
       speed: 185, elapsedMs: 4200, cells: 6, miss: true, qIndex: 4, typedSide: 'ja', curPos: 7,
@@ -459,7 +451,7 @@ describe('reduce: progress の qIndex/typedSide/curPos 取り込み（後方互�
     const s = reduce(initSession('me'), { type: 'progress', message: msg })
     expect(s.progress.rival).toEqual({
       typed: 5, total: 20, mistakes: 1, at: 100,
-      speed: 185, elapsedMs: 4200, cells: 6, miss: true, qIndex: 4, typedSide: 'ja', curPos: 7,
+      speed: 185, elapsedMs: 4200, miss: true, qIndex: 4, typedSide: 'ja', curPos: 7,
     })
   })
 })
