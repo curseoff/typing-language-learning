@@ -323,6 +323,65 @@ async function expectInputFrozen(pages) {
   }
 }
 
+// #443 自分のカード（vs-card-self）とヘッダバーの表示テキスト＋手元の数値を1組で読む。
+// 速度（打/分）は「打鍵数 ÷ 経過時間」なので、決着後に時計が回り続けると打鍵ゼロでも下がり続ける
+// ＝この文字列の変化が不具合Aの実挙動そのもの。数値は snapshot（DEV フック）から併せて取る。
+async function statsText(page) {
+  const dom = await page.evaluate(() => {
+    const card = document.querySelector('.vs-card-self')
+    const header = document.querySelector('.vs-match-header')
+    return {
+      card: card ? card.textContent : null,
+      header: header ? header.textContent : null,
+      waiting: !!document.querySelector('.vs-match-waiting'),
+    }
+  })
+  const s = await snapshot(page)
+  return { ...dom, self: s?.self ?? null }
+}
+
+// #443 決着（phase=finished）した後は、速度・経過が「最後の値」で確定していることを確かめる。
+// 数秒待ってもカード/ヘッダの表示テキストと手元の数値が 1 も動かないこと（打鍵は一切していない）。
+// 併せて「相手の完了を待っています…」（.vs-match-waiting）が消えていることも見る（不具合B）。
+// 決着後に待つ相手はもう居ないので、この案内が残っていること自体が不具合。
+async function expectStatsFrozen(pages, holdMs = 2500) {
+  const before = []
+  for (const { name, page } of pages) {
+    const s = await statsText(page)
+    // セレクタが外れると「常に null 同士＝一致」で素通りするので、読めないこと自体を失敗にする。
+    if (s.card == null) throw new Error(`${name}: 自分のカード（.vs-card-self）が見つからない`)
+    if (s.header == null) throw new Error(`${name}: ヘッダバー（.vs-match-header）が見つからない`)
+    before.push(s)
+  }
+  await sleep(holdMs)
+  for (let i = 0; i < pages.length; i++) {
+    const { name, page } = pages[i]
+    const after = await statsText(page)
+    if (after.card !== before[i].card) {
+      throw new Error(
+        `${name}: 決着後もカードの数値が動く（速度/経過が確定していない）\n` +
+          `  before: ${before[i].card}\n  after : ${after.card}`,
+      )
+    }
+    if (after.header !== before[i].header) {
+      throw new Error(
+        `${name}: 決着後もヘッダバーの表示が動く\n` +
+          `  before: ${before[i].header}\n  after : ${after.header}`,
+      )
+    }
+    const b = before[i].self ?? {}
+    const a = after.self ?? {}
+    for (const field of ['typed', 'correct', 'mistakes']) {
+      if (a[field] !== b[field]) {
+        throw new Error(`${name}: 決着後に self.${field} が ${b[field]}→${a[field]} と動いた`)
+      }
+    }
+    if (after.waiting || before[i].waiting) {
+      throw new Error(`${name}: 決着後も「相手の完了を待っています…」（.vs-match-waiting）が消えない`)
+    }
+  }
+}
+
 // 一定時間、両ブラウザが「継続中（running かつ ongoing）」のままであることを確かめる。
 // 途中で終わったら（＝早すぎる決着）その場で失敗させる。
 async function expectStillOngoing(pages, holdMs) {
@@ -441,8 +500,11 @@ async function runScenario(name, executablePath, opts) {
       await expectStillOngoing(pages, 3000)
     } else {
       await expectDecided(pages, expected, deadline)
-      // #443 決着で終わる全シナリオ共通の後段：終了後に打鍵が効かないこと（継続シナリオは対象外）。
+      // #443 決着で終わる全シナリオ共通の後段（継続シナリオは対象外）：
+      //   1. 終了後に打鍵が効かないこと
+      //   2. 速度・経過が最後の値で確定し、待機メッセージが消えていること
       await expectInputFrozen(pages)
+      await expectStatsFrozen(pages)
     }
     console.log(`✓ ${name}`)
     return true
