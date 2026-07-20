@@ -398,6 +398,33 @@ async function expectStillOngoing(pages, holdMs) {
   }
 }
 
+// #447 決着後に「記録が1件も増えていないこと」を確かめる（対戦のプレイは記録に残さない仕様）。
+// ブラウザは毎回まっさらなプロファイルで起動する＝対戦前の記録は必ず 0 件なので、決着後も 0 件なら
+// 「対戦のプレイが solo の記録一覧／ベスト記録に混ざっていない」ことになる。
+// 記録ストアの読み込みは非同期（SQLite/OPFS のメモリ像）なので、一覧が出た後もしばらく数え続けて
+// 「最初 0 件 → 後から 1 件生える」も取りこぼさない。
+// ※この検査は対戦画面から離れる（/records へ遷移する）ため、必ず他の検証を全部終えた最後に呼ぶこと。
+async function expectNoRecordsSaved(pages, base, holdMs = 2000) {
+  for (const { name, page } of pages) {
+    await page.goto(`${base}/records`, { waitUntil: 'load' })
+    // 一覧が描画されるまで待つ（空なら .no-records、1件以上あれば .records-table が出る）。
+    await page.waitForSelector('.no-records, .records-table', { timeout: 15_000 })
+    const until = Date.now() + holdMs
+    for (;;) {
+      const count = await page.evaluate(
+        () => document.querySelectorAll('.records-table tbody tr').length,
+      )
+      if (count > 0) {
+        throw new Error(
+          `${name}: 対戦のプレイが記録として保存されている（すべての記録が ${count} 件・期待は 0 件）`,
+        )
+      }
+      if (Date.now() >= until) break
+      await sleep(200)
+    }
+  }
+}
+
 // ---- シナリオ ---------------------------------------------------------------
 // 共通の前段（接続→ロビー合意→対戦開始）は runScenario 側が済ませ、各シナリオは打鍵の組み立てだけを書く。
 // eliminate() は「ライフ n を使い切る」＝途中で n-1 問を正解するので、脱落者の correct は n-1 になる。
@@ -505,6 +532,9 @@ async function runScenario(name, executablePath, opts) {
       //   2. 速度・経過が最後の値で確定し、待機メッセージが消えていること
       await expectInputFrozen(pages)
       await expectStatsFrozen(pages)
+      // #447 最後に記録ビューへ遷移して「対戦のプレイが記録に残っていない」ことを見る。
+      //   対戦画面から離れるので、上の凍結系の検証より必ず後に置くこと（順序を入れ替えると壊れる）。
+      await expectNoRecordsSaved(pages, opts.base)
     }
     console.log(`✓ ${name}`)
     return true
