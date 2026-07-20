@@ -260,6 +260,28 @@ function useFinishBroadcast({ finished, lives, initialLives, typed, total, mista
   }, [finished, lives, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
 }
 
+// #443 サドンデス（life）のホスト権威終了判定。ホストだけが outcome 確定で endMatch を配布する。
+// 自分ぶんは derived の権威値（selfLives/selfCorrect＝freeze latch で脱落後も固定）を使い、他人は progress を読む。
+//   ※ top-level で progress[selfId] を読むと sendProgress の副作用 dispatch 待ち＝derived と乖離し、
+//     脱落側がホストのとき自分を「満ライフ生存」と誤認して永久 ongoing になる不具合の回避。
+// life 以外は何もしない（early return）。status（文字列）を deps に入れ、確定時のみ setTimeout(…,0) で endMatch。
+function useSuddenDeathHostEnd({ isHost, phase, endKind, roster, progress, selfId, selfLives, selfCorrect, initialLives, endMatch }) {
+  const players =
+    endKind === 'life'
+      ? activeIds(roster).map((id) =>
+          id === selfId
+            ? { id, lives: selfLives, correct: selfCorrect }
+            : { id, lives: progress[id]?.lives ?? initialLives, correct: progress[id]?.correct ?? 0 },
+        )
+      : []
+  const status = endKind === 'life' ? suddenDeathOutcome(players).status : 'ongoing'
+  useEffect(() => {
+    if (endKind !== 'life' || !isHost || !endMatch || phase !== 'running' || status === 'ongoing') return
+    const id = setTimeout(() => endMatch(), 0)
+    return () => clearTimeout(id)
+  }, [isHost, endMatch, endKind, phase, status])
+}
+
 // 手元スナップショット（onProgress 由来の correct/lives）を保持し、進捗を配信する共通フック。
 // onProgress のたびに payload（correct/lives 込み）を作って sendProgress し、correct/lives を state に反映する。
 // #432 相手カードの速度・時間：live 速度・経過を liveRef（各 PlayArea が effect で更新する最新値ホルダー）
@@ -338,7 +360,7 @@ function useLiveRefSync(liveRef, speed, elapsedSec) {
 }
 
 // dict（英英）の対戦プレイエリア。useDict を seed 注入・cloze 固定で駆動する。
-function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
+function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished, isHost, endMatch }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
   // #439 道Y：相手の初回バッチ問題列を1回だけ決定的に再構成（config/seed/content でメモ化）し、
   //   相手の生進捗を重ねて本物 TopFlow で描く renderMirror を作る（dict は見出し語＋和訳を出す）。
@@ -354,6 +376,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
   // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
   const eliminated = initialLives != null && derived.lives <= 0
+  // #443 サドンデス終了判定（ホスト権威）。自分は derived の権威値で判定する。
+  useSuddenDeathHostEnd({ isHost, phase, endKind: config.endCondition.kind, roster, progress, selfId, selfLives: derived.lives, selfCorrect: derived.correct, initialLives, endMatch })
   const d = useDict({
     dict: content.dict,
     level: config.level,
@@ -418,7 +442,7 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
 }
 
 // words（単語）の対戦プレイエリア。useWords を seed 注入・cloze 固定で駆動する。
-function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
+function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished, isHost, endMatch }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
   // #439 道Y：相手の初回バッチ問題列を再構成し renderMirror を作る。単語は見出し語を出さない（word 自体が答え＝
   //   showWord:false・gloss なし）＝相手盤面は英単語（伏字）＋和訳ヒントの本物 TopFlow のみ。
@@ -435,6 +459,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: undefined })
   // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
   const eliminated = initialLives != null && derived.lives <= 0
+  // #443 サドンデス終了判定（ホスト権威）。自分は derived の権威値で判定する。
+  useSuddenDeathHostEnd({ isHost, phase, endKind: config.endCondition.kind, roster, progress, selfId, selfLives: derived.lives, selfCorrect: derived.correct, initialLives, endMatch })
   const w = useWords({
     allWords: content.words,
     level: config.level,
@@ -495,7 +521,7 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
 }
 
 // wsent（単語例文）の対戦プレイエリア。useMarathon を start() で駆動する（segments は start で注入）。
-function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
+function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished, isHost, endMatch }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
   // #439 道Y：相手の初回バッチ問題列を再構成し renderMirror を作る（単語例文は見出し語＋和訳を出す）。
   const mirrorSegments = useMemo(
@@ -510,6 +536,8 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
   // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
   const eliminated = initialLives != null && derived.lives <= 0
+  // #443 サドンデス終了判定（ホスト権威）。自分は derived の権威値で判定する。
+  useSuddenDeathHostEnd({ isHost, phase, endKind: config.endCondition.kind, roster, progress, selfId, selfLives: derived.lives, selfCorrect: derived.correct, initialLives, endMatch })
   // 最新の derived（correct/lives）を effect で ref へ控える（onFinish の最終 progress が読む）。
   const derivedRef = useRef(derived)
   useEffect(() => {
@@ -661,28 +689,15 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
 
   // 問題数/文字数（items/chars）：最初の完走で全員終了する。roster の finished がどれか true になったら
   //   （自分の完走も useFinishBroadcast→sendFinished で roster.self.finished を立てる）ホストが終了を配布する。
-  // #443 サドンデス（life）：脱落しても対戦は継続するため anyFinished では終了しない。ホストは全参加者の
-  //   スナップショット（lives/correct・自分ぶんも progress[selfId] に反映される）から suddenDeathOutcome を
-  //   算出し、勝敗が確定（status!=='ongoing'）したら終了を配布する（脱落順に非依存）。
+  // #443 サドンデス（life）はここでは判定しない。自分の権威値（derived）が必要なため PlayArea 内の
+  //   useSuddenDeathHostEnd で終了判定する（top-level は progress[selfId] しか読めず derived と乖離しうる）。
   // dispatch を render 位相に持ち込まないよう setTimeout(…,0) で遅延実行する（endMatch は冪等＝二重でも無害）。
   const anyFinished = activeIds(roster).some((id) => roster.peers[id]?.finished)
-  const suddenDeathStatus =
-    endKind === 'life'
-      ? suddenDeathOutcome(
-          activeIds(roster).map((id) => ({
-            id,
-            lives: progress[id]?.lives ?? initialLives,
-            correct: progress[id]?.correct ?? 0,
-          })),
-        ).status
-      : 'ongoing'
-  // items/chars は完走で、life は outcome 確定で終了トリガを立てる。
-  const nonTimeShouldEnd = endKind === 'life' ? suddenDeathStatus !== 'ongoing' : anyFinished
   useEffect(() => {
-    if (!isHost || !endMatch || endKind === 'time' || phase !== 'running' || !nonTimeShouldEnd) return
+    if (!isHost || !endMatch || endKind === 'time' || endKind === 'life' || phase !== 'running' || !anyFinished) return
     const id = setTimeout(() => endMatch(), 0)
     return () => clearTimeout(id)
-  }, [isHost, endMatch, endKind, phase, nonTimeShouldEnd])
+  }, [isHost, endMatch, endKind, phase, anyFinished])
 
   if (content.error) {
     return (
@@ -724,6 +739,8 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
       sendProgress={sendProgress}
       sendBoard={sendBoard}
       sendFinished={sendFinished}
+      isHost={isHost}
+      endMatch={endMatch}
     />
   )
 }
