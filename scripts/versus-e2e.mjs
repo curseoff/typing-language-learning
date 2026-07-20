@@ -9,6 +9,7 @@
 //   npm run dev            # 別ターミナルで起動しておく
 //   npm run versus:e2e -- --scenario all
 //   npm run versus:e2e -- --scenario a-eliminated-b-ahead --headful --lives 3
+//   # --lives 未指定時はシナリオ既定（SCENARIO_LIVES）を使う（実機の再現条件に合わせるため）
 //   CHROME_PATH=/path/to/chrome npm run versus:e2e -- --scenario draw
 //
 // Chromium は同梱せず（puppeteer-core）、システムの Chrome を 2 プロセス起動する。
@@ -32,6 +33,7 @@ function parseArgs(argv) {
     scenario: null,
     base: DEFAULT_BASE,
     lives: DEFAULT_LIVES,
+    livesExplicit: false,
     headful: false,
     keepOpen: false,
     timeout: DEFAULT_TIMEOUT_MS,
@@ -40,7 +42,10 @@ function parseArgs(argv) {
     const a = argv[i]
     if (a === '--scenario') opts.scenario = argv[++i]
     else if (a === '--base') opts.base = argv[++i]
-    else if (a === '--lives') opts.lives = Number(argv[++i])
+    else if (a === '--lives') {
+      opts.lives = Number(argv[++i])
+      opts.livesExplicit = true // 明示指定はシナリオ既定（SCENARIO_LIVES）より優先する
+    }
     else if (a === '--timeout') opts.timeout = Number(argv[++i])
     else if (a === '--headful') opts.headful = true
     else if (a === '--keep-open') opts.keepOpen = true
@@ -183,6 +188,33 @@ async function answerN(page, n, deadline, who) {
   for (let i = 0; i < n; i++) await answerCorrect(page, deadline, who)
 }
 
+// #446 correct を1つも増やさずにライフを 0 まで削って脱落する。
+// eliminate() は「ミス→その問題を正解して次へ」なので脱落者の correct が lives-1 になるが、
+// 実機で観測された不具合は「脱落者の correct が 0 のまま」＝相手が後から追い抜く順序だった。
+// ミス済みの問題は正解しても correct が増えない性質を使い、
+//   ミス（ライフが減れば次の周回へ）→ 減らない（＝この問題はミス済み）なら正解キーで問題を進める
+// を繰り返して、correct を据え置いたままライフだけを削り切る。
+async function eliminateWithoutCorrect(page, deadline, who) {
+  const base = (await snapshot(page)).self.correct
+  for (;;) {
+    const s = await snapshot(page)
+    if (s.self.lives === 0) return s
+    if (s.self.correct > base) throw new Error(`${who}: correct が増えてしまった（${base}→${s.self.correct}）`)
+    if (s.phase !== 'running') throw new Error(`${who}: 脱落の途中で phase=${s.phase} になった`)
+    if (Date.now() > deadline) throw new Error(`${who}: 脱落しきれない（lives=${s.self.lives}）`)
+    // まずミスを試す。ライフが減れば次のライフへ、減らなければ「この問題は既にミス済み」。
+    const wk = await wrongKey(page)
+    if (wk != null) {
+      await page.keyboard.press(wk)
+      if ((await snapshot(page)).self.lives < s.self.lives) continue
+    }
+    // ミス済みの問題を正解キーで打ち切って次の問題へ進める（correct は増えない）。
+    const nk = await nextKey(page)
+    if (nk != null) await page.keyboard.press(nk)
+    else await sleep(20)
+  }
+}
+
 // ---- 接続〜ロビー〜対戦開始 ---------------------------------------------------
 
 // ホスト A・ゲスト B を手動シグナリング（コピペ）で繋ぐ。接続成立でロビー（.vs-lobby）が出る。
@@ -317,7 +349,24 @@ const SCENARIOS = {
     await eliminate(host, deadline, 'A(host)')
     return { status: 'won', winnerId: ids.guestId, winner: 'B(guest)' }
   },
+
+  // #446 実機で観測された順序の再現：ホスト A が 1問も正解しないまま先に脱落し、その「後で」
+  // ゲスト B が 1問正解して追い抜く。決着の引き金がホスト自身のローカルな脱落フレームではなく
+  // 「相手から届いた progress メッセージ」になるのが他シナリオとの違い（既定 lives=1＝実機と同条件）。
+  //   1. A を correct=0 のまま脱落させる
+  //   2. この時点では両者同点（correct 0-0）＝継続が正しい。早すぎる決着をここで弾く（＋実機の「間」を再現）
+  //   3. その後で B が 1問正解 → B の correct=1 で初めて条件成立
+  //   4. 両ブラウザが B の勝利で finished になること
+  'host-eliminated-then-overtaken': async ({ host, guest, ids, pages, deadline }) => {
+    await eliminateWithoutCorrect(host, deadline, 'A(host)')
+    await expectStillOngoing(pages, 2000) // 手打ちの「間」相当の待ち＋早すぎる決着の検出
+    await answerCorrect(guest, deadline, 'B(guest)')
+    return { status: 'won', winnerId: ids.guestId, winner: 'B(guest)' }
+  },
 }
+
+// シナリオ既定のライフ（--lives の明示指定が無いときだけ使う）。実機の再現条件に合わせるため。
+const SCENARIO_LIVES = { 'host-eliminated-then-overtaken': 1 }
 
 // ---- 実行 -----------------------------------------------------------------
 
@@ -338,6 +387,8 @@ async function openApp(executablePath, opts) {
 // 1 シナリオを最初から最後まで走らせる（ブラウザは毎回作り直す＝前のシナリオの状態を持ち込まない）。
 async function runScenario(name, executablePath, opts) {
   const deadline = Date.now() + opts.timeout
+  // --lives の明示指定が無ければシナリオ既定（無ければ全体既定）を使う。
+  const lives = opts.livesExplicit ? opts.lives : (SCENARIO_LIVES[name] ?? opts.lives)
   const a = await openApp(executablePath, opts)
   const b = await openApp(executablePath, opts)
   const pages = [
@@ -346,12 +397,13 @@ async function runScenario(name, executablePath, opts) {
   ]
   try {
     await connect(a.page, b.page, deadline)
-    const ids = await agreeAndStart(a.page, b.page, opts.lives, deadline)
+    const ids = await agreeAndStart(a.page, b.page, lives, deadline)
     const expected = await SCENARIOS[name]({
       host: a.page,
       guest: b.page,
       ids,
-      lives: opts.lives,
+      pages,
+      lives,
       deadline,
     })
     if (expected.status === 'ongoing') await expectStillOngoing(pages, 3000)
