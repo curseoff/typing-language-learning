@@ -20,6 +20,7 @@ import { useMarathon } from '../../application/useMarathon.js'
 import { toProgressPayload } from '../../application/versus/versusPlay.policy.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
+import { isBoardActive } from '../../domain/versus/boardActivity.service.js'
 import { buildBoardPayload } from '../../domain/versus/boardMirror.service.js'
 import { buildMirrorSegments } from '../../application/versus/versusSegments.policy.js'
 import { pickMirrorSegIndex } from '../../domain/versus/mirrorCursor.service.js'
@@ -445,7 +446,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
   )
   const liveRef = useLiveRef()
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
-  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
+  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）。
+  //   盤面の入力可否は isBoardActive が決める＝自分の脱落に加えて対戦終了（phase==="finished"）でも打鍵を止める。
   const eliminated = initialLives != null && derived.lives <= 0
   // #443 サドンデス終了判定（ホスト権威）。自分は derived の権威値で判定する。
   useSuddenDeathHostEnd({ isHost, phase, endKind: config.endCondition.kind, roster, progress, selfId, selfLives: derived.lives, selfCorrect: derived.correct, initialLives, endMatch })
@@ -463,7 +465,7 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     onProgress,
     // 対戦はレース開始（この PlayArea のマウント＝カウントダウン終了）と同時に計時を始める（初回打鍵を待たない）。
     autoStart: true,
-    active: !eliminated,
+    active: isBoardActive({ phase, eliminated }),
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
   // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
@@ -534,7 +536,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
   const liveRef = useLiveRef()
   // 単語（words）は見出し和訳グロサリを持たない（word 自体が答え側＝board では word='' で見出し無し）。gloss は undefined。
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: undefined })
-  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
+  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）。
+  //   盤面の入力可否は isBoardActive が決める＝自分の脱落に加えて対戦終了（phase==="finished"）でも打鍵を止める。
   const eliminated = initialLives != null && derived.lives <= 0
   // #443 サドンデス終了判定（ホスト権威）。自分は derived の権威値で判定する。
   useSuddenDeathHostEnd({ isHost, phase, endKind: config.endCondition.kind, roster, progress, selfId, selfLives: derived.lives, selfCorrect: derived.correct, initialLives, endMatch })
@@ -551,7 +554,7 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     onProgress,
     // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
     autoStart: true,
-    active: !eliminated,
+    active: isBoardActive({ phase, eliminated }),
   })
   // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
   useVersusDevHook({
@@ -617,7 +620,8 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
   )
   const liveRef = useLiveRef()
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
-  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
+  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）。
+  //   盤面の入力可否は isBoardActive が決める＝自分の脱落に加えて対戦終了（phase==="finished"）でも打鍵を止める。
   const eliminated = initialLives != null && derived.lives <= 0
   // #443 サドンデス終了判定（ホスト権威）。自分は derived の権威値で判定する。
   useSuddenDeathHostEnd({ isHost, phase, endKind: config.endCondition.kind, roster, progress, selfId, selfLives: derived.lives, selfCorrect: derived.correct, initialLives, endMatch })
@@ -647,7 +651,7 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
     [sendProgress, sendFinished, total, initialLives, liveRef],
   )
   // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
-  const m = useMarathon({ active: !eliminated, onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true })
+  const m = useMarathon({ active: isBoardActive({ phase, eliminated }), onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true })
 
   // マウント時に1回だけ出題を開始（全員同一 seed＝同一問題列）。
   const started = useRef(false)
