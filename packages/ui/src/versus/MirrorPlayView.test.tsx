@@ -59,4 +59,36 @@ describe('MirrorPlayView smoke', () => {
     expect(container.querySelector('.mch')).not.toBeNull()
     expect(container.textContent).toContain('りんご')
   })
+
+  // #439 道Y (4)：both（英語・日本語）は typedSide に依らず英語行＝伏字／日本語行＝実表示に統一する。
+  const bothSegs: TopSeg[] = [
+    { type: 'en', en: 'apple', ja: '林檎', kana: 'りんご', sentenceIndex: 0 },
+    { type: 'ja', en: 'apple', ja: '林檎', kana: 'りんご', sentenceIndex: 0 },
+  ]
+
+  it('both×英語入力中（typedSide=en）：英語は伏字（実綴りを出さない）、日本語は実テキストで全表示', () => {
+    const { container } = render(
+      <MirrorPlayView segments={bothSegs} segIndex={0} answerSide="en" curPos={3} />,
+    )
+    const t = container.textContent ?? ''
+    // 英語（答え側）の実綴りは打鍵済みでも出さない。伏字マス（●/filled）で描く。
+    expect(t).not.toContain('apple')
+    expect(t).not.toContain('app')
+    expect(container.querySelector('.mch.filled')).not.toBeNull()
+    // 日本語は実テキスト（漢字＋ふりがな）で全表示。
+    expect(t).toContain('林檎')
+  })
+
+  it('both×日本語入力中（typedSide=ja）：日本語が出ず英語が実表示になる不具合を直し、英語＝伏字／日本語＝実表示', () => {
+    const { container } = render(
+      <MirrorPlayView segments={bothSegs} segIndex={1} answerSide="ja" curPos={2} />,
+    )
+    const t = container.textContent ?? ''
+    // 日本語入力中でも英語の実綴りは一切出さない（本人スクショ#15 の不具合＝英語が実表示、を防ぐ）。
+    expect(t).not.toContain('apple')
+    // 英語行は伏字マス（英語は入力済み＝全 filled）。
+    expect(container.querySelector('.mch.filled')).not.toBeNull()
+    // 日本語は実テキストで全表示（マスクしない）。
+    expect(t).toContain('林檎')
+  })
 })

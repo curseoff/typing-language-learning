@@ -2,6 +2,8 @@
 // solo の入力盤面（DictTypeView/WordTypeView/MarathonView）と同じ TopFlow（ティッカー＝スライド／2問カルーセル／
 // 青枠）を使い、答え側（answerSide）の行だけを全面伏字（MaskedText/MaskedRuby・実文字を出さない＝カンニング防止）に
 // する。進捗は相手から届く curPos（表示単位＝en は空白込み char／ja はかな消費数）から導く（segInput は使わない）。
+// #439：both（英語・日本語）モードは typedSide に依らず常に「英語行＝伏字／日本語行＝実表示（問題文を全表示）」に
+// 統一する（TopFlow 側の isBoth 分岐で maskRow='en' 固定・英語 filled は typedSide で curPos or 全 filled）。
 // PlayMeta/StatsRow・カーソル・入力欄は持たない（対戦ヘッダバー＝MatchHeaderBar に集約）。3 モードで segments/answerSide/
 // word が違うだけで UI は同一。見出し語（word）は任意（単語モードは空＝出さない）。wordJa は答えが和訳（ja）のとき隠す。
 import TopFlow, { type TopSeg } from '../marathon/TopFlow.presenter'

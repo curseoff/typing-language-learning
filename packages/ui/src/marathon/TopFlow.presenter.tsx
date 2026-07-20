@@ -23,8 +23,9 @@ export interface TopFlowProps {
   ticker?: boolean
   clozeRevealed?: boolean // #402 現在語(cloze)でミスがあり正解を開示中か
   // #439 相手盤面複製（mirror）：自分の segInput ではなく、相手の進捗 curPos から表示を導く。
-  //   answerSide＝相手が打っている側＝全面伏字にする行（Flow の maskRow へ渡す）。
-  //   curPos は TopFlow 表示単位（en=空白込み char／ja=かな消費数）。miss で答え行のカーソルを赤に。
+  //   answerSide＝相手が打っている側（single では全面伏字にする行）。curPos は TopFlow 表示単位
+  //   （en=空白込み char／ja=かな消費数）。miss で答え行のカーソルを赤に。
+  //   both（英語・日本語）では typedSide に依らず常に英語行だけ伏字・日本語行は実表示（下の maskRow 分岐）。
   mirror?: boolean
   answerSide?: 'en' | 'ja'
   curPos?: number
@@ -72,14 +73,17 @@ export default function TopFlow({
   const effActiveRow = mirror ? answerSide ?? null : enActive ? 'en' : jaActive ? 'ja' : null
   const effError = mirror ? miss : hasError
 
-  // 英文の進捗：mirror は answerSide==='en' のとき curPos（空白込み char）を上限 clamp。hint 側は0（素表示）。
-  //   非 mirror は従来（入力中は入力分／both で和文入力中は完了済み／単一言語の参考表示は0）。
+  // 英文の進捗：mirror は answerSide==='en' のとき curPos（空白込み char）を上限 clamp。
+  //   answerSide==='ja' のときは、both（英語・日本語）では「英語は入力済み＝全 filled」、
+  //   single（ja-only の参考行）では 0（素表示）。非 mirror は従来（入力中は入力分／both 和文入力中は完了済み／参考表示は0）。
   const enDone = !seg
     ? 0
     : mirror
       ? answerSide === 'en'
         ? Math.min(curPos, [...seg.en].length)
-        : 0
+        : isBoth
+          ? [...seg.en].length
+          : 0
       : enActive
         ? Math.min(segInput.length, seg.en.length)
         : isBoth
@@ -123,7 +127,9 @@ export default function TopFlow({
       ticker={ticker}
       isBoth={isBoth}
       clozeRevealed={clozeRevealed}
-      maskRow={mirror ? answerSide : undefined}
+      // #439 相手盤面：both（英語・日本語）では typedSide に依らず常に英語行だけ伏字（日本語行は実表示で
+      //   問題文を全表示）。single は従来どおり答え側（typedSide）を伏字。
+      maskRow={mirror ? (isBoth ? 'en' : answerSide) : undefined}
     />
   )
 }
