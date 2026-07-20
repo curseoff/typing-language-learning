@@ -221,24 +221,36 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
     )
   // 穴埋め伏字（en/ja）。current は打った分を現し、future は全伏字。revealed で正解を露出。
   // 開示（ミス）時は通常の現在語表示（Typed/renderJa）と同一の見た目にする＝表示方式を変えない(#402)。
-  const maskEn = (it: FlowItem, isCur: boolean) =>
-    isCur && clozeRevealed ? (
+  // full=true（#439 maskRow＝相手盤面）は打鍵済みも実文字を出さず filled マスに（reveal もしない）。
+  const maskEn = (it: FlowItem, isCur: boolean, full = false) =>
+    isCur && clozeRevealed && !full ? (
       <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
     ) : (
-      <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && activeRow === 'en' && hasError} />
+      <MaskedText
+        text={it.en}
+        pos={isCur ? enDone : -1}
+        hasError={isCur && activeRow === 'en' && hasError}
+        fullMask={full}
+      />
     )
-  const maskJa = (it: FlowItem, isCur: boolean) => {
-    if (isCur && clozeRevealed) return renderJa(it, true)
+  const maskJa = (it: FlowItem, isCur: boolean, full = false) => {
+    if (isCur && clozeRevealed && !full) return renderJa(it, true)
     return it.kana ? (
       <MaskedRuby
         ja={it.ja}
         kana={it.kana}
-        done={isCur ? jaDone : 0}
-        kanaDone={isCur ? jaKanaDone : 0}
+        done={isCur ? jaDone : full ? -1 : 0}
+        kanaDone={isCur ? jaKanaDone : full ? -1 : 0}
         hasError={isCur && activeRow === 'ja' && hasError}
+        fullMask={full}
       />
     ) : (
-      <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && activeRow === 'ja' && hasError} />
+      <MaskedText
+        text={it.ja}
+        pos={isCur ? jaDone : -1}
+        hasError={isCur && activeRow === 'ja' && hasError}
+        fullMask={full}
+      />
     )
   }
   return (
@@ -262,9 +274,9 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                 className={`flow-pair ${state}`}
               >
                 <span className={`pair-en ${isCur && activeRow === 'en' ? 'typing' : ''}`}>
-                  {/* #439 相手盤面複製：maskRow は行全体を伏字（cloze 個別より優先）。 */}
+                  {/* #439 相手盤面複製：maskRow は行全体を全面伏字（実文字を出さない・cloze 個別より優先）。 */}
                   {maskRow === 'en' ? (
-                    maskEn(it, isCur)
+                    maskEn(it, isCur, true)
                   ) : rangesHere ? (
                     <MaskedSentence
                       text={it.en}
@@ -282,7 +294,11 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                   )}
                 </span>
                 <span className={`pair-ja ${isCur && activeRow === 'ja' ? 'typing' : ''}`}>
-                  {maskRow === 'ja' || maskJaHere ? maskJa(it, isCur) : renderJa(it, isCur)}
+                  {maskRow === 'ja'
+                    ? maskJa(it, isCur, true)
+                    : maskJaHere
+                      ? maskJa(it, isCur)
+                      : renderJa(it, isCur)}
                 </span>
               </span>
             )
@@ -380,9 +396,9 @@ export function Flow({
           scroll={enScroll}
           active={activeRow === 'en'}
           render={(it, isCur, isFuture) => {
-            // #439 相手盤面複製：答え側(en)は行全体を全面伏字（現在は enDone まで開示・他は全伏字）。cloze より優先。
+            // #439 相手盤面複製：答え側(en)は行全体を全面伏字（実文字を出さず filled/pending マスのみ）。cloze より優先。
             if (maskRow === 'en') {
-              return <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && hasError} />
+              return <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && hasError} fullMask />
             }
             // #402 例文/英英の文中伏字：英文の内容語 char レンジだけ伏字（現在/これから）。past・非対象は従来表示。
             if (it.clozeRanges && activeRow === 'en' && (isCur || isFuture)) {
@@ -421,18 +437,20 @@ export function Flow({
           active={activeRow === 'ja'}
           render={(it, isCur, isFuture) => (
             <span className="flow-ja">
-              {/* #439 相手盤面複製：答え側(ja)は行全体を全面伏字（現在は jaDone/jaKanaDone まで開示・他は全伏字）。 */}
+              {/* #439 相手盤面複製：答え側(ja)は行全体を全面伏字（実文字/かな/ルビを出さず filled/pending マスのみ）。
+                  future(非現在)は cursor を出さないよう done/kanaDone に -1 を渡す。 */}
               {maskRow === 'ja' ? (
                 it.kana ? (
                   <MaskedRuby
                     ja={it.ja}
                     kana={it.kana}
-                    done={isCur ? jaDone : 0}
-                    kanaDone={isCur ? jaKanaDone : 0}
+                    done={isCur ? jaDone : -1}
+                    kanaDone={isCur ? jaKanaDone : -1}
                     hasError={isCur && hasError}
+                    fullMask
                   />
                 ) : (
-                  <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && hasError} />
+                  <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && hasError} fullMask />
                 )
               ) : it.clozeRanges && activeRow === 'ja' && (isCur || isFuture) ? (
                 // #402 例文（ja/読みモード）の文中伏字：和文の内容語 char レンジだけ伏字（ふりがなごと）。

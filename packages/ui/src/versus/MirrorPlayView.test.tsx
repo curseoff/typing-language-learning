@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // #439 道Y：相手の伏字複製盤面を「本物の TopFlow」で描く共有 presenter の smoke。
 // 答え側（answerSide）の行は全面伏字（実文字を出さない＝カンニング防止）、非答え側はヒントとして実テキスト表示。
-// 進捗は curPos（表示単位）から導き、打鍵済みぶんだけ答え側に開示する。
+// 進捗は curPos（表示単位）から導き、打鍵済みぶんは実文字ではなく filled マス(●)で示す（実綴りは出さない）。
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
 import MirrorPlayView from './MirrorPlayView.presenter'
@@ -24,10 +24,13 @@ describe('MirrorPlayView smoke', () => {
     expect(t).toContain('sun')
     expect(t).toContain('太陽')
     expect(t).toContain('星') // 現在問題のヒント（日本語）
-    // 答え側（英語定義）の実文字は伏字（·）にされ、原文字列は現れない（打鍵済み3文字ぶん 'the' だけ開示）。
+    // 答え側（英語定義）の実文字は打鍵済みでも一切出さない（原文も打鍵済みプレフィックス 'the' も現れない）。
     expect(t).not.toContain('the star')
-    // 伏字マス（mch）で描いている。
+    expect(t).not.toContain('the')
+    // 伏字マス（mch）で描き、打鍵済みぶん（curPos=3）は filled マス(●)にする。
     expect(container.querySelector('.mch')).not.toBeNull()
+    expect(container.querySelector('.mch.filled')).not.toBeNull()
+    expect(t).toContain('●')
     // PlayMeta/StatsRow は持たない（上部の独立ヘッダバーへ集約）。
     expect(container.querySelector('.play-meta')).toBeNull()
     expect(container.querySelector('.progress-bar')).toBeNull()
