@@ -43,7 +43,11 @@ const nextWordsId = () => `words-${++wordsSessionSeq}`
 // #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
 //   （lazy 初期化で最初の render 時刻を startTime にする＝レース開始と同時に時間が進む）。未指定（solo）は
 //   従来どおり初回打鍵で開始＝挙動を一切変えない。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
+// #443 対戦：active（任意・既定 true）＝false ならキー入力を無視する（サドンデス脱落後に盤面を止める）。
+//   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
+// #447 対戦：saveRecord（任意・既定 true）＝false なら記録を保存しない（result は従来どおり作る）。
+//   対戦のプレイが solo の記録一覧/ベスト記録に混ざるのを防ぐ。未指定（solo）は保存する＝挙動不変。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true }) {
   const isCloze = learningMode === 'cloze'
   // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
   //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
@@ -183,11 +187,12 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
           },
         }),
       }
-      setRecords(saveWordRecord(record))
+      // #447 対戦（saveRecord=false）は保存もランキング更新もしない＝記録一覧に混ざらない。
+      if (saveRecord) setRecords(saveWordRecord(record))
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode],
+    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode, saveRecord],
   )
 
   useEffect(() => {
@@ -249,6 +254,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
       return true
     }
     const onKey = (e) => {
+      if (!active) return // #443 脱落後（対戦）は打鍵を一切処理しない
       if (e.key === 'Escape') {
         e.preventDefault()
         if (ec.kind === 'endless' && !finished && finishByEsc()) return
@@ -351,7 +357,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems, onProgress])
+  }, [active, finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems, onProgress])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。
@@ -376,8 +382,10 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, endTime, startedAt)
   }
+  // #443 対戦：active=false（脱落 or 対戦終了）でも計時を止める＝速度・経過が最後の値で確定する
+  //   （打鍵が止まっているのに分母だけ伸びて速度が下がり続けるのを防ぐ）。非対戦は active 既定 true で挙動不変。
   const { now, elapsedSec, liveSpeed: speedFor } = useCountdownTimer({
-    active: !finished,
+    active: active && !finished,
     startTime,
     onTimeout,
     limitMs,

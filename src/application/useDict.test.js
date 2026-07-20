@@ -197,4 +197,15 @@ describe('useDict エンドレス（#208 段6：ESC・30秒以上で記録）', 
     act(() => vi.advanceTimersByTime(MIN_RECORD_MS * 3)) // 90秒経過してもエンドレスは終わらない
     expect(h.result.current.finished).toBe(false)
   }, 20000)
+
+  // #443 対戦サドンデス脱落後：active:false ならキー入力を無視する（盤面が動かない）。
+  it('active:false のとき打鍵を無視する（typedKeys が増えない）', () => {
+    const h = renderHook(() =>
+      useDict({ dict: DICT, level: 1, theme: 'すべて', mode: 'ja', onExit: () => {}, active: false }),
+    )
+    const seg = h.result.current.segments[h.result.current.segIndex]
+    typeKey(seg.canonical[0]) // 正打候補を送っても無視される
+    expect(h.result.current.typedKeys).toBe(0)
+    expect(h.result.current.segInput).toBe('')
+  }, 20000)
 })

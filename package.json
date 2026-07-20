@@ -41,6 +41,7 @@
     "check:ci": "bash scripts/check-ci.sh",
     "check-bundle": "node scripts/check-bundle.mjs",
     "check:pwa": "node scripts/check-pwa.mjs",
+    "versus:e2e": "node scripts/versus-e2e.mjs",
     "audit": "npm audit --omit=dev --audit-level=high",
     "screenshots": "node scripts/screenshots.mjs",
     "shots:play": "node scripts/shots-play.mjs",
