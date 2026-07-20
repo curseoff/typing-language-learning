@@ -405,8 +405,10 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, t, startedAt)
   }
+  // #443 対戦：active=false（脱落 or 対戦終了）でも計時を止める＝速度・経過が最後の値で確定する
+  //   （打鍵が止まっているのに分母だけ伸びて速度が下がり続けるのを防ぐ）。非対戦は active 既定 true で挙動不変。
   const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({
-    active: !finished,
+    active: active && !finished,
     startTime,
     onTimeout,
     limitMs,
