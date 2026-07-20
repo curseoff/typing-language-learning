@@ -21,6 +21,7 @@ import { toProgressPayload } from '../../application/versus/versusPlay.policy.js
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
 import { isBoardActive } from '../../domain/versus/boardActivity.service.js'
+import { shouldWaitForOthers } from '../../domain/versus/waitingState.service.js'
 import { buildBoardPayload } from '../../domain/versus/boardMirror.service.js'
 import { buildMirrorSegments } from '../../application/versus/versusSegments.policy.js'
 import { pickMirrorSegIndex } from '../../domain/versus/mirrorCursor.service.js'
@@ -192,7 +193,12 @@ function MatchStage({ selfId, roster, self, progress, phase, initialLives, limit
       })()
     : members
   // 自分が完了かつ全員は未完了（＝相手待ち）のとき、待機案内を出す。
-  const waitingForOthers = (roster.peers[selfId]?.finished ?? false) && !allFinished(roster)
+  // #443 対戦終了後（phase==='finished'＝サドンデス決着含む）は待つ相手がいないので出さない。
+  const waitingForOthers = shouldWaitForOthers({
+    phase,
+    selfFinished: roster.peers[selfId]?.finished ?? false,
+    allFinished: allFinished(roster),
+  })
   const waiting = waitingForOthers && (
     <p className="vs-lead vs-match-waiting" role="status">
       相手の完了を待っています…
