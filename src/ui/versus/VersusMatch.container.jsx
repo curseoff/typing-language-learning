@@ -25,6 +25,7 @@ import { buildMirrorSegments } from '../../application/versus/versusSegments.pol
 import { pickMirrorSegIndex } from '../../domain/versus/mirrorCursor.service.js'
 import { rankMap } from '../../domain/versus/matchScore.service.js'
 import { suddenDeathOutcome } from '../../domain/versus/suddenDeath.service.js'
+import { nextKeyFor, wrongKeyFor } from '../../domain/typing/expectedKey.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
 import { rangeCount } from '../../domain/words/wordRange.service.js'
 import { hudEndFor } from '../../domain/session/learningSequence.service.js'
@@ -260,26 +261,96 @@ function useFinishBroadcast({ finished, lives, initialLives, typed, total, mista
   }, [finished, lives, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
 }
 
+// #443 サドンデス判定用のプレイヤー配列（[{ id, lives, correct }]）を組み立てる。
+// 自分ぶんは derived の権威値（selfLives/selfCorrect＝脱落後 latch で固定）、他人は受信 progress を読む。
+//   ※ 自分に progress[selfId] を使うと sendProgress の副作用 dispatch 待ちで derived と乖離する（#443 の不具合）。
+function suddenDeathPlayers({ roster, progress, selfId, selfLives, selfCorrect, initialLives }) {
+  return activeIds(roster).map((id) =>
+    id === selfId
+      ? { id, lives: selfLives, correct: selfCorrect }
+      : { id, lives: progress[id]?.lives ?? initialLives, correct: progress[id]?.correct ?? 0 },
+  )
+}
+
 // #443 サドンデス（life）のホスト権威終了判定。ホストだけが outcome 確定で endMatch を配布する。
 // 自分ぶんは derived の権威値（selfLives/selfCorrect＝freeze latch で脱落後も固定）を使い、他人は progress を読む。
 //   ※ top-level で progress[selfId] を読むと sendProgress の副作用 dispatch 待ち＝derived と乖離し、
 //     脱落側がホストのとき自分を「満ライフ生存」と誤認して永久 ongoing になる不具合の回避。
 // life 以外は何もしない（early return）。status（文字列）を deps に入れ、確定時のみ setTimeout(…,0) で endMatch。
 function useSuddenDeathHostEnd({ isHost, phase, endKind, roster, progress, selfId, selfLives, selfCorrect, initialLives, endMatch }) {
-  const players =
+  const status =
     endKind === 'life'
-      ? activeIds(roster).map((id) =>
-          id === selfId
-            ? { id, lives: selfLives, correct: selfCorrect }
-            : { id, lives: progress[id]?.lives ?? initialLives, correct: progress[id]?.correct ?? 0 },
-        )
-      : []
-  const status = endKind === 'life' ? suddenDeathOutcome(players).status : 'ongoing'
+      ? suddenDeathOutcome(suddenDeathPlayers({ roster, progress, selfId, selfLives, selfCorrect, initialLives })).status
+      : 'ongoing'
   useEffect(() => {
     if (endKind !== 'life' || !isHost || !endMatch || phase !== 'running' || status === 'ongoing') return
     const id = setTimeout(() => endMatch(), 0)
     return () => clearTimeout(id)
   }, [isHost, endMatch, endKind, phase, status])
+}
+
+// #446 DEV 限定フック（window.__tllVersus）用：現在セグメントから打鍵対象（target/kana/入力途中）を取り出す。
+// seg は buildUnits 由来（type='en' は英字を、type='ja' は読み(kana)をローマ字で打つ）。segInput は現在セグの入力途中。
+// 問題文そのものは外へ返さない（expectedKeyFor が返すのは1キーのみ）。
+function currentTypingTarget(segments, segIndex, segInput) {
+  const seg = segments?.[segIndex]
+  if (!seg) return null
+  const input = typeof segInput === 'string' ? segInput : ''
+  return seg.type === 'ja' ? { target: seg.ja, kana: seg.kana, input } : { target: seg.en, kana: null, input }
+}
+
+// #446 DEV 限定の読み取り専用フック（window.__tllVersus）を登録する。
+// 2ブラウザ E2E ドライバが「今どういう局面か」「次に打つべき/必ず外すキー」を知るためだけの窓口で、
+// アプリの状態を書き換える API は生やさない。返すのは数値・id・1キーのみ（問題文や答えは出さない）。
+//   snapshot() … { selfId, isHost, phase, endKind, initialLives, self, others, outcome }
+//                 self は derived の権威値（progress[selfId] を読むと #443 と同じ二重ソース非対称になる）。
+//   nextKey()  … 打てば正解として1つ進むキー（無ければ null）／wrongKey() … 必ずミスになるキー（同）。
+// 最新値は ref 経由で読む（毎レンダー後に差し替え）＝登録はマウント時 1 回だけ・アンマウントで削除する。
+// import.meta.env.DEV は本番ビルドで false 定数になり、この経路ごと（expectedKey サービス含め）落ちる。
+function useVersusDevHook(state) {
+  const ref = useRef(state)
+  useEffect(() => {
+    ref.current = state
+  })
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    window.__tllVersus = {
+      snapshot: () => {
+        const s = ref.current
+        const players = suddenDeathPlayers(s)
+        return {
+          selfId: s.selfId,
+          isHost: s.isHost,
+          phase: s.phase,
+          endKind: s.endKind,
+          initialLives: s.initialLives ?? null,
+          self: { lives: s.selfLives, correct: s.selfCorrect, typed: s.typed, mistakes: s.mistakes },
+          others: activeIds(s.roster)
+            .filter((id) => id !== s.selfId)
+            .map((id) => ({
+              id,
+              lives: s.progress[id]?.lives ?? null,
+              correct: s.progress[id]?.correct ?? 0,
+              hasProgress: !!s.progress[id],
+            })),
+          outcome: s.endKind === 'life' ? suddenDeathOutcome(players) : { status: 'ongoing' },
+        }
+      },
+      nextKey: () => {
+        const s = ref.current
+        const t = currentTypingTarget(s.segments, s.segIndex, s.segInput)
+        return t ? nextKeyFor(t) : null
+      },
+      wrongKey: () => {
+        const s = ref.current
+        const t = currentTypingTarget(s.segments, s.segIndex, s.segInput)
+        return t ? wrongKeyFor(t) : null
+      },
+    }
+    return () => {
+      delete window.__tllVersus
+    }
+  }, [])
 }
 
 // 手元スナップショット（onProgress 由来の correct/lives）を保持し、進捗を配信する共通フック。
@@ -395,6 +466,12 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     active: !eliminated,
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
+  // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
+  useVersusDevHook({
+    selfId, isHost, phase, endKind: config.endCondition.kind, roster, progress, initialLives,
+    selfLives: derived.lives, selfCorrect: derived.correct, typed: d.typedKeys, mistakes: d.mistakes,
+    segments: d.segments, segIndex: d.segIndex, segInput: d.segInput,
+  })
   useLiveRefSync(liveRef, d.liveSpeed, d.elapsedSec)
   useFinishBroadcast({ finished: d.finished, lives: derived.lives, initialLives, typed: d.typedKeys, total, mistakes: d.mistakes, correct: derived.correct, speed: d.liveSpeed, elapsedSec: d.elapsedSec, sendProgress, sendFinished })
 
@@ -475,6 +552,12 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
     autoStart: true,
     active: !eliminated,
+  })
+  // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
+  useVersusDevHook({
+    selfId, isHost, phase, endKind: config.endCondition.kind, roster, progress, initialLives,
+    selfLives: derived.lives, selfCorrect: derived.correct, typed: w.typedKeys, mistakes: w.mistakes,
+    segments: w.segments, segIndex: w.segIndex, segInput: w.segInput,
   })
   useLiveRefSync(liveRef, w.liveSpeed, w.elapsedSec)
   useFinishBroadcast({ finished: w.finished, lives: derived.lives, initialLives, typed: w.typedKeys, total, mistakes: w.mistakes, correct: derived.correct, speed: w.liveSpeed, elapsedSec: w.elapsedSec, sendProgress, sendFinished })
@@ -576,6 +659,12 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
+  useVersusDevHook({
+    selfId, isHost, phase, endKind: config.endCondition.kind, roster, progress, initialLives,
+    selfLives: derived.lives, selfCorrect: derived.correct, typed: m.typedKeys, mistakes: m.mistakes,
+    segments: m.segments, segIndex: m.segIndex, segInput: m.segInput,
+  })
   useLiveRefSync(liveRef, m.liveSpeed, m.elapsedSec)
   // サドンデス脱落での終了（onFinish は個人完走用）。誰か lives0 なら 最終 progress→sendFinished で収束させる最小対応。
   useFinishBroadcast({ finished: false, lives: derived.lives, initialLives, typed: m.typedKeys, total, mistakes: m.mistakes, correct: derived.correct, speed: m.liveSpeed, elapsedSec: m.elapsedSec, sendProgress, sendFinished })
