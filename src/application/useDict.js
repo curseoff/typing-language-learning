@@ -22,6 +22,8 @@ import { loadDictRecords, saveDictRecord, recordItemStat } from './records.servi
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
+import { segMaskLen } from '../domain/versus/progressMask.service.js'
+import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
@@ -64,7 +66,14 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 // #364 range 有り（英英固定範囲）＝範囲内を freq 順で決定的に流し record.range に往復させる。
 // #402 learningMode='cloze'（英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、穴埋めフェーズは
 //   定義文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。英語を打つモード（en/both）のみ。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit }) {
+// #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する。
+//   ハンドラ内（ref 読み許可の場所）から { typed, mistakes, segStats, currentMistakes } を渡す。
+//   未指定（既定 undefined）は従来と完全に同一挙動＝通常プレイは一切影響を受けない（後方互換）。
+// #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
+//   （startTime を performance.now() で即セット＝レース開始＝カウントダウン終了と同時に時間が進む）。
+//   未指定（solo プレイ）は従来どおり初回打鍵で開始＝挙動を一切変えない。effect で同期 setState すると
+//   cascading render 警告になるため、lazy 初期化で最初の render 時刻を startTime とする（＝マウント時計時開始）。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -101,14 +110,14 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [segMistaken, setSegMistaken] = useState(false) // 現在問題でミスがあったか（cloze の正解開示用）
-  const [startTime, setStartTime] = useState(null)
+  const [startTime, setStartTime] = useState(() => (autoStart ? performance.now() : null))
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const startTimeRef = useRef(null) // 進捗 finish 用の開始時刻（startTime と同値）
+  const startTimeRef = useRef(startTime) // 進捗 finish 用の開始時刻（startTime と同値。autoStart 時は初期値も揃える）
 
   // 打鍵数(keys)とミス数(mistakes)を保持する可変 Entity（部分採用）。器の endCondition VO は
   // ダミー（finish 判定には使わない＝session.finish()/isFinished() は呼ばない）。Factory と VO は初回のみ生成。
@@ -335,8 +344,34 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
+      // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      // #437 伏せ字マスバー用：今打っている対象（seg）の実長 curPos/curLen とミス中フラグ miss を載せる。
+      //   正打なら接頭辞＝候補（完了時は完成解＝満杯）、ミスなら据え置きの直近正解接頭辞（segInput）。
+      if (onProgress) {
+        const pp = sessionRef.current.progress()
+        const wasHit = seg.variants.some((v) => v.startsWith(candidate))
+        const prefix = wasHit ? candidate : segInput
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix })
+        // #439 道Y：qIndex（相手問題列の突合キー）・打鍵側 typedSide・TopFlow 表示単位進捗 boardCurPos
+        //   （en=空白込み char／ja=かな消費数＝受信側 MirrorPlayView の curPos に一致）を載せる。
+        //   ※board 材料（word/en/ja/kana＝方式B）は PR-E で撤去予定。受信側の本物 TopFlow 再構成では未使用。
+        const cur = mirrorCursor({ seg, segInput: prefix })
+        onProgress({
+          typed: pp.keys,
+          mistakes: pp.mistakes,
+          segStats: segTrackerRef.current.list,
+          currentMistakes: segTrackerRef.current.mistakes,
+          curPos,
+          curLen,
+          miss: !wasHit,
+          qIndex: seg.sentenceIndex,
+          typedSide: cur.typedSide,
+          boardCurPos: cur.curPos,
+          board: { word: seg.word, en: seg.en, ja: seg.ja, kana: seg.kana },
+        })
+      }
     },
-    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession],
+    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
   )
 
   useEffect(() => {

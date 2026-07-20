@@ -119,11 +119,15 @@ async function navigationFallback(event) {
     (await cache.match(new URL('index.html', scope).href, opts)) ||
     (await cache.match(new URL('404.html', scope).href, opts))
   if (cachedShell) {
-    // cache-first：即返し。背景でネットワークから shell を更新（失敗は無視）。
+    // cache-first：即返し。背景でネットワークから shell（root）を取得して更新（失敗は無視）。
+    // #422 取得先は常に shell URL（scope 直下 './'）。deep-link の event.request
+    // （例 /words/1/すべて/en）は静的ホストで 404 になり shell 更新に使えないうえ、
+    // DevTools に紛らわしい 404 を残すため。
+    const shellUrl = new URL('./', scope).href
     event.waitUntil(
-      fetch(event.request)
+      fetch(shellUrl)
         .then((res) => {
-          if (res && res.ok) return cache.put(new URL('./', scope).href, res.clone())
+          if (res && res.ok) return cache.put(shellUrl, res.clone())
         })
         .catch(() => {}),
     )

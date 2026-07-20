@@ -187,21 +187,40 @@ export interface MaskedTextProps {
   text: string
   pos: number
   hasError?: boolean
+  fullMask?: boolean // #439 相手盤面複製：打鍵済みも実文字を出さず filled(●) にする（カンニング防止）。既定 false＝従来。
 }
 
-// 翻訳モードの伏せ字（打った分だけ現れる）
-export function MaskedText({ text, pos, hasError }: MaskedTextProps) {
+// 翻訳モードの伏せ字（打った分だけ現れる）。
+// fullMask=true（相手盤面ミラー）では打鍵済みも実文字を出さず、pos までを filled(●)・以降を pending(·)・
+// カーソル位置(pos)を '·'（miss で赤）にする＝答えの綴りは一切 DOM に出さない。空白は字送り維持のため ' '。
+export function MaskedText({ text, pos, hasError, fullMask = false }: MaskedTextProps) {
   return [...text].map((ch, i) => {
     const typed = i < pos
     const isCursor = i === pos
+    const isSpace = ch === ' '
     let cls = 'mch'
     let disp
-    if (typed) {
+    if (fullMask) {
+      if (isSpace) {
+        // 語間の空白は伏字にせず字送りだけ保つ（filled/pending どちらでも中身は空白）。
+        cls += typed ? ' filled' : ' hidden'
+        disp = ' '
+      } else if (isCursor) {
+        cls += hasError ? ' mcur err' : ' mcur'
+        disp = '·'
+      } else if (typed) {
+        cls += ' filled'
+        disp = '●'
+      } else {
+        cls += ' hidden'
+        disp = '·'
+      }
+    } else if (typed) {
       cls += ' typed'
       disp = ch
     } else {
       cls += isCursor ? (hasError ? ' mcur err' : ' mcur') : ' hidden'
-      disp = ch === ' ' ? ' ' : '·'
+      disp = isSpace ? ' ' : '·'
     }
     return (
       <span key={i} className={cls}>
@@ -325,12 +344,43 @@ export interface MaskedRubyProps {
   done: number
   kanaDone?: number
   hasError?: boolean
+  fullMask?: boolean // #439 相手盤面複製：漢字/かな/ルビを一切出さず、かな消費数(kanaDone)ぶんの filled(●) だけを見せる。
 }
 
 // ルビ付きの伏せ字（#402 穴埋めをフロー内で in-place 表示）。MaskedText と同じ mch 体裁で、
 // 本体(漢字/かな)は done 位置までを現し、ふりがな(rt)は kanaDone 位置までを現す。
 // done=0/kanaDone=0 なら全て伏字（future 語向け）。hasError で今打つ本体文字をカーソル赤に。
-export function MaskedRuby({ ja, kana, done, kanaDone = 0, hasError = false }: MaskedRubyProps) {
+// fullMask=true（相手盤面ミラー）では漢字/かな/ルビを一切 DOM に出さず、かな単位のマス列だけを描く
+// （方式B の maskBoardCells と同粒度）：かな消費数(kanaDone)まで filled(●)・以降 pending(·)・
+// カーソル(kanaDone)を '·'（miss で赤）。ルビ(rt)は出さない。kanaDone<0 は future 語＝カーソルも出さない。
+export function MaskedRuby({ ja, kana, done, kanaDone = 0, hasError = false, fullMask = false }: MaskedRubyProps) {
+  if (fullMask) {
+    return [...kana].map((kc, i) => {
+      const typed = i < kanaDone
+      const isCursor = i === kanaDone
+      const isSpace = kc === ' '
+      let cls = 'mch'
+      let disp
+      if (isSpace) {
+        cls += typed ? ' filled' : ' hidden'
+        disp = ' '
+      } else if (isCursor) {
+        cls += hasError ? ' mcur err' : ' mcur'
+        disp = '·'
+      } else if (typed) {
+        cls += ' filled'
+        disp = '●'
+      } else {
+        cls += ' hidden'
+        disp = '·'
+      }
+      return (
+        <span key={i} className={cls}>
+          {disp}
+        </span>
+      )
+    })
+  }
   const bodyChar = (ch: string, gi: number) => {
     const typed = gi < done
     const isCursor = gi === done

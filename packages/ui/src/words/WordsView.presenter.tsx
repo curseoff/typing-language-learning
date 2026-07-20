@@ -34,6 +34,7 @@ export interface WordTypeViewProps {
   segInput: string
   hasError: boolean
   clozeRevealed?: boolean // #402 現在語でミスがあり正解を開示中か
+  versus?: boolean // #439 対戦: PlayMeta と StatsRow を出さない（上部の独立ヘッダバーへ集約）。solo は既定 false＝全部出す。
 }
 
 // 入力モード（英語/日本語/英語・日本語）。文章モードと同じ上部フロー＋下部本文。
@@ -53,26 +54,31 @@ export function WordTypeView({
   segInput,
   hasError,
   clozeRevealed = false,
+  versus = false,
 }: WordTypeViewProps) {
   // #402 穴埋め（cloze）でも通常プレイ画面（ティッカー）のまま。対象語だけを Flow 内で伏字にする。
   const cur = segments[segIndex] as (TopSeg & { cloze?: boolean }) | undefined
   const isCloze = !!cur?.cloze
   return (
     <div className="game">
-      <PlayMeta levelLabel={levelLabel} sub={metaSub} />
+      {/* #439 対戦は PlayMeta を出さない（上部の独立ヘッダバーへ集約）。solo は従来どおり出す。 */}
+      {!versus && <PlayMeta levelLabel={levelLabel} sub={metaSub} />}
       {finished ? (
         resultNode
       ) : (
         <>
-          <StatsRow
-            stats={[
-              { label: 'タイピング数', value: `${typedKeys}` },
-              { label: '速度', value: `${liveSpeed} 打/分` },
-              { label: 'ミス', value: mistakes },
-              { label: endStatLabel, value: endStatValue },
-            ]}
-            progress={progress}
-          />
+          {/* #439 対戦は StatsRow を出さない（時間/進捗はヘッダバー・数値はカードへ分離）。solo は 4 枠を維持。 */}
+          {!versus && (
+            <StatsRow
+              stats={[
+                { label: 'タイピング数', value: `${typedKeys}` },
+                { label: '速度', value: `${liveSpeed} 打/分` },
+                { label: 'ミス', value: mistakes },
+                { label: endStatLabel, value: endStatValue },
+              ]}
+              progress={progress}
+            />
+          )}
           <TopFlow
             segments={segments}
             segIndex={segIndex}

@@ -1,0 +1,75 @@
+// #426 対戦基盤スライス1：イミュータブルな参加者名簿（roster）。
+// 純ドメイン：React/DOM/乱数 非依存・副作用なし・決定的。全 API は入力非破壊で新オブジェクトを返す。
+//
+// 内部表現：
+//   { order: [id,...],                    … 追加順を保つ id 配列（left でも残す＝順序台帳）
+//     peers: { [id]: { self, left, finished } } }  … 参加者ごとの状態
+// self … 自分自身か（remove しても残る）／left … 離脱したか（activeIds から除外）／finished … 完了したか。
+
+// 参加者1人ぶんの初期状態を作る。name は表示名（省略時は無し＝nullish）。
+function makePeer(self, name) {
+  return { self, left: false, finished: false, name: name ?? null }
+}
+
+// 自分（selfId）だけを含む名簿を作る。
+export function makeRoster(selfId) {
+  return {
+    order: [selfId],
+    peers: { [selfId]: makePeer(true) },
+  }
+}
+
+// 参加者を追加する（冪等：既存 id・自分自身の再追加は順序不変）。
+// name を新たに与えた再 add は表示名だけ更新する（順序・self/left/finished は不変）。
+export function addPeer(roster, peerId, name) {
+  const existing = roster.peers[peerId]
+  if (existing) {
+    const peers = { ...roster.peers }
+    if (name != null && name !== existing.name) peers[peerId] = { ...existing, name }
+    return { order: [...roster.order], peers }
+  }
+  return {
+    order: [...roster.order, peerId],
+    peers: { ...roster.peers, [peerId]: makePeer(false, name) },
+  }
+}
+
+// 参加者を離脱（left）させる。不在 id は不変。自分（self）は remove しても残す。
+export function removePeer(roster, peerId) {
+  const peer = roster.peers[peerId]
+  if (!peer || peer.self) return { order: [...roster.order], peers: { ...roster.peers } }
+  return {
+    order: [...roster.order],
+    peers: { ...roster.peers, [peerId]: { ...peer, left: true } },
+  }
+}
+
+// 参加者を完了（finished）マークする。不在 id は不変。active 判定（activeIds）には残る。
+export function markFinished(roster, peerId) {
+  const peer = roster.peers[peerId]
+  if (!peer) return { order: [...roster.order], peers: { ...roster.peers } }
+  return {
+    order: [...roster.order],
+    peers: { ...roster.peers, [peerId]: { ...peer, finished: true } },
+  }
+}
+
+// 全 peer の完了フラグ（finished）を false に戻した新 roster を返す（#432 ナビ改善）。
+// 次戦へ備える再戦リセット用。order・self・left・name は保持し、finished だけ落とす（入力非破壊）。
+export function resetFinished(roster) {
+  const peers = {}
+  for (const id of roster.order) peers[id] = { ...roster.peers[id], finished: false }
+  return { order: [...roster.order], peers }
+}
+
+// 離脱していない参加者の id を追加順で返す。
+export function activeIds(roster) {
+  return roster.order.filter((id) => !roster.peers[id].left)
+}
+
+// active が1人以上かつ active 全員が完了なら true（active 0 は false）。
+export function allFinished(roster) {
+  const active = activeIds(roster)
+  if (active.length === 0) return false
+  return active.every((id) => roster.peers[id].finished)
+}

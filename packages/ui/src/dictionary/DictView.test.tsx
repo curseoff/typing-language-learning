@@ -36,6 +36,42 @@ describe('DictTypeView smoke', () => {
     )
     expect(container.textContent).toContain('dictionary')
   })
+
+  it('versus（対戦）：PlayMeta と StatsRow を出さない（上部の独立ヘッダバーへ集約）', () => {
+    const segments = [
+      { type: 'en' as const, en: 'a book that lists words and their meanings', ja: '', kana: '', sentenceIndex: 0 },
+    ]
+    const { container } = render(
+      <DictTypeView
+        levelLabel="L1"
+        metaSub="英英 / 英語入力 / すべて"
+        finished={false}
+        resultNode={null}
+        typedKeys={96}
+        liveSpeed={230}
+        mistakes={3}
+        endStatLabel="残り"
+        endStatValue="30秒"
+        progress={0.55}
+        word="dictionary"
+        wordJa="辞書"
+        hintLead="この語を英語で説明した文を打ちます。"
+        segments={segments}
+        segIndex={0}
+        segInput="a book that l"
+        hasError={false}
+        versus
+      />,
+    )
+    // versus は StatsRow（.stat/.progress-bar）も PlayMeta（.play-meta）も出さない。
+    expect(container.querySelectorAll('.stat')).toHaveLength(0)
+    expect(container.querySelector('.progress-bar')).toBeNull()
+    expect(container.querySelector('.play-meta')).toBeNull()
+    expect(container.textContent).not.toContain('タイピング数')
+    // 見出し語とティッカー（.flow）は versus でも出す。
+    expect(container.textContent).toContain('dictionary')
+    expect(container.querySelector('.flow')).not.toBeNull()
+  })
 })
 
 describe('DictQuizView smoke', () => {

@@ -68,6 +68,10 @@
 .mch.typed {
   color: var(--green);
 }
+/* #439 相手盤面ミラー：打鍵済みマス（●）。実文字は出さず filled マスだけで進捗を示す（MaskBoard と同じ accent）。 */
+.mch.filled {
+  color: var(--accent);
+}
 .mch.mcur {
   color: #06283d;
   background: var(--accent);

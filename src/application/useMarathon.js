@@ -19,6 +19,8 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.pol
 import { recordItemStat } from './records.service.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { firstTryCorrectCount, segmentScore, missedItemCount } from '../domain/records/segmentStats.service.js'
+import { segMaskLen } from '../domain/versus/progressMask.service.js'
+import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -40,7 +42,12 @@ const maskRngFactory = (seed) => (item) => clozeMaskRng(seed, item.en)
 // #402 learningMode='cloze'（例文/英英の穴埋め）＝5問ブロックで通常→穴埋めを交互に出し、
 //   穴埋めフェーズは打鍵対象文の内容語 1〜3 語を伏字にする。normal は従来と完全に同一。
 //   cloze は通常入力（en/both/ja）で有効。ja は和文の内容語を jaWords 境界でマスク。翻訳は normal。
-export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal' }) {
+// #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する（useDict と同形）。
+//   未指定（既定 undefined）は従来と完全に同一挙動（後方互換）。
+// #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
+//   （lazy 初期化で最初の render 時刻を startTime／startTimeRef にする＝レース開始と同時に時間が進む）。
+//   未指定（solo）は従来どおり初回打鍵で開始＝挙動を一切変えない。
+export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal', onProgress, autoStart = false }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -57,7 +64,7 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
   const [missedItems, setMissedItems] = useState(0) // ミスした問題数（life 制HUD用の live 値）
   const [hasError, setHasError] = useState(false)
   const [segMistaken, setSegMistaken] = useState(false) // 現在問題でミスがあったか（cloze の正解開示用）
-  const [startTime, setStartTime] = useState(null)
+  const [startTime, setStartTime] = useState(() => (autoStart ? performance.now() : null))
 
   const segStartRef = useRef(null) // 現在の問題の開始時刻
   const segMistakesRef = useRef(0) // 現在の問題のミス数
@@ -66,7 +73,7 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
   const poolRef = useRef([]) // 出題プール（継ぎ足し用に保持）
   const trackerRef = useRef(newTracker()) // 問題ごとの累積記録（文単位）
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
-  const startTimeRef = useRef(null) // 時間切れ finish 用に開始時刻を effect から参照する
+  const startTimeRef = useRef(startTime) // 時間切れ finish 用に開始時刻を effect から参照する（autoStart 時は初期値も揃える）
 
   // 打鍵数(keys)とミス数(mistakes)を保持する可変 Entity（部分採用）。器の endCondition VO は
   // ダミー（finish 判定には使わない＝session.finish()/isFinished() は呼ばない）。Factory と VO は初回のみ生成。
@@ -102,14 +109,17 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
     setMissedItems(0)
     setHasError(false)
     setSegMistaken(false)
-    setStartTime(null)
+    // #432 対戦（autoStart）：start は出題開始＝レース開始なので、autoStart 時は初回打鍵を待たず
+    // ここから計時を始める（startTime を即セット）。solo（autoStart 未指定）は従来どおり null＝初回打鍵で開始。
+    const startAt = autoStart ? performance.now() : null
+    setStartTime(startAt)
     segStartRef.current = null
     segMistakesRef.current = 0
     segStatsRef.current = []
     trackerRef.current = newTracker()
     finishedRef.current = false
-    startTimeRef.current = null
-  }, [factory, sessionEnd, syncSession, isCloze, learningMode])
+    startTimeRef.current = startAt
+  }, [factory, sessionEnd, syncSession, isCloze, learningMode, autoStart])
 
   const finish = useCallback(
     (keys, totalMistakes, endTime, startedAt) => {
@@ -274,8 +284,32 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
         const pm = sessionRef.current.progress()
         finishByProgress(performance.now(), pm.keys, completed.length, pm.mistakes, seg, segInput.length)
       }
+      // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      // #437 伏せ字マスバー用：今打っている対象（seg）の実長 curPos/curLen とミス中フラグ miss を載せる。
+      if (onProgress) {
+        const pp = sessionRef.current.progress()
+        const wasHit = seg.variants.some((v) => v.startsWith(candidate))
+        const prefix = wasHit ? candidate : segInput
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix })
+        // #439 道Y：qIndex・打鍵側 typedSide・TopFlow 表示単位進捗 boardCurPos（en=空白込み char／ja=かな消費数
+        //   ＝受信側 MirrorPlayView の curPos に一致）を載せる。※board 材料（方式B）は PR-E で撤去予定・受信側未使用。
+        const cur = mirrorCursor({ seg, segInput: prefix })
+        onProgress({
+          typed: pp.keys,
+          mistakes: pp.mistakes,
+          segStats: segStatsRef.current,
+          currentMistakes: segMistakesRef.current,
+          curPos,
+          curLen,
+          miss: !wasHit,
+          qIndex: seg.sentenceIndex,
+          typedSide: cur.typedSide,
+          boardCurPos: cur.curPos,
+          board: { word: seg.word, en: seg.en, ja: seg.ja, kana: seg.kana },
+        })
+      }
     },
-    [segments, segIndex, segInput, completed, finishByProgress, syncSession],
+    [segments, segIndex, segInput, completed, finishByProgress, syncSession, onProgress],
   )
 
   useEffect(() => {

@@ -21,6 +21,8 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.pol
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
+import { segMaskLen } from '../domain/versus/progressMask.service.js'
+import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -36,7 +38,12 @@ const nextWordsId = () => `words-${++wordsSessionSeq}`
 // #362 range 有り（単語固定範囲）＝範囲内を freq 順で決定的に出題し、record.range に往復させる。
 // #402 learningMode='cloze'＝5問ブロックで「通常→穴埋め」を交互に出す（問題数制は2倍が実効目標）。
 //   normal（既定）は従来と完全に同一挙動（tag も cloze も掛けない）。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit }) {
+// #432 対戦：onProgress（任意）＝打鍵ごとに手元の進捗スナップショットを外へ通知する（useDict と同形）。
+//   未指定（既定 undefined）は従来と完全に同一挙動（後方互換）。
+// #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
+//   （lazy 初期化で最初の render 時刻を startTime にする＝レース開始と同時に時間が進む）。未指定（solo）は
+//   従来どおり初回打鍵で開始＝挙動を一切変えない。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
   const isCloze = learningMode === 'cloze'
   // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
   //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
@@ -89,7 +96,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
-  const [startTime, setStartTime] = useState(null)
+  const [startTime, setStartTime] = useState(() => (autoStart ? performance.now() : null))
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
@@ -317,10 +324,34 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         const pm = sessionRef.current.progress()
         finishByProgress(t, pm.keys, completed.length, pm.mistakes, input.length)
       }
+      // #432 対戦：この打鍵後の手元の進捗を外へ通知（ハンドラ内なので ref 読みは安全）。
+      // #437 伏せ字マスバー用：今打っている対象（seg）の実長 curPos/curLen とミス中フラグ miss を載せる。
+      if (onProgress) {
+        const pp = sessionRef.current.progress()
+        const wasHit = segMatches(seg, candidate)
+        const prefix = wasHit ? candidate : input
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix })
+        // #439 道Y：qIndex・打鍵側 typedSide・TopFlow 表示単位進捗 boardCurPos（en=空白込み char／ja=かな消費数
+        //   ＝受信側 MirrorPlayView の curPos に一致）を載せる。※board 材料（方式B）は PR-E で撤去予定・受信側未使用。
+        const cur = mirrorCursor({ seg, segInput: prefix })
+        onProgress({
+          typed: pp.keys,
+          mistakes: pp.mistakes,
+          segStats: segTrackerRef.current.list,
+          currentMistakes: segTrackerRef.current.mistakes,
+          curPos,
+          curLen,
+          miss: !wasHit,
+          qIndex: seg.sentenceIndex,
+          typedSide: cur.typedSide,
+          boardCurPos: cur.curPos,
+          board: { word: seg.word, en: seg.en, ja: seg.ja, kana: seg.kana },
+        })
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems])
+  }, [finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems, onProgress])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。
