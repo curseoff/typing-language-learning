@@ -472,6 +472,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     // 対戦はレース開始（この PlayArea のマウント＝カウントダウン終了）と同時に計時を始める（初回打鍵を待たない）。
     autoStart: true,
     active: isBoardActive({ phase, eliminated }),
+    // #447 対戦のプレイは記録を保存しない（solo の記録一覧/ベスト記録に混ざるのを防ぐ）。
+    saveRecord: false,
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
   // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
@@ -561,6 +563,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
     autoStart: true,
     active: isBoardActive({ phase, eliminated }),
+    // #447 対戦のプレイは記録を保存しない（solo の記録一覧/ベスト記録に混ざるのを防ぐ）。
+    saveRecord: false,
   })
   // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
   useVersusDevHook({

@@ -45,7 +45,9 @@ const nextWordsId = () => `words-${++wordsSessionSeq}`
 //   従来どおり初回打鍵で開始＝挙動を一切変えない。
 // #443 対戦：active（任意・既定 true）＝false ならキー入力を無視する（サドンデス脱落後に盤面を止める）。
 //   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true }) {
+// #447 対戦：saveRecord（任意・既定 true）＝false なら記録を保存しない（result は従来どおり作る）。
+//   対戦のプレイが solo の記録一覧/ベスト記録に混ざるのを防ぐ。未指定（solo）は保存する＝挙動不変。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true }) {
   const isCloze = learningMode === 'cloze'
   // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
   //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
@@ -185,11 +187,12 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
           },
         }),
       }
-      setRecords(saveWordRecord(record))
+      // #447 対戦（saveRecord=false）は保存もランキング更新もしない＝記録一覧に混ざらない。
+      if (saveRecord) setRecords(saveWordRecord(record))
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode],
+    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode, saveRecord],
   )
 
   useEffect(() => {

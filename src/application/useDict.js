@@ -75,7 +75,9 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 //   cascading render 警告になるため、lazy 初期化で最初の render 時刻を startTime とする（＝マウント時計時開始）。
 // #443 対戦：active（任意・既定 true）＝false ならキー入力を無視する（サドンデス脱落後に盤面を止める）。
 //   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true }) {
+// #447 対戦：saveRecord（任意・既定 true）＝false なら記録を保存しない（result は従来どおり作る）。
+//   対戦のプレイが solo の記録一覧/ベスト記録に混ざるのを防ぐ。未指定（solo）は保存する＝挙動不変。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -198,11 +200,12 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
           },
         }),
       }
-      setRecords(saveDictRecord(record))
+      // #447 対戦（saveRecord=false）は保存もランキング更新もしない＝記録一覧に混ざらない。
+      if (saveRecord) setRecords(saveDictRecord(record))
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode],
+    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode, saveRecord],
   )
 
   // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
