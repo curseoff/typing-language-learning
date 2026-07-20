@@ -23,7 +23,7 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.pol
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { segMaskLen } from '../domain/versus/progressMask.service.js'
-import { boardCursor } from '../domain/versus/boardMirror.service.js'
+import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
@@ -352,9 +352,10 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         const wasHit = seg.variants.some((v) => v.startsWith(candidate))
         const prefix = wasHit ? candidate : segInput
         const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix })
-        // #439 盤面複製（方式B）：qIndex（board との突合キー）・打鍵側 typedSide・表示単位進捗 boardCurPos（en=char/ja=kana）を載せる。
-        // board 材料（word/en/ja/kana）は in-process だけ渡し、ワイヤーへ出す構造化（hint 非答え側/answerShape 長さ）は container が行う。
-        const cur = boardCursor({ seg, segInput: prefix })
+        // #439 道Y：qIndex（相手問題列の突合キー）・打鍵側 typedSide・TopFlow 表示単位進捗 boardCurPos
+        //   （en=空白込み char／ja=かな消費数＝受信側 MirrorPlayView の curPos に一致）を載せる。
+        //   ※board 材料（word/en/ja/kana＝方式B）は PR-E で撤去予定。受信側の本物 TopFlow 再構成では未使用。
+        const cur = mirrorCursor({ seg, segInput: prefix })
         onProgress({
           typed: pp.keys,
           mistakes: pp.mistakes,
