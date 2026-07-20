@@ -194,11 +194,12 @@ interface PairFlowProps {
   activeRow: 'en' | 'ja' | null
   frac: number
   clozeRevealed: boolean
+  maskRow?: 'en' | 'ja' // #439 相手盤面複製：この行を全面伏字（答え側だけ隠す）。cloze 個別伏字より優先。
 }
 
 // both(英語・日本語)用：英語と和訳を1つの「ペア」にまとめ、横一列に交互に並べる。
 // #402 穴埋め：both は語ごとに clozeSide で英語 or 読みの「片側だけ」を伏字にする（両側同時には伏せない）。
-function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow, frac, clozeRevealed }: PairFlowProps) {
+function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow, frac, clozeRevealed, maskRow }: PairFlowProps) {
   const { trackRef, stripRef, curRef } = useTickerScroll(frac, cur, items.length)
   const renderJa = (it: FlowItem, isCur: boolean) =>
     it.kana ? (
@@ -220,24 +221,36 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
     )
   // 穴埋め伏字（en/ja）。current は打った分を現し、future は全伏字。revealed で正解を露出。
   // 開示（ミス）時は通常の現在語表示（Typed/renderJa）と同一の見た目にする＝表示方式を変えない(#402)。
-  const maskEn = (it: FlowItem, isCur: boolean) =>
-    isCur && clozeRevealed ? (
+  // full=true（#439 maskRow＝相手盤面）は打鍵済みも実文字を出さず filled マスに（reveal もしない）。
+  const maskEn = (it: FlowItem, isCur: boolean, full = false) =>
+    isCur && clozeRevealed && !full ? (
       <Typed text={it.en} done={enDone} hasError={activeRow === 'en' && hasError} />
     ) : (
-      <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && activeRow === 'en' && hasError} />
+      <MaskedText
+        text={it.en}
+        pos={isCur ? enDone : -1}
+        hasError={isCur && activeRow === 'en' && hasError}
+        fullMask={full}
+      />
     )
-  const maskJa = (it: FlowItem, isCur: boolean) => {
-    if (isCur && clozeRevealed) return renderJa(it, true)
+  const maskJa = (it: FlowItem, isCur: boolean, full = false) => {
+    if (isCur && clozeRevealed && !full) return renderJa(it, true)
     return it.kana ? (
       <MaskedRuby
         ja={it.ja}
         kana={it.kana}
-        done={isCur ? jaDone : 0}
-        kanaDone={isCur ? jaKanaDone : 0}
+        done={isCur ? jaDone : full ? -1 : 0}
+        kanaDone={isCur ? jaKanaDone : full ? -1 : 0}
         hasError={isCur && activeRow === 'ja' && hasError}
+        fullMask={full}
       />
     ) : (
-      <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && activeRow === 'ja' && hasError} />
+      <MaskedText
+        text={it.ja}
+        pos={isCur ? jaDone : -1}
+        hasError={isCur && activeRow === 'ja' && hasError}
+        fullMask={full}
+      />
     )
   }
   return (
@@ -261,7 +274,10 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                 className={`flow-pair ${state}`}
               >
                 <span className={`pair-en ${isCur && activeRow === 'en' ? 'typing' : ''}`}>
-                  {rangesHere ? (
+                  {/* #439 相手盤面複製：maskRow は行全体を全面伏字（実文字を出さない・cloze 個別より優先）。 */}
+                  {maskRow === 'en' ? (
+                    maskEn(it, isCur, true)
+                  ) : rangesHere ? (
                     <MaskedSentence
                       text={it.en}
                       ranges={rangesHere}
@@ -278,7 +294,11 @@ function PairFlow({ items, cur, enDone, jaDone, jaKanaDone, hasError, activeRow,
                   )}
                 </span>
                 <span className={`pair-ja ${isCur && activeRow === 'ja' ? 'typing' : ''}`}>
-                  {maskJaHere ? maskJa(it, isCur) : renderJa(it, isCur)}
+                  {maskRow === 'ja'
+                    ? maskJa(it, isCur, true)
+                    : maskJaHere
+                      ? maskJa(it, isCur)
+                      : renderJa(it, isCur)}
                 </span>
               </span>
             )
@@ -303,6 +323,7 @@ export interface FlowProps {
   ticker?: boolean
   isBoth?: boolean
   clozeRevealed?: boolean // #402 現在語(cloze)でミスがあり正解を開示中か
+  maskRow?: 'en' | 'ja' // #439 相手盤面複製：この行（答え側）を全面伏字。未指定＝従来表示（非回帰）。
 }
 
 // items=[{en,ja}], cur=現在index, enDone/jaDone=現在文の進捗, jaKanaDone=読み(かな)の進捗, activeRow='en'|'ja'|null
@@ -320,6 +341,7 @@ export function Flow({
   ticker = false,
   isBoth = false,
   clozeRevealed = false,
+  maskRow,
 }: FlowProps) {
   // 1文字ごとスクロール用の進捗(0..1)。en=入力文字/語長、ja=かな進捗/かな長。
   const current = items[cur]
@@ -357,6 +379,7 @@ export function Flow({
         activeRow={activeRow}
         frac={pairFrac}
         clozeRevealed={clozeRevealed}
+        maskRow={maskRow}
       />
     )
   }
@@ -373,6 +396,10 @@ export function Flow({
           scroll={enScroll}
           active={activeRow === 'en'}
           render={(it, isCur, isFuture) => {
+            // #439 相手盤面複製：答え側(en)は行全体を全面伏字（実文字を出さず filled/pending マスのみ）。cloze より優先。
+            if (maskRow === 'en') {
+              return <MaskedText text={it.en} pos={isCur ? enDone : -1} hasError={isCur && hasError} fullMask />
+            }
             // #402 例文/英英の文中伏字：英文の内容語 char レンジだけ伏字（現在/これから）。past・非対象は従来表示。
             if (it.clozeRanges && activeRow === 'en' && (isCur || isFuture)) {
               return (
@@ -410,7 +437,22 @@ export function Flow({
           active={activeRow === 'ja'}
           render={(it, isCur, isFuture) => (
             <span className="flow-ja">
-              {it.clozeRanges && activeRow === 'ja' && (isCur || isFuture) ? (
+              {/* #439 相手盤面複製：答え側(ja)は行全体を全面伏字（実文字/かな/ルビを出さず filled/pending マスのみ）。
+                  future(非現在)は cursor を出さないよう done/kanaDone に -1 を渡す。 */}
+              {maskRow === 'ja' ? (
+                it.kana ? (
+                  <MaskedRuby
+                    ja={it.ja}
+                    kana={it.kana}
+                    done={isCur ? jaDone : -1}
+                    kanaDone={isCur ? jaKanaDone : -1}
+                    hasError={isCur && hasError}
+                    fullMask
+                  />
+                ) : (
+                  <MaskedText text={it.ja} pos={isCur ? jaDone : -1} hasError={isCur && hasError} fullMask />
+                )
+              ) : it.clozeRanges && activeRow === 'ja' && (isCur || isFuture) ? (
                 // #402 例文（ja/読みモード）の文中伏字：和文の内容語 char レンジだけ伏字（ふりがなごと）。
                 // 通過分は開示、ミス時はその語を通常表示（RubyTyped）と同一に開示。past・非対象は従来表示。
                 it.kana ? (

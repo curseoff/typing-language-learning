@@ -143,9 +143,11 @@ export default function VersusConnect({ onExit }) {
         role={v.role}
         roster={v.roster}
         progress={v.progress}
+        boards={v.boards}
         phase={v.phase}
         localStartAt={v.localStartAt}
         sendProgress={v.sendProgress}
+        sendBoard={v.sendBoard}
         sendFinished={v.sendFinished}
         endMatch={v.endMatch}
         onReturnToLobby={() => v.returnToLobby()}

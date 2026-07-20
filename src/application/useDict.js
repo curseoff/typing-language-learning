@@ -23,6 +23,7 @@ import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.pol
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
 import { segMaskLen } from '../domain/versus/progressMask.service.js'
+import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { playMiss } from '../infrastructure/sound.adapter.js'
 import { makeSeed } from './seed.policy.js'
@@ -349,8 +350,25 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
       if (onProgress) {
         const pp = sessionRef.current.progress()
         const wasHit = seg.variants.some((v) => v.startsWith(candidate))
-        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix: wasHit ? candidate : segInput })
-        onProgress({ typed: pp.keys, mistakes: pp.mistakes, segStats: segTrackerRef.current.list, currentMistakes: segTrackerRef.current.mistakes, curPos, curLen, miss: !wasHit })
+        const prefix = wasHit ? candidate : segInput
+        const { curPos, curLen } = segMaskLen({ variants: seg.variants, prefix })
+        // #439 道Y：qIndex（相手問題列の突合キー）・打鍵側 typedSide・TopFlow 表示単位進捗 boardCurPos
+        //   （en=空白込み char／ja=かな消費数＝受信側 MirrorPlayView の curPos に一致）を載せる。
+        //   ※board 材料（word/en/ja/kana＝方式B）は PR-E で撤去予定。受信側の本物 TopFlow 再構成では未使用。
+        const cur = mirrorCursor({ seg, segInput: prefix })
+        onProgress({
+          typed: pp.keys,
+          mistakes: pp.mistakes,
+          segStats: segTrackerRef.current.list,
+          currentMistakes: segTrackerRef.current.mistakes,
+          curPos,
+          curLen,
+          miss: !wasHit,
+          qIndex: seg.sentenceIndex,
+          typedSide: cur.typedSide,
+          boardCurPos: cur.curPos,
+          board: { word: seg.word, en: seg.en, ja: seg.ja, kana: seg.kana },
+        })
       }
     },
     [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],

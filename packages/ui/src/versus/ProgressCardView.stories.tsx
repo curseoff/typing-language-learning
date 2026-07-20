@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ProgressCardView } from '@tll/ui';
 
 // 対戦中の 1 人ぶんの進捗カード。自分/相手・サドンデス（ライフ）有無を代表 props で描く。
+// #439 盤面複製（伏字）はカードから分離し、下段の盤面レーン（PlayMirrorView）で描く＝カードは数値のみ。
 const meta = {
   title: 'versus/ProgressCardView',
   component: ProgressCardView,
@@ -21,14 +22,13 @@ export const Self: Story = {
       typed={128}
       speed={312}
       mistakes={4}
-      elapsedSec={42}
       correct={7}
     />
   ),
 };
 
-// 相手（時間終了条件＝経過/制限秒を表示）
-export const OpponentTimed: Story = {
+// 相手（#439 時間枠は撤去＝タイピング数/速度/ミス＋正解問題数のみ）
+export const Opponent: Story = {
   render: () => (
     <ProgressCardView
       id={PEER_ID}
@@ -37,8 +37,6 @@ export const OpponentTimed: Story = {
       typed={96}
       speed={240}
       mistakes={9}
-      elapsedSec={42}
-      limitSec={60}
       correct={5}
     />
   ),
@@ -53,7 +51,6 @@ export const Finished: Story = {
       typed={128}
       speed={312}
       mistakes={4}
-      elapsedSec={42}
       correct={7}
       finished
       rank={1}
@@ -70,7 +67,6 @@ export const SuddenDeath: Story = {
       typed={210}
       speed={360}
       mistakes={2}
-      elapsedSec={88}
       correct={11}
       lives={3}
     />

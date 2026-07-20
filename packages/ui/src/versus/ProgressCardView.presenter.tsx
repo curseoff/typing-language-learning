@@ -3,12 +3,6 @@
 // カンニング防止のため問題テキストは受け取らない（自分の問題表示はプレイ画面側が担う）＝ここは数値のみ。
 import type { ReactNode } from 'react'
 
-// #437 伏せ字マスバーの1マス。filled＝●（打てた分）/ pending＝・（未入力）。state で色（ok/ミス中の赤）。
-export interface MaskCell {
-  kind: 'filled' | 'pending'
-  state: 'ok' | 'miss'
-}
-
 // カード1枚ぶんのデータ。VersusBoardView が配列で持ち、各要素をそのままこのカードへ渡す。
 export interface ProgressCardData {
   id: string // 参加者の peerId（生 UUID。表示は先頭 8 文字に短縮）
@@ -17,13 +11,10 @@ export interface ProgressCardData {
   typed: number // タイピング数（打鍵で確定した文字数）
   speed: number // 速度（打/分）
   mistakes: number // ミス数
-  elapsedSec: number // 経過秒
-  limitSec?: number // 制限秒（時間終了条件時に `経過 / 制限秒` を出す。無ければ経過のみ）
   correct: number // 正解問題数（＝勝敗軸・目立たせる）
   lives?: number // 残ライフ（サドンデス時のみ・undefined なら非表示）
   finished?: boolean // #432 その参加者が完了したか（true で「完了」バッジを出す）
   rank?: number // #432 終了後の順位（1始まり・同点は同順位）。undefined なら順位バッジ非表示。
-  maskCells?: MaskCell[] // #437 伏せ字マスバー（container が domain maskedCells で展開）。undefined＝非表示（4択/旧クライアント）。
 }
 
 // peerId（生 UUID）は意味を持たないので、見出しでは先頭 8 文字だけを表示する。
@@ -31,7 +22,7 @@ function shortId(id: string): string {
   return id.slice(0, 8)
 }
 
-// 数値枠（タイピング数/速度/ミス/時間）。既存プレイ/結果 UI の stat 枠に準じた見た目。
+// 数値枠（タイピング数/速度/ミス）。既存プレイ/結果 UI の stat 枠に準じた見た目。
 function CardStat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="vs-card-stat">
@@ -48,32 +39,11 @@ export default function ProgressCardView({
   typed,
   speed,
   mistakes,
-  elapsedSec,
-  limitSec,
   correct,
   lives,
   finished,
   rank,
-  maskCells,
 }: ProgressCardData) {
-  // #437 伏せ字マスバー：filled マスの個数（進捗の分子）。aria-label に「X/cap」で出す（実長は出さない）。
-  const maskFilled = maskCells ? maskCells.filter((c) => c.kind === 'filled').length : 0
-  // 時間は整数表示（④小数を出さない）。経過部を制限秒の桁数ぶん固定幅・右寄せにして
-  // 左辺が1桁↔2桁でも「/」位置が動かないようにする（⑤）。
-  const elapsed = Math.floor(elapsedSec)
-  const timeValue =
-    limitSec != null ? (
-      <>
-        <span className="vs-time-num" style={{ minWidth: `${String(limitSec).length}ch` }}>
-          {elapsed}
-        </span>
-        {' / '}
-        {limitSec}秒
-      </>
-    ) : (
-      <>{elapsed}秒</>
-    )
-
   return (
     <div className={`vs-card${self ? ' vs-card-self' : ''}`}>
       <div className="vs-card-head">
@@ -89,28 +59,12 @@ export default function ProgressCardView({
         </span>
       </div>
 
-      {/* #437 伏せ字マスバー：いま打っている問題の進み具合を等幅マスで可視化（実長は出さない＝カンニング防止）。
-          ●=打てた分 / ・=未入力。ミス中は filled を静的な赤。cells 無し（4択/旧クライアント）は非表示。 */}
-      {maskCells && maskCells.length > 0 && (
-        <div className="vs-card-mask" role="img" aria-label={`${self ? 'あなた' : '相手'}の進捗 ${maskFilled}/${maskCells.length}`}>
-          {maskCells.map((c, i) => (
-            <span
-              key={i}
-              className={`vs-mask-cell vs-mask-${c.kind}${c.state === 'miss' ? ' vs-mask-miss' : ''}`}
-              aria-hidden="true"
-            >
-              {c.kind === 'filled' ? '●' : '・'}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* タイピング数/速度/ミス/時間 の 4 枠。 */}
+      {/* #439 タイピング数/速度/ミス の 3 枠（時間は撤去＝盤面上部の progressバーへ集約）。
+          相手の盤面複製（伏字）は下段の盤面レーン（PlayMirrorView）へ分離した＝カードは数値のみ。 */}
       <div className="vs-card-stats">
         <CardStat label="タイピング数" value={String(typed)} />
         <CardStat label="速度（打/分）" value={String(speed)} />
         <CardStat label="ミス" value={String(mistakes)} />
-        <CardStat label="時間" value={timeValue} />
       </div>
 
       {/* 勝敗軸＝正解問題数。数値枠より目立たせる。 */}

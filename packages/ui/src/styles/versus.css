@@ -337,38 +337,91 @@
   background: var(--panel);
 }
 
-/* #437 伏せ字マスバー：いま打っている問題の進み具合を等幅マスで可視化（相手カードのみ・実長は出さない）。
-   ●=打てた分／・=未入力。折返しは許容しつつ、狭幅(320px)でも 12 マスが崩れないよう等幅・小さめにする。 */
-.vs-card-mask {
+/* #439 対戦レイアウト（全モード共通）：プレイヤーごとに「カード→盤面」を縦積みにする。
+   自分は実プレイ盤面（DictTypeView/WordTypeView/MarathonView の versus）、相手は伏字複製盤面（PlayMirrorView）を同じ枠で並べる。 */
+.vs-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+.vs-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* 盤面はプレイエリアが広くても対戦画面の幅を押し広げない（はみ出しは横スクロールで吸収）。 */
+.vs-lane-board {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+/* #439 最上部の独立ヘッダバー（MatchHeaderBar）：種類/レベル/モード＋残り＋progress を1本へ集約。
+   各盤面（あなた/相手）からは PlayMeta/StatsRow を出さず、上部の重複表示をここへ一本化する。 */
+.vs-match-header {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 8px;
+}
+/* バー内は詰めて配置（solo の stats/progress の大きめ余白を対戦バー用に縮める）。 */
+.vs-match-header .play-meta {
+  margin-bottom: 8px;
+}
+.vs-match-header .stats {
+  margin-bottom: 8px;
+}
+.vs-match-header .progress-bar {
+  margin-bottom: 0;
+}
+
+/* #439 相手盤面（PlayMirrorView）：solo の .flow パネルを共有しつつ ticker を動かさない静止複製。
+   flow-track の横クリップ／端フェードを解除し、伏字マス・ヒント文を全表示（折り返し可）にする。 */
+.flow.vs-mirror-flow .flow-track {
+  overflow-x: visible;
+  white-space: normal;
+  flex-wrap: wrap;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* 伏字マス列（答え側）：●=相手が打てた分／・=未入力／語間の余白。折返し許容・等幅・ルビ無し。 */
+.vs-mb {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  align-items: center;
+  gap: 1px;
   line-height: 1;
 }
-.vs-mask-cell {
-  font-size: 12px;
+.vs-mb-cell {
+  font-size: 13px;
   /* 等幅で並べる（●/・の字幅差を吸収）。 */
   width: 1ch;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-.vs-mask-filled {
+/* 語間の余白（1マスぶんの間隔・記号は出さない）。 */
+.vs-mb-space {
+  width: 0.6ch;
+}
+.vs-mb-filled {
   color: var(--accent);
 }
-.vs-mask-pending {
+.vs-mb-pending {
   color: var(--muted);
 }
-/* ミス中は filled マスを静的な赤（点滅しない）。 */
-.vs-mask-miss.vs-mask-filled {
+/* ミス中は済みマスを静的な赤（点滅しない）。 */
+.vs-mb-miss.vs-mb-filled {
   color: var(--red);
 }
 
-/* 数値枠 4 つ（タイピング数/速度/ミス/時間）。 */
+/* 数値枠 3 つ（タイピング数/速度/ミス）。#439 時間枠は撤去し、時間は盤面上部の progressバーへ集約。 */
 .vs-card-stats {
   display: grid;
   /* minmax(0,1fr) が要点：素の 1fr は minmax(auto,1fr)＝内容(min-content)で列が広がるため、
-     時間「48.9 / 60秒」等の長い値が列を押し広げて幅が揺れる。min を 0 に固定して内容非依存の等幅にする。 */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+     値が列を押し広げて幅が揺れる。min を 0 に固定して内容非依存の等幅にする。 */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 .vs-card-stat {
@@ -392,12 +445,6 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
   white-space: nowrap; /* 値の折り返し防止（幅一定を保つ）。 */
-}
-/* 時間の経過部（左辺）を固定幅・右寄せにして「/」の位置を動かさない（⑤）。
-   幅は presenter が制限秒の桁数ぶん（min-width: Nch）を inline で与える。tabular-nums は親から継承。 */
-.vs-time-num {
-  display: inline-block;
-  text-align: right;
 }
 
 /* 勝敗軸＝正解問題数（強調）。 */

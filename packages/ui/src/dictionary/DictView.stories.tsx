@@ -38,6 +38,33 @@ export const TypeTyping: Story = {
   ),
 };
 
+// #439 対戦（compact）：あなたの入力盤面。上部 stats を「残り（時間）＋progressバー」だけに絞る
+// （タイピング数/速度/ミスはカードへ分離）。solo は既定で 4 枠を維持する。
+export const TypeVersusCompact: Story = {
+  render: () => (
+    <DictTypeView
+      levelLabel="L1"
+      metaSub="英英 / 英語入力 / すべて"
+      finished={false}
+      resultNode={null}
+      typedKeys={96}
+      liveSpeed={230}
+      mistakes={3}
+      endStatLabel="残り"
+      endStatValue="30秒"
+      progress={0.55}
+      word="dictionary"
+      wordJa="辞書"
+      hintLead="この語を英語で説明した文を打ちます。"
+      segments={typeSegments}
+      segIndex={0}
+      segInput="a book that l"
+      hasError={false}
+      compact
+    />
+  ),
+};
+
 // 英英辞典の単語4択 presenter（プレイ中）。定義文を見て見出し語を選ぶ。
 const quizOptions = [
   { display: 'dictionary', variants: ['dictionary'], answer: true, ja: '辞書' },

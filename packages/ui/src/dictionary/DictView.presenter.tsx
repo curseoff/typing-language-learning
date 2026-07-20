@@ -17,6 +17,18 @@ function PlayMeta({ levelLabel, sub }: { levelLabel: string; sub: string }) {
   )
 }
 
+// 見出し語ヘッダ「単語 <word>（<和訳>）」。solo の入力盤面（DictTypeView）と
+// 相手の伏字複製（PlayMirrorView）は同じ .seg-word マークアップで見た目を揃える。
+function SegWord({ word, wordJa }: { word?: string; wordJa?: string }) {
+  if (!word) return null
+  return (
+    <p className="seg-word">
+      単語 <strong>{word}</strong>
+      {wordJa && <span className="seg-word-ja">（{wordJa}）</span>}
+    </p>
+  )
+}
+
 export interface DictOption {
   display: string
   variants: string[]
@@ -49,6 +61,7 @@ export interface DictTypeViewProps {
   segInput: string
   hasError: boolean
   clozeRevealed?: boolean // #402 現在問題(cloze)でミスがあり正解を開示中か
+  versus?: boolean // #439 対戦: PlayMeta と StatsRow を出さない（上部の独立ヘッダバーへ集約）。solo は既定 false＝全部出す。
 }
 
 // 英語入力（定義文を打つ）/ 日本語入力（和訳を打つ）。TopFlow（ティッカー表示）で描画。
@@ -71,29 +84,29 @@ export function DictTypeView({
   segInput,
   hasError,
   clozeRevealed = false,
+  versus = false,
 }: DictTypeViewProps) {
   return (
     <div className="game">
-      <PlayMeta levelLabel={levelLabel} sub={metaSub} />
+      {/* #439 対戦は PlayMeta を出さない（上部の独立ヘッダバーへ集約）。solo は従来どおり出す。 */}
+      {!versus && <PlayMeta levelLabel={levelLabel} sub={metaSub} />}
       {finished ? (
         resultNode
       ) : (
         <>
-          <StatsRow
-            stats={[
-              { label: 'タイピング数', value: `${typedKeys}` },
-              { label: '速度', value: `${liveSpeed} 打/分` },
-              { label: 'ミス', value: mistakes },
-              { label: endStatLabel, value: endStatValue },
-            ]}
-            progress={progress}
-          />
-          {word && (
-            <p className="seg-word">
-              単語 <strong>{word}</strong>
-              {wordJa && <span className="seg-word-ja">（{wordJa}）</span>}
-            </p>
+          {/* #439 対戦は StatsRow を出さない（時間/進捗はヘッダバー・数値はカードへ分離）。solo は 4 枠を維持。 */}
+          {!versus && (
+            <StatsRow
+              stats={[
+                { label: 'タイピング数', value: `${typedKeys}` },
+                { label: '速度', value: `${liveSpeed} 打/分` },
+                { label: 'ミス', value: mistakes },
+                { label: endStatLabel, value: endStatValue },
+              ]}
+              progress={progress}
+            />
           )}
+          <SegWord word={word} wordJa={wordJa} />
           <TopFlow segments={segments} segIndex={segIndex} segInput={segInput} hasError={hasError} clozeRevealed={clozeRevealed} ticker />
           <p className="hint">
             {hintLead}正しく打つまで次に進めません。
@@ -104,6 +117,9 @@ export function DictTypeView({
     </div>
   )
 }
+
+// #439 対戦：相手の伏字複製盤面は共有 presenter（versus/PlayMirrorView）へ移設した（3 モード共通・
+// solo の .game/.seg-word/.flow マークアップを共有）。DictView 側は入力/クイズ presenter のみを持つ。
 
 export interface DictQuizViewProps {
   levelLabel: string

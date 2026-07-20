@@ -11,8 +11,8 @@
 // 後方互換の任意コールバック onProgress（打鍵ごとに { typed, mistakes, segStats, currentMistakes } を
 // ハンドラ内＝ref 読み許可の場所から通知）だけを足し、判定/採点ロジックは触っていない。
 // content ロードは App.jsx の開始経路（startDict/startWords/startWsent）を最小移植する。
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { DictTypeView, WordTypeView, VersusBoardView } from '@tll/ui'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DictTypeView, WordTypeView, MirrorPlayView, MatchHeaderBar, VersusBoardView, ProgressCardView } from '@tll/ui'
 import MarathonView from '../marathon/MarathonView.container.jsx'
 import { useDict } from '../../application/useDict.js'
 import { useWords } from '../../application/useWords.js'
@@ -20,7 +20,9 @@ import { useMarathon } from '../../application/useMarathon.js'
 import { toProgressPayload } from '../../application/versus/versusPlay.policy.js'
 import { headwordFreqMap, sliceByHeadwordFreq } from '../../application/headwordFreqSlice.policy.js'
 import { activeIds, allFinished } from '../../domain/versus/peerRoster.service.js'
-import { maskedCells, PROGRESS_MASK_CAP } from '../../domain/versus/progressMask.service.js'
+import { buildBoardPayload } from '../../domain/versus/boardMirror.service.js'
+import { buildMirrorSegments } from '../../application/versus/versusSegments.policy.js'
+import { pickMirrorSegIndex } from '../../domain/versus/mirrorCursor.service.js'
 import { rankMap } from '../../domain/versus/matchScore.service.js'
 import { anyoneEliminated } from '../../domain/versus/suddenDeath.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
@@ -128,19 +130,55 @@ function buildMembers({ selfId, roster, self, progress, initialLives, limitSec }
       elapsedSec: p.elapsedMs != null ? Math.round(p.elapsedMs / 1000) : 0,
       correct: p.correct ?? 0,
       finished,
-      // #437 伏せ字マスバー：受信した量子化済み cells（0..cap 整数）を cap マスへ展開して渡す。
-      // 未配信（旧クライアント/4択＝cells 無し）は undefined＝presenter でマスバー非表示。
-      ...(p.cells != null ? { maskCells: maskedCells({ fill: p.cells, cap: PROGRESS_MASK_CAP, state: p.miss ? 'miss' : 'ok' }) } : {}),
+      // #439 道Y：相手の生進捗（qIndex/typedSide/curPos/miss）だけを載せる。盤面の再構成は renderMirror が
+      //   受信側ローカルの mirrorSegments（buildMirrorSegments）＋この進捗から本物 TopFlow で描く（答えは伏字）。
+      //   数値は載せない＝カード props は下の MatchStage で mirror を剥がして渡す。
+      mirror: { qIndex: p.qIndex, typedSide: p.typedSide, curPos: p.curPos, miss: p.miss },
       ...(limitSec != null ? { limitSec } : {}),
       ...(initialLives != null ? { lives: p.lives ?? initialLives } : {}),
     }
   })
 }
 
+// #439 道Y：相手ぶんの伏字複製盤面（MirrorPlayView＝本物 TopFlow）を描く renderMirror を作る factory。
+// 受信側ローカルで再構成した mirrorSegments（相手と同一 seed/config/content から buildMirrorSegments）へ、
+// 相手の生進捗（qIndex/typedSide/curPos/miss）を重ねて描く。答え側（typedSide）の行だけ全面伏字＝カンニング防止。
+//   segments   … 相手の初回バッチ問題列（空＝pool 空/未対応 gameType なら常にフォールバック）。
+//   gloss      … 見出し和訳の辞書（dict/wsent のみ・words は undefined）。wordJa 復元に使う。
+//   showWord   … 見出し語（seg.word）を出すか（dict/wsent=true／words=false＝word 自体が答えなので出さない）。
+// フォールバック（§4）：typedSide 不正・qIndex 未着・継続領域（pickMirrorSegIndex=-1）は null＝盤面非表示
+//   （数値カードのみ・レイアウトは維持）。contentFingerprint 不一致（穴③）は本 PR では未対応＝同版前提。
+function makeRenderMirror({ segments, gloss, showWord }) {
+  return function renderMirror(m) {
+    const mp = m.mirror
+    if (!mp || (mp.typedSide !== 'en' && mp.typedSide !== 'ja') || !Number.isInteger(mp.qIndex)) return null
+    const idx = pickMirrorSegIndex(segments, mp.qIndex, mp.typedSide)
+    if (idx < 0) return null // 継続領域 or 再構成不能＝数値カードのみへ縮退
+    const seg = segments[idx]
+    const word = showWord ? seg.word : undefined
+    const wordJa = word ? gloss?.[word] : undefined
+    return (
+      <MirrorPlayView
+        segments={segments}
+        segIndex={idx}
+        answerSide={mp.typedSide}
+        curPos={mp.curPos ?? 0}
+        miss={mp.miss}
+        word={word}
+        wordJa={wordJa}
+      />
+    )
+  }
+}
+
 // 盤面（自分/相手カード）を組み立てて描画する共有 stage。play は自分のプレイ UI（children）。
 // 終了後は各カード内に順位（rankMap＝competition ranking）を出す（上部の勝敗バッジは廃止＝#432 E）。
 // 自分が完了して相手待ちのときは、相手の完了を待つ案内を出す（#432 D）。
-function MatchStage({ selfId, roster, self, progress, phase, initialLives, limitSec, children }) {
+// #439 renderMirror（相手ぶんの伏字複製盤面を返す関数）が渡されたとき（running/finished）は
+//   「カード→盤面」をプレイヤーごとに縦積みする対戦レイアウトにする（自分＝実プレイ children／相手＝renderMirror）。
+//   最上部に header（対戦ヘッダバー＝PlayMeta＋時間＋progress）を1つ描く。3 モード共通。
+//   renderMirror 無し（カウントダウン中＝自分プレイ未マウント）は従来レイアウト（カード群＋children）を保つ。
+function MatchStage({ selfId, roster, self, progress, phase, initialLives, limitSec, header, renderMirror, children }) {
   const members = buildMembers({ selfId, roster, self, progress, initialLives, limitSec })
   const finished = phase === 'finished'
   // 終了後のみ、correct（一発正解数）から順位を算出して各カードへ載せる（同点は同順位）。
@@ -153,13 +191,43 @@ function MatchStage({ selfId, roster, self, progress, phase, initialLives, limit
     : members
   // 自分が完了かつ全員は未完了（＝相手待ち）のとき、待機案内を出す。
   const waitingForOthers = (roster.peers[selfId]?.finished ?? false) && !allFinished(roster)
+  const waiting = waitingForOthers && (
+    <p className="vs-lead vs-match-waiting" role="status">
+      相手の完了を待っています…
+    </p>
+  )
+
+  // #439 新レイアウト：あなたを先頭に、各プレイヤーの「カード→盤面」を縦積みする。
+  // 自分→相手の順に並べ替えるだけの表示整形（filter の載せ替え＝整列ロジックは持たない）。
+  if (renderMirror) {
+    const lanes = [...ranked.filter((m) => m.self), ...ranked.filter((m) => !m.self)]
+    return (
+      <div className="vs vs-match">
+        {/* #439 最上部の独立ヘッダバー（PlayMeta＋時間＋progress）。各盤面からは PlayMeta/StatsRow を出さない。 */}
+        {header}
+        {waiting}
+        <div className="vs-lanes">
+          {lanes.map((m) => {
+            // カードは数値のみ。mirror は下段の盤面（renderMirror）へ分離するのでカードには渡さない。
+            const { mirror: _mirror, ...cardProps } = m
+            return (
+              <div key={m.id} className={`vs-lane${m.self ? ' vs-lane-self' : ''}`}>
+                <div className="vs-board-cards">
+                  <ProgressCardView {...cardProps} />
+                </div>
+                <div className="vs-lane-board">{m.self ? children : renderMirror(m)}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // 従来レイアウト（renderMirror 無し）：カード群を並べて下に自分プレイ。
   return (
     <div className="vs vs-match">
-      {waitingForOthers && (
-        <p className="vs-lead vs-match-waiting" role="status">
-          相手の完了を待っています…
-        </p>
-      )}
+      {waiting}
       <VersusBoardView members={ranked} />
       <div className="vs-match-play">{children}</div>
     </div>
@@ -194,8 +262,11 @@ function useFinishBroadcast({ finished, lives, progress, initialLives, typed, to
 // onProgress のたびに payload（correct/lives 込み）を作って sendProgress し、correct/lives を state に反映する。
 // #432 相手カードの速度・時間：live 速度・経過を liveRef（各 PlayArea が effect で更新する最新値ホルダー）
 // から読み、payload に speed/elapsedMs を載せて配信する（render 中に ref を書かない＝effect 更新の1フレーム遅れは表示上許容）。
-function useProgressRelay({ sendProgress, total, initialLives, liveRef }) {
+// #439 盤面複製：毎打鍵の progress に qIndex/typedSide/curPos（en=char/ja=kana）を後方互換で足し、
+//   qIndex または typedSide が変わった境界でだけ board（見出し語＋ヒント＋答え構造）を sendBoard する（低頻度）。
+function useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss }) {
   const [derived, setDerived] = useState({ correct: 0, lives: initialLives ?? 0 })
+  const prevBoardKeyRef = useRef(null) // 直近に board を送った `${qIndex}:${typedSide}`（境界検知用）
   const onProgress = useCallback(
     (snap) => {
       const live = liveRef.current
@@ -208,18 +279,37 @@ function useProgressRelay({ sendProgress, total, initialLives, liveRef }) {
         initialLives,
         speed: live.speed,
         elapsedMs: live.elapsedMs,
-        // #437 伏せ字マスバー：今打っている対象の実長 curPos/curLen を cap マスへ量子化して cells を作る
-        // （実長 curLen はワイヤに出さない＝policy 側で量子化）。miss は現在問題のミス中フラグ。
-        curPos: snap.curPos,
-        curLen: snap.curLen,
-        cap: PROGRESS_MASK_CAP,
+        // #439 現在問題のミス中フラグ（相手カードの伏字マスを赤描画するために透過）。
         miss: snap.miss,
       })
+      // #439 progress 後方互換追加：qIndex/typedSide/curPos（en=char/ja=kana・答えの文字は載せない）。
+      if (Number.isInteger(snap.qIndex)) payload.qIndex = snap.qIndex
+      if (snap.typedSide === 'en' || snap.typedSide === 'ja') payload.typedSide = snap.typedSide
+      if (Number.isInteger(snap.boardCurPos)) payload.curPos = snap.boardCurPos
       sendProgress(payload)
+      // #439 board：qIndex または typedSide が変わった境界でだけ配信（1問1回・both は en↔ja で2回）。
+      if (sendBoard && snap.board && (snap.typedSide === 'en' || snap.typedSide === 'ja') && Number.isInteger(snap.qIndex)) {
+        const key = `${snap.qIndex}:${snap.typedSide}`
+        if (key !== prevBoardKeyRef.current) {
+          prevBoardKeyRef.current = key
+          const board = snap.board
+          // 純ドメインで答え非漏洩ペイロードを組み、peerId（selfId）は container が外付けする。gloss→wordJa 解決も container 側。
+          const payload = buildBoardPayload({
+            qIndex: snap.qIndex,
+            typedSide: snap.typedSide,
+            word: board.word,
+            en: board.en,
+            ja: board.ja,
+            kana: board.kana,
+            wordJa: gloss?.[board.word],
+          })
+          sendBoard({ peerId: selfId, ...payload })
+        }
+      }
       // ハンドラ内 setState（effect ではない）＝cascading render 警告の対象外。
       setDerived({ correct: payload.correct, lives: payload.lives ?? initialLives ?? 0 })
     },
-    [sendProgress, total, initialLives, liveRef],
+    [sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss],
   )
   return { derived, onProgress }
 }
@@ -238,10 +328,20 @@ function useLiveRefSync(liveRef, speed, elapsedSec) {
 }
 
 // dict（英英）の対戦プレイエリア。useDict を seed 注入・cloze 固定で駆動する。
-function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
+  // #439 道Y：相手の初回バッチ問題列を1回だけ決定的に再構成（config/seed/content でメモ化）し、
+  //   相手の生進捗を重ねて本物 TopFlow で描く renderMirror を作る（dict は見出し語＋和訳を出す）。
+  const mirrorSegments = useMemo(
+    () => buildMirrorSegments({ gameType: config.gameType, config, seed, content }),
+    [config, seed, content],
+  )
+  const renderMirror = useMemo(
+    () => makeRenderMirror({ segments: mirrorSegments, gloss: content.gloss, showWord: true }),
+    [mirrorSegments, content.gloss],
+  )
   const liveRef = useLiveRef()
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
   const d = useDict({
     dict: content.dict,
     level: config.level,
@@ -265,8 +365,19 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
   const hudEnd = hudEndFor(config.endCondition, 'cloze')
   const endStat = endHudStat(hudEnd, { elapsedSec: d.elapsedSec, keys: d.typedKeys, items: d.segIndex, missedItems: d.missedItems })
 
+  // #439 最上部の独立ヘッダバー（PlayMeta＋残り＋progress）。self の live 値から供給。
+  const header = (
+    <MatchHeaderBar
+      levelLabel={`L${config.level}`}
+      metaSub={`英英 / ${modeLabel(config.mode)} / ${config.theme}`}
+      statLabel={endStat.label}
+      statValue={endStat.value}
+      progress={endStat.progress}
+    />
+  )
+
   return (
-    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec}>
+    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec} header={header} renderMirror={renderMirror}>
       <DictTypeView
         levelLabel={`L${config.level}`}
         metaSub={`英英 / ${modeLabel(config.mode)} / ${config.theme}`}
@@ -286,16 +397,29 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
         segInput={d.segInput}
         hasError={d.hasError}
         clozeRevealed={d.clozeRevealed}
+        // #439 対戦: PlayMeta/StatsRow を出さない（上部の独立ヘッダバーへ集約）。
+        versus
       />
     </MatchStage>
   )
 }
 
 // words（単語）の対戦プレイエリア。useWords を seed 注入・cloze 固定で駆動する。
-function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
+  // #439 道Y：相手の初回バッチ問題列を再構成し renderMirror を作る。単語は見出し語を出さない（word 自体が答え＝
+  //   showWord:false・gloss なし）＝相手盤面は英単語（伏字）＋和訳ヒントの本物 TopFlow のみ。
+  const mirrorSegments = useMemo(
+    () => buildMirrorSegments({ gameType: config.gameType, config, seed, content }),
+    [config, seed, content],
+  )
+  const renderMirror = useMemo(
+    () => makeRenderMirror({ segments: mirrorSegments, gloss: undefined, showWord: false }),
+    [mirrorSegments],
+  )
   const liveRef = useLiveRef()
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  // 単語（words）は見出し和訳グロサリを持たない（word 自体が答え側＝board では word='' で見出し無し）。gloss は undefined。
+  const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: undefined })
   const w = useWords({
     allWords: content.words,
     level: config.level,
@@ -318,8 +442,19 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
   const endStat = endHudStat(hudEnd, { elapsedSec: w.elapsedSec, keys: w.typedKeys, items: w.segIndex, missedItems: w.missedItems })
   const barProgress = config.endCondition.kind === 'time' ? w.progress : endStat.progress
 
+  // #439 最上部の独立ヘッダバー（PlayMeta＋残り＋progress）。
+  const header = (
+    <MatchHeaderBar
+      levelLabel={`W${config.level}`}
+      metaSub={`単語 / ${modeLabel(config.mode)} / ${config.theme}`}
+      statLabel={endStat.label}
+      statValue={endStat.value}
+      progress={barProgress}
+    />
+  )
+
   return (
-    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec}>
+    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec} header={header} renderMirror={renderMirror}>
       <WordTypeView
         levelLabel={`W${config.level}`}
         metaSub={`${modeLabel(config.mode)} / ${config.theme}`}
@@ -336,16 +471,27 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
         segInput={w.segInput}
         hasError={w.hasError}
         clozeRevealed={w.clozeRevealed}
+        // #439 対戦: PlayMeta/StatsRow を出さない（上部の独立ヘッダバーへ集約）。
+        versus
       />
     </MatchStage>
   )
 }
 
 // wsent（単語例文）の対戦プレイエリア。useMarathon を start() で駆動する（segments は start で注入）。
-function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendFinished }) {
+function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase, sendProgress, sendBoard, sendFinished }) {
   const { initialLives, limitSec, total } = matchParams(config.endCondition)
+  // #439 道Y：相手の初回バッチ問題列を再構成し renderMirror を作る（単語例文は見出し語＋和訳を出す）。
+  const mirrorSegments = useMemo(
+    () => buildMirrorSegments({ gameType: config.gameType, config, seed, content }),
+    [config, seed, content],
+  )
+  const renderMirror = useMemo(
+    () => makeRenderMirror({ segments: mirrorSegments, gloss: content.gloss, showWord: true }),
+    [mirrorSegments, content.gloss],
+  )
   const liveRef = useLiveRef()
-  const { derived, onProgress } = useProgressRelay({ sendProgress, total, initialLives, liveRef })
+  const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
   // 最新の derived（correct/lives）を effect で ref へ控える（onFinish の最終 progress が読む）。
   const derivedRef = useRef(derived)
   useEffect(() => {
@@ -389,9 +535,23 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
   useFinishBroadcast({ finished: false, lives: derived.lives, progress, initialLives, typed: m.typedKeys, total, mistakes: m.mistakes, correct: derived.correct, speed: m.liveSpeed, elapsedSec: m.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: m.typedKeys, speed: m.liveSpeed, mistakes: m.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: m.elapsedSec }
+  // #439 ヘッダバー用の残り（endStat）は MarathonView と同じ算出で container 側でも作る（learningMode='cloze'）。
+  const hudEnd = hudEndFor(config.endCondition, 'cloze')
+  const endStat = endHudStat(hudEnd, { elapsedSec: m.elapsedSec, keys: m.typedKeys, items: m.segIndex, missedItems: m.missedItems })
+
+  // #439 最上部の独立ヘッダバー（PlayMeta＋残り＋progress）。
+  const header = (
+    <MatchHeaderBar
+      levelLabel={`L${config.level}`}
+      metaSub={`単語例文 / ${modeLabel(config.mode)} / ${config.theme}`}
+      statLabel={endStat.label}
+      statValue={endStat.value}
+      progress={endStat.progress}
+    />
+  )
 
   return (
-    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec}>
+    <MatchStage selfId={selfId} roster={roster} self={self} progress={progress} phase={phase} initialLives={initialLives} limitSec={limitSec} header={header} renderMirror={renderMirror}>
       <MarathonView
         mode={config.mode}
         endCondition={config.endCondition}
@@ -409,6 +569,8 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
         missedItems={m.missedItems}
         liveSpeed={m.liveSpeed}
         elapsedSec={m.elapsedSec}
+        // #439 対戦: PlayMeta/StatsRow を出さない（上部の独立ヘッダバーへ集約）。
+        versus
       />
     </MatchStage>
   )
@@ -447,7 +609,7 @@ function CountdownNote({ localStartAt }) {
 }
 
 // 対戦本体。VersusConnect から useVersus の返り値を受け取り、content ロード→カウントダウン→プレイ→終了まで繋ぐ。
-export default function VersusMatch({ config, seed, selfId, role, roster, progress, phase, localStartAt, sendProgress, sendFinished, endMatch, onReturnToLobby }) {
+export default function VersusMatch({ config, seed, selfId, role, roster, progress, phase, localStartAt, sendProgress, sendBoard, sendFinished, endMatch, onReturnToLobby }) {
   const content = useVersusContent(config)
   const { initialLives, limitSec } = matchParams(config.endCondition)
 
@@ -528,6 +690,7 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
       progress={progress}
       phase={phase}
       sendProgress={sendProgress}
+      sendBoard={sendBoard}
       sendFinished={sendFinished}
     />
   )

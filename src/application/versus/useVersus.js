@@ -9,6 +9,7 @@ import { makeSeed } from '../seed.policy.js'
 import { parseMessage, buildMessage } from '../../domain/versus/versusMessage.vo.js'
 import { localStartTime } from '../../domain/versus/startClock.service.js'
 import { activeIds } from '../../domain/versus/peerRoster.service.js'
+import { pickProgressFields } from '../../domain/versus/progressWire.service.js'
 import { isAllAccepted, isRejected } from '../../domain/versus/approvalState.service.js'
 import { createPeer } from '../../infrastructure/p2p/webrtcPeer.adapter.js'
 import { encodeSignal, decodeSignal } from '../../infrastructure/p2p/manualSignaling.adapter.js'
@@ -91,6 +92,10 @@ export function useVersus({ selfId: providedSelfId } = {}) {
           break
         case 'progress':
           dispatch({ type: 'progress', message: msg })
+          break
+        case 'board':
+          // #439 盤面複製（方式B）：相手の問題境界で届く構造メッセージ。peerId ごとに最新1件をキャッシュする。
+          dispatch({ type: 'board', message: msg })
           break
         case 'finished':
           dispatch({ type: 'peerFinished', peerId: msg.peerId })
@@ -271,24 +276,27 @@ export function useVersus({ selfId: providedSelfId } = {}) {
   }, [state.approval, state.role])
 
   // 進捗を配信し、自分ぶんもローカルへ反映する（peerId は自 ID・時刻は performance.now）。
-  // correct（一発正解数）・lives（サドンデス残機）・speed（打鍵速度）・elapsedMs（経過時間）は
-  // 与えられたときだけ message に含める（無指定は従来どおり＝後方互換）。
+  // 転送フィールドの選別は pickProgressFields（純ドメイン・ホワイトリスト）に集約する。
+  // correct/lives/speed/elapsedMs/cells/miss/qIndex/typedSide/curPos は与えられたときだけ
+  // 含める（無指定は従来どおり＝後方互換）。手動 destructure による取りこぼし（#439）を防ぐ。
   const sendProgress = useCallback(
-    ({ typed, total, mistakes, correct, lives, speed, elapsedMs, cells, miss }) => {
-      const payload = { peerId: selfId, typed, total, mistakes, at: performance.now() }
-      if (correct !== undefined) payload.correct = correct
-      if (lives !== undefined) payload.lives = lives
-      if (speed !== undefined) payload.speed = speed
-      if (elapsedMs !== undefined) payload.elapsedMs = elapsedMs
-      // #437 伏せ字マスバー：量子化済み cells（整数）と miss（boolean）を与えられたときだけ載せる（後方互換）。
-      if (cells !== undefined) payload.cells = cells
-      if (miss !== undefined) payload.miss = miss
+    (arg) => {
+      const payload = { peerId: selfId, at: performance.now(), ...pickProgressFields(arg) }
       const msg = buildMessage('progress', payload)
       peerRef.current?.send(JSON.stringify(msg))
       dispatch({ type: 'progress', message: msg })
     },
     [selfId],
   )
+
+  // #439 盤面複製（方式B）：問題境界（qIndex/typedSide 変化時）でだけ盤面の材料を配信する（低頻度）。
+  // payload は container が構造化済み（peerId/qIndex/typedSide/word/wordJa?/hint/answerShape）＝答えの文字は含まない。
+  // 自分ぶんも store へ流して boards[selfId] を持つ（自分カードは数値のままなので実害はなく、progress と対称）。
+  const sendBoard = useCallback((payload) => {
+    const msg = buildMessage('board', payload)
+    peerRef.current?.send(JSON.stringify(msg))
+    dispatch({ type: 'board', message: msg })
+  }, [])
 
   // 完走を配信し、自分ぶんも finished マークする（active 全員完走で phase=finished）。
   const sendFinished = useCallback(
@@ -366,6 +374,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     role: state.role,
     roster: state.roster,
     progress: state.progress,
+    boards: state.boards,
     startAt: state.startAt,
     localStartAt,
     // 承認フロー（設定提案）
@@ -391,6 +400,7 @@ export function useVersus({ selfId: providedSelfId } = {}) {
     voteMatch,
     startMatch,
     sendProgress,
+    sendBoard,
     sendFinished,
     endMatch,
   }

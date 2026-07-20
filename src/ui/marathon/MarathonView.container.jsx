@@ -22,6 +22,7 @@ export default function MarathonView({
   elapsedSec,
   endCondition,
   learningMode = 'normal',
+  versus = false,
 }) {
   const currentSeg = segments[segIndex]
   // #406 cloze かつ問題数制は目標2倍＝HUD の分母も2倍にして finish（useMarathon）と一致させる。
@@ -30,20 +31,25 @@ export default function MarathonView({
   const endStat = endHudStat(hudEnd, { elapsedSec, keys: typedKeys, items: segIndex, missedItems })
   return (
     <div className="game">
-      <div className="play-meta">
-        <span className="meta-badge rank">{rankText}</span>
-        <span className="meta-badge mode">{modeLabel(mode)}</span>
-      </div>
+      {/* #439 対戦は PlayMeta/StatsRow を出さない（上部の独立ヘッダバーへ集約）。solo は従来どおり出す。 */}
+      {!versus && (
+        <div className="play-meta">
+          <span className="meta-badge rank">{rankText}</span>
+          <span className="meta-badge mode">{modeLabel(mode)}</span>
+        </div>
+      )}
 
-      <StatsRow
-        stats={[
-          { label: 'タイピング数', value: `${typedKeys}` },
-          { label: '速度', value: `${liveSpeed} 打/分` },
-          { label: 'ミス', value: mistakes },
-          { label: endStat.label, value: endStat.value },
-        ]}
-        progress={endStat.progress}
-      />
+      {!versus && (
+        <StatsRow
+          stats={[
+            { label: 'タイピング数', value: `${typedKeys}` },
+            { label: '速度', value: `${liveSpeed} 打/分` },
+            { label: 'ミス', value: mistakes },
+            { label: endStat.label, value: endStat.value },
+          ]}
+          progress={endStat.progress}
+        />
+      )}
 
       {currentSeg?.word && (
         <p className="seg-word">
