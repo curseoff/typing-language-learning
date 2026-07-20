@@ -24,7 +24,7 @@ import { buildBoardPayload } from '../../domain/versus/boardMirror.service.js'
 import { buildMirrorSegments } from '../../application/versus/versusSegments.policy.js'
 import { pickMirrorSegIndex } from '../../domain/versus/mirrorCursor.service.js'
 import { rankMap } from '../../domain/versus/matchScore.service.js'
-import { anyoneEliminated } from '../../domain/versus/suddenDeath.service.js'
+import { suddenDeathOutcome } from '../../domain/versus/suddenDeath.service.js'
 import { filterWsentByTheme } from '../../domain/words/wsentSet.service.js'
 import { rangeCount } from '../../domain/words/wordRange.service.js'
 import { hudEndFor } from '../../domain/session/learningSequence.service.js'
@@ -244,18 +244,20 @@ function MatchStage({ selfId, roster, self, progress, phase, initialLives, limit
 // typed/mistakes/correct/lives/speed/elapsedMs になり、0 秒/0 速度で止まらない）。
 // #432 要判断：store の suddenDeathEnd は useVersus 未配線のため、脱落検知時は sendFinished 相当で
 // 全員完走へ収束させる最小対応にしている（本来はホストが全員へ終了を配布すべき）。
-function useFinishBroadcast({ finished, lives, progress, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished }) {
+function useFinishBroadcast({ finished, lives, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished }) {
   const sentRef = useRef(false)
   useEffect(() => {
     if (sentRef.current) return
-    const eliminated = initialLives != null && ((typeof lives === 'number' && lives <= 0) || anyoneEliminated(progress))
+    // #443 サドンデスは「自分の lives<=0」だけを自己完走扱いにする（相手が脱落しただけでは自分は完走しない
+    //   ＝新ルールで対戦を継続させるため）。ホストの outcome 判定が全員終了を配布する。
+    const eliminated = initialLives != null && typeof lives === 'number' && lives <= 0
     if (!finished && !eliminated) return
     sentRef.current = true
     const elapsedMs = Math.round(elapsedSec * 1000)
     // 最終 progress（透過値そのまま・correct/lives/speed/elapsedMs 込み）を1回だけ配信する。
     sendProgress({ typed, total, mistakes, correct, speed, elapsedMs, ...(initialLives != null ? { lives } : {}) })
     sendFinished({ keys: typed, mistakes, elapsedMs })
-  }, [finished, lives, progress, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
+  }, [finished, lives, initialLives, typed, total, mistakes, correct, speed, elapsedSec, sendProgress, sendFinished])
 }
 
 // 手元スナップショット（onProgress 由来の correct/lives）を保持し、進捗を配信する共通フック。
@@ -267,8 +269,13 @@ function useFinishBroadcast({ finished, lives, progress, initialLives, typed, to
 function useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss }) {
   const [derived, setDerived] = useState({ correct: 0, lives: initialLives ?? 0 })
   const prevBoardKeyRef = useRef(null) // 直近に board を送った `${qIndex}:${typedSide}`（境界検知用）
+  // #443 サドンデス：自分が脱落（lives<=0）したら以降の打鍵で correct を伸ばさないよう凍結する latch。
+  //   脱落フレームだけは1回配信・derived 更新してから latch を立て、以降の onProgress は early return。
+  //   非 life（initialLives==null）では latch を立てない＝従来どおり。
+  const frozenRef = useRef(false)
   const onProgress = useCallback(
     (snap) => {
+      if (frozenRef.current) return // 脱落後は配信も derived 更新もしない（ローカル表示・配信ともに凍結値で固定）
       const live = liveRef.current
       const payload = toProgressPayload({
         typed: snap.typed,
@@ -307,7 +314,10 @@ function useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives
         }
       }
       // ハンドラ内 setState（effect ではない）＝cascading render 警告の対象外。
-      setDerived({ correct: payload.correct, lives: payload.lives ?? initialLives ?? 0 })
+      const lives = payload.lives ?? initialLives ?? 0
+      setDerived({ correct: payload.correct, lives })
+      // #443 この脱落フレームを送りきってから latch を立てる（次フレーム以降は上の early return で凍結）。
+      if (initialLives != null && lives <= 0) frozenRef.current = true
     },
     [sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss],
   )
@@ -359,7 +369,7 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
   useLiveRefSync(liveRef, d.liveSpeed, d.elapsedSec)
-  useFinishBroadcast({ finished: d.finished, lives: derived.lives, progress, initialLives, typed: d.typedKeys, total, mistakes: d.mistakes, correct: derived.correct, speed: d.liveSpeed, elapsedSec: d.elapsedSec, sendProgress, sendFinished })
+  useFinishBroadcast({ finished: d.finished, lives: derived.lives, initialLives, typed: d.typedKeys, total, mistakes: d.mistakes, correct: derived.correct, speed: d.liveSpeed, elapsedSec: d.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: d.typedKeys, speed: d.liveSpeed, mistakes: d.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: d.elapsedSec }
   const hudEnd = hudEndFor(config.endCondition, 'cloze')
@@ -435,7 +445,7 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     autoStart: true,
   })
   useLiveRefSync(liveRef, w.liveSpeed, w.elapsedSec)
-  useFinishBroadcast({ finished: w.finished, lives: derived.lives, progress, initialLives, typed: w.typedKeys, total, mistakes: w.mistakes, correct: derived.correct, speed: w.liveSpeed, elapsedSec: w.elapsedSec, sendProgress, sendFinished })
+  useFinishBroadcast({ finished: w.finished, lives: derived.lives, initialLives, typed: w.typedKeys, total, mistakes: w.mistakes, correct: derived.correct, speed: w.liveSpeed, elapsedSec: w.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: w.typedKeys, speed: w.liveSpeed, mistakes: w.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: w.elapsedSec }
   const hudEnd = hudEndFor(config.endCondition, 'cloze')
@@ -532,7 +542,7 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
 
   useLiveRefSync(liveRef, m.liveSpeed, m.elapsedSec)
   // サドンデス脱落での終了（onFinish は個人完走用）。誰か lives0 なら 最終 progress→sendFinished で収束させる最小対応。
-  useFinishBroadcast({ finished: false, lives: derived.lives, progress, initialLives, typed: m.typedKeys, total, mistakes: m.mistakes, correct: derived.correct, speed: m.liveSpeed, elapsedSec: m.elapsedSec, sendProgress, sendFinished })
+  useFinishBroadcast({ finished: false, lives: derived.lives, initialLives, typed: m.typedKeys, total, mistakes: m.mistakes, correct: derived.correct, speed: m.liveSpeed, elapsedSec: m.elapsedSec, sendProgress, sendFinished })
 
   const self = { typed: m.typedKeys, speed: m.liveSpeed, mistakes: m.mistakes, correct: derived.correct, lives: derived.lives, elapsedSec: m.elapsedSec }
   // #439 ヘッダバー用の残り（endStat）は MarathonView と同じ算出で container 側でも作る（learningMode='cloze'）。
@@ -641,16 +651,30 @@ export default function VersusMatch({ config, seed, selfId, role, roster, progre
     return () => clearTimeout(id)
   }, [isHost, endMatch, endKind, phase, localStartAt, config.endCondition.value])
 
-  // 問題数/文字数/サドンデス（items/chars/life）：最初の完走 or 脱落で全員終了する。
-  // roster の finished がどれか true になったら（自分の完走/脱落も useFinishBroadcast→sendFinished で
-  // roster.self.finished を立てる想定）ホストが終了を配布する。dispatch を render 位相に持ち込まないよう
-  // setTimeout(…,0) で遅延実行する（endMatch は冪等＝二重でも無害）。
+  // 問題数/文字数（items/chars）：最初の完走で全員終了する。roster の finished がどれか true になったら
+  //   （自分の完走も useFinishBroadcast→sendFinished で roster.self.finished を立てる）ホストが終了を配布する。
+  // #443 サドンデス（life）：脱落しても対戦は継続するため anyFinished では終了しない。ホストは全参加者の
+  //   スナップショット（lives/correct・自分ぶんも progress[selfId] に反映される）から suddenDeathOutcome を
+  //   算出し、勝敗が確定（status!=='ongoing'）したら終了を配布する（脱落順に非依存）。
+  // dispatch を render 位相に持ち込まないよう setTimeout(…,0) で遅延実行する（endMatch は冪等＝二重でも無害）。
   const anyFinished = activeIds(roster).some((id) => roster.peers[id]?.finished)
+  const suddenDeathStatus =
+    endKind === 'life'
+      ? suddenDeathOutcome(
+          activeIds(roster).map((id) => ({
+            id,
+            lives: progress[id]?.lives ?? initialLives,
+            correct: progress[id]?.correct ?? 0,
+          })),
+        ).status
+      : 'ongoing'
+  // items/chars は完走で、life は outcome 確定で終了トリガを立てる。
+  const nonTimeShouldEnd = endKind === 'life' ? suddenDeathStatus !== 'ongoing' : anyFinished
   useEffect(() => {
-    if (!isHost || !endMatch || endKind === 'time' || phase !== 'running' || !anyFinished) return
+    if (!isHost || !endMatch || endKind === 'time' || phase !== 'running' || !nonTimeShouldEnd) return
     const id = setTimeout(() => endMatch(), 0)
     return () => clearTimeout(id)
-  }, [isHost, endMatch, endKind, phase, anyFinished])
+  }, [isHost, endMatch, endKind, phase, nonTimeShouldEnd])
 
   if (content.error) {
     return (
