@@ -292,6 +292,37 @@ async function expectDecided(pages, expected, deadline) {
   )
 }
 
+// #443 決着（phase=finished）した後は、両者とも打鍵が一切効かないことを確かめる。
+// 以前は「finished と outcome」しか見ておらず、脱落していない側（＝勝者）が決着後も打ち続けられる
+// 不具合を素通りさせていた。ここでは実際にキーを押し、typed/correct/mistakes が 1 も動かないことを見る。
+// 正解キーとミスキーの両方を試し、終了後に expectedKey 経路が null を返す場合に備えて素の文字キーも押す。
+async function expectInputFrozen(pages) {
+  for (const { name, page } of pages) {
+    const before = (await snapshot(page)).self
+    const alive = before.lives == null || before.lives > 0 // 生存側（勝者）が本命の検査対象
+    const keys = []
+    const nk = await nextKey(page)
+    const wk = await wrongKey(page)
+    if (nk != null) keys.push(nk)
+    if (wk != null) keys.push(wk)
+    keys.push('a', 'k') // 素の文字キー（nextKey/wrongKey が null でも必ず数回打つ）
+    for (const k of keys) {
+      await page.keyboard.press(k)
+      await sleep(30)
+    }
+    await sleep(300) // 状態更新＋再レンダーの猶予（snapshot は ref 経由で最新レンダー値を返す）
+    const after = (await snapshot(page)).self
+    for (const field of ['typed', 'correct', 'mistakes']) {
+      if (after[field] !== before[field]) {
+        throw new Error(
+          `${name}${alive ? '（生存側）' : '（脱落済み）'}: 決着後に打鍵が効いてしまう` +
+            `（self.${field} が ${before[field]}→${after[field]}・押したキー=${keys.join(',')}）`,
+        )
+      }
+    }
+  }
+}
+
 // 一定時間、両ブラウザが「継続中（running かつ ongoing）」のままであることを確かめる。
 // 途中で終わったら（＝早すぎる決着）その場で失敗させる。
 async function expectStillOngoing(pages, holdMs) {
@@ -406,8 +437,13 @@ async function runScenario(name, executablePath, opts) {
       lives,
       deadline,
     })
-    if (expected.status === 'ongoing') await expectStillOngoing(pages, 3000)
-    else await expectDecided(pages, expected, deadline)
+    if (expected.status === 'ongoing') {
+      await expectStillOngoing(pages, 3000)
+    } else {
+      await expectDecided(pages, expected, deadline)
+      // #443 決着で終わる全シナリオ共通の後段：終了後に打鍵が効かないこと（継続シナリオは対象外）。
+      await expectInputFrozen(pages)
+    }
     console.log(`✓ ${name}`)
     return true
   } catch (err) {
