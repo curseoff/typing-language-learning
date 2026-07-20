@@ -352,6 +352,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
   )
   const liveRef = useLiveRef()
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
+  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
+  const eliminated = initialLives != null && derived.lives <= 0
   const d = useDict({
     dict: content.dict,
     level: config.level,
@@ -366,6 +368,7 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     onProgress,
     // 対戦はレース開始（この PlayArea のマウント＝カウントダウン終了）と同時に計時を始める（初回打鍵を待たない）。
     autoStart: true,
+    active: !eliminated,
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
   useLiveRefSync(liveRef, d.liveSpeed, d.elapsedSec)
@@ -430,6 +433,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
   const liveRef = useLiveRef()
   // 単語（words）は見出し和訳グロサリを持たない（word 自体が答え側＝board では word='' で見出し無し）。gloss は undefined。
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: undefined })
+  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
+  const eliminated = initialLives != null && derived.lives <= 0
   const w = useWords({
     allWords: content.words,
     level: config.level,
@@ -443,6 +448,7 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     onProgress,
     // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
     autoStart: true,
+    active: !eliminated,
   })
   useLiveRefSync(liveRef, w.liveSpeed, w.elapsedSec)
   useFinishBroadcast({ finished: w.finished, lives: derived.lives, initialLives, typed: w.typedKeys, total, mistakes: w.mistakes, correct: derived.correct, speed: w.liveSpeed, elapsedSec: w.elapsedSec, sendProgress, sendFinished })
@@ -502,6 +508,8 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
   )
   const liveRef = useLiveRef()
   const { derived, onProgress } = useProgressRelay({ sendProgress, sendBoard, selfId, total, initialLives, liveRef, gloss: content.gloss })
+  // #443 サドンデス脱落（life かつ derived.lives<=0＝latch で固定）後は盤面のキー入力も止める。
+  const eliminated = initialLives != null && derived.lives <= 0
   // 最新の derived（correct/lives）を effect で ref へ控える（onFinish の最終 progress が読む）。
   const derivedRef = useRef(derived)
   useEffect(() => {
@@ -528,7 +536,7 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
     [sendProgress, sendFinished, total, initialLives, liveRef],
   )
   // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
-  const m = useMarathon({ active: true, onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true })
+  const m = useMarathon({ active: !eliminated, onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true })
 
   // マウント時に1回だけ出題を開始（全員同一 seed＝同一問題列）。
   const started = useRef(false)

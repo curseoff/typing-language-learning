@@ -230,4 +230,15 @@ describe('useWords エンドレス（#208 段6：ESC・30秒以上で記録）',
     act(() => vi.advanceTimersByTime(MIN_RECORD_MS * 3)) // 90秒経過してもエンドレスは終わらない
     expect(result.current.finished).toBe(false)
   }, 20000)
+
+  // #443 対戦サドンデス脱落後：active:false ならキー入力を無視する（盤面が動かない）。
+  it('active:false のとき打鍵を無視する（typedKeys が増えない）', () => {
+    const { result } = renderHook(() =>
+      useWords({ allWords: WORDS, level: 1, theme: 'すべて', mode: 'en', onExit: () => {}, active: false }),
+    )
+    const seg = result.current.segments[result.current.segIndex]
+    typeKey(seg.canonical[0]) // 正打候補を送っても無視される
+    expect(result.current.typedKeys).toBe(0)
+    expect(result.current.segInput).toBe('')
+  }, 20000)
 })

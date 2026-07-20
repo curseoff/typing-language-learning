@@ -73,7 +73,9 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 //   （startTime を performance.now() で即セット＝レース開始＝カウントダウン終了と同時に時間が進む）。
 //   未指定（solo プレイ）は従来どおり初回打鍵で開始＝挙動を一切変えない。effect で同期 setState すると
 //   cascading render 警告になるため、lazy 初期化で最初の render 時刻を startTime とする（＝マウント時計時開始）。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
+// #443 対戦：active（任意・既定 true）＝false ならキー入力を無視する（サドンデス脱落後に盤面を止める）。
+//   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -263,6 +265,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
 
   const handleKey = useCallback(
     (e) => {
+      if (!active) return // #443 脱落後（対戦）は打鍵を一切処理しない
       if (e.key === 'Escape') {
         e.preventDefault()
         if (ec.kind === 'endless' && !finished && finishByEsc()) return
@@ -371,7 +374,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         })
       }
     },
-    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
+    [active, finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
   )
 
   useEffect(() => {
