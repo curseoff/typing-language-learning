@@ -61,13 +61,14 @@ function parseArgs(argv) {
     else if (a === '--last') opts.last = Number(argv[++i])
     else if (a === '--session') opts.session = argv[++i]
     else if (a === '--since') opts.since = argv[++i]
+    else if (a === '--grep') opts.grep = argv[++i]
     else if (a === '--help' || a === '-h') opts.help = true
   }
   return opts
 }
 
 const USAGE =
-  '使い方: node scripts/turn-timing.mjs [--last N] [--session latest|<id>] [--since YYYY-MM-DD] [--json]'
+  '使い方: node scripts/turn-timing.mjs [--last N] [--session latest|<id>] [--since YYYY-MM-DD] [--grep 正規表現] [--json]'
 
 // ---- transcript の場所 ---------------------------------------------------
 // cwd の絶対パスの / を - に置換したものがプロジェクトのディレクトリ名になる。
@@ -425,6 +426,12 @@ function main() {
   turns.sort((a, b) => a.startedAt.localeCompare(b.startedAt))
 
   if (opts.since) turns = turns.filter((t) => t.startedAt.slice(0, 10) >= opts.since)
+  // 依頼文で絞る。スラッシュコマンドの起動だけを見たいときは ^ で先頭に固定する
+  // （固定しないと、端末出力を貼り付けた依頼にも一致してしまう）
+  if (opts.grep) {
+    const re = new RegExp(opts.grep)
+    turns = turns.filter((t) => re.test(t.prompt))
+  }
   if (Number.isFinite(opts.last) && opts.last > 0) turns = turns.slice(-opts.last)
 
   const agg = aggregate(turns)
