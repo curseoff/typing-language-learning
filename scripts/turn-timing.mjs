@@ -14,8 +14,9 @@
 //
 // 出力には本人のプロンプト抜粋が入る。リポジトリに書き出さないこと（stdout のみ）。
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
+import { execFileSync } from 'node:child_process'
 
 // 出力先が途中で閉じても（`| head` 等）落ちないように EPIPE を握りつぶす
 process.stdout.on('error', (err) => {
@@ -71,6 +72,34 @@ export function projectSlug(cwd) {
 
 function transcriptDir(cwd = process.cwd(), home = homedir()) {
   return join(home, '.claude', 'projects', projectSlug(cwd))
+}
+
+// git worktree の本体（メイン作業ツリー）のルート。worktree では cwd が本体と異なるため、
+// transcript のディレクトリ名（cwd 由来のスラッグ）も変わってしまう。記録は本体側に
+// 溜まっているので、cwd で見つからないときの探索先として本体ルートを返す。
+function mainWorktreeRoot() {
+  try {
+    const common = execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
+      encoding: 'utf8',
+    }).trim()
+    // 通常は <本体ルート>/.git を指す（bare は対象外）
+    return common.endsWith('/.git') ? dirname(common) : null
+  } catch {
+    return null
+  }
+}
+
+// 実際に記録がある transcript ディレクトリを選ぶ（cwd → 本体ルートの順）。
+// PUBLIC リポジトリなので、パスはすべて実行時に導出し username は埋め込まない。
+export function resolveTranscriptDir() {
+  const candidates = [process.cwd()]
+  const main = mainWorktreeRoot()
+  if (main && main !== process.cwd()) candidates.push(main)
+  for (const cwd of candidates) {
+    const dir = transcriptDir(cwd)
+    if (existsSync(dir)) return { dir, from: cwd }
+  }
+  return { dir: transcriptDir(process.cwd()), from: process.cwd() }
 }
 
 // セッションファイル一覧（サブディレクトリはサブエージェントの transcript なので見ない）
@@ -132,6 +161,10 @@ export function isUserPrompt(rec) {
   if (!text) return false
   if (text.startsWith('<local-command-stdout>')) return false
   if (text.startsWith('<local-command-caveat>')) return false
+  // 背景ジョブの完了通知やフック注入は user 行だが本人の発話ではない。
+  // これをターンの起点にすると 1 回の依頼が分断され、所要が実際より短く出てしまう。
+  if (text.startsWith('<task-notification>')) return false
+  if (text.startsWith('<system-reminder>')) return false
   return true
 }
 
@@ -293,11 +326,12 @@ function padStart(s, target) {
 export function fmtDur(ms) {
   const sec = ms / 1000
   if (sec < 60) return `${sec.toFixed(1)}s`
-  const m = Math.floor(sec / 60)
-  const s = Math.round(sec - m * 60)
+  // 秒は四捨五入してから桁上げする（先に分を切り出すと 4m60s のような表示になる）
+  const totalSec = Math.round(sec)
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
   if (m < 60) return `${m}m${String(s).padStart(2, '0')}s`
-  const h = Math.floor(m / 60)
-  return `${h}h${String(m - h * 60).padStart(2, '0')}m`
+  return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}m`
 }
 
 // 先頭 n 文字（表示崩れを避けるため改行は畳んである前提）
@@ -335,13 +369,13 @@ function render(agg, scope) {
 
   out.push('遅いターン top10')
   out.push(
-    `${padStart('所要', 8)}  ${padEnd('主要因', 20)}  ${padEnd('日時', 17)}  依頼（先頭50文字）`,
+    `${padStart('所要', 8)}  ${padEnd('主要因', 26)}  ${padEnd('日時', 12)}  依頼（先頭50文字）`,
   )
   out.push('-'.repeat(100))
   for (const t of agg.slowest) {
     const when = t.startedAt.slice(5, 16).replace('T', ' ')
     out.push(
-      `${padStart(fmtDur(t.durationMs), 8)}  ${padEnd(`${t.topBucket} ${fmtDur(t.topMs)}`, 20)}  ${padEnd(when, 17)}  ${head(t.prompt, 50)}`,
+      `${padStart(fmtDur(t.durationMs), 8)}  ${padEnd(`${t.topBucket} ${fmtDur(t.topMs)}`, 26)}  ${padEnd(when, 12)}  ${head(t.prompt, 50)}`,
     )
   }
   return out.join('\n') + '\n'
@@ -355,7 +389,7 @@ function main() {
     return
   }
 
-  const dir = transcriptDir()
+  const { dir } = resolveTranscriptDir()
   if (!existsSync(dir)) {
     process.stdout.write(`transcript が見つからない（${projectSlug(process.cwd())}）\n`)
     process.exitCode = 1

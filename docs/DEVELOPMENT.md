@@ -33,6 +33,7 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run audit` | 本番(prod)依存の脆弱性ゲート（high 以上で失敗。dev は対象外） |
 | `npm run check:pwa` | SW/precache/オフラインの実挙動をヘッドレス Chrome で検証（要 `npm run build`。**ローカル専用・CI 非組込**） |
 | `npm run versus:e2e` | 対戦の決着を Chrome 2 枚で通し確認（`-- --scenario all`。要 `npm run dev` 起動済み。**ローカル専用・CI 非組込**） |
+| `npm run timing` | 依頼→完成の所要時間の内訳を transcript から実測（`-- --last 30` 等。**ローカル専用**） |
 | `npm run push-selfcheck` | 未 push 差分の追加行から秘密情報・個人情報の混入を走査（push 前に実行。リポジトリは PUBLIC） |
 | `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用・production preview） |
 | `npm run shots:play` | dev サーバ相手に `?preview=result\|play\|story` を撮影（プレイ中/結果/記録を手動プレイ無しで確認） |
@@ -59,6 +60,28 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
   - Chrome のパスは `CHROME=...` で上書き可。既存 dist を使うなら `-- --no-build`。
 - **validate**（`scripts/validate-sentences.mjs`）
   - 文・単語・英英の各データを検証（読み→ローマ字変換、重複、レベル/テーマ、文末記号、長音ーの警告 など）
+
+## 所要時間の計測（`npm run timing`）
+
+「依頼してから完成までの時間」がどこに消えているかを、Claude Code の transcript（`~/.claude/projects/<cwd-slug>/*.jsonl`）から実測する。体感で語らず数字で改善点を決めるための道具。
+
+```bash
+npm run timing                      # 全セッション
+npm run timing -- --last 30         # 直近30ターン
+npm run timing -- --session latest  # 最終更新のセッションだけ
+npm run timing -- --since 2026-07-01
+npm run timing -- --json            # 集計結果を JSON で
+```
+
+**ターンの定義**：開始＝本人の発話行、終了＝次の発話の直前にある最後の assistant 行。「最後の assistant → 次の発話」は本人が読む/考える時間なので**含めない**（含めると計測が壊れる）。背景ジョブの完了通知（`<task-notification>`）やスラッシュコマンドの出力は本人の発話ではないので起点にしない。
+
+**内訳**：`委任`（Agent ツール）／`Bash:検証|git|gh|その他`／`編集`（Read/Edit/Write/NotebookEdit）／`承認待ち(推定)`／`その他ツール`／`モデル(思考・生成)`。
+
+- `承認待ち(推定)` … Read/Edit/Write は通常1秒未満で返るので、**単発で5秒超**のものは許可プロンプトの前で止まっていた（＝本人待ち）とみなし、`編集` から外して別建てにする。
+- `モデル(思考・生成)` … ターン所要からツール所要を引いた**残差**（負なら0にクランプ）。
+- 内訳合計が 100% を超えるのは、背景ジョブや同時ツール呼び出しが**並列に走った重なり**。表の「内訳合計」行で超過量が見える。
+
+**注意**：出力には本人のプロンプト抜粋が入る。**リポジトリに書き出さない**こと（stdout のみ。docs に実出力を貼るならダミーに置換する）。transcript のパスは `process.cwd()` と `os.homedir()` から実行時に導出しており、username を含む絶対パスは埋め込んでいない（リポジトリは PUBLIC）。worktree から実行した場合は cwd 由来のスラッグに記録が無いので、**本体の作業ツリー側のスラッグに自動でフォールバック**する。
 
 ## 依存・セキュリティ
 
