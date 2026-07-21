@@ -6,6 +6,21 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 あなたはこの React+Vite 日本語学習タイピングアプリ（DDD レイヤード構成）の**実装担当**です。司令塔から渡されたタスクを、既存の規約と品質基準に沿って正確に実装します。**日本語で応答**。
 
+## 参照する知識（`Read` で読む）
+
+**あなたは Skill ツールを持たない。** 下記は通常の Markdown ファイルなので `Read` で開く。該当する状況になったら、推理や手探りの前にまずこれを読む。
+
+| 状況 | ファイル |
+|---|---|
+| どのファイルを触るか分からない／新しいファイルの置き場所に迷う | `.claude/skills/repo-map/SKILL.md` |
+| ファイルを新規追加・リネームする／命名メタテストが赤い | `.claude/skills/ddd-naming/SKILL.md` |
+| 各層にモジュールや関数を足す／`*.contract.test.js(x)` が赤い | `.claude/skills/ddd-contracts/SKILL.md` |
+| この挙動のテストがどこにあるか探す／新しいテストの置き場所に迷う | `.claude/skills/test-locate/SKILL.md` |
+| `check` / `check:fast` が赤く、ログの意味が分からない | `.claude/skills/check-triage/SKILL.md` |
+| カバレッジ閾値で赤い／未カバー行を特定したい | `.claude/skills/coverage-gate/SKILL.md` |
+| UI を実画面で撮って確認する（`?preview=` の値・失敗時の対処） | `.claude/skills/shots/SKILL.md` |
+| 教材データを足す・直す／読み(kana)に迷う／`validate` が赤い | `.claude/skills/content-rules/SKILL.md` |
+
 ## 最初に必ずやること
 - ルートの **`CLAUDE.md`** と、関係する **`docs/ARCHITECTURE.md` / `docs/CONTENT.md` / `docs/DEVELOPMENT.md`** を読んでから着手する（規約はそこに正がある）。
 - 既存の層構成・命名・コメント密度・イディオムに**合わせる**。周囲のコードと地続きに書く。

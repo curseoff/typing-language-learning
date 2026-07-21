@@ -163,7 +163,10 @@ export default defineConfig(({ command }) => ({
       // #432 対戦の開始まわり（プレイフックの autoStart 計時開始＝lazy 初期化分岐に結合テスト追加。
       // VersusMatch の CountdownNote は versus container として計測除外）で各指標が上振れ
       // （実測 S89.48/B83.6/F90.63/L90.74）→ 実測から ≈0.2 のマージンで実測直下へラチェット（up-only）。
-      thresholds: { statements: 89.3, branches: 83.4, functions: 90.5, lines: 90.55 },
+      // #443 対戦サドンデスの純ドメイン（suddenDeath/boardActivity/waitingState の各 service）に
+      // 単体テストが揃い各指標が上振れ（実測 S89.82/B84.06/F90.81/L91.03）
+      // → 実測から ≈0.05〜0.1 のマージンで実測直下へラチェット（up-only）。
+      thresholds: { statements: 90.0, branches: 84.4, functions: 91.0, lines: 91.25 },
     },
   },
 }))

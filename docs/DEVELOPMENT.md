@@ -24,11 +24,16 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 | `npm run test` | Vitest（ドメインの回帰テスト＋UIスモーク） |
 | `npm run coverage` | カバレッジ計測（`coverage/` にHTML）＋閾値ゲート |
 | `npm run validate` | 教材データの整合性チェック（単語・英英・例文） |
-| **`npm run check`** | **lint → coverage → validate → build → check-bundle → audit（＝CI同等。通れば CI も通る）** |
-| `npm run check:fast` | coverage の代わりに test を回す軽量版（反復用） |
+| `npm run build:pkgs` | `@tll/ui`（`packages/ui`）のビルド＋型出力。`check` が型ゲートとして通す |
+| **`npm run check`** | **lint → coverage → validate → build:pkgs → build → check:content → check-bundle → audit（＝CI同等。通れば CI も通る）** |
+| `npm run check:fast` | coverage の代わりに test を回し、`check:content`/`audit` を省く軽量版（反復用） |
 | `npm run check:ci` | CIと同条件（Linux arm64 / node20）で `npm ci && npm run check` をコンテナ実行 |
 | `npm run check-bundle` | 初回バンドル(エントリJS)のサイズ予算チェック（既定 512KB） |
+| `npm run check:content` | 生成 SQLite（`content.sqlite3`）と `.js` 生成物の中身が一致するか検証 |
 | `npm run audit` | 本番(prod)依存の脆弱性ゲート（high 以上で失敗。dev は対象外） |
+| `npm run check:pwa` | SW/precache/オフラインの実挙動をヘッドレス Chrome で検証（要 `npm run build`。**ローカル専用・CI 非組込**） |
+| `npm run versus:e2e` | 対戦の決着を Chrome 2 枚で通し確認（`-- --scenario all`。要 `npm run dev` 起動済み。**ローカル専用・CI 非組込**） |
+| `npm run push-selfcheck` | 未 push 差分の追加行から秘密情報・個人情報の混入を走査（push 前に実行。リポジトリは PUBLIC） |
 | `npm run screenshots` | 全タブのトップ画面を撮影し1枚に（目視確認用・production preview） |
 | `npm run shots:play` | dev サーバ相手に `?preview=result\|play\|story` を撮影（プレイ中/結果/記録を手動プレイ無しで確認） |
 | `npm run release -- <patch\|minor\|major\|x.y.z>` | リリース一括（本人実行・本人の git/gh 認証）：自己点検→版上げ＋lock同期→check→release枝＋master PR→CI待ち→マージ→develop揃え→GitHub Release→デプロイ確認 |
@@ -59,6 +64,13 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 
 - **本番(prod)依存は react / react-dom のみ**で、現状 `npm audit --omit=dev` は **脆弱性 0**。CI の `npm run audit` が high 以上で落とす。
 - `npm audit` 全体の警告は **dev 依存（vite/vitest/esbuild 等のビルド用ツール）**由来で、**デプロイされるサイトには含まれない**。解消は major 更新が必要なため、`--force` 一括ではなく **Dependabot（`.github/dependabot.yml`）の更新PRで段階対応**する。
+
+### Dependabot PR の扱い（ハマりどころ）
+
+- **`@dependabot merge` が無反応**なら、リポジトリの `allow_auto_merge` が OFF。`gh api --method PATCH repos/OWNER/REPO -F allow_auto_merge=true` で ON にする（2026-07-16 に ON 済み）。
+- **CI が既に緑（mergeable state = CLEAN）の PR に `gh pr merge --auto` は弾かれる**（"in clean status"）。auto-merge は「これから緑になる」PR 用。緑なら `--auto` 無しで普通にマージする。
+- **Dependabot のブランチを自分で触らない**。`gh pr update-branch` などで編集すると以後 "edited by someone other than Dependabot" として **rebase を拒否**される。コンフリクトは `@dependabot recreate` に任せる。
+- グループ更新で lockfile が先に解決されると、**後続の単体 bump PR が Dependabot 自身に自動クローズ**されることがある（対応済みなので放置してよい）。
 
 ## バンドルサイズ
 
@@ -103,6 +115,23 @@ npm run dev      # 開発サーバー起動 → http://localhost:5173
 - **リリースPR（→master）の head は `develop` 直接ではなく `release/*` ブランチ**にする（`release/* ← develop` を作って `release/* → master`）。リポジトリは**マージ時 auto-delete** が有効で、develop を head にすると develop ごと削除されるため。
 - `Closes #N` は **feature→develop と develop→master の両方**のPR本文に書く（自動クローズは master 到達時のみ発火）。
 - マージ後は develop と master を揃え、マージ済みのローカルブランチを削除。develop が消えていたら master と同一内容で再作成して push する。
+
+### git worktree で並行作業する
+
+複数ブランチを同時に触るときは worktree を切る。**置き場はリポジトリ外の兄弟ディレクトリ**にする。
+
+```bash
+git worktree add ../typing-language-learning-wt/<名前> <ブランチ>
+cd ../typing-language-learning-wt/<名前> && npm install   # ← 必須
+# 片付け
+git worktree remove ../typing-language-learning-wt/<名前>
+git worktree prune
+```
+
+- **リポジトリ内（`.claude/` 配下を含む）には作らない**。作業ツリーの中に別チェックアウトが入ると lint/テスト/glob の走査対象に紛れ込み、`.gitignore` や `.git/info/exclude` での除外に頼る脆い運用になる。外に置けば除外設定そのものが要らない。
+- **`node_modules` は worktree 間で共有されない**。作った直後は必ず `npm install` する。
+- 教材の生成物（`src/content/*Data.js` 等）は `predev`/`pretest`/`prevalidate` が作る**ビルド生成物**で、リポジトリには入っていない。`npm install` 前は **lint もテストも通らない**（未解決 import になる）。生成だけなら `npm run content:build`。
+- 片付けは **`git worktree remove` ＋ `git worktree prune`**。`rm -rf` だけだと `git worktree list` に幽霊エントリが残る。
 
 ## リリース版数と GitHub Release
 

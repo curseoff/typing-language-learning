@@ -10,8 +10,10 @@
 // memory/sqlite の両モードとも read/write はメモリ像 image を経由する（消費側は無改修）。
 // キー生成（wordRecKey/dictRecKey/storyRecKey/itemId）は domain の純粋関数を使う（#274）。
 import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.service.js'
+import { recordGroupOf } from '../domain/records/recordGroup.service.js'
 import {
   buildImage,
+  applyDeleteAt,
   applySaveRecord,
   applySaveWordRecord,
   applySaveDictRecord,
@@ -168,6 +170,77 @@ export function saveRecord(record) {
   image = { ...image, records: applySaveRecord(image.records, record) }
   writeThrough({ repo: 'records', args: [record] })
   return image.records
+}
+
+// ── #451 記録の変更通知 ──
+// 削除は application のメモリ像だけを書き換えるので、各プレイのフックが自前で持つ records
+// state は取り残される（＝消したのに下敷きの結果ページのランキングに残り続ける）。そこで
+// 「変更されたよ」だけを購読者へ配り、購読側は load*Records() で読み直して追随する。
+//
+// 保存（saveXxxRecord）では通知しない：保存は更新後マップを同期で返し、呼び出し側がその
+// 戻り値で自分の state を差し替え済みだから。通知を足しても同じ更新が二重に走るだけで、
+// 既存の保存経路の挙動を変えるリスクだけが増える。通知はあくまで削除の追いつき用。
+//
+// listener は購読側（React のフック）が unmount 時に解除する。init*Persistence は永続化の
+// バックエンドを切り替えるだけで購読者のライフサイクルとは無関係なので、ここは触らない。
+const recordsChangedListeners = new Set()
+
+// 記録の変更（＝削除）を購読する。戻り値の解除関数を呼ぶまで通知が届く。
+export function subscribeRecordsChanged(listener) {
+  recordsChangedListeners.add(listener)
+  return () => {
+    recordsChangedListeners.delete(listener)
+  }
+}
+
+function emitRecordsChanged() {
+  // 通知中に購読/解除されても走査が壊れないようコピーしてから回す。
+  for (const listener of [...recordsChangedListeners]) {
+    try {
+      listener()
+    } catch {
+      // 1つの購読者の失敗で他の画面の追随を巻き添えにしない（通知は付随処理で、
+      // 削除そのものの成否には影響させない）。
+    }
+  }
+}
+
+// ── #451 記録の1件削除 ──
+// store（メモリ像のマップ名）→ Worker の repo 名。削除専用 SQL は無く、更新後のグループ配列で
+// DB のグループを丸ごと置き換える（メモリ像が正・保存と同じ「グループ置換」経路に乗せる）。
+const DELETE_REPOS = {
+  records: 'recordsGroup',
+  wordRecords: 'wordGroup',
+  dictRecords: 'dictGroup',
+  storyRecords: 'storyGroup',
+}
+
+// 記録を1件削除する。position は UI/ランキング表示の順位そのまま（1 始まり）で、
+// 0 始まりへの変換はここで閉じる（純ロジック applyDeleteAt は 0 始まりに統一されている）。
+// 削除できたら true、対象が特定できなければ false を返し、その場合は書き込みを一切起こさない。
+export function deleteRecordAt(record, position) {
+  const group = recordGroupOf(record)
+  if (!group) return false
+  const { store, key } = group
+  const index = position - 1
+  const list = image[store]?.[key]
+  if (!Array.isArray(list)) return false
+  const target = list[index]
+  // position がずれていた場合に「別の記録を巻き込んで消す」のが最悪の事故なので、
+  // その位置に居るのが渡された記録本人かを確かめてからでないと消さない。
+  // 通常は UI が像から読んだ記録をそのまま渡す＝同一参照。date は像を跨いだ場合の同一性判定。
+  const isSame = target === record || (target != null && record.date != null && target.date === record.date)
+  if (!isSame) return false
+
+  const next = applyDeleteAt(image[store], key, index)
+  image = { ...image, [store]: next }
+  // 残り配列（空なら []）でグループを置換する。story だけはグループ座標に storyId が要る。
+  const rest = next[key] || []
+  const args = store === 'storyRecords' ? [record.storyId, record, rest] : [record, rest]
+  writeThrough({ repo: DELETE_REPOS[store], args })
+  // 消せたときだけ通知する（false で返る＝像を触っていない場合は購読者を起こさない）。
+  emitRecordsChanged()
+  return true
 }
 
 // 記録マップのキー生成（フック由来の records マップから該当条件を引くのに使う）。

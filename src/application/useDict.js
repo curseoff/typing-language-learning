@@ -19,6 +19,7 @@ import { isClozeRevealed, clozeMaskRng } from '../domain/typing/cloze.service.js
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord, recordItemStat } from './records.service.js'
+import { useRecordsSync } from './persist/useRecordsSync.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
@@ -73,7 +74,11 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 //   （startTime を performance.now() で即セット＝レース開始＝カウントダウン終了と同時に時間が進む）。
 //   未指定（solo プレイ）は従来どおり初回打鍵で開始＝挙動を一切変えない。effect で同期 setState すると
 //   cascading render 警告になるため、lazy 初期化で最初の render 時刻を startTime とする（＝マウント時計時開始）。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false }) {
+// #443 対戦：active（任意・既定 true）＝false ならキー入力を無視する（サドンデス脱落後に盤面を止める）。
+//   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
+// #447 対戦：saveRecord（任意・既定 true）＝false なら記録を保存しない（result は従来どおり作る）。
+//   対戦のプレイが solo の記録一覧/ベスト記録に混ざるのを防ぐ。未指定（solo）は保存する＝挙動不変。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -114,6 +119,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
+  // #451 記録を1件削除したら自分の records も読み直す（下敷きの結果ページを最新に保つ）。
+  useRecordsSync(setRecords, loadDictRecords)
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
@@ -196,11 +203,12 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
           },
         }),
       }
-      setRecords(saveDictRecord(record))
+      // #447 対戦（saveRecord=false）は保存もランキング更新もしない＝記録一覧に混ざらない。
+      if (saveRecord) setRecords(saveDictRecord(record))
       setResult(record)
       setFinished(true)
     },
-    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode],
+    [level, theme, mode, range, sessionSeed, ec, isCloze, learningMode, saveRecord],
   )
 
   // 進捗（打鍵数/問題数/ミス数）が終了条件に達したら finish（chars/items/life＝時間制以外）。
@@ -263,6 +271,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
 
   const handleKey = useCallback(
     (e) => {
+      if (!active) return // #443 脱落後（対戦）は打鍵を一切処理しない
       if (e.key === 'Escape') {
         e.preventDefault()
         if (ec.kind === 'endless' && !finished && finishByEsc()) return
@@ -371,7 +380,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         })
       }
     },
-    [finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
+    [active, finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
   )
 
   useEffect(() => {
@@ -402,8 +411,10 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
     const p = sessionRef.current.progress()
     finish(p.keys, p.mistakes, t, startedAt)
   }
+  // #443 対戦：active=false（脱落 or 対戦終了）でも計時を止める＝速度・経過が最後の値で確定する
+  //   （打鍵が止まっているのに分母だけ伸びて速度が下がり続けるのを防ぐ）。非対戦は active 既定 true で挙動不変。
   const { elapsedSec, liveSpeed: speedFor } = useCountdownTimer({
-    active: !finished,
+    active: active && !finished,
     startTime,
     onTimeout,
     limitMs,

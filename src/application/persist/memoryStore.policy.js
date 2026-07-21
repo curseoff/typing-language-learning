@@ -80,6 +80,22 @@ export function applySaveStoryRecord(storyRecords, storyId, record) {
   return { ...storyRecords, [key]: rankedEntries(key, storyRecords[key], record) }
 }
 
+// #451 該当キーの配列から index（0 始まり）の 1 件を消した新しいマップを返す（apply* と同じ非破壊規約）。
+// 無効な指定（範囲外・非整数・キー無し・非配列）は「何も起きない」＝複製した同値のマップを返す。
+// 消して空になったキーはマップごと落とす（空配列が残ると空のランキングが画面に出てしまうため）。
+export function applyDeleteAt(map, key, index) {
+  const base = { ...(map || {}) }
+  const list = key == null ? undefined : base[key]
+  if (!Array.isArray(list)) return base
+  if (!Number.isInteger(index) || index < 0 || index >= list.length) return base
+  const next = list.filter((_, i) => i !== index)
+  if (next.length === 0) {
+    delete base[key]
+    return base
+  }
+  return { ...base, [key]: next }
+}
+
 // 発見エンドを storyId 単位でそのまま格納（発見順を保持・配列は複製して非破壊）。
 export function applySaveFound(storyFound, storyId, ids) {
   return { ...storyFound, [storyId]: [...ids] }

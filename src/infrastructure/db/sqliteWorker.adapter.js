@@ -21,13 +21,22 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import { migrations } from './migrations.migration.js'
 import { runMigrations } from './runMigrations.adapter.js'
-import { loadRecordsDb, saveRecordDb } from './repos/records.repository.js'
-import { loadWordRecordsDb, saveWordRecordDb } from './repos/words.repository.js'
-import { loadDictRecordsDb, saveDictRecordDb } from './repos/dict.repository.js'
+import { loadRecordsDb, saveRecordDb, replaceRecordsGroupDb } from './repos/records.repository.js'
+import {
+  loadWordRecordsDb,
+  saveWordRecordDb,
+  replaceWordRecordsGroupDb,
+} from './repos/words.repository.js'
+import {
+  loadDictRecordsDb,
+  saveDictRecordDb,
+  replaceDictRecordsGroupDb,
+} from './repos/dict.repository.js'
 import { loadItemStatsDb, recordItemStatDb } from './repos/itemStats.repository.js'
 import {
   loadAllStoryRecordsDb,
   saveStoryRecordDb,
+  replaceStoryRecordsGroupDb,
   loadFoundDb,
   saveFoundDb,
 } from './repos/story.repository.js'
@@ -212,6 +221,7 @@ function hydrate() {
 }
 
 // repo 別に1件保存（write-through）。戻り値はメイン側で使わない（メモリ像が正）。
+// *Group は #451 の1件削除：メイン側が更新済みメモリ像の残り配列を送り、DB のグループを置き換える。
 function save(repo, args) {
   if (repo === 'records') saveRecordDb(db, ...args)
   else if (repo === 'word') saveWordRecordDb(db, ...args)
@@ -219,6 +229,10 @@ function save(repo, args) {
   else if (repo === 'item') recordItemStatDb(db, ...args)
   else if (repo === 'story') saveStoryRecordDb(db, ...args)
   else if (repo === 'found') saveFoundDb(db, ...args)
+  else if (repo === 'recordsGroup') replaceRecordsGroupDb(db, ...args)
+  else if (repo === 'wordGroup') replaceWordRecordsGroupDb(db, ...args)
+  else if (repo === 'dictGroup') replaceDictRecordsGroupDb(db, ...args)
+  else if (repo === 'storyGroup') replaceStoryRecordsGroupDb(db, ...args)
   else throw new Error(`unknown repo: ${repo}`)
 }
 

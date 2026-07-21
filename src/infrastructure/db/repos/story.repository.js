@@ -59,22 +59,16 @@ export function loadAllStoryRecordsDb(db) {
   return out
 }
 
-// 1件保存し、更新後の当該グループ配列を返す（rankInsert 成績順・最大 MAX_RECORDS）。
-export function saveStoryRecordDb(db, storyId, record) {
-  db.transaction(() => {
-    const current = loadStoryRecordsDb(db, storyId, record.endCondition)
-    const board = makeRankingBoard({
-      key: storyRecKey(storyId, record.endCondition),
-      endCondition: normalizeEndCondition(record.endCondition),
-      entries: current,
-    })
-    const list = [...board.submit(record).entries()]
-    const ec = ecToColumns(record.endCondition)
-    db.exec({
-      sql: 'DELETE FROM "story_records" WHERE "story_id" IS ? AND "ec_kind" IS ? AND "ec_value" IS ?',
-      bind: [storyId, ec.ec_kind, ec.ec_value],
-    })
-    list.forEach((r, pos) => {
+// storyId＋終了条件で決まるグループ（storyRecKey と同じ座標）を list で丸ごと置き換える。
+// 保存も削除も「グループの全行を消して新しい並びを pos 昇順で入れ直す」で表せるため共通化する
+// （list が空ならグループの行は残らない＝#451 の最後の1件削除）。呼び出し側で transaction を張る。
+function replaceGroup(db, storyId, sampleRecord, list) {
+  const ec = ecToColumns(sampleRecord.endCondition)
+  db.exec({
+    sql: 'DELETE FROM "story_records" WHERE "story_id" IS ? AND "ec_kind" IS ? AND "ec_value" IS ?',
+    bind: [storyId, ec.ec_kind, ec.ec_value],
+  })
+  list.forEach((r, pos) => {
       const rec = ecToColumns(r.endCondition)
       db.exec({
         sql: `INSERT INTO "story_records" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -94,12 +88,31 @@ export function saveStoryRecordDb(db, storyId, record) {
           r.seconds ?? null,
           r.date ?? null,
           jsonToColumn(r.segStats),
-          jsonToColumn(r.choices),
-        ],
-      })
+        jsonToColumn(r.choices),
+      ],
     })
   })
+}
+
+// 1件保存し、更新後の当該グループ配列を返す（rankInsert 成績順・最大 MAX_RECORDS）。
+export function saveStoryRecordDb(db, storyId, record) {
+  db.transaction(() => {
+    const current = loadStoryRecordsDb(db, storyId, record.endCondition)
+    const board = makeRankingBoard({
+      key: storyRecKey(storyId, record.endCondition),
+      endCondition: normalizeEndCondition(record.endCondition),
+      entries: current,
+    })
+    replaceGroup(db, storyId, record, [...board.submit(record).entries()])
+  })
   return loadStoryRecordsDb(db, storyId, record.endCondition)
+}
+
+// #451 sampleRecord のグループを list（削除後の残り）で置き換える。メモリ像が正なので
+// 削除専用 SQL を持たず、この置換だけで DB を追随させる。
+export function replaceStoryRecordsGroupDb(db, storyId, sampleRecord, list) {
+  db.transaction(() => replaceGroup(db, storyId, sampleRecord, list))
+  return loadStoryRecordsDb(db, storyId, sampleRecord.endCondition)
 }
 
 // 発見エンドを発見順（配列 verbatim）で保存する。id 昇順で復元できるよう都度全置換で入れ直す。
