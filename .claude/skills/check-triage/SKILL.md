@@ -1,6 +1,6 @@
 ---
 name: check-triage
-description: npm run check / check:fast / CI が赤くなったときの読み替え表。どのステップの失敗が何を意味し、どのファイルを見て、どう直すかを症状から引く。失敗ログの意味が分からないとき、カバレッジ閾値割れ・バンドル予算超過・命名メタテストや contract テストの赤に当たったとき、check と check:fast のどちらを回すべきか迷ったときに読む。
+description: `npm run check` / `check:fast` / CI が赤いときの症状→原因→対処の読み替え表。失敗ログの意味が分からないとき、check と check:fast のどちらを回すべきか迷ったときに読む。
 ---
 
 # check が赤いときの読み替え

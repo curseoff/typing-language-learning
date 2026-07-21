@@ -1,6 +1,6 @@
 ---
 name: ddd-contracts
-description: DDD ステレオタイプ（VO/Entity/Aggregate/Factory/Event/Specification/Service/Repository/Policy/Store/Adapter/Mapper/Schema/Migration/Container/Presenter/Context）ごとに契約テストが何を強制するかの早見表。VO・サービス・ポリシー・リポジトリ・アダプタ等を新しく足すとき、既存の層に関数を追加するとき、`*.contract.test.js(x)` が赤くなったとき、新規モジュールを契約テストへ登録するときに読む。不変・決定性・非破壊・静的 grep の禁止トークンが対象。
+description: DDD ステレオタイプ（VO/Entity/Aggregate/Service/Repository/Policy/Store/Adapter/Mapper/Container/Presenter 等）ごとに契約テストが何を強制するかの早見表。各層に新しいモジュールや関数を足すとき、`*.contract.test.js(x)` が赤くなったときに読む。
 ---
 
 # 契約テストが強制すること（ステレオタイプ別）

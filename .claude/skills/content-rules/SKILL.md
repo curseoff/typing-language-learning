@@ -1,6 +1,6 @@
 ---
 name: content-rules
-description: 教材データ（単語・英英辞典・単語例文・グロス・物語）を追加/編集するときの規約と手順。単語を足すとき、英英の定義や例文を書くとき、読み（kana）をどう書くか迷ったとき、npm run validate / content:validate が赤いとき、add-words や merge-dict / merge-sentences を回すときに読む。正準ソース content/*.ndjson と生成物 src/content/*Data.js の区別、長音「ー」・づ/ぢ・特殊拗音の落とし穴、大量追加の並列パイプラインを扱う。詳細は docs/CONTENT.md。
+description: 教材データ（単語・英英・例文・グロス・物語）を追加/編集するときの規約と手順。単語や例文を足すとき、読み（kana）の書き方に迷ったとき、`npm run validate` が赤いときに読む。正準ソースと生成物の区別、長音「ー」・づ/ぢ・特殊拗音の落とし穴を含む。
 ---
 
 # 教材データの規約

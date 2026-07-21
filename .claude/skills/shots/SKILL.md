@@ -1,6 +1,6 @@
 ---
 name: shots
-description: UI を実画面で目視確認するための撮影手順。shots:play / screenshots が何をどこに撮るか、dev 限定の ?preview= に指定できる値（result/play/story/touch/romaji/versus 他）、出力先 /tmp/app-shots、撮れない状態の線引きと失敗時の対処。スクショを撮りたい・レイアウト崩れやはみ出しを見たいときに読む。本人の dev は絶対に落とさない。
+description: UI を実画面で目視確認するための撮影手順。スクショを撮りたい、レイアウト崩れやはみ出しを見たいときに読む。`shots:play` / `screenshots` が何をどこに撮るか、dev 限定の `?preview=` に指定できる値、失敗時の対処。本人の dev は絶対に落とさない。
 ---
 
 # UI の目視確認（スクリーンショット）

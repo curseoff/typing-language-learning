@@ -1,6 +1,6 @@
 ---
 name: git-flow
-description: このリポジトリのブランチ運用・PR・リリースの詳細規約。ブランチを切るとき、PR を作るとき、マージ後の掃除をするとき、リリースするときに読む。`Closes #N` をどこに書くか、`on-develop` ラベルの仕組み、マージ済みブランチの削除と残す例外、リリース PR の head を `release/*` にする理由、GitHub Release の作り方を含む。
+description: このリポジトリのブランチ運用・PR・リリースの詳細規約。ブランチを切るとき、PR を作るとき、リリースするときに読む。`Closes #N` をどこに書くか、`on-develop` ラベル、docs のみ PR の admin マージ、GitHub Release の作り方を含む。
 ---
 
 # ブランチ運用・PR・リリース（詳細）

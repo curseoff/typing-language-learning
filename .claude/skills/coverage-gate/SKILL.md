@@ -1,6 +1,6 @@
 ---
 name: coverage-gate
-description: カバレッジ閾値の在り処と、割れたときの直し方。npm run check が coverage で赤い（does not meet global threshold）、閾値を上げたい／下げたい、どのファイルの何行が未カバーか特定したい、新規ファイルを足して実測が下がった、ブラウザ API 配線を計測から外したいときに読む。閾値の実数値と定義場所・include/exclude の方針・up-only ラチェットの作法・HTML レポートの見方を引く。
+description: カバレッジ閾値の在り処と、割れたときの直し方。`check` が coverage で赤い、閾値を上げたい／下げたい、未カバー行を特定したいときに読む。閾値の実数値・include/exclude の方針・up-only ラチェットの作法を引く。
 ---
 
 # カバレッジ閾値（coverage gate）
