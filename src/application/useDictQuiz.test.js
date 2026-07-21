@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useDictQuiz } from './useDictQuiz.js'
+import { DICT_QUIZ_COUNT } from '../domain/dictionary/dictset.service.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { DICT } from '../content/dictionaryAll.js'
 import { WORDS } from '../content/wordsAll.js'
@@ -108,6 +109,81 @@ describe('useDictQuiz（英英4択・60秒・結合）', () => {
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('dict')
   })
+})
+
+describe('useDictQuiz 操作（クリック選択・打ちミス・打ち直し・継ぎ足し・もう一度）', () => {
+  const opts = { dict: DICT, level: 1, theme: 'すべて', kind: 'quiz', onExit: () => {} }
+
+  it('クリック（pick）でも選択が確定し、正解なら correct が増える。確定後の pick は無視する', () => {
+    const { result } = renderHook(() => useDictQuiz(opts))
+    const answer = result.current.question.options.find((o) => o.answer)
+    const wrong = result.current.question.options.find((o) => !o.answer)
+    act(() => result.current.pick(answer))
+    expect(result.current.picked).toBe(answer)
+    expect(result.current.correct).toBe(1)
+    expect(result.current.typedKeys).toBe(0) // クリック選択は打鍵数に加算しない
+    act(() => result.current.pick(wrong))
+    expect(result.current.picked).toBe(answer) // 多重確定しない
+    expect(result.current.correct).toBe(1)
+  })
+
+  it('どの選択肢の先頭にもならない打鍵はミス扱い＝mistakes/missedItems が増え hasError になる', () => {
+    const { result } = renderHook(() => useDictQuiz(opts))
+    typeKey('1') // 英単語の先頭になり得ない文字＝必ずミス
+    expect(result.current.mistakes).toBe(1)
+    expect(result.current.hasError).toBe(true)
+    expect(result.current.missedItems).toBe(1) // ミスした設問数は1（同じ設問で何度ミスしても1）
+    expect(result.current.input).toBe('') // ミスは入力に積まない
+    typeKey('2')
+    expect(result.current.mistakes).toBe(2)
+    expect(result.current.missedItems).toBe(1)
+  })
+
+  it('Backspace で打ちかけの入力を1文字ずつ戻せる（打ち直して正解できる）', () => {
+    const { result } = renderHook(() => useDictQuiz(opts))
+    const answer = result.current.question.options.find((o) => o.answer)
+    const head = answer.variants[0].slice(0, 2)
+    ;[...head].forEach(typeKey)
+    expect(result.current.input).toBe(head)
+    typeKey('Backspace')
+    expect(result.current.input).toBe(head.slice(0, 1))
+    typeKey('Backspace')
+    expect(result.current.input).toBe('')
+    expect(result.current.picked).toBeNull() // 戻しただけでは確定しない
+    ;[...answer.variants[0]].forEach(typeKey)
+    expect(result.current.picked).toBe(answer)
+  })
+
+  it('問題を全部解いても終わらず、再シャッフルで継ぎ足して出題し続ける（時間制）', () => {
+    const { result } = renderHook(() => useDictQuiz(opts))
+    solve(result, DICT_QUIZ_COUNT + 2) // 初回分を解き切って更に先へ進む
+    expect(result.current.finished).toBe(false)
+    expect(result.current.index).toBe(DICT_QUIZ_COUNT + 2)
+    expect(result.current.question).toBeDefined() // 継ぎ足された問題が出ている
+    runOutClock()
+    const rec = loadDictRecords()[dictRecKey(1, 'すべて', 'quiz')][0]
+    expect(rec.words).toBe(DICT_QUIZ_COUNT + 2) // 初回分を超えて解いた設問も記録に載る
+  }, 30000)
+
+  it('終了後に Enter（restart）で最初から遊べる＝状態が初期化され seed も切り直す', () => {
+    const { result } = renderHook(() => useDictQuiz(opts))
+    solve(result, 3)
+    runOutClock()
+    expect(result.current.finished).toBe(true)
+    const firstSeed = result.current.result.seed
+    typeKey('Enter') // 結果画面での Enter＝もう一度
+    expect(result.current.finished).toBe(false)
+    expect(result.current.result).toBeNull()
+    expect(result.current.index).toBe(0)
+    expect(result.current.correct).toBe(0)
+    expect(result.current.typedKeys).toBe(0)
+    expect(result.current.picked).toBeNull()
+    solve(result, 3)
+    runOutClock()
+    const list = loadDictRecords()[dictRecKey(1, 'すべて', 'quiz')]
+    expect(list.length).toBe(2)
+    expect(list.some((r) => r.seed !== firstSeed)).toBe(true)
+  }, 30000)
 })
 
 // #208 段6：エンドレスは ESC で終了。30秒以上プレイした時だけ記録する。

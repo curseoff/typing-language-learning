@@ -186,6 +186,56 @@ describe('buildMirrorSegments: range（固定範囲の pool 絞り込みが効�
     expect(got).toEqual(expected)
     // range を無視して非 range（seed shuffle）を返す実装では上の toEqual が壊れる＝絞り込みの一致を縛る。
   })
+
+  it('dict(en) range=1：useDict（range=clamped=1・freqMap 注入）の初回 segments と要素同値', () => {
+    const seed = 4649
+    // dict は freq を持たないので freqMap(word→freq) 経由で freq 順に並べる（useDict.dictRangePool と同式）。
+    // freqMap は意図的に freq 昇順と違う挿入順で作る（Map の挿入順ではなく freq で並ぶことを縛る）。
+    const freqMap = new Map([
+      ['office', 30],
+      ['apple', 10],
+      ['river', 20],
+    ])
+    const expected = dictHookSegments({ dict: DICT_FX, level: 1, theme: 'すべて', mode: 'en', seed, range: 1, freqMap })
+    const got = buildMirrorSegments({
+      gameType: 'dict',
+      config: cfg({ gameType: 'dict', mode: 'en', range: 1 }),
+      seed,
+      content: { dict: DICT_FX, gloss: {}, wordRuby: {}, freqMap, clamped: 1 },
+    })
+    expect(expected.length).toBeGreaterThan(0)
+    expect(got).toEqual(expected)
+    // range スライスは freq 昇順の pool 順で固定（ordered＝shuffle しない）＝apple(10)→river(20)→office(30)。
+    expect(got.slice(0, 3).map((s) => s.canonical)).toEqual([
+      'a round sweet fruit',
+      'a large stream of water',
+      'a place where people work',
+    ])
+  })
+
+  it('dict：range が範囲外（該当スライス空）なら通常プールへフォールバックする', () => {
+    const seed = 4649
+    const freqMap = new Map([
+      ['apple', 10],
+      ['river', 20],
+      ['office', 30],
+    ])
+    // range=9 は freq 800-899 のスライス＝該当なし。フォールバックで range 無しと同じ列になる。
+    const ranged = buildMirrorSegments({
+      gameType: 'dict',
+      config: cfg({ gameType: 'dict', mode: 'en', range: 9 }),
+      seed,
+      content: { dict: DICT_FX, gloss: {}, wordRuby: {}, freqMap, clamped: 9 },
+    })
+    const plain = buildMirrorSegments({
+      gameType: 'dict',
+      config: cfg({ gameType: 'dict', mode: 'en' }),
+      seed,
+      content: { dict: DICT_FX, gloss: {}, wordRuby: {}, freqMap: null, clamped: null },
+    })
+    expect(ranged.length).toBeGreaterThan(0)
+    expect(ranged).toEqual(plain)
+  })
 })
 
 describe('buildMirrorSegments: 端ケース', () => {

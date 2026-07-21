@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useWordQuiz } from './useWordQuiz.js'
+import { WORD_COUNT } from '../domain/words/wordset.service.js'
 import { TIME_LIMIT_MS } from '../domain/marathon/passage.service.js'
 import { WORDS } from '../content/wordsAll.js'
 import { END_TIME_VALUES } from '../content/endConditions.js'
@@ -119,6 +120,73 @@ describe('useWordQuiz（4択・60秒・結合）', () => {
     expect(rec.seed).toBe(seed)
     expect(rec.source).toBe('word')
   })
+})
+
+describe('useWordQuiz 操作（クリック選択・打ち直し・継ぎ足し・もう一度）', () => {
+  const opts = { words: WORDS, level: 1, theme: 'すべて', dir: 'en', mode: 'quiz-en', onExit: () => {} }
+
+  it('クリック（pick）でも選択が確定し、正解なら correct が増える。確定後の pick は無視する', () => {
+    const { result } = renderHook(() => useWordQuiz(opts))
+    const answer = correctOf(result.current.question)
+    const wrong = result.current.question.options.find((o) => !o.answer)
+    act(() => result.current.pick(answer))
+    expect(result.current.picked).toBe(answer)
+    expect(result.current.correct).toBe(1)
+    expect(result.current.typedKeys).toBe(0) // クリック選択は打鍵数に加算しない
+    // 既に確定済み＝2度目の pick では選択が上書きされない（多重確定の防止）。
+    act(() => result.current.pick(wrong))
+    expect(result.current.picked).toBe(answer)
+    expect(result.current.correct).toBe(1)
+  })
+
+  it('Backspace で打ちかけの入力を1文字ずつ戻せる（打ち直して正解できる）', () => {
+    const { result } = renderHook(() => useWordQuiz(opts))
+    const answer = correctOf(result.current.question)
+    const head = answer.variants[0].slice(0, 2)
+    typeStr(head)
+    expect(result.current.input).toBe(head)
+    typeKey('Backspace')
+    expect(result.current.input).toBe(head.slice(0, 1))
+    typeKey('Backspace')
+    expect(result.current.input).toBe('')
+    expect(result.current.picked).toBeNull() // 戻しただけでは確定しない
+    // 打ち直して最後まで打てば確定する。
+    typeStr(answer.variants[0])
+    expect(result.current.picked).toBe(answer)
+  })
+
+  it('問題を全部解いても終わらず、再シャッフルで継ぎ足して出題し続ける（時間制）', () => {
+    const { result } = renderHook(() => useWordQuiz(opts))
+    const initialLength = WORD_COUNT
+    solve(result, initialLength + 2, correctOf) // 初回分を解き切って更に先へ進む
+    expect(result.current.finished).toBe(false)
+    expect(result.current.index).toBe(initialLength + 2)
+    expect(result.current.question).toBeDefined() // 継ぎ足された問題が出ている
+    runOutClock()
+    const rec = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')][0]
+    expect(rec.words).toBe(initialLength + 2) // 初回分を超えて解いた設問も記録に載る
+  }, 30000)
+
+  it('終了後に Enter（restart）で最初から遊べる＝状態が初期化され seed も切り直す', () => {
+    const { result } = renderHook(() => useWordQuiz(opts))
+    solve(result, 3, correctOf)
+    runOutClock()
+    expect(result.current.finished).toBe(true)
+    const firstSeed = result.current.result.seed
+    typeKey('Enter') // 結果画面での Enter＝もう一度
+    expect(result.current.finished).toBe(false)
+    expect(result.current.result).toBeNull()
+    expect(result.current.index).toBe(0)
+    expect(result.current.correct).toBe(0)
+    expect(result.current.typedKeys).toBe(0)
+    expect(result.current.picked).toBeNull()
+    // もう一度は新しい seed＝2周目の記録は別 seed で保存される（同じ問題列の使い回しにしない）。
+    solve(result, 3, correctOf)
+    runOutClock()
+    const list = loadWordRecords()[wordRecKey(1, 'すべて', 'quiz-en')]
+    expect(list.length).toBe(2)
+    expect(list.some((r) => r.seed !== firstSeed)).toBe(true)
+  }, 30000)
 })
 
 // #208 段6：エンドレスは ESC で終了。30秒以上プレイした時だけ記録する。
