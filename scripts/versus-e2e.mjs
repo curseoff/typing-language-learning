@@ -12,6 +12,10 @@
 //   # --lives 未指定時はシナリオ既定（SCENARIO_LIVES）を使う（実機の再現条件に合わせるため）
 //   CHROME_PATH=/path/to/chrome npm run versus:e2e -- --scenario draw
 //
+//   # 手で対戦を試したいとき（#452）：接続の往復だけ自動化し、ロビーで止めて操作を渡す
+//   npm run versus:e2e -- --setup-only
+//   npm run versus:e2e -- --setup-only --window-size 800x900
+//
 // Chromium は同梱せず（puppeteer-core）、システムの Chrome を 2 プロセス起動する。
 import { existsSync, mkdirSync } from 'node:fs'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -24,6 +28,9 @@ const DEFAULT_BASE = 'http://localhost:5173'
 const DEFAULT_TIMEOUT_MS = 60_000
 const DEFAULT_LIVES = 3
 const SHOT_DIR = 'tmp/versus-e2e' // 失敗時のスクショ置き場（相対・tmp は gitignore 済み）
+// --setup-only の既定ウィンドウ（左右に並べる）。実画面の解像度は分からないので、
+// 大抵のノート/外部ディスプレイで 2 枚が収まる常識的な値にしておく（--window-size で上書き可）。
+const DEFAULT_SETUP_WINDOW = { width: 960, height: 1000 }
 
 // ---- CLI ----------------------------------------------------------------
 
@@ -35,7 +42,11 @@ function parseArgs(argv) {
     lives: DEFAULT_LIVES,
     livesExplicit: false,
     headful: false,
+    // --keep-open は「シナリオを完走したあとブラウザを残す」＝結果を目で確かめるためのもの。
+    // 手で対戦を続きから遊ぶための --setup-only とは目的が違う（混同しないこと）。
     keepOpen: false,
+    setupOnly: false,
+    windowSize: null,
     timeout: DEFAULT_TIMEOUT_MS,
   }
   for (let i = 0; i < argv.length; i++) {
@@ -49,12 +60,22 @@ function parseArgs(argv) {
     else if (a === '--timeout') opts.timeout = Number(argv[++i])
     else if (a === '--headful') opts.headful = true
     else if (a === '--keep-open') opts.keepOpen = true
+    else if (a === '--setup-only') opts.setupOnly = true
+    else if (a === '--window-size') opts.windowSize = argv[++i]
     else {
       console.error(`✖ 不明な引数: ${a}`)
       process.exit(1)
     }
   }
   return opts
+}
+
+// `--window-size 960x1000`（`960,1000` も可）を { width, height } に直す。不正なら null。
+function parseWindowSize(s) {
+  if (!s) return null
+  const m = /^(\d+)[x,](\d+)$/i.exec(s.trim())
+  if (!m) return null
+  return { width: Number(m[1]), height: Number(m[2]) }
 }
 
 // Chrome 実行パスを解決する。環境変数優先、無ければ macOS 既定（check-pwa.mjs と同じ規約）。
@@ -488,13 +509,26 @@ const SCENARIO_LIVES = { 'host-eliminated-then-overtaken': 1 }
 // ---- 実行 -----------------------------------------------------------------
 
 // ブラウザを1つ起動して対戦画面（?preview=versus）を開く。
-async function openApp(executablePath, opts) {
+// placement を渡すと画面上の位置とサイズを明示する（--setup-only で 2 枚を左右に並べるため。
+// 位置を指定しないと Chrome は同じ場所に重ねて出すので、片方が隠れて手で操作できない）。
+async function openApp(executablePath, opts, placement = null) {
+  const size = placement ?? { width: 900, height: 1000 }
+  const args = [
+    // 同一マシンの Chrome 同士を mDNS 越しではなく素のホスト候補で繋ぐ（ローカル検証用）。
+    '--disable-features=WebRtcHideLocalIpsWithMdns',
+    `--window-size=${size.width},${size.height}`,
+  ]
+  if (placement) args.push(`--window-position=${placement.x},${placement.y}`)
   const browser = await puppeteer.launch({
     headless: opts.headful ? false : 'new',
     executablePath,
-    // 同一マシンの Chrome 同士を mDNS 越しではなく素のホスト候補で繋ぐ（ローカル検証用）。
-    args: ['--disable-features=WebRtcHideLocalIpsWithMdns', '--window-size=900,1000'],
-    defaultViewport: { width: 900, height: 1000 },
+    args,
+    // 手動操作モードでは viewport を固定しない（本人がウィンドウを動かす/広げるのに追従させる）。
+    defaultViewport: placement ? null : { width: 900, height: 1000 },
+    // #452 シグナル処理は puppeteer の既定に任せる（handleSIGINT 等を false にしない）。
+    // 既定ハンドラは同期で Chrome のプロセスグループを SIGKILL するので、node が直後に
+    // 巻き添えで死んでも取り残しが出ない。自前の async な後始末に置き換えると、
+    // 本物の Ctrl-C（プロセスグループ全体への SIGINT）で npm ごと落ちる際に走り切らない。
   })
   const page = await browser.newPage()
   await page.goto(`${opts.base}/?preview=versus`, { waitUntil: 'load' })
@@ -550,6 +584,111 @@ async function runScenario(name, executablePath, opts) {
   }
 }
 
+// #452 手で対戦を試すための「お膳立て」だけをやるモード。
+// 面倒なのは接続の往復（役割選択 → 接続コード生成 → 貼付 → 応答コード → 貼付）だけなので、
+// そこまでを自動でやってロビー（対戦条件の選択）で止め、あとは本人に操作を渡す。
+// ロビーの選択（種目/レベル/終了条件）には一切触れない＝本人が試したい条件を選べる。
+async function runSetupOnly(executablePath, opts) {
+  const deadline = Date.now() + opts.timeout
+  const win = parseWindowSize(opts.windowSize) ?? DEFAULT_SETUP_WINDOW
+  // #452 Ctrl-C の実際の後始末は puppeteer の既定ハンドラ（同期の SIGKILL）が行う。
+  // ここでは「何が起きたか」を出すだけ。node のシグナル listener は登録順に呼ばれるので、
+  // ブラウザを起動する“前”に登録しないと puppeteer 側の process.exit(130) に先を越される。
+  process.once('SIGINT', () => console.log('\n… ブラウザを閉じています（Ctrl-C）'))
+  // 左右に並べる（左＝ホスト／右＝ゲスト）。y は 0 固定で上端に揃える。
+  const a = await openApp(executablePath, opts, { ...win, x: 0, y: 0 })
+  // OS 側の都合（macOS の Dock/メニューバー等）で頼んだ座標どおりには置かれないことがあるので、
+  // 1 枚目が実際に置かれた右端を測ってその隣に 2 枚目を置く（頼んだ値のまま並べると数十 px 重なる）。
+  const rightEdge = await a.page
+    .evaluate(() => window.screenX + window.outerWidth)
+    .catch(() => null)
+  const bx = Number.isFinite(rightEdge) ? rightEdge : win.width
+  const b = await openApp(executablePath, opts, { ...win, x: bx, y: 0 })
+  const closeAll = async () => {
+    await a.browser.close().catch(() => {})
+    await b.browser.close().catch(() => {})
+  }
+  try {
+    console.log('… 2 つの Chrome を接続しています（役割選択 → 接続コードの往復）')
+    await connect(a.page, b.page, deadline)
+  } catch (err) {
+    console.error(`✖ 接続に失敗しました: ${err.message}`)
+    await dumpFailure('setup-only', [
+      { name: 'A(host)', page: a.page },
+      { name: 'B(guest)', page: b.page },
+    ])
+    await closeAll()
+    return false
+  }
+  printSetupGuide()
+  const reason = await waitForManualExit([a.browser, b.browser])
+  console.log(
+    reason === 'window'
+      ? '\n… ウィンドウが閉じられました。残りのブラウザを閉じています'
+      : '\n… ブラウザを閉じています（Enter）',
+  )
+  await closeAll()
+  return true
+}
+
+// #452 手動検証モードの終了待ち。本人がやりやすい方法で終われるよう、複数の合図を受ける：
+//   - Enter … ターミナルが対話端末のときだけ（stdin が /dev/null 等だと即 close されて誤爆するため）
+//   - ウィンドウを自分で閉じる … どちらかの browser が disconnected したら残りも閉じて抜ける
+//   - Ctrl-C … puppeteer の既定ハンドラが同期で両方 kill して process.exit(130) するのでここには戻らない
+// 解決したら listener を必ず外す（stdin を握ったままだと node が抜けられない）。
+function waitForManualExit(browsers) {
+  return new Promise((resolve) => {
+    const onData = () => finish('enter') // 何か打って Enter でも良いように data 単位で拾う
+    const onDisconnected = () => finish('window')
+    const useStdin = process.stdin.isTTY
+    const finish = (reason) => {
+      for (const b of browsers) b.off('disconnected', onDisconnected)
+      if (useStdin) {
+        process.stdin.off('data', onData)
+        process.stdin.pause()
+      }
+      resolve(reason)
+    }
+    for (const b of browsers) b.once('disconnected', onDisconnected)
+    if (useStdin) {
+      process.stdin.resume()
+      process.stdin.on('data', onData)
+    }
+  })
+}
+
+// 手動検証モードの案内（どちらがホストか・何を選ぶか・不具合を報告するときの一次情報の取り方）。
+function printSetupGuide() {
+  // #452 終了手段は waitForManualExit の受ける合図と揃える（Enter は対話端末のときだけ有効）。
+  const exits = [
+    ...(process.stdin.isTTY ? ['このターミナルで Enter を押す'] : []),
+    'このターミナルで Ctrl-C を押す',
+    'Chrome のウィンドウを自分で閉じる（片方閉じれば残りも閉じます）',
+  ]
+  console.log(`
+────────────────────────────────────────
+✓ 接続できました（両方ともロビー＝対戦条件の選択で止めてあります）。
+  ここから先は手で操作してください。
+
+  ・画面の左のウィンドウ … A＝ホスト（部屋を作った側）
+  ・画面の右のウィンドウ … B＝ゲスト（部屋に入った側）
+
+  1. どちらか（ホスト側が提案 → ゲスト側が承認）でロビーの条件を選び、「対戦開始」。
+     サドンデスの挙動を見たいときは「終了条件＝サドンデス」を選ぶこと。
+  2. 対戦中の判定状態は DevTools（⌥⌘I）の Console で読めます：
+
+       window.__tllVersus.snapshot()
+
+     → { selfId, isHost, phase, endKind, initialLives,
+         self:{lives, correct, typed, mistakes}, others:[…], outcome }
+     自分/相手のライフ・正解数・outcome（won/draw/ongoing）が分かります。
+     おかしな挙動を見つけたら、両方のウィンドウでこれを実行した結果を控えてください
+     （片側だけ finished ／ 値が食い違う、が不具合の一次情報になります）。
+  3. 終わったら、次のどれでも終了できます（どの方法でも両方のブラウザを閉じます）：
+${exits.map((e) => `     ・${e}`).join('\n')}
+────────────────────────────────────────`)
+}
+
 // 失敗時：両ブラウザのスクショと直前の snapshot を出す（どちら側がどう見えていたかを残す）。
 async function dumpFailure(name, pages) {
   mkdirSync(SHOT_DIR, { recursive: true })
@@ -565,9 +704,21 @@ async function dumpFailure(name, pages) {
 async function main() {
   const opts = parseArgs(process.argv.slice(2))
   const names = opts.scenario === 'all' ? Object.keys(SCENARIOS) : [opts.scenario]
-  if (!opts.scenario || names.some((n) => !SCENARIOS[n])) {
+  if (opts.setupOnly) {
+    // 手で操作するモードなので headless では意味がない（--headful の指定有無に関わらず表示する）。
+    opts.headful = true
+    if (opts.scenario) {
+      console.warn('⚠ --setup-only と --scenario は併用できません。--setup-only を優先します。')
+      opts.scenario = null
+    }
+    if (opts.windowSize && !parseWindowSize(opts.windowSize)) {
+      console.error('✖ --window-size は 960x1000 の形式で指定してください。')
+      process.exit(1)
+    }
+  } else if (!opts.scenario || names.some((n) => !SCENARIOS[n])) {
     console.error(
-      `✖ --scenario を指定してください（all / ${Object.keys(SCENARIOS).join(' / ')}）`,
+      `✖ --scenario を指定してください（all / ${Object.keys(SCENARIOS).join(' / ')}）` +
+        '\n  手で試したいだけなら --setup-only（接続だけ自動でやってロビーで止まります）。',
     )
     process.exit(1)
   }
@@ -588,6 +739,8 @@ async function main() {
     )
     process.exit(1)
   }
+
+  if (opts.setupOnly) return runSetupOnly(executablePath, opts)
 
   const results = []
   for (const name of names) {
