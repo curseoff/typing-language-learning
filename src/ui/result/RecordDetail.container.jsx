@@ -1,7 +1,7 @@
 // ランキングの1件をクリックしたときに表示する記録の結果ページ（全画面）。
 // 速度系（速度）とクイズ系（正解数）の両対応。問題ごとの記録(segStats)があれば表示。
 // ページ内のランキングをクリックすると他の記録に切り替わる。
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { modeLabel } from '../../content/modes.js'
 import { deleteRecordAt, getPersistRole } from '../../application/records.service.js'
 import SegStatsTable from './SegStatsTable.presenter.jsx'
@@ -24,6 +24,13 @@ export default function RecordDetail({
   // 副タブ（secondary）は読み取り専用で、消しても主タブの次の snapshot で復活する。
   // 「消したのに戻る」が最悪の体験なので、そもそもボタンを出さない。
   const canDelete = getPersistRole() !== 'secondary'
+  const cancelRef = useRef(null)
+  // 確認状態に切り替わると idle の「削除」が unmount され、フォーカスが body へ落ちて
+  // キーボード/スクリーンリーダー利用者が押下位置を見失う。安全側の「やめる」へ移す
+  // （危険な「本当に削除する」に置くと、そのまま Enter/Space で確定してしまう）。
+  useEffect(() => {
+    if (delState === 'confirm') cancelRef.current?.focus()
+  }, [delState])
   useEffect(() => {
     // キャプチャ段階で処理し伝播を止める＝下のページの Esc ハンドラより先に閉じる
     const onKey = (e) => {
@@ -131,6 +138,9 @@ export default function RecordDetail({
           <button className="story-exit" onClick={onClose}>
             閉じる
           </button>
+          {/* 狭幅では削除系を独立行へ落とすための改行子（flex の 100% ベーシス）。
+              並びが [閉じる][削除] のまま折り返すと押し間違えやすいので物理的に行を分ける。 */}
+          {canDelete && <span className="ending-actions__break" aria-hidden="true" />}
           {/* 削除は 2 段階：1 回目は確認へ切り替えるだけで、実際に消すのは 2 回目のクリック */}
           {canDelete && delState !== 'confirm' && (
             <button
@@ -143,6 +153,16 @@ export default function RecordDetail({
           )}
           {canDelete && delState === 'confirm' && (
             <>
+              {/* 「やめる」を先に置き、元の「削除」と同じ位置に来るようにする。
+                  1 クリック目の直下に確認ボタンが現れると、連打・ダブルクリックで
+                  読む間もなく確定してしまうため、誤射は安全側（取り消し）に落とす。 */}
+              <button
+                className="story-exit"
+                ref={cancelRef}
+                onClick={() => setDelState('idle')}
+              >
+                やめる
+              </button>
               <button
                 className="record-delete record-delete--confirm"
                 onClick={() => {
@@ -156,17 +176,17 @@ export default function RecordDetail({
               >
                 本当に削除する
               </button>
-              <button className="story-exit" onClick={() => setDelState('idle')}>
-                やめる
-              </button>
             </>
           )}
         </div>
-        {/* 確認・失敗の状態変化をスクリーンリーダーにも伝える */}
-        <p className="record-delete-note" role="status" aria-live="polite">
-          {delState === 'confirm' && 'この記録を削除します。取り消せません。'}
-          {delState === 'failed' && '削除できませんでした。一覧を開き直してからもう一度お試しください。'}
-        </p>
+        {/* 確認・失敗の状態変化をスクリーンリーダーにも伝える。
+            削除できない画面（副タブ）では文言が出ることが無いので、高さ確保の余白ごと描かない。 */}
+        {canDelete && (
+          <p className="record-delete-note" role="status" aria-live="polite">
+            {delState === 'confirm' && 'この記録を削除します。取り消せません。'}
+            {delState === 'failed' && '削除できませんでした。一覧を開き直してからもう一度お試しください。'}
+          </p>
+        )}
         <p className="key-hint">
           <kbd>Esc</kbd> で閉じる
         </p>

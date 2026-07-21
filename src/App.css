@@ -418,12 +418,26 @@ h1 {
   color: var(--text);
   border-color: var(--accent);
 }
+/* #451 「やめる」は確認状態で自動フォーカスされるので、暗い背景で沈む既定リングを明示に置き換える */
+.story-exit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .ending-actions {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* 狭幅で行に収まらないときは折り返す。折り返せないとボタン自身が内容幅より縮められ、
+     日本語ラベルが 1 文字ずつ縦に割れて縦柱になる（#451 で削除ボタンを足して顕在化）。 */
+  flex-wrap: wrap;
   gap: 12px;
+  row-gap: 10px;
   margin-top: 22px;
+}
+/* ボタンは縮まず自然幅を保つ＝縦割れを起こさせない */
+.ending-actions > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .ending-actions .btn-primary {
   margin: 0;
@@ -447,6 +461,11 @@ h1 {
   background: color-mix(in srgb, var(--red) 16%, transparent);
   border-color: var(--red);
 }
+/* 破壊的操作なのでフォーカス位置を確実に見せる。ブラウザ既定の青リングは暗い背景で沈む。 */
+.record-delete:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
 /* 確認状態は「押したら消える」ので塗りを上げて 1 段強くする */
 .record-delete--confirm {
   background: color-mix(in srgb, var(--red) 20%, transparent);
@@ -463,10 +482,15 @@ h1 {
   text-align: center;
   color: var(--red);
 }
+/* 削除系を独立行へ落とす改行子。デスクトップ幅は 1 行に収まるので効かせない（display:none）。 */
+.ending-actions__break {
+  display: none;
+}
 
-/* ボタン行(.ending-actions)直後のヒントは負マージンを打ち消して重なりを防ぐ */
+/* ボタン行(.ending-actions)より後ろのヒントは負マージン(-8px)を打ち消して重なりを防ぐ。
+   間に .record-delete-note が挟まるので隣接(+)ではなく後続兄弟(~)で拾う。 */
 .story-ending .key-hint,
-.ending-actions + .key-hint {
+.ending-actions ~ .key-hint {
   margin-top: 16px;
 }
 
@@ -824,6 +848,13 @@ kbd {
   .persist-notice {
     /* 狭幅では下の .content-fallback-notice と密着しやすいので +6px 上げて分離感を出す（デスクトップは 14px 隙間あり）。 */
     bottom: 130px;
+  }
+  /* #451 狭幅では削除系（削除／やめる・本当に削除する）を必ず次の行へ。
+     「閉じる」の真横に破壊的ボタンが並ぶのを避け、行の折り返し位置も安定させる。 */
+  .ending-actions__break {
+    display: block;
+    flex: 0 0 100%;
+    height: 0;
   }
 }
 

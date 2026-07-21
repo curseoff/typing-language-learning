@@ -74,6 +74,19 @@ describe('RecordDetail：削除の2段階確認', () => {
     expect(svc.deleteRecordAt).toHaveBeenCalledWith(B, 2)
   })
 
+  it('確認ボタンは「やめる」より後ろに置く（1クリック目の直下に来ないようにする）', () => {
+    renderDetail()
+    fireEvent.click(delButton())
+    const labels = [...document.querySelectorAll('.ending-actions button')].map((b) => b.textContent)
+    expect(labels).toEqual(['閉じる', 'やめる', '本当に削除する'])
+  })
+
+  it('確認状態になったら安全側の「やめる」にフォーカスを移す（body に落とさない）', () => {
+    renderDetail()
+    fireEvent.click(delButton())
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'やめる' }))
+  })
+
   it('「やめる」で確認状態から抜けられる', () => {
     renderDetail()
     fireEvent.click(delButton())
@@ -131,5 +144,11 @@ describe('RecordDetail：副タブ（読み取り専用）', () => {
     renderDetail()
     expect(delButton()).toBeNull()
     expect(confirmButton()).toBeNull()
+  })
+
+  it('secondary では削除の注意文欄も描かない（出ない文言のために余白を取らない）', () => {
+    svc.getPersistRole.mockReturnValue('secondary')
+    renderDetail()
+    expect(document.querySelector('.record-delete-note')).toBeNull()
   })
 })
