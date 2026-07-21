@@ -154,6 +154,8 @@ export default function App() {
   // #360 記録詳細（record-detail）オーバーレイの真実源＝URL 由来の RouteState（無ければ null）。
   // cold ロードで URL が record-detail のときは初期復元し、以後は openDetail/popstate で更新する。
   const [detailRoute, setDetailRoute] = useState(IR.view === 'record-detail' ? IR : null)
+  // #451 記録を削除するたびに +1 する世代。AllRecordsView の key に渡して再マウント＝読み直させる。
+  const [recordsVersion, setRecordsVersion] = useState(0)
 
   // #362/#364 レベル/テーマ変更時は range を範囲内に丸める（範囲数が減って無効化されたら未選択へ）。
   // rows（←→ナビ）と Ready の選択チップの両方から使う共通ハンドラ（単語/英英/単語例文で同型）。
@@ -382,6 +384,13 @@ export default function App() {
   const closeDetail = useCallback(() => {
     if (typeof history !== 'undefined') history.back()
   }, [])
+
+  // #451 削除後：オーバーレイを閉じ、記録一覧を読み直させる。AllRecordsView の rows は
+  // マウント時にしか記録を読まないので、key を変えて再マウントするのが最小で確実。
+  const onDetailDeleted = useCallback(() => {
+    setRecordsVersion((v) => v + 1)
+    closeDetail()
+  }, [closeDetail])
 
   // detailRoute（URL 由来）から実記録を解決する。cold 直開き・range 外・未知 kind・legacy 不一致は
   // null＝オーバーレイを描かない（一覧のみ・白画面/例外にしない＝#359 の教訓）。detailRoute が立つ
@@ -778,7 +787,9 @@ export default function App() {
         </Suspense>
       )}
 
-      {phase === 'allrecords' && <AllRecordsView onExit={() => setPhase('ready')} />}
+      {phase === 'allrecords' && (
+        <AllRecordsView key={recordsVersion} onExit={() => setPhase('ready')} />
+      )}
 
       {phase === 'touch' && (
         <TouchView
@@ -890,6 +901,7 @@ export default function App() {
           isQuiz={detailResolved.ctx.isQuiz}
           hasEnding={detailResolved.ctx.hasEnding}
           onClose={closeDetail}
+          onDeleted={onDetailDeleted}
         />
       )}
 

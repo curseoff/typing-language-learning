@@ -16,6 +16,7 @@ export function useRecordDetail() {
       isQuiz={sel.isQuiz}
       hasEnding={sel.hasEnding}
       onClose={() => setSel(null)}
+      onDeleted={() => setSel(null)}
     />
   ) : null
   return { open, modal }

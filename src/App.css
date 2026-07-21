@@ -432,6 +432,38 @@ h1 {
   padding: 13px 20px;
   font-size: 15px;
 }
+/* #451 記録の1件削除。破壊的操作と分かるよう --red 系だが、隣の .story-exit と同じ寸法・
+   同じ薄いパネル調にして「同じ列で浮かない」ようにする（強調しすぎると誤爆を誘う）。 */
+.record-delete {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 45%, transparent);
+}
+.record-delete:hover {
+  background: color-mix(in srgb, var(--red) 16%, transparent);
+  border-color: var(--red);
+}
+/* 確認状態は「押したら消える」ので塗りを上げて 1 段強くする */
+.record-delete--confirm {
+  background: color-mix(in srgb, var(--red) 20%, transparent);
+  border-color: var(--red);
+}
+.ending-actions .record-delete {
+  padding: 13px 20px;
+  font-size: 15px;
+}
+.record-delete-note {
+  margin: 10px 0 0;
+  min-height: 1.2em; /* 文言の出入りで下のヒントが跳ねないよう高さを確保する */
+  font-size: 12px;
+  text-align: center;
+  color: var(--red);
+}
+
 /* ボタン行(.ending-actions)直後のヒントは負マージンを打ち消して重なりを防ぐ */
 .story-ending .key-hint,
 .ending-actions + .key-hint {
