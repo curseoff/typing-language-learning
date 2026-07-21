@@ -33,6 +33,7 @@ const VersusConnect = lazy(() => import('./ui/versus/VersusConnect.container.jsx
 const VersusLobby = lazy(() => import('./ui/versus/VersusLobby.container.jsx'))
 import { ReplayProvider } from './ui/result/ReplayContext.context.jsx'
 import { RecordDetailProvider } from './ui/result/RecordDetailContext.context.jsx'
+import { useRecordsStore } from './ui/result/useRecordsStore.jsx'
 import UpdateToast from './ui/pwa/UpdateToast.container.jsx'
 import OfflineBanner from './ui/pwa/OfflineBanner.container.jsx'
 import ContentFallbackNotice from './ui/pwa/ContentFallbackNotice.container.jsx'
@@ -148,7 +149,8 @@ export default function App() {
   // 終了条件（URL の ec から復元・既定60秒）。view IR（{view}のみ）は endCondition を持たない＝
   // 既定 VO へフォールバック（未定義だと rows useMemo の endCondition.kind で落ちて白画面＝#359）。
   const [endCondition, setEndCondition] = useState(IR.endCondition ?? DEFAULT_END_CONDITION)
-  const [records, setRecords] = useState(loadRecords())
+  // 記録マップは削除後に読み直せる必要があるのでフックに寄せる（#451。refresh＝ストアから再読込）
+  const { records, setRecords, refresh: refreshRecords } = useRecordsStore()
   const [lastResult, setLastResult] = useState(null)
   const [segStats, setSegStats] = useState([]) // 問題ごとの記録(結果表示用)
   // #360 記録詳細（record-detail）オーバーレイの真実源＝URL 由来の RouteState（無ければ null）。
@@ -385,12 +387,15 @@ export default function App() {
     if (typeof history !== 'undefined') history.back()
   }, [])
 
-  // #451 削除後：オーバーレイを閉じ、記録一覧を読み直させる。AllRecordsView の rows は
-  // マウント時にしか記録を読まないので、key を変えて再マウントするのが最小で確実。
+  // #451 削除後：オーバーレイを閉じ、下敷きの画面を読み直させる。記録詳細は「すべての記録」からも
+  // 結果ページのランキング行からも開けるので、両方の下敷きを最新にする必要がある。
+  // ・AllRecordsView の rows はマウント時にしか記録を読まない → key を変えて再マウント
+  // ・結果ページのランキングは records state 由来 → ストアから読み直す（読み直さないと消した行が残る）
   const onDetailDeleted = useCallback(() => {
     setRecordsVersion((v) => v + 1)
+    refreshRecords()
     closeDetail()
-  }, [closeDetail])
+  }, [closeDetail, refreshRecords])
 
   // detailRoute（URL 由来）から実記録を解決する。cold 直開き・range 外・未知 kind・legacy 不一致は
   // null＝オーバーレイを描かない（一覧のみ・白画面/例外にしない＝#359 の教訓）。detailRoute が立つ
