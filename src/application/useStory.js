@@ -13,6 +13,7 @@ import {
   saveStoryRecord,
   recordItemStat,
 } from './records.service.js'
+import { useRecordsSync } from './persist/useRecordsSync.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
@@ -33,6 +34,10 @@ export function useStory({ mode, storyId, start, onExit }) {
   const [hasError, setHasError] = useState(false)
   const [found, setFound] = useState(() => loadFound(storyId))
   const [records, setRecords] = useState(() => loadStoryRecords(storyId)) // 記録ランキング
+  // #451 記録を1件削除したら自分の records も読み直す（下敷きの結果ページを最新に保つ）。
+  // 物語だけは読み直しに storyId が要るので useCallback で安定した loader を渡す。
+  const loadOwnRecords = useCallback(() => loadStoryRecords(storyId), [storyId])
+  useRecordsSync(setRecords, loadOwnRecords)
   const [result, setResult] = useState(null) // 今回のプレイ結果
   // 計測（物語を通しての累計）
   const [typedKeys, setTypedKeys] = useState(0)

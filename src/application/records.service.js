@@ -172,6 +172,39 @@ export function saveRecord(record) {
   return image.records
 }
 
+// ── #451 記録の変更通知 ──
+// 削除は application のメモリ像だけを書き換えるので、各プレイのフックが自前で持つ records
+// state は取り残される（＝消したのに下敷きの結果ページのランキングに残り続ける）。そこで
+// 「変更されたよ」だけを購読者へ配り、購読側は load*Records() で読み直して追随する。
+//
+// 保存（saveXxxRecord）では通知しない：保存は更新後マップを同期で返し、呼び出し側がその
+// 戻り値で自分の state を差し替え済みだから。通知を足しても同じ更新が二重に走るだけで、
+// 既存の保存経路の挙動を変えるリスクだけが増える。通知はあくまで削除の追いつき用。
+//
+// listener は購読側（React のフック）が unmount 時に解除する。init*Persistence は永続化の
+// バックエンドを切り替えるだけで購読者のライフサイクルとは無関係なので、ここは触らない。
+const recordsChangedListeners = new Set()
+
+// 記録の変更（＝削除）を購読する。戻り値の解除関数を呼ぶまで通知が届く。
+export function subscribeRecordsChanged(listener) {
+  recordsChangedListeners.add(listener)
+  return () => {
+    recordsChangedListeners.delete(listener)
+  }
+}
+
+function emitRecordsChanged() {
+  // 通知中に購読/解除されても走査が壊れないようコピーしてから回す。
+  for (const listener of [...recordsChangedListeners]) {
+    try {
+      listener()
+    } catch {
+      // 1つの購読者の失敗で他の画面の追随を巻き添えにしない（通知は付随処理で、
+      // 削除そのものの成否には影響させない）。
+    }
+  }
+}
+
 // ── #451 記録の1件削除 ──
 // store（メモリ像のマップ名）→ Worker の repo 名。削除専用 SQL は無く、更新後のグループ配列で
 // DB のグループを丸ごと置き換える（メモリ像が正・保存と同じ「グループ置換」経路に乗せる）。
@@ -205,6 +238,8 @@ export function deleteRecordAt(record, position) {
   const rest = next[key] || []
   const args = store === 'storyRecords' ? [record.storyId, record, rest] : [record, rest]
   writeThrough({ repo: DELETE_REPOS[store], args })
+  // 消せたときだけ通知する（false で返る＝像を触っていない場合は購読者を起こさない）。
+  emitRecordsChanged()
   return true
 }
 

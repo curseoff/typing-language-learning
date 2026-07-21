@@ -19,6 +19,7 @@ import { isClozeRevealed, clozeMaskRng } from '../domain/typing/cloze.service.js
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadDictRecords, saveDictRecord, recordItemStat } from './records.service.js'
+import { useRecordsSync } from './persist/useRecordsSync.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
@@ -118,6 +119,8 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadDictRecords())
+  // #451 記録を1件削除したら自分の records も読み直す（下敷きの結果ページを最新に保つ）。
+  useRecordsSync(setRecords, loadDictRecords)
   const trackerRef = useRef(newTracker()) // 見出し語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録
   const finishedRef = useRef(false) // finish を一度だけ呼ぶためのガード
