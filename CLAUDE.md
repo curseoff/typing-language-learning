@@ -27,17 +27,14 @@
 
   **各行の詳細（その役に何をどこまで任せるか・役どうしの守備範囲の切り分け・並列運用）は `agent-routing` スキル**を読む。
 
-## Issue 駆動開発（実質的な開発に適用）
-機能追加・修正・リファクタ・バグ修正など「作業」に適用。**typo・docs 微修・`tmp/agent-status.tsv` 台帳更新・自明なワンライナー等の小改変は除外**。
-- **着手前に GitHub Issue を書く**（無ければ作る）。目的と、**進捗を管理するチェック項目（`- [ ]`）** を作業単位に分解して用意する。着手前の Issue 作成は本ルールで常設許可（※通常の「Issue 作成は本人判断」より優先）。
-- **チェックリストは Issue 本文（先頭）に置く**（コメントに置かない）。本文で一元管理すると先頭で常に可視・編集が1箇所・auto-close とも相性が良い。既存 Issue（bug-watcher 起票分など）で本文にチェックリストが無ければ、**本文を編集して追加**する。コメントは方針変更・経緯・補足の記録に使い、進捗チェックの正本は本文に一本化する。
-- **コミットのたびに、対応する Issue のチェックを更新**する（完了項目を `- [x]` に）。coder 等サブエージェントのコミットが着地したら**司令塔が反映**する（各コミットが Issue のどの項目かを対応づける）。
-- **コミットで Issue に無い作業を入れたら、Issue にその旨を追記**する（**本文のチェックリストに項目を追加**。経緯はコメントで補足可）。Issue と実装の乖離を残さない。
-- **develop にマージされ、全チェック項目が完了したら Issue を Close** する（master 到達時の auto-close を待たない）。feature コミット単体（develop 未マージ）では閉じない＝早すぎる Close を避ける。
-- feature→develop / develop→master の PR 本文は従来どおり `Closes #N`（保険：master 到達での auto-close 用）。
+## Issue 駆動開発
+機能追加・修正・リファクタ・バグ修正など「作業」に適用（**typo・docs 微修・台帳更新・自明ワンライナーは除外**）。
+- **着手前に GitHub Issue を書く**（無ければ作る＝本ルールで常設許可）。**チェック項目（`- [ ]`）は Issue 本文の先頭**に置く（コメントに置かない）。
+- **コミットのたびにチェックを更新**し、**Issue に無い作業を入れたら本文に項目を追加**する。**develop マージ＋全項目完了で Close**（master の auto-close を待たない）。
+- **詳細（適用の線引き・サブエージェントのコミット反映・Close の判断）は `issue-driven` スキル**。
 
 ## Git / PR ワークフロー
-- ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。**マージ済みブランチはローカルも `git branch -D` で削除**し `git fetch origin --prune`（例外＝`issue-assets`・`feature/srs-review`(#85) は残す）。
+- ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。**マージ済みブランチはローカルも削除**する（→ `branch-cleanup` スキル）。
 - `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` がキーチェーン認証を上書きするため）。
 - **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**（auto-close は master 到達時のみ発火。develop止まりだと閉じない）。
 - 何かを「完了」と言う前に **`npm run check`**（＝CI と同等。通れば CI も通る）。ただし**同じ差分に full `check` を多重に回さない**：反復・中間確認は **`check:fast`**、full `check` の権威ゲートは **push 前フック（`.githooks/pre-push`）＋CI に一任**する。
@@ -50,16 +47,14 @@
 - **AI（私・coder等）のコミットは `scripts/ai-commit.sh -m "…"` で打つ**（AI名義・**ローカル鍵署名で1Password非依存**・Verified付き。識別子はローカル `git config ai.*` から読むので個人情報を書かない）。初回設定・詳細は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
 
 ## コンテンツ規約（src/content）
-- 単語/英英/文章を足したら **`npm run validate`**（または `npm run check`）で必ず検証。
-- 単語：`en` は一意、`level = bandOf(freq)`、`theme` は任意（`日常/旅行/ビジネス`）。
-- **コンテンツは単語を軸に結ぶ**：英英＝その単語の意味を英語で説明、文章＝その単語を使った例文。詳細は docs/CONTENT.md。
-- **英英は単語のサブセット**：`word` は必ず単語（words.js）に在る語にし、`level`/`theme` も単語に合わせる（validate強制）。新規英英は既存単語から作る。`def` は英小文字＋空白のみ。
-- **カタカナ長音は読みも「ー」**で表す（ケーキ＝けーき。`-` キーで入力）。母音重ね（けえき）や脱落（けき）にしない。`づ`/`ぢ`・特殊拗音（ティ/ファ/チェ 等）の読みには注意。
-- **大量追加は `npm run add-words <候補.tsv>`**（読み自動生成＋重複/読みの事前チェック、`-- --write` で追記）。**数千語規模は役割別サブエージェント並列**（生成→add-words→点検）。手順は docs/CONTENT.md。
+- **コンテンツは単語を軸に結ぶ**（英英＝その単語の意味の英語説明、文章＝その単語を使った例文）。**英英は単語のサブセット**（`word` は words に在る語・`level`/`theme` も一致）。
+- 足したら **`npm run validate`**（または `check`）で必ず検証。**大量追加は `npm run add-words <候補.tsv>`**。
+- **詳細（レコードの形・読み(kana)の落とし穴＝長音「ー」/`づ`/特殊拗音・大量追加の手順・validate 赤の読み替え）は `content-rules` スキル**。docs/CONTENT.md も参照。
 
 ## アーキテクチャ（詳細は docs/ARCHITECTURE.md）
 - **`.js` = ドメイン/データ、`.jsx` = UI**。依存は内向き（`ui → application → domain`、`application → infrastructure`）。
 - 既存の層構成・命名を壊さない。`domain` は React/DOM 非依存。
+- **ファイル名の接尾辞規約（`*.vo.js`/`*.service.js` 等）は `ddd-naming` スキル、契約テストが強制する規則は `ddd-contracts` スキル**。「この変更ならこのファイル」は `repo-map` スキル。
 
 ## 詳細ドキュメント
 - 開発・スクリプト・CI・公開 … `docs/DEVELOPMENT.md`

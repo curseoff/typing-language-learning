@@ -14,17 +14,9 @@ description: このリポジトリのブランチ運用・PR・リリースの�
 **develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
 
 ### マージ済みブランチは消す
-PR が develop（または master）にマージされたら：
+PR がマージされたら、**リモート**は auto-delete が消し、**ローカルは `git branch -D` ＋ `git fetch origin --prune`** で自分で掃除する。
 
-- **リモート**は GitHub の auto-delete で自動削除される
-- **ローカルも `git branch -D` で削除**し、`git fetch origin --prune` で追跡を掃除する
-
-**残す例外**：
-
-| ブランチ | 理由 |
-|---|---|
-| `issue-assets` | 画像ホスティング（PR マージしない） |
-| `feature/srs-review` (#85) | 保留中 |
+**手順・削除可否の確かめ方・残す例外（`issue-assets`／`feature/srs-review`）は `branch-cleanup` スキル。**
 
 ## `gh` の実行
 
