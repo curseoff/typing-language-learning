@@ -60,10 +60,17 @@ function withRepo(files, fn) {
 }
 
 // --- 検出できること -------------------------------------------------------
+//
+// 注意: このテストファイル自身も push-selfcheck の走査対象（＝自分で自分を検出しうる）。
+// 検出対象の文字列をソースにベタ書きすると、リリース時の自己点検がこの行を拾って
+// 止まってしまう（#461 で直したのと同じ誤検知）。そのため検出用の値は必ず
+// 連結・組み立てで作り、1 行の中に完成形が現れないようにすること。
+const assemble = (...parts) => parts.join('');
 
 // 「値付きの代入」は本物の漏えいの典型。ここが壊れるとリリース経路の点検が無意味になる。
 test('引用符付きリテラルを代入した token は検出する', () => {
-  withRepo({ 'src/a.js': 'const token = "abcdefgh12345678"\n' }, ({ status, output }) => {
+  const body = assemble('const to', 'ken = "', 'abcdefgh12345678', '"\n');
+  withRepo({ 'src/a.js': body }, ({ status, output }) => {
     assert.equal(status, 1);
     assert.match(output, /認証情報らしき代入/);
     assert.match(output, /src\/a\.js/);
@@ -86,7 +93,8 @@ test('各種プロバイダのトークン形式を検出する', () => {
 });
 
 test('秘密鍵ブロックと鍵ファイル名を検出する', () => {
-  withRepo({ 'deploy.pem': '-----BEGIN RSA PRIVATE KEY-----\n' }, ({ status, output }) => {
+  const pem = assemble('-----BE', 'GIN RSA PRIVATE', ' KEY-----\n');
+  withRepo({ 'deploy.pem': pem }, ({ status, output }) => {
     assert.equal(status, 1);
     assert.match(output, /証明書\/鍵ファイル/);
     assert.match(output, /秘密鍵ブロック/);
@@ -94,7 +102,8 @@ test('秘密鍵ブロックと鍵ファイル名を検出する', () => {
 });
 
 test('絶対パスでの username 露出を検出する', () => {
-  withRepo({ 'docs/x.md': 'cd /Users/someone/work\n' }, ({ status, output }) => {
+  const body = assemble('cd /Us', 'ers/someone/work\n');
+  withRepo({ 'docs/x.md': body }, ({ status, output }) => {
     assert.equal(status, 1);
     assert.match(output, /絶対パス/);
   });
@@ -102,9 +111,10 @@ test('絶対パスでの username 露出を検出する', () => {
 
 // 出力がログに残ることを踏まえ、検出した値そのものは伏せ字であること。
 test('--verbose でも検出値は伏せ字にする', () => {
-  withRepo({ 'src/a.js': 'const token = "supersecretvalue"\n' }, ({ status, output }) => {
+  const value = assemble('supersecret', 'value');
+  withRepo({ 'src/a.js': assemble('const to', 'ken = "', value, '"\n') }, ({ status, output }) => {
     assert.equal(status, 1);
-    assert.doesNotMatch(output, /supersecretvalue/);
+    assert.doesNotMatch(output, new RegExp(value));
   });
 });
 
