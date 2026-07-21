@@ -525,9 +525,10 @@ async function openApp(executablePath, opts, placement = null) {
     args,
     // 手動操作モードでは viewport を固定しない（本人がウィンドウを動かす/広げるのに追従させる）。
     defaultViewport: placement ? null : { width: 900, height: 1000 },
-    // 手動操作モードでは Ctrl-C を自前で扱う（puppeteer 既定のシグナル処理は browser を殺して
-    // 即 process.exit するため、こちらの終了処理＝もう1つのブラウザを閉じる が走らない）。
-    ...(placement ? { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false } : {}),
+    // #452 シグナル処理は puppeteer の既定に任せる（handleSIGINT 等を false にしない）。
+    // 既定ハンドラは同期で Chrome のプロセスグループを SIGKILL するので、node が直後に
+    // 巻き添えで死んでも取り残しが出ない。自前の async な後始末に置き換えると、
+    // 本物の Ctrl-C（プロセスグループ全体への SIGINT）で npm ごと落ちる際に走り切らない。
   })
   const page = await browser.newPage()
   await page.goto(`${opts.base}/?preview=versus`, { waitUntil: 'load' })
@@ -590,6 +591,10 @@ async function runScenario(name, executablePath, opts) {
 async function runSetupOnly(executablePath, opts) {
   const deadline = Date.now() + opts.timeout
   const win = parseWindowSize(opts.windowSize) ?? DEFAULT_SETUP_WINDOW
+  // #452 Ctrl-C の実際の後始末は puppeteer の既定ハンドラ（同期の SIGKILL）が行う。
+  // ここでは「何が起きたか」を出すだけ。node のシグナル listener は登録順に呼ばれるので、
+  // ブラウザを起動する“前”に登録しないと puppeteer 側の process.exit(130) に先を越される。
+  process.once('SIGINT', () => console.log('\n… ブラウザを閉じています（Ctrl-C）'))
   // 左右に並べる（左＝ホスト／右＝ゲスト）。y は 0 固定で上端に揃える。
   const a = await openApp(executablePath, opts, { ...win, x: 0, y: 0 })
   // OS 側の都合（macOS の Dock/メニューバー等）で頼んだ座標どおりには置かれないことがあるので、
@@ -616,19 +621,50 @@ async function runSetupOnly(executablePath, opts) {
     return false
   }
   printSetupGuide()
-  // SIGINT（Ctrl-C）を受けるまでブラウザを開いたまま保つ。
-  // 既定の SIGINT は即死＝子プロセスの Chrome が残る/消えるが不定なので、明示的に閉じてから抜ける。
-  await new Promise((resolve) => {
-    process.once('SIGINT', resolve)
-    process.once('SIGTERM', resolve)
-  })
-  console.log('\n… ブラウザを閉じています')
+  const reason = await waitForManualExit([a.browser, b.browser])
+  console.log(
+    reason === 'window'
+      ? '\n… ウィンドウが閉じられました。残りのブラウザを閉じています'
+      : '\n… ブラウザを閉じています（Enter）',
+  )
   await closeAll()
   return true
 }
 
+// #452 手動検証モードの終了待ち。本人がやりやすい方法で終われるよう、複数の合図を受ける：
+//   - Enter … ターミナルが対話端末のときだけ（stdin が /dev/null 等だと即 close されて誤爆するため）
+//   - ウィンドウを自分で閉じる … どちらかの browser が disconnected したら残りも閉じて抜ける
+//   - Ctrl-C … puppeteer の既定ハンドラが同期で両方 kill して process.exit(130) するのでここには戻らない
+// 解決したら listener を必ず外す（stdin を握ったままだと node が抜けられない）。
+function waitForManualExit(browsers) {
+  return new Promise((resolve) => {
+    const onData = () => finish('enter') // 何か打って Enter でも良いように data 単位で拾う
+    const onDisconnected = () => finish('window')
+    const useStdin = process.stdin.isTTY
+    const finish = (reason) => {
+      for (const b of browsers) b.off('disconnected', onDisconnected)
+      if (useStdin) {
+        process.stdin.off('data', onData)
+        process.stdin.pause()
+      }
+      resolve(reason)
+    }
+    for (const b of browsers) b.once('disconnected', onDisconnected)
+    if (useStdin) {
+      process.stdin.resume()
+      process.stdin.on('data', onData)
+    }
+  })
+}
+
 // 手動検証モードの案内（どちらがホストか・何を選ぶか・不具合を報告するときの一次情報の取り方）。
 function printSetupGuide() {
+  // #452 終了手段は waitForManualExit の受ける合図と揃える（Enter は対話端末のときだけ有効）。
+  const exits = [
+    ...(process.stdin.isTTY ? ['このターミナルで Enter を押す'] : []),
+    'このターミナルで Ctrl-C を押す',
+    'Chrome のウィンドウを自分で閉じる（片方閉じれば残りも閉じます）',
+  ]
   console.log(`
 ────────────────────────────────────────
 ✓ 接続できました（両方ともロビー＝対戦条件の選択で止めてあります）。
@@ -648,7 +684,8 @@ function printSetupGuide() {
      自分/相手のライフ・正解数・outcome（won/draw/ongoing）が分かります。
      おかしな挙動を見つけたら、両方のウィンドウでこれを実行した結果を控えてください
      （片側だけ finished ／ 値が食い違う、が不具合の一次情報になります）。
-  3. 終わったら、このターミナルで Ctrl-C を押してください（両方のブラウザを閉じます）。
+  3. 終わったら、次のどれでも終了できます（どの方法でも両方のブラウザを閉じます）：
+${exits.map((e) => `     ・${e}`).join('\n')}
 ────────────────────────────────────────`)
 }
 
