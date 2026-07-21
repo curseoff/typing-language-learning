@@ -47,16 +47,14 @@
 - **AI（私・coder等）のコミットは `scripts/ai-commit.sh -m "…"` で打つ**（AI名義・**ローカル鍵署名で1Password非依存**・Verified付き。識別子はローカル `git config ai.*` から読むので個人情報を書かない）。初回設定・詳細は docs/DEVELOPMENT.md「Git コミット（AI署名）」。人間（本人）の `git commit` は従来どおり。
 
 ## コンテンツ規約（src/content）
-- 単語/英英/文章を足したら **`npm run validate`**（または `npm run check`）で必ず検証。
-- 単語：`en` は一意、`level = bandOf(freq)`、`theme` は任意（`日常/旅行/ビジネス`）。
-- **コンテンツは単語を軸に結ぶ**：英英＝その単語の意味を英語で説明、文章＝その単語を使った例文。詳細は docs/CONTENT.md。
-- **英英は単語のサブセット**：`word` は必ず単語（words.js）に在る語にし、`level`/`theme` も単語に合わせる（validate強制）。新規英英は既存単語から作る。`def` は英小文字＋空白のみ。
-- **カタカナ長音は読みも「ー」**で表す（ケーキ＝けーき。`-` キーで入力）。母音重ね（けえき）や脱落（けき）にしない。`づ`/`ぢ`・特殊拗音（ティ/ファ/チェ 等）の読みには注意。
-- **大量追加は `npm run add-words <候補.tsv>`**（読み自動生成＋重複/読みの事前チェック、`-- --write` で追記）。**数千語規模は役割別サブエージェント並列**（生成→add-words→点検）。手順は docs/CONTENT.md。
+- **コンテンツは単語を軸に結ぶ**（英英＝その単語の意味の英語説明、文章＝その単語を使った例文）。**英英は単語のサブセット**（`word` は words に在る語・`level`/`theme` も一致）。
+- 足したら **`npm run validate`**（または `check`）で必ず検証。**大量追加は `npm run add-words <候補.tsv>`**。
+- **詳細（レコードの形・読み(kana)の落とし穴＝長音「ー」/`づ`/特殊拗音・大量追加の手順・validate 赤の読み替え）は `content-rules` スキル**。docs/CONTENT.md も参照。
 
 ## アーキテクチャ（詳細は docs/ARCHITECTURE.md）
 - **`.js` = ドメイン/データ、`.jsx` = UI**。依存は内向き（`ui → application → domain`、`application → infrastructure`）。
 - 既存の層構成・命名を壊さない。`domain` は React/DOM 非依存。
+- **ファイル名の接尾辞規約（`*.vo.js`/`*.service.js` 等）は `ddd-naming` スキル、契約テストが強制する規則は `ddd-contracts` スキル**。「この変更ならこのファイル」は `repo-map` スキル。
 
 ## 詳細ドキュメント
 - 開発・スクリプト・CI・公開 … `docs/DEVELOPMENT.md`
