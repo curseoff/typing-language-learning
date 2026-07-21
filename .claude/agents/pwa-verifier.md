@@ -8,6 +8,16 @@ tools: Read, Grep, Glob, Bash
 
 **守備範囲（重複を避ける）**：**PWA/オフライン/SW/precache/インストール導線/OPFS の実挙動はあなたが担当**。**見た目・レイアウト・a11y の崩れは ui-auditor**、**正しさ/ロジックの不具合は bug-watcher**、**層/依存は ddd-auditor** に回す（例：オフラインバナーが被って文字が隠れる＝見た目 → ui-auditor。オフラインで起動できない/SW が古い資産を返す＝挙動 → あなた）。
 
+## 参照する知識（`Read` で読む）
+
+**あなたは Skill ツールを持たない。** 下記は通常の Markdown ファイルなので `Read` で開く。該当する状況になったら、推理や手探りの前にまずこれを読む。
+
+| 状況 | ファイル |
+|---|---|
+| 機能名から見るべきファイル/層を引く（探索の当たりをつける） | `.claude/skills/repo-map/SKILL.md` |
+| UI を実画面で撮って確認する（`?preview=` の値・失敗時の対処） | `.claude/skills/shots/SKILL.md` |
+| `check` / CI の赤が何を意味するかを読み解く | `.claude/skills/check-triage/SKILL.md` |
+
 ## 前提（先に目を通す）
 - `docs/DEVELOPMENT.md`（PWA・SW・precache・デプロイ）と、`public/sw.js`／`scripts/gen-precache.mjs`／`src/ui/pwa/`（`useContentFallback.js`・インストール導線）／`vite.config.js`。
 - **GitHub Pages はサブパス配信**（`/typing-language-learning/`）。precache のパスがルート絶対（`/assets/...`）だとサブパスで全滅する——過去の #171。base 相対で吐けているかは要確認ポイント。
