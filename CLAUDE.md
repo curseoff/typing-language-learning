@@ -5,7 +5,7 @@
 ## 応答・進め方
 - **日本語で応答**する。
 - **`git push` と PR 作成は、本人の明示指示があるときだけ**行う（指示が無ければやらない。完了後に push 用コマンドを案内するのは可）。その他の破壊的・外部公開（Issue/デプロイ等）も、まとめて委任されていなければ確認してから行う。
-- **push の前に必ず自己点検**：未push差分（`origin/<branch>..<branch>`）に**公開して問題があるもの**（秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、氏名/メール等の個人情報の直書き、絶対パスでの username 露出 など）が無いか AI が判断し、**状況を本人に報告**してから push 指示を仰ぐ。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。
+- **push の前に必ず自己点検**：**`npm run push-selfcheck`** を実行する（未push差分の追加行を走査し、秘密情報＝APIキー/トークン/パスワード/秘密鍵・`.env`/鍵ファイル、個人情報の直書き、絶対パスでの username 露出を検出）。**検出したら push せず本人に報告**する。リポジトリは PUBLIC。個人情報の実値はドキュメントに直書きせずプレースホルダにする。→ 詳細は `push-selfcheck` スキル。
 - ユーザーの対応が必要で離席の可能性がある時は通知（PushNotification）。
 - **エージェント体制**：司令塔（メイン）＋サブエージェント（`.claude/agents/`：coder／test-author／content-author／ddd-auditor／ui-auditor／pwa-verifier／bug-watcher／reviewer／planner）。実装は coder に委任し、監査役で確認、**push/PR/Issue作成/着手の判断は本人**が行う（例外：bug-watcher は常設許可で `bug` Issue の作成・更新・クローズを自律実行してよい＝確証のある不具合のみ）。**稼働台帳（`tmp/agent-status.tsv`）は各エージェントが自己更新**（着手時「実行中」／完了時「完了・要判断・要対応」を `npm run team:set` で upsert）。司令塔は自分の `commander` 行と全体監視（`npm run team`）を担う。長めのタスクは `run_in_background:true` で起動。→ **各役の守備範囲・起動タイミング・境界の切り分けは `agent-routing` スキル**。
 - **bug-watcher の起動は (a) 本人の指示があったとき、または (b) リリース（develop→master マージ）の直前に司令塔が起動、のいずれか**。**develop へマージするたびの自動起動はしない**。リリース直前は司令塔が未リリース分（`origin/master..origin/develop`）を調査させ、結果を確認してからリリースへ進む（`run_in_background:true` 推奨・急ぐなら結果を待って判断）。bug-watcher は確証のある不具合だけ `bug` ラベルで Issue 化し、解消されたら同じ Issue を更新・クローズする。
@@ -37,16 +37,12 @@
 - feature→develop / develop→master の PR 本文は従来どおり `Closes #N`（保険：master 到達での auto-close 用）。
 
 ## Git / PR ワークフロー
-- ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。
-  - **マージ済みブランチは消す**：PR が develop（または master）にマージされたら、**リモートは GitHub の auto-delete で自動削除**される。**ローカルブランチも `git branch -D` で削除**し、`git fetch origin --prune` で追跡を掃除すること。例外として `issue-assets`（画像ホスティング・PRマージしない）と保留中の `feature/srs-review`(#85) は残す。
-- `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` 環境変数がキーチェーン認証を上書きするため）。
-- **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**。自動クローズは **master（デフォルトブランチ）到達時のみ**発火する。develop止まりだと閉じない。
-  - develop マージ時には **`on-develop` ラベルが自動付与**される（`.github/workflows/label-on-develop.yml` が PR の Closes/Fixes/Resolves #N を検出）＝「develop に乗った（リリース待ち）」の目印。master 到達で auto-close。だから feature→develop PR にも必ず `Closes #N` を書くこと。
-- 何かを「完了」と言う前に **`npm run check`**（lint→**coverage**→validate→build→check-bundle→audit ＝ **CI と同等**。**`check` が通れば CI も通る**）を通す。ただし**同じ差分に full `check` を多重に回さない**：反復・委任先の自己確認・司令塔の中間確認は原則 **`check:fast`**（coverage の代わりに test）で済ませ、**full `check`（coverage 込み）の権威ゲートは push 前フック（`.githooks/pre-push`）＋CI に一任**する（差分が変わっていないのに手で何度も full `check` を回さない）。カバレッジ閾値を触る／実測が要る時だけ明示的に full `check`。
-- **push 前フック**（`.githooks/pre-push`）が `check` を強制（CI赤の混入防止）。急ぐ時のみ `git push --no-verify`。**master/develop はブランチ保護で CI 緑必須**（赤ではマージ不可）。
-- UI目視は **`npm run shots:play`**（dev 相手に `?preview=result|play|story` を撮影＝プレイ中/結果/記録を手動プレイ無しで確認）。リリースは **`npm run release -- <patch|minor|major>`**（自己点検→版上げ→check→PR→マージ→Release→デプロイ）。原則は本人実行だが、**`/release` コマンドを本人が呼んだ場合は例外**で、事前監査（bug-watcher/ddd-auditor）と自己点検が全てクリアなら AI がそのままリリースまで実行してよい（`/release` の呼び出し自体が明示指示）。異常があれば止めて報告する。
-- **リリースPRの head は `release/*` ブランチ**にする（develop 直接にしない＝マージ時 auto-delete で develop が消えるため）。マージ後は develop と master を揃え、不要ローカルブランチを削除。詳細は docs/DEVELOPMENT.md。
-- **リリース時は `package.json` の `version` を上げ**（TOP表示に出る）、master 反映後に **GitHub Release を作成**（タグ `vX.Y.Z`＝マージコミット、要約ノート）。`env -u GITHUB_TOKEN gh release create vX.Y.Z --target <フルSHA> --latest --title ... --notes ...`（`--target` はフルSHA必須）。
+- ブランチ：`feature/*` → `develop` → `master`。**develop と master は乖離しうる**ので、新ブランチの起点と差分を毎回確認する。**マージ済みブランチはローカルも `git branch -D` で削除**し `git fetch origin --prune`（例外＝`issue-assets`・`feature/srs-review`(#85) は残す）。
+- `gh` は必ず **`env -u GITHUB_TOKEN gh ...`**（不正な `GITHUB_TOKEN` がキーチェーン認証を上書きするため）。
+- **`Closes #N` は「feature→develop」と「develop→master」の両方のPR本文に書く**（auto-close は master 到達時のみ発火。develop止まりだと閉じない）。
+- 何かを「完了」と言う前に **`npm run check`**（＝CI と同等。通れば CI も通る）。ただし**同じ差分に full `check` を多重に回さない**：反復・中間確認は **`check:fast`**、full `check` の権威ゲートは **push 前フック（`.githooks/pre-push`）＋CI に一任**する。
+- リリースは **`npm run release -- <patch|minor|major>`**。原則は本人実行だが、**`/release` を本人が呼んだ場合は例外**（事前監査と自己点検が全てクリアなら AI がリリースまで実行してよい。異常があれば止めて報告）。
+- **詳細（ブランチ削除の例外・`on-develop` ラベルの仕組み・docs のみPRの admin マージ・`shots:play`・リリースPRを `release/*` にする理由・GitHub Release の作り方）は `git-flow` スキル**。docs/DEVELOPMENT.md も参照。
 
 ## コミット
 - メッセージは**簡潔な日本語・辞書形**、`Co-Authored-By` 等のトレーラーは付けない。
