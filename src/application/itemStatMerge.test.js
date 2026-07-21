@@ -6,7 +6,7 @@
 // undefined を渡して「何も表示しない」挙動なので、{count:0,...} を返すと未挑戦の問題に 0 が
 // ずらりと並ぶ表示の回帰になる。
 import { describe, it, expect } from 'vitest'
-import { sumItemStats } from './itemStatMerge.js'
+import { sumItemStats } from './itemStatMerge.policy.js'
 
 const stat = (count, keys, mistakes, ms) => ({ count, keys, mistakes, ms })
 
