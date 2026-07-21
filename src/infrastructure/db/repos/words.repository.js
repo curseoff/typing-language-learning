@@ -2,7 +2,9 @@
 import { wordRecKey } from '../../../domain/records/recordKeys.service.js'
 import { makeWordDictDb } from './wordDict.repository.js'
 
-const { save, load } = makeWordDictDb('word_records', wordRecKey)
+const { save, load, replaceGroup } = makeWordDictDb('word_records', wordRecKey)
 
 export const saveWordRecordDb = save
 export const loadWordRecordsDb = load
+// #451 1件削除：削除後の残り list でグループを丸ごと置き換える。
+export const replaceWordRecordsGroupDb = replaceGroup

@@ -10,8 +10,10 @@
 // memory/sqlite の両モードとも read/write はメモリ像 image を経由する（消費側は無改修）。
 // キー生成（wordRecKey/dictRecKey/storyRecKey/itemId）は domain の純粋関数を使う（#274）。
 import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.service.js'
+import { recordGroupOf } from '../domain/records/recordGroup.service.js'
 import {
   buildImage,
+  applyDeleteAt,
   applySaveRecord,
   applySaveWordRecord,
   applySaveDictRecord,
@@ -168,6 +170,42 @@ export function saveRecord(record) {
   image = { ...image, records: applySaveRecord(image.records, record) }
   writeThrough({ repo: 'records', args: [record] })
   return image.records
+}
+
+// ── #451 記録の1件削除 ──
+// store（メモリ像のマップ名）→ Worker の repo 名。削除専用 SQL は無く、更新後のグループ配列で
+// DB のグループを丸ごと置き換える（メモリ像が正・保存と同じ「グループ置換」経路に乗せる）。
+const DELETE_REPOS = {
+  records: 'recordsGroup',
+  wordRecords: 'wordGroup',
+  dictRecords: 'dictGroup',
+  storyRecords: 'storyGroup',
+}
+
+// 記録を1件削除する。position は UI/ランキング表示の順位そのまま（1 始まり）で、
+// 0 始まりへの変換はここで閉じる（純ロジック applyDeleteAt は 0 始まりに統一されている）。
+// 削除できたら true、対象が特定できなければ false を返し、その場合は書き込みを一切起こさない。
+export function deleteRecordAt(record, position) {
+  const group = recordGroupOf(record)
+  if (!group) return false
+  const { store, key } = group
+  const index = position - 1
+  const list = image[store]?.[key]
+  if (!Array.isArray(list)) return false
+  const target = list[index]
+  // position がずれていた場合に「別の記録を巻き込んで消す」のが最悪の事故なので、
+  // その位置に居るのが渡された記録本人かを確かめてからでないと消さない。
+  // 通常は UI が像から読んだ記録をそのまま渡す＝同一参照。date は像を跨いだ場合の同一性判定。
+  const isSame = target === record || (target != null && record.date != null && target.date === record.date)
+  if (!isSame) return false
+
+  const next = applyDeleteAt(image[store], key, index)
+  image = { ...image, [store]: next }
+  // 残り配列（空なら []）でグループを置換する。story だけはグループ座標に storyId が要る。
+  const rest = next[key] || []
+  const args = store === 'storyRecords' ? [record.storyId, record, rest] : [record, rest]
+  writeThrough({ repo: DELETE_REPOS[store], args })
+  return true
 }
 
 // 記録マップのキー生成（フック由来の records マップから該当条件を引くのに使う）。
