@@ -1,6 +1,6 @@
 ---
 name: git-flow
-description: このリポジトリのブランチ運用・PR・リリースの詳細規約。ブランチを切るとき、PR を作るとき、マージ後の掃除をするとき、リリースするときに読む。`Closes #N` をどこに書くか、`on-develop` ラベルの仕組み、マージ済みブランチの削除と残す例外、リリース PR の head を `release/*` にする理由、GitHub Release の作り方を含む。
+description: このリポジトリのブランチ運用・PR・リリースの詳細規約。ブランチを切るとき、PR を作るとき、リリースするときに読む。`Closes #N` をどこに書くか、`on-develop` ラベル、docs のみ PR の admin マージ、GitHub Release の作り方を含む。
 ---
 
 # ブランチ運用・PR・リリース（詳細）
@@ -57,9 +57,7 @@ develop マージ時に自動付与される（`.github/workflows/label-on-devel
 
 ## UI 目視
 
-**`npm run shots:play`** — dev 相手に `?preview=result|play|story` を撮影（プレイ中/結果/記録を手動プレイ無しで確認）。
-
-**本人の dev サーバを再利用すること。`pkill -f vite` の類は絶対に実行しない**（本人の dev を巻き添えにする）。
+撮影手順（`shots:play` / `screenshots` / `?preview=` の値・出力先・**本人の dev を落とさない規約**）は **`shots` スキル**。
 
 ## リリース
 

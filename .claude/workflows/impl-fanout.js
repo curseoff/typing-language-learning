@@ -21,7 +21,8 @@ if (!items.length) {
   return { error: 'args.items が空です。[{ id, kind:"logic"|"simple", issue, title, contract, files:[] }] を渡してください。' }
 }
 
-const WT = (id) => `.claude/worktrees/wf-${id}`
+// worktree はリポジトリ外に作る（作業ツリー内に別チェックアウトを置かない方針）。
+const WT = (id) => `../typing-language-learning-wt/wf-${id}`
 const BR = (id) => `feature/wf-${id}`
 
 // ---- schema ----

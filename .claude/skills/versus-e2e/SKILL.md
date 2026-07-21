@@ -1,6 +1,6 @@
 ---
 name: versus-e2e
-description: 対戦（サドンデス）の決着ルールを Chrome 2 個の実挙動で検証する。手でやると「2 タブ開く→接続コード交換→ロビー合意→狙った回数だけ正解/ミス」が毎回必要な検証を 1 コマンドで再現する。対戦の決着・勝敗・脱落まわり（suddenDeath / VersusMatch / useVersus / P2P 進捗配信）を触ったとき、および #443 系の回帰確認に使う。
+description: 対戦（サドンデス）の決着ルールを Chrome 2 個の実挙動で 1 コマンド検証する。決着・勝敗・脱落まわり（suddenDeath / VersusMatch / useVersus / P2P 進捗配信）を触ったとき、#443 系の回帰確認に使うときに読む。
 ---
 
 # 対戦サドンデス 2 ブラウザ E2E

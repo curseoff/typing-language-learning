@@ -5,6 +5,14 @@
 
 > なぜ最初に戦略か：戦術パターンを文脈なしで入れると「集約スープ」になりやすい。まず「どんな概念が・どの境界にあるか」を言葉にしてから戦術に降りる。
 
+## 目次
+
+- **戦略（Phase 0）** … §1 ユビキタス言語 / §2 文脈候補 / §3 Context Map / §4 Phase 1 への含意
+- **戦術（Phase 1〜10）** … §5 VO / §6 Entity / §7 集約 / §8 Repository / §9 Domain Service・Factory / §10 Specification / §11 Domain Event / §12 Application Service / §13 Bounded Context / §14 連携パターン
+- **総括と追記** … §15 総括 / §16 Phase 2b（Entity を実フックに配線）/ §17 依存逆転 / §18 Domain Event の本番配線 / §19 部分採用 / §20・§21 命名規約（`ddd-naming` スキル参照）
+
+> 注意：**節番号と Phase 番号は一致しない**（§5 が Phase 1）。§15 の総括より後の §16 以降は、総括後に追記した記録。
+
 ---
 
 ## 1. ユビキタス言語（Ubiquitous Language）辞書
