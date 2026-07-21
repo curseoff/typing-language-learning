@@ -24,8 +24,7 @@ CI（`.github/workflows/ci.yml`）は check を個別ステップに展開して
 |---|---|---|---|
 | `lint` で `tmp/` 配下の scratch が落ちる | `eslint.config.js` の `ignores` に **`tmp` が無い**（gitignore は ESLint flat config に効かない） | `eslint.config.js` の `ignores` | scratch は `/private/tmp/...` のスクラッチ領域へ。リポジトリ直下 `tmp/` に `.js` を置かない。**warning は落ちない・error だけ落ちる** |
 | `lint` が生成物で落ちる | 生成された `src/content/*` は個別に ignore 済み。追加した生成物は未登録 | `eslint.config.js` の `ignores` 末尾 | 生成物なら ignore に追記（手書きコードは直す） |
-| `coverage` で `ERROR: Coverage for X does not meet threshold` | 閾値割れ | 閾値は **`vite.config.js` の `test.coverage.thresholds`**（現状 statements 89.75 / branches 84.0 / functions 90.75 / lines 90.95） | **原則テストを足して埋める。閾値は up-only ラチェット**（実測が上がったときだけ実測直下へ上げる／下げない）。ブラウザ API の薄い配線だけは `coverage.exclude` に理由コメント付きで追加（前例多数） |
-| 閾値を上げた直後に確率的に割れる | v8 の計測は実行ごとに ±0.1 程度揺れる | 同上 | 実測直下すぎ。**0.2〜0.3 のマージン**を取り 0.1 単位で切り捨てる |
+| `coverage` で `ERROR: Coverage for X does not meet threshold` / 閾値を上げ下げしたい / 未カバー行を特定したい | 閾値割れ（閾値は **`vite.config.js` の `test.coverage.thresholds`**） | → **`coverage-gate` スキル**（実数値・include/exclude の方針・HTML レポートの見方・up-only ラチェットの作法・指標別の対処） | **原則テストを足して埋める。閾値の引き下げは最終手段＋本人判断** |
 | `validate` が赤 | 教材データの不整合。2本走る：`validate-sentences.mjs`（生成物に対する意味検証＝dict⊆words・jaWords 連結=ja・kana 打鍵可・英文/和文の句読点対応）と `content-validate.mjs`（`content/*.ndjson` の構造・型・`en` 一意・`level = bandOf(freq)`） | エラー文が `content/xxx.ndjson 行N: …` 形式で出る | **`content/*.ndjson` を直す**（`src/content/*Data.js` は生成物なので触らない）。読み（kana）の赤は長音「ー」・`づ`/`ぢ`・特殊拗音を疑う |
 | `build` が赤 | import 解決・構文・`prebuild` の content 生成失敗 | まず `prebuild` 側（`content-build.mjs` / `content-sqlite.mjs`）が落ちていないか確認 | prebuild の赤なら実体は validate 相当のデータ問題 |
 | `check-bundle` で予算超過 | 初回エントリ `dist/assets/index-*.js` が肥大 | `scripts/check-bundle.mjs`。**予算 512 KB／実測 410.0 KB**（`BUNDLE_BUDGET_KB` で上書き可） | 予算を上げずに**遅延 import 化**する（`src/content/wordSentences/index.js` が手本）。静的 import に戻した教材が原因のことが多い |
