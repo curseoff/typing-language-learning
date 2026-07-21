@@ -22,7 +22,7 @@ import { loadDictRecords, saveDictRecord, recordItemStat } from './records.servi
 import { useRecordsSync } from './persist/useRecordsSync.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
-import { itemId } from '../domain/records/recordKeys.service.js'
+import { itemId, statPrefix } from '../domain/records/recordKeys.service.js'
 import { segMaskLen } from '../domain/versus/progressMask.service.js'
 import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
@@ -78,7 +78,10 @@ function dictRangePool(dict, level, theme, range, freqMap) {
 //   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
 // #447 対戦：saveRecord（任意・既定 true）＝false なら記録を保存しない（result は従来どおり作る）。
 //   対戦のプレイが solo の記録一覧/ベスト記録に混ざるのを防ぐ。未指定（solo）は保存する＝挙動不変。
-export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true }) {
+// #450 対戦：versus（任意・既定 false）＝true なら問題ごとの学習統計を対戦用の id に積む。
+//   対戦は相手に追われる特殊な条件で打つので、solo の「この見出し語が苦手」という判断材料に混ぜたくない。
+//   未指定（solo）は statPrefix が base をそのまま返す＝従来と1バイトも変わらない id（既存データ互換）。
+export function useDict({ dict, level, theme, mode, seed, endCondition, range, freqMap, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true, versus = false }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -300,7 +303,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         setHasError(false)
         segMark(segTrackerRef.current, t) // この問題の最初の打鍵時刻
         {
-          const { next, emit } = trackKey(trackerRef.current, itemId('d', mode, seg.word), performance.now()) // 見出し語ごと×モード別
+          const { next, emit } = trackKey(trackerRef.current, itemId(statPrefix('d', versus), mode, seg.word), performance.now()) // 見出し語ごと×モード別（対戦は 'vd' へ分離）
           trackerRef.current = next
           if (emit) recordItemStat(emit.id, emit.delta)
         }
@@ -380,7 +383,7 @@ export function useDict({ dict, level, theme, mode, seed, endCondition, range, f
         })
       }
     },
-    [active, finished, segments, segIndex, segInput, completed, mode, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
+    [active, finished, segments, segIndex, segInput, completed, mode, versus, buildSegments, onExit, restart, finishByProgress, ec, finishByEsc, syncSession, onProgress],
   )
 
   useEffect(() => {

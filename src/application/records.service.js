@@ -9,7 +9,7 @@
 //                            fire-and-forget（write-through）。
 // memory/sqlite の両モードとも read/write はメモリ像 image を経由する（消費側は無改修）。
 // キー生成（wordRecKey/dictRecKey/storyRecKey/itemId）は domain の純粋関数を使う（#274）。
-import { wordRecKey, dictRecKey, storyRecKey, itemId } from '../domain/records/recordKeys.service.js'
+import { wordRecKey, dictRecKey, storyRecKey, itemId, statPrefix } from '../domain/records/recordKeys.service.js'
 import { recordGroupOf } from '../domain/records/recordGroup.service.js'
 import {
   buildImage,
@@ -268,9 +268,16 @@ export function recordItemStat(id, delta) {
 
 // 収録一覧（ItemList）の type と mode から item-stats の id を作る。
 // type='words'|'dict'|'marathon'（UI 都合の種類名）→ 記録上の接頭辞へ変換。
-export function itemStatId(type, mode, key) {
-  const prefix = type === 'dict' ? 'd' : type === 'marathon' ? 's' : 'w'
-  return itemId(prefix, mode, key)
+// #450 第4引数 versus（任意・既定 false）＝true なら対戦用の id を返す。省略時は従来と同一の id。
+export function itemStatId(type, mode, key, versus = false) {
+  const base = type === 'dict' ? 'd' : type === 'marathon' ? 's' : 'w'
+  return itemId(statPrefix(base, versus), mode, key)
+}
+
+// #450 同じ問題の「通常プレイ id と対戦 id」を両方返す（表示側が合算するため）。
+// 接頭辞の綴り（'w'/'vw' 等）は記録層の都合なので、UI にはこの窓口だけを見せて知らせない。
+export function itemStatIds(type, mode, key) {
+  return [itemStatId(type, mode, key, false), itemStatId(type, mode, key, true)]
 }
 
 // 物語の場面ごとの id（story:mode:storyId/nodeId）。物語別に分けて衝突を防ぐ。

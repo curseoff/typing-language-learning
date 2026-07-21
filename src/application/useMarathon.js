@@ -17,7 +17,7 @@ import { createTypingSessionFactory } from '../domain/session/typingSession.fact
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { recordItemStat } from './records.service.js'
-import { itemId } from '../domain/records/recordKeys.service.js'
+import { itemId, statPrefix } from '../domain/records/recordKeys.service.js'
 import { firstTryCorrectCount, segmentScore, missedItemCount } from '../domain/records/segmentStats.service.js'
 import { segMaskLen } from '../domain/versus/progressMask.service.js'
 import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
@@ -47,7 +47,10 @@ const maskRngFactory = (seed) => (item) => clozeMaskRng(seed, item.en)
 // #432 対戦：autoStart（任意・既定 false）＝true なら初回打鍵を待たずマウント時から計時を開始する
 //   （lazy 初期化で最初の render 時刻を startTime／startTimeRef にする＝レース開始と同時に時間が進む）。
 //   未指定（solo）は従来どおり初回打鍵で開始＝挙動を一切変えない。
-export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal', onProgress, autoStart = false }) {
+// #450 対戦：versus（任意・既定 false）＝true なら問題ごとの学習統計を対戦用の id に積む。
+//   対戦は相手に追われる特殊な条件で打つので、solo の「この例文が苦手」という判断材料に混ぜたくない。
+//   未指定（solo）は statPrefix が base をそのまま返す＝従来と1バイトも変わらない id（既存データ互換）。
+export function useMarathon({ active, onFinish, endCondition, learningMode = 'normal', onProgress, autoStart = false, versus = false }) {
   const isCloze = learningMode === 'cloze'
   // 参照を安定させ、finish/タイマーの無用な再生成を避ける（endCondition は親が安定参照で渡す）。
   const ec = useMemo(() => normalizeEndCondition(endCondition), [endCondition])
@@ -214,7 +217,7 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
         if (segStartRef.current === null) segStartRef.current = t // 問題の最初の打鍵
         setHasError(false)
         {
-          const { next, emit } = trackKey(trackerRef.current, itemId('s', ctxRef.current.mode, seg.en), performance.now()) // 文ごと×モード別
+          const { next, emit } = trackKey(trackerRef.current, itemId(statPrefix('s', versus), ctxRef.current.mode, seg.en), performance.now()) // 文ごと×モード別（対戦は 'vs' へ分離）
           trackerRef.current = next
           if (emit) recordItemStat(emit.id, emit.delta)
         }
@@ -309,7 +312,7 @@ export function useMarathon({ active, onFinish, endCondition, learningMode = 'no
         })
       }
     },
-    [segments, segIndex, segInput, completed, finishByProgress, syncSession, onProgress],
+    [segments, segIndex, segInput, completed, finishByProgress, syncSession, onProgress, versus],
   )
 
   useEffect(() => {

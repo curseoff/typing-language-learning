@@ -38,9 +38,8 @@ const REASON_TEXT = {
 }
 const reasonText = (code) => (code ? (REASON_TEXT[code] ?? null) : null)
 
-// #432 対戦（P2P穴埋め）のトップ動線。TODO-A（相手が入力しないと終わらない）解消後に true にして本番公開する。
-// それまでは DEV 限定でメニューに出す（本番ビルドでは「対戦」を非表示）。
-const VERSUS_ENABLED = import.meta.env.DEV
+// #432 対戦（P2P穴埋め）のトップ動線。本番公開（DEV/本番の両方でメニューに「対戦」を出す）。
+const VERSUS_ENABLED = true
 
 // 保存状態バッジの reasonCode → 詳細文言（title/aria-label 用）。安定コードを UI 側で日本語へ写像する（#399）。
 const SAVE_REASON_TEXT = {
@@ -196,7 +195,7 @@ export default function AppMenuBar({ appName, onNavigateAbout, onNavigateAllReco
         { id: 'restoreExternal', label: 'フォルダから復元', icon: '📂', enabled: vis.data.restoreExternal.enabled, reason: reasonText(vis.data.restoreExternal.reason) },
       ],
     },
-    // #432 対戦（caps 非依存で常時 enabled）。VERSUS_ENABLED（＝DEV）のときだけ足す。
+    // #432 対戦（caps 非依存で常時 enabled）。VERSUS_ENABLED のとき足す（本番でも表示）。
     ...(VERSUS_ENABLED
       ? [
           {
