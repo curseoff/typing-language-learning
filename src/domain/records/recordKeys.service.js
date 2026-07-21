@@ -35,3 +35,12 @@ export function storyRecKey(storyId, endCondition) {
 
 // 問題ごとの累積記録の id（type:mode:key 形式）。type='s'|'w'|'d'|'story' などモード別に分ける。
 export const itemId = (type, mode, key) => `${type}:${mode}:${key}`
+
+// #450 対戦由来の item-stats を通常プレイと別 id に積むための接頭辞。
+// versus が偽（省略含む）なら base をそのまま返す＝通常プレイの id は1バイトも変わらない（既存データ互換）。
+// versus が真なら 'w'→'vw' のように v を冠した「':' を含まない1トークン」を返す。
+// ':' を入れてはならない理由：itemStats.repository.js の splitId は先頭2つの ':' だけで
+// type/mode/item_key に割るため、'v:w' のような接頭辞にすると type='v'/mode='w'/item_key='mode:key'
+// と誤分解され、mode 列と item_key 列が通常プレイとずれる（エラーにならず静かに壊れる）。
+// 1トークンにしておけば type 列だけが分かれ、mode/item_key は通常プレイと同じ座標に揃う。
+export const statPrefix = (base, versus) => (versus ? `v${base}` : base)

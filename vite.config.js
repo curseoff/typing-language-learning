@@ -166,7 +166,10 @@ export default defineConfig(({ command }) => ({
       // #443 対戦サドンデスの純ドメイン（suddenDeath/boardActivity/waitingState の各 service）に
       // 単体テストが揃い各指標が上振れ（実測 S89.82/B84.06/F90.81/L91.03）
       // → 実測から ≈0.05〜0.1 のマージンで実測直下へラチェット（up-only）。
-      thresholds: { statements: 90.0, branches: 84.4, functions: 91.0, lines: 91.25 },
+      // #450 対戦の学習統計を別 id へ分ける配線（3プレイフックの versus と収録一覧の合算）に
+      // 結合テストを追加して各指標が上振れ（実測 S90.11/B84.66/F91.06/L91.35）
+      // → 実測から ≈0.05 のマージンで実測直下へラチェット（up-only）。
+      thresholds: { statements: 90.05, branches: 84.6, functions: 91.0, lines: 91.3 },
     },
   },
 }))
