@@ -33,27 +33,20 @@ if (branch !== 'develop') die(`develop で実行してください（現在: ${b
 sh('git fetch origin --quiet')
 if (sh('git rev-parse HEAD') !== sh('git rev-parse origin/develop')) die('ローカル develop が origin/develop と一致しません。')
 
-// 2) 秘密情報・個人情報の自己点検（develop..master の追加分）
+// 2) 秘密情報・個人情報の自己点検（origin/master..origin/develop の追加分）
+// 点検の実体は push-selfcheck に一本化する（かつては同等の正規表現をここにも持っていたが、
+// 粗い判定で誤検知が多くリリースが止まっていた）。上の事前チェックで HEAD === origin/develop を
+// 確認済みなので、push-selfcheck の <base>..HEAD は origin/master..origin/develop と一致する。
 log('自己点検（秘密情報・個人情報）…')
-// 教材コンテンツ（語彙・英英・例文・グロッサリ・物語＝教育コンテンツ）は英単語の見出し語が
-// 正規表現を誤検知し、かつ巨大（NDJSON 数万行）で diff を膨張させるので自己点検から除外する。
-// 正準ソースの content/*.ndjson・content/stories/*.json と、生成物 src/content/*Data.js 等が対象。
-// 秘密情報はコード/設定側に入るため検出に影響しない。
-const diff = sh(
-  "git diff origin/master..origin/develop -- . ':(exclude)src/content/*Data.js' ':(exclude)src/content/wordSentences/*.js' ':(exclude)content/*.ndjson' ':(exclude)content/stories/*.json'",
-)
-const added = diff.split('\n').filter((l) => l.startsWith('+'))
-const bad = /(api[_-]?key|secret|token|password|private[_-]?key|BEGIN [A-Z ]+PRIVATE KEY|\/Users\/[a-z]+\/|[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/i
-// 誤検知の除外：JSX の key= 等、`env -u GITHUB_TOKEN gh`（このリポジトリの定番イディオム＝環境変数名であって秘密値ではない）など。
-// 環境変数名そのものは除外する一方、後ろに代入記号と値が続く形は除外しない（実漏えいは引き続き検出）。
-const ok = /key=\{|key:|\bsecret\b.*\bnone\b|env -u GITHUB_TOKEN|GITHUB_TOKEN(?![=:])/i
-const hits = added.filter((l) => bad.test(l) && !ok.test(l))
-if (hits.length) {
-  console.error('\x1b[33m⚠ 要確認の行:\x1b[0m')
-  hits.slice(0, 20).forEach((l) => console.error('  ' + l))
-  die('秘密情報・個人情報の疑い。確認してください（誤検知なら手動でリリース）。')
+try {
+  sh('node scripts/push-selfcheck.mjs --base origin/master', { stdio: 'inherit' })
+} catch {
+  die(
+    '自己点検で検出あり。上の push-selfcheck の出力（ファイル:行・種別）を確認してください。\n' +
+      '  本物の秘密情報なら push せず取り除くこと（master に入ると履歴に残ります）。\n' +
+      '  誤検知なら scripts/push-selfcheck.mjs の ALLOW に控えめに追加してから再実行してください。',
+  )
 }
-console.log('  クリア')
 
 // 3) 版上げ（package.json と package-lock.json を同期）
 log(`版上げ: ${bump}`)
