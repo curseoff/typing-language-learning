@@ -13,6 +13,7 @@ description: 機能名から「その振る舞いを検証しているテスト�
 - vitest の収集範囲は `vite.config.js` の `include`：**`src/**/*.test.{js,jsx}` と `packages/*/src/**/*.test.{ts,tsx}` だけ**。
   - → **`packages/core` に `.js` のテストを置いても実行されない**（`.ts` なら拾う。実在するのは `packages/core/src/romaji/kanaTable.contract.test.ts` の 1 本だけ）。`@tll/core` の中身は `src/domain` 側の薄板（re-export）越しにテストしている（例：`src/domain/romaji/romaji.service.js` は `@tll/core` を再エクスポートするだけで、実質の仕様テストは `src/domain/romaji/romaji.test.js`）。
 - 既定環境は **node**。UI/ブラウザ API に触るテストは**ファイル先頭に `// @vitest-environment jsdom`** を書く（`environmentMatchGlobs` は vitest 4 で廃止）。現状 101 本が jsdom 指定。
+- **jsdom の UI テストが CI だけ稀にタイムアウト**するなら、教材の実データ（`dictionaryData.js` 4.2MB・`wordsData.js` 1.6MB 等）を実 import している疑い（jsdom では SQLite が使えず巨大生成物の動的 import へフォールバックし、coverage 計装＋並列下でフレーキーになる）。対処は timeout 延長ではなく**そのテストが呼ぶローダ関数だけ `vi.mock` で小さなフィクスチャへスタブ化**する（定数は `importActual` で実物を維持）。手本＝`src/ui/App.range.test.jsx`（#396）。
 - 本数の目安（`src` + `packages`）＝約 201 本：`src/domain` 62 / `src/application` 57 / `src/infrastructure` 21 / `src/ui` 20 / `src/content` 3 / `packages/ui/src` 37 / `packages/core/src` 1。
 
 ## 機能軸 → 見るテスト

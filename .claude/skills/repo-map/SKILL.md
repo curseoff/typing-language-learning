@@ -30,7 +30,7 @@ description: 「この変更ならこのファイル」の索引。どこを直�
 | 対戦の進行・画面 | `src/application/versus/{useVersus.js,versusPlay.policy.js,versusSession.store.js}`、`src/ui/versus/Versus{Connect,Lobby,Match}.container.jsx` |
 | 対戦の通信（WebRTC/シグナリング） | `src/infrastructure/p2p/{webrtcPeer,manualSignaling}.adapter.js`、`iceConfig.repository.js` |
 | ゲーム進行の状態機械 | `src/application/use{Marathon,Story,Words,WordQuiz,Dict,DictQuiz,Touch,Romaji}.js` |
-| **記録の保存先・読み書き** | `src/application/records.service.js`（ファサード）、`records/recordFinishedSession.service.js`、`src/application/persist/*.policy.js`（純ロジック）、`src/infrastructure/db/repos/*.repository.js`（DB I/O） |
+| **記録の保存先・読み書き** | `src/application/records.service.js`（ファサード）、`src/application/allRecords.policy.js`（全記録横断ビュー＝`flattenRecords`/`sortAllRecords`）、`src/application/persist/*.policy.js`（純ロジック）、`src/infrastructure/db/repos/*.repository.js`（DB I/O） |
 | DB スキーマ・マイグレーション | `src/infrastructure/db/{applySchema.schema,migrations.migration,runMigrations.adapter,sqliteWorker.adapter,initStorage.adapter}.js` |
 | バックアップ/復元・多タブ協調 | `src/application/{backup,externalBackup,recovery}.service.js`、`src/infrastructure/persist/*.adapter.js` |
 | PWA（SW/オフライン/インストール） | `src/infrastructure/pwa/*.adapter.js`、`src/ui/pwa/`（バナー系 container ＋ `use*.js`） |
@@ -40,6 +40,19 @@ description: 「この変更ならこのファイル」の索引。どこを直�
 | 準備画面 / 結果・記録画面 | `src/ui/ready/*.container.jsx` / `src/ui/result/`・`src/ui/records/` |
 | **見た目・CSS** | `packages/ui/src/styles/*.css`（部品）、`src/App.css`（トークン/全体） |
 | 純粋描画の部品そのもの | `packages/ui/src/**/*.presenter.tsx`（変更後 `npm run build:pkgs`） |
+
+## 落とし穴（索引だけでは分からない）
+
+- **学習用で本番未配線のモジュールがある**。次の3つは DDD 学習（#290 のフェーズ記録／`docs/DDD-LEARNING.md`）のために作られたもので、**本番の呼び出し元がゼロ**（参照はテストと契約テストのみ）。記録の保存や絞り込みの挙動を直しに来た人がここを触っても、アプリの動きは変わらない。
+  - `src/application/records/recordFinishedSession.service.js` … 実際の保存経路は `src/application/records.service.js`（ファサード）
+  - `src/domain/records/recordSpecs.specification.js`
+  - `src/domain/spec/combinators.specification.js`（上記から使われるだけ）
+- **プレイフックの引数契約は共通化されていない**。似ているが揃っていないので、呼ぶ前にシグネチャを読む。
+  - 終了通知は **`useMarathon` だけ `onFinish`**、他（`useWords` `useDict` `useWordQuiz` `useDictQuiz` `useStory` `useTouch` `useRomaji`）は `onExit`
+  - `onProgress` / `autoStart` は `useWords` `useDict` `useMarathon` のみ、`active` も同じ3つのみ
+  - `learningMode`（`normal`/`cloze`）・`saveRecord` も入力系の一部だけ
+- **対戦に載せられるプレイフックは限られる**。`src/ui/versus/VersusMatch.container.jsx` が使うのは **`useDict`（英英）／`useWords`（単語）／`useMarathon`（単語例文＝wsent）の3つだけ**（進捗を外へ出す `onProgress` と `active` を持つフック）。クイズ系・物語・練習系は対戦に載っていない。
+- **対戦の P2P メッセージ種別は `src/domain/versus/versusMessage.vo.js` に定義がある**（`progress` `countdown` `finished` `peerLeft` `hello` `propose` `vote` `start` `abort` `matchEnd` `board`）。受信は `parseMessage`（untrusted・不正なら throw せず `null`）、送信は `buildMessage`（未知 type は throw）。種別やフィールドを増やすときは**まずここ**。
 
 ## 新しいファイルを置くとき（`src/domain/_ddd-naming.test.js` が強制）
 
