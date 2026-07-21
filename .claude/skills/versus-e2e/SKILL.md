@@ -30,11 +30,51 @@ npm run versus:e2e -- --scenario a-eliminated-b-ahead --headful
 
 # Chrome の場所を指定する場合
 CHROME_PATH=/path/to/chrome npm run versus:e2e -- --scenario draw
+
+# 手で試したいだけ（接続の往復だけ自動・ロビーで停止）
+npm run versus:e2e -- --setup-only
 ```
 
-オプション: `--scenario <name|all>`（必須）／`--base <url>`（既定 `http://localhost:5173`）／`--lives <n>`（既定 3）／`--headful`／`--keep-open`（終了後もブラウザを残す）／`--timeout <ms>`（既定 60000）
+| オプション | 意味 |
+|---|---|
+| `--scenario <name\|all>` | 走らせるシナリオ（`--setup-only` のときは不要・併用不可） |
+| `--setup-only` | 接続だけ自動でやってロビーで停止する（手動検証モード・下記） |
+| `--base <url>` | dev サーバ（既定 `http://localhost:5173`） |
+| `--lives <n>` | サドンデスのライフ（既定 3） |
+| `--headful` | ブラウザを表示する |
+| `--keep-open` | **シナリオ完走後**にブラウザを残す（`--setup-only` とは目的が違う） |
+| `--window-size <WxH>` | `--setup-only` のウィンドウサイズ（既定 `960x1000`） |
+| `--timeout <ms>` | 各待ちの期限（既定 60000） |
 
 終了コードは 成功 0 / 失敗 1。失敗時は `tmp/versus-e2e/<scenario>-{host,guest}.png` にスクショを保存し、両者の `snapshot()` を標準出力へダンプする。
+
+## 手で検証したいとき（`--setup-only`）
+
+自動シナリオでは作れない局面を**自分で打って**確かめたいことがある。面倒なのは接続の往復（役割選択 → 接続コード生成 → 貼付 → 応答コード → 貼付）だけなので、そこまでを自動化してロビーで止める。
+
+```bash
+npm run versus:e2e -- --setup-only
+npm run versus:e2e -- --setup-only --window-size 800x900   # 画面が狭いとき
+```
+
+| 項目 | 挙動 |
+|---|---|
+| 表示 | 常に headful（`--headful` の指定は不要） |
+| 配置 | 2 ウィンドウを**左右に並べる**（左＝ホスト／右＝ゲスト）。重ならないよう 1 枚目の実位置を測って隣に置く |
+| 停止位置 | **ロビー（対戦条件の選択）**。種目・レベル・終了条件には**一切触れない**ので自分で選ぶ |
+| 終了 | ターミナルで **Ctrl-C**。両ブラウザを閉じて終わる（それまで開いたまま保持） |
+
+対戦中の判定状態は、どちらのウィンドウでも DevTools の Console から読める。
+
+```js
+window.__tllVersus.snapshot()
+// { selfId, isHost, phase, endKind, initialLives,
+//   self:{lives, correct, typed, mistakes}, others:[{id,lives,correct,hasProgress}], outcome }
+```
+
+おかしな挙動を見つけたら、**両方のウィンドウで** `snapshot()` を実行した結果を控える（片側だけ `finished`／値が食い違う、が一次情報になる）。サドンデスを見たいならロビーで「終了条件＝サドンデス」を選ぶこと。
+
+ブラウザは 2 プロセス・別プロファイル（まっさら）で起動する。同一プロファイルの副タブだと「保存されません」バッジが出るため、素の状態で試せるこちらを既定にしている。
 
 ## シナリオ
 
