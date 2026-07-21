@@ -17,6 +17,7 @@ import { normalizeEndCondition, endLimitMs, shouldFinish, makeEndCondition } fro
 import { createTypingSessionFactory } from '../domain/session/typingSession.factory.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord, recordItemStat } from './records.service.js'
+import { useRecordsSync } from './persist/useRecordsSync.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
 import { itemId } from '../domain/records/recordKeys.service.js'
@@ -100,6 +101,8 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
+  // #451 記録を1件削除したら自分の records も読み直す（下敷きの結果ページを最新に保つ）。
+  useRecordsSync(setRecords, loadWordRecords)
   const [startTime, setStartTime] = useState(() => (autoStart ? performance.now() : null))
   const trackerRef = useRef(newTracker()) // 単語ごとの累積記録
   const segTrackerRef = useRef(newSegTracker()) // 今回プレイの問題ごとの記録

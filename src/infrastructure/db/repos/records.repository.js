@@ -42,6 +42,51 @@ export function loadRecordsDb(db) {
   return out
 }
 
+// sampleRecord が属するグループ（recKey と同じ座標）を list で丸ごと置き換える。
+// 保存も削除も「グループ内の全行を消して新しい並びを pos 昇順で入れ直す」で表せるため共通化する
+// （list が空ならグループの行は 1 本も残らない＝#451 の最後の1件削除）。呼び出し側で transaction を張る。
+function replaceGroup(db, sampleRecord, list) {
+  const ec = ecToColumns(sampleRecord.endCondition)
+  db.exec({
+    sql:
+      'DELETE FROM "records" WHERE "mode" IS ? AND "rank" IS ? AND "source" IS ? AND ' +
+      '"theme" IS ? AND "ec_kind" IS ? AND "ec_value" IS ? AND "range" IS ?',
+    bind: [
+      sampleRecord.mode ?? null,
+      sampleRecord.rank ?? null,
+      sampleRecord.source ?? null,
+      sampleRecord.theme ?? null,
+      ec.ec_kind,
+      ec.ec_value,
+      sampleRecord.range ?? null,
+    ],
+  })
+  list.forEach((r, pos) => {
+    const rec = ecToColumns(r.endCondition)
+    db.exec({
+      sql: `INSERT INTO "records" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      bind: [
+        r.mode ?? null,
+        r.rank ?? null,
+        r.source ?? null,
+        r.theme ?? null,
+        rec.ec_kind,
+        rec.ec_value,
+        pos,
+        r.seed ?? null,
+        r.speed ?? null,
+        r.keys ?? null,
+        r.mistakes ?? null,
+        r.accuracy ?? null,
+        r.correctCount ?? null,
+        r.seconds ?? null,
+        r.date ?? null,
+        r.range ?? null,
+      ],
+    })
+  })
+}
+
 // 記録を1件保存し、更新後の全マップを返す（該当グループを DELETE→pos 昇順 INSERT）。
 export function saveRecordDb(db, record) {
   db.transaction(() => {
@@ -59,46 +104,14 @@ export function saveRecordDb(db, record) {
       endCondition: normalizeEndCondition(record.endCondition),
       entries: current,
     })
-    const list = [...board.submit(record).entries()]
-    const ec = ecToColumns(record.endCondition)
-    db.exec({
-      sql:
-        'DELETE FROM "records" WHERE "mode" IS ? AND "rank" IS ? AND "source" IS ? AND ' +
-        '"theme" IS ? AND "ec_kind" IS ? AND "ec_value" IS ? AND "range" IS ?',
-      bind: [
-        record.mode ?? null,
-        record.rank ?? null,
-        record.source ?? null,
-        record.theme ?? null,
-        ec.ec_kind,
-        ec.ec_value,
-        record.range ?? null,
-      ],
-    })
-    list.forEach((r, pos) => {
-      const rec = ecToColumns(r.endCondition)
-      db.exec({
-        sql: `INSERT INTO "records" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        bind: [
-          r.mode ?? null,
-          r.rank ?? null,
-          r.source ?? null,
-          r.theme ?? null,
-          rec.ec_kind,
-          rec.ec_value,
-          pos,
-          r.seed ?? null,
-          r.speed ?? null,
-          r.keys ?? null,
-          r.mistakes ?? null,
-          r.accuracy ?? null,
-          r.correctCount ?? null,
-          r.seconds ?? null,
-          r.date ?? null,
-          r.range ?? null,
-        ],
-      })
-    })
+    replaceGroup(db, record, [...board.submit(record).entries()])
   })
+  return loadRecordsDb(db)
+}
+
+// #451 sampleRecord のグループを list（削除後の残り）で置き換える。削除専用 SQL は持たず、
+// メモリ像（正）の結果をそのまま反映する＝並び直しも削除も同じ経路で整合する。
+export function replaceRecordsGroupDb(db, sampleRecord, list) {
+  db.transaction(() => replaceGroup(db, sampleRecord, list))
   return loadRecordsDb(db)
 }

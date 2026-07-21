@@ -48,30 +48,25 @@ export function makeWordDictDb(table, keyFn) {
     return out
   }
 
-  function save(db, record) {
-    db.transaction(() => {
-      const current = load(db)[key(record)] || []
-      const board = makeRankingBoard({
-        key: key(record),
-        endCondition: normalizeEndCondition(record.endCondition),
-        entries: current,
-      })
-      const list = [...board.submit(record).entries()]
-      const ec = ecToColumns(record.endCondition)
-      db.exec({
-        sql:
-          `DELETE FROM "${table}" WHERE "level" IS ? AND "theme" IS ? AND "mode" IS ? AND ` +
-          '"ec_kind" IS ? AND "ec_value" IS ? AND "range" IS ?',
-        bind: [
-          record.level ?? null,
-          record.theme ?? null,
-          record.mode ?? null,
-          ec.ec_kind,
-          ec.ec_value,
-          record.range ?? null,
-        ],
-      })
-      list.forEach((r, pos) => {
+  // sampleRecord が属するグループ（keyFn と同じ座標）を list で丸ごと置き換える。
+  // 保存も削除も「グループの全行を消して新しい並びを pos 昇順で入れ直す」で表せるため共通化する
+  // （list が空ならグループの行は残らない＝#451 の最後の1件削除）。呼び出し側で transaction を張る。
+  function replaceGroup(db, sampleRecord, list) {
+    const ec = ecToColumns(sampleRecord.endCondition)
+    db.exec({
+      sql:
+        `DELETE FROM "${table}" WHERE "level" IS ? AND "theme" IS ? AND "mode" IS ? AND ` +
+        '"ec_kind" IS ? AND "ec_value" IS ? AND "range" IS ?',
+      bind: [
+        sampleRecord.level ?? null,
+        sampleRecord.theme ?? null,
+        sampleRecord.mode ?? null,
+        ec.ec_kind,
+        ec.ec_value,
+        sampleRecord.range ?? null,
+      ],
+    })
+    list.forEach((r, pos) => {
         const rec = ecToColumns(r.endCondition)
         db.exec({
           sql: `INSERT INTO "${table}" (${COLS}) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -97,10 +92,28 @@ export function makeWordDictDb(table, keyFn) {
             r.range ?? null,
           ],
         })
+    })
+  }
+
+  function save(db, record) {
+    db.transaction(() => {
+      const current = load(db)[key(record)] || []
+      const board = makeRankingBoard({
+        key: key(record),
+        endCondition: normalizeEndCondition(record.endCondition),
+        entries: current,
       })
+      replaceGroup(db, record, [...board.submit(record).entries()])
     })
     return load(db)
   }
 
-  return { save, load }
+  // #451 sampleRecord のグループを list（削除後の残り）で置き換える。メモリ像が正なので
+  // 削除専用 SQL を持たず、この置換だけで DB を追随させる。
+  function replaceGroupTx(db, sampleRecord, list) {
+    db.transaction(() => replaceGroup(db, sampleRecord, list))
+    return load(db)
+  }
+
+  return { save, load, replaceGroup: replaceGroupTx }
 }

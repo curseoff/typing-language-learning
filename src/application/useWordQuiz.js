@@ -7,6 +7,7 @@ import { mulberry32 } from '../domain/rng.service.js'
 import { normalizeEndCondition, endLimitMs, shouldFinish } from '../domain/session/endCondition.vo.js'
 import { useCountdownTimer } from './useCountdownTimer.js'
 import { loadWordRecords, saveWordRecord } from './records.service.js'
+import { useRecordsSync } from './persist/useRecordsSync.js'
 import { buildQuizSegStat } from './quizSegStat.policy.js'
 import { firstTryCorrectCountQuiz, missedItemCount } from '../domain/records/segmentStats.service.js'
 import { quizToRecord } from '../domain/records/sessionResult.service.js'
@@ -45,6 +46,8 @@ export function useWordQuiz({ words, level, theme, dir, mode, seed, endCondition
   const [finished, setFinished] = useState(false)
   const [result, setResult] = useState(null)
   const [records, setRecords] = useState(() => loadWordRecords())
+  // #451 記録を1件削除したら自分の records も読み直す（下敷きの結果ページを最新に保つ）。
+  useRecordsSync(setRecords, loadWordRecords)
   const [startTime, setStartTime] = useState(null)
   const segStatsRef = useRef([]) // 今回プレイの問題ごとの記録（設問の正誤）
   const perQMissRef = useRef(0) // 現在の設問のタイプミス数
