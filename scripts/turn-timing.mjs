@@ -34,6 +34,10 @@ const EDIT_TOOLS = new Set(['Read', 'Edit', 'Write', 'NotebookEdit'])
 // そのうち承認プロンプトが出うるもの（NotebookEdit は実績が無いので対象外）
 const APPROVAL_TOOLS = new Set(['Read', 'Edit', 'Write'])
 
+// 本人の応答で初めて返るツール。所要はこちらの処理時間ではなく本人が考えて答えるまでの
+// 待ち時間なので、AI 側の実力値と混ざらないよう別建てにする。
+const USER_WAIT_TOOLS = new Set(['AskUserQuestion', 'ExitPlanMode'])
+
 // 表示順（モデルは残差なので最後）
 const BUCKETS = [
   '委任',
@@ -43,6 +47,7 @@ const BUCKETS = [
   'Bash:その他',
   '編集',
   '承認待ち(推定)',
+  '本人待ち',
   'その他ツール',
   'モデル(思考・生成)',
 ]
@@ -180,6 +185,7 @@ export function classifyBash(command) {
 // ツール 1 回分をどの内訳に入れるか。
 export function classifyTool(name, input, durationMs) {
   if (name === 'Agent') return '委任'
+  if (USER_WAIT_TOOLS.has(name)) return '本人待ち'
   if (name === 'Bash') return classifyBash(input && input.command)
   if (EDIT_TOOLS.has(name)) {
     // 単発で閾値を超えた編集系は、実処理ではなく許可プロンプトの待ち時間とみなして別建てにする
