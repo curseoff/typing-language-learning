@@ -474,6 +474,8 @@ function DictPlayArea({ config, seed, content, selfId, roster, progress, phase, 
     active: isBoardActive({ phase, eliminated }),
     // #447 対戦のプレイは記録を保存しない（solo の記録一覧/ベスト記録に混ざるのを防ぐ）。
     saveRecord: false,
+    // #450 問題ごとの学習統計は対戦用の id に積む（solo の苦手判断に対戦の打鍵を混ぜない）。
+    versus: true,
   })
   // live 速度・経過を最新値ホルダーへ反映（onProgress/finish の effect が読む）。
   // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
@@ -565,6 +567,8 @@ function WordsPlayArea({ config, seed, content, selfId, roster, progress, phase,
     active: isBoardActive({ phase, eliminated }),
     // #447 対戦のプレイは記録を保存しない（solo の記録一覧/ベスト記録に混ざるのを防ぐ）。
     saveRecord: false,
+    // #450 問題ごとの学習統計は対戦用の id に積む（solo の苦手判断に対戦の打鍵を混ぜない）。
+    versus: true,
   })
   // #446 DEV 限定の読み取り専用フック（E2E ドライバ用）。本番ビルドでは丸ごと落ちる。
   useVersusDevHook({
@@ -661,7 +665,8 @@ function WsentPlayArea({ config, seed, content, selfId, roster, progress, phase,
     [sendProgress, sendFinished, total, initialLives, liveRef],
   )
   // 対戦はレース開始（マウント）と同時に計時開始（初回打鍵を待たない）。
-  const m = useMarathon({ active: isBoardActive({ phase, eliminated }), onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true })
+  // #450 versus:true＝問題ごとの学習統計を対戦用の id に積む（solo の苦手判断に対戦の打鍵を混ぜない）。
+  const m = useMarathon({ active: isBoardActive({ phase, eliminated }), onFinish, endCondition: config.endCondition, learningMode: 'cloze', onProgress, autoStart: true, versus: true })
 
   // マウント時に1回だけ出題を開始（全員同一 seed＝同一問題列）。
   const started = useRef(false)

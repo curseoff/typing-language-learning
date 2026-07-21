@@ -20,7 +20,7 @@ import { loadWordRecords, saveWordRecord, recordItemStat } from './records.servi
 import { useRecordsSync } from './persist/useRecordsSync.js'
 import { newTracker, trackKey, trackMiss, flushTracker } from './itemTracker.policy.js'
 import { newSegTracker, segMark, segMiss, segPush, segMissedItems } from './segTracker.policy.js'
-import { itemId } from '../domain/records/recordKeys.service.js'
+import { itemId, statPrefix } from '../domain/records/recordKeys.service.js'
 import { firstTryCorrectCount } from '../domain/records/segmentStats.service.js'
 import { segMaskLen } from '../domain/versus/progressMask.service.js'
 import { mirrorCursor } from '../domain/versus/mirrorCursor.service.js'
@@ -48,7 +48,10 @@ const nextWordsId = () => `words-${++wordsSessionSeq}`
 //   非対戦の通常プレイは未指定＝true のままで挙動不変。useMarathon の active と同じ作法。
 // #447 対戦：saveRecord（任意・既定 true）＝false なら記録を保存しない（result は従来どおり作る）。
 //   対戦のプレイが solo の記録一覧/ベスト記録に混ざるのを防ぐ。未指定（solo）は保存する＝挙動不変。
-export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true }) {
+// #450 対戦：versus（任意・既定 false）＝true なら問題ごとの学習統計を対戦用の id に積む。
+//   対戦は相手に追われる特殊な条件で打つので、solo の「この単語が苦手」という判断材料に混ぜたくない。
+//   未指定（solo）は statPrefix が base をそのまま返す＝従来と1バイトも変わらない id（既存データ互換）。
+export function useWords({ allWords, level, theme, mode, seed, endCondition, range, learningMode = 'normal', onExit, onProgress, autoStart = false, active = true, saveRecord = true, versus = false }) {
   const isCloze = learningMode === 'cloze'
   // 出題列（問題）をブロックタグ付け／セグメント化するヘルパ。normal は素通り＝従来と同形。
   //   cloze … tagLearningBlocks で 5問ずつ normal→cloze を交互展開（出力は 2×・{item,phase}）。
@@ -282,7 +285,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
         setHasError(false)
         segMark(segTrackerRef.current, t) // この語の最初の打鍵時刻
         {
-          const { next, emit } = trackKey(trackerRef.current, itemId('w', mode, seg.en), performance.now()) // 単語ごと×モード別
+          const { next, emit } = trackKey(trackerRef.current, itemId(statPrefix('w', versus), mode, seg.en), performance.now()) // 単語ごと×モード別（対戦は 'vw' へ分離）
           trackerRef.current = next
           if (emit) recordItemStat(emit.id, emit.delta)
         }
@@ -360,7 +363,7 @@ export function useWords({ allWords, level, theme, mode, seed, endCondition, ran
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems, onProgress])
+  }, [active, finished, seg, segIndex, segments.length, input, completed, startTime, ec, finishEc, mode, versus, allWords, level, theme, range, onExit, restart, finish, syncSession, toProblems, onProgress])
 
   // 最初の打鍵から制限時間で終了（キー入力が無くても時間で finish）。
   // 現在入力中の語があれば partial として記録に積んでから finish（setTimeout 遅延は timer 側）。
