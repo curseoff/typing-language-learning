@@ -25,9 +25,13 @@ function parseArgs(argv) {
 const USAGE = '使い方: node scripts/push-selfcheck.mjs [--base <ref>] [--verbose]'
 
 // git をそのまま叩く小道具（失敗は null を返して呼び側で判断）
+// maxBuffer は既定 1MB では足りない。教材コンテンツ（content/*.ndjson・src/content/*Data.js）は
+// 全体で数十 MB あり、リリース時の origin/master..origin/develop はその大半の書き換えを含みうる。
+// 教材を走査対象から外す手もあるが、それだと教材ファイルに紛れた秘密情報を見逃すので、
+// 除外せずバッファを広げて対処する（走査自体は 11 万行でも 1 秒未満）。
 function git(args, { allowFail = false } = {}) {
   try {
-    return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 512 * 1024 * 1024 })
   } catch (e) {
     if (allowFail) return null
     throw e
