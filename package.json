@@ -75,7 +75,7 @@
     "kuroshiro": "^1.2.0",
     "kuroshiro-analyzer-kuromoji": "^1.1.0",
     "puppeteer-core": "^25.3.0",
-    "storybook": "^10.4.6",
+    "storybook": "^10.5.3",
     "typescript-eslint": "^8.64.0",
     "vite": "^8.1.0",
     "vitest": "^4.1.9"
