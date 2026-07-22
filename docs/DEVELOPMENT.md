@@ -175,6 +175,32 @@ git config ai.signingKey     "~/.ssh/ai-signing.pub" # SSH 署名公開鍵
 - ヘルパは `-c` でその場限りに署名設定を上書きするだけ。グローバル/リポジトリの git 設定は変更しない。人間（本人）の `git commit` は従来どおり本人名義・1Password 署名。
 - `ai.*` 未設定なら `scripts/ai-commit.sh` はエラーで止まり、初回設定を促す。
 
+## AI の GitHub 操作（App bot）
+
+コミットの署名・名義（前節）とは別に、**Issue / PR / merge / push などの GitHub 操作は GitHub App `curseoff-ai[bot]` 名義**で行う。これにより、GitHub 上の author（コミット作者）と actor（操作の実行者）で「本人の直接操作」と「AI 経由の操作」を見分けられる。コミット自体は従来どおり `scripts/ai-commit.sh`（AI 名義・ローカル署名）を使い、**GitHub API 操作のときだけ** bot のインストールトークンを都度発行して渡す。ヘルパは **`scripts/ai-gh-token.sh`**。
+
+### 初回だけのローカル設定（`.git/config` に保存・**コミットされない**）
+```bash
+# <App ID>=GitHub App の App ID / <鍵パス>=秘密鍵(.pem)の置き場所（repo 外・パーミッション 600）
+git config ai-gh.appId   "<App ID>"
+git config ai-gh.keyPath "~/.config/curseoff-ai/<App>.private-key.pem"
+```
+
+- 秘密鍵（`.pem`）は **repo の外**（例 `~/.config/curseoff-ai/`）に置き、**パーミッション 600**。**PUBLIC リポジトリには絶対にコミットしない**。
+- App ID・鍵パスの実値は**ローカル git 設定（`ai-gh.*`）にのみ**置き、ヘルパ/ドキュメントには直書きしない。
+- App はリポジトリにインストール済みであること（Issues / Pull requests / Contents 等の権限）。
+
+### 使い方（毎回）
+```bash
+GH_TOKEN=$(scripts/ai-gh-token.sh) env -u GITHUB_TOKEN gh issue create ...
+GH_TOKEN=$(scripts/ai-gh-token.sh) env -u GITHUB_TOKEN gh pr create ...
+```
+owner/repo は省略時 `curseoff` / `typing-language-learning`。別リポジトリなら第1・第2引数で指定する（`scripts/ai-gh-token.sh <owner> <repo>`）。
+
+- 発行されるインストールトークンは **約1時間で失効**するので、操作のたびに `$(...)` で都度発行する。
+- `ai-gh.*` 未設定なら `scripts/ai-gh-token.sh` はエラーで止まり、初回設定を促す。
+- `env -u GITHUB_TOKEN` を併用するのは、環境の `GITHUB_TOKEN` が `GH_TOKEN` より優先されて bot 名義を上書きするのを防ぐため。
+
 ## デスクトップアプリ（Electron は不採用）
 
 デスクトップ版は配布していません。**PWA として出荷**しており（インストール可能・オフライン対応）、Electron（`#264` で不採用決定）による同梱ビルドは行いません。ブラウザまたはインストール済み PWA として利用してください。
