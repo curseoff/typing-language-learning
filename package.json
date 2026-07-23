@@ -32,6 +32,7 @@
     "gen-sentences": "node scripts/gen-sentences.mjs",
     "merge-sentences": "node scripts/merge-sentences.mjs",
     "gen-wsent-theme": "node scripts/gen-wsent-theme.mjs",
+    "claude:doc-researcher": "bash scripts/claude/doc-researcher/run.sh",
     "gen-dict": "node scripts/gen-dict.mjs",
     "merge-dict": "node scripts/merge-dict.mjs",
     "check-readings": "node scripts/check-readings.mjs",
