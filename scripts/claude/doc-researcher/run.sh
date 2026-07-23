@@ -12,4 +12,5 @@ CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 exec claude \
   --setting-sources "" \
   --append-system-prompt-file "$DIR/instructions.md" \
   --allowed-tools "WebFetch,WebSearch" \
+  --permission-mode plan \
   "$@"
