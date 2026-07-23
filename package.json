@@ -58,7 +58,7 @@
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
